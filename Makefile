@@ -59,6 +59,7 @@ source = \
 	gaussian_quadrature_mod.F90 \
 	kernel_mod.F90 \
 	psy.F90 \
+	num_dof_mod.F90 \
 	dynamo.F90
 
 
