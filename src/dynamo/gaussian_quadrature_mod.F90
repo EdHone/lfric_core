@@ -9,7 +9,7 @@
 
 !> @brief Contains the routines used for gaussian quadrature.
 
-!> @details Routines used for gaussian quadrature are defined in this module.
+!> @details This module has a type for the gaussian quadrature
 
 module gaussian_quadrature_mod
 use constants_mod, only: dp, pi, eps
@@ -19,6 +19,7 @@ private
 !-------------------------------------------------------------------------------
 ! Module parameters
 !-------------------------------------------------------------------------------
+!> integer The number of gaussian quadrature points
 integer, public, parameter      :: ngp = 3
 
 !-------------------------------------------------------------------------------
@@ -26,17 +27,32 @@ integer, public, parameter      :: ngp = 3
 !-------------------------------------------------------------------------------
 type, public :: gaussian_quadrature_type
   private
+  !> allocatable arrays which holds the values of the gaussian quadrature
   real(kind=dp), allocatable :: xgp(:), wgp(:)
 contains
   !final     :: final_gauss
+  !> Subroutine writes out an answer for a test
+  !! @param self the calling gaussian quadrature
   procedure :: test_integrate
+
+  !> Function quassian quadrature integration of a function f 
+  !! @param self the calling gp type
+  !! @param f real 3D array each of size ngp which holds the sample values of the
+  !! function to be integrated
+  !! @return real the value of the function thus integrated
   procedure :: integrate
+
+  !> subroutine returns the array xgp
+  !! @param self the calling gp
+  !! @param real xgp the 1-d array to hold the values
+  procedure :: get_xgp
 end type
 
 !-------------------------------------------------------------------------------
 ! Constructors
 !-------------------------------------------------------------------------------
-
+!> The interface for the constructor for the gaussian_quadrature type
+!! takes no arguments buts computes the values of the arrays xgp and qgp
 interface gaussian_quadrature_type
   module procedure init_gauss
 end interface
@@ -100,6 +116,7 @@ type(gaussian_quadrature_type) function init_gauss() result(self)
   do i=1,ngp
     self%xgp(i) = 0.5*(self%xgp(i) + 1.0)
   end do
+
   return
 end function init_gauss
   
@@ -170,5 +187,17 @@ function integrate(self,f)
 
   return
 end function integrate
+
+!-----------------------------------------------------------------------------
+! Return Gaussian quadrature points
+!-----------------------------------------------------------------------------
+subroutine get_xgp(self,xgp)
+  implicit none
+  class(gaussian_quadrature_type), intent(in) :: self
+  real(kind=dp), intent(out) :: xgp(ngp)
+
+  xgp(:) = self%xgp(:)
+  return
+end subroutine get_xgp
 
 end module gaussian_quadrature_mod

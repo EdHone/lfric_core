@@ -15,20 +15,23 @@ contains
   subroutine test_func_space()
     use pFUnit_Mod
     use function_space_mod
+    use basis_function_mod
     implicit none
 
     type(function_space_type) :: func_space
     integer :: num_cells, num_dofs, num_unique_dofs
     integer :: testncell, testundf
 
-    integer :: map(4),testmap(4),i
+    integer :: map(4),i
+    integer, pointer :: testmap(:)
 
     num_cells = 35
     num_dofs=4
     num_unique_dofs = 100
 
     func_space = function_space_type( &
-         num_cells=num_cells, num_dofs=num_dofs, num_unique_dofs=num_unique_dofs)
+         num_cells=num_cells, num_dofs=num_dofs, num_unique_dofs=num_unique_dofs, &
+         dim_space=1, dim_space_p1=3, ngp = 3)
     
     ! test the procedures of the type
     write(*,*) "test functions_space_mod:get_ncell()"
@@ -55,6 +58,7 @@ contains
     call func_space%get_cell_dofmap(num_cells-2,testmap)
     @assertEqual(map,testmap)
     write(*,*) "-----------------------------------------"
+    
     
 
   end subroutine test_func_space

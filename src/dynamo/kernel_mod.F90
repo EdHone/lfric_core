@@ -6,6 +6,7 @@
 !-------------------------------------------------------------------------------
 ! Abstract base kernel type.
 !-------------------------------------------------------------------------------
+!> @brief Abstract base type for for kernels
 module kernel_mod
 implicit none
 private
@@ -16,20 +17,11 @@ private
 
 type, public, abstract :: kernel_type
   private
-!contains
-!  procedure(operate_interface), deferred :: operate
+
 end type
 
 !-------------------------------------------------------------------------------
 ! Interfaces
 !-------------------------------------------------------------------------------
-
-!abstract interface
-!  subroutine operate_interface(self,cell)
-!    import :: v3_kernel_type
-!    class(kernel_type)  :: self
-!    integer, intent(in) :: cell
-!  end subroutine operate_interface
-!end interface
 
 end module kernel_mod

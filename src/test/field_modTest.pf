@@ -15,11 +15,14 @@ contains
   subroutine test_field()
     use pFUnit_Mod
     use function_space_mod
+    use basis_function_mod
+    use gaussian_quadrature_mod
     use field_mod
     implicit none
 
     type(function_space_type) :: func_space
     type(field_type) :: f_field
+    type(gaussian_quadrature_type) :: gq
     integer :: num_cells, num_dofs, num_unique_dofs, num_layers
     integer :: testncell, testnlayers
 
@@ -28,11 +31,16 @@ contains
     num_unique_dofs = 100
     num_layers=50
 
+    write(*,*) "test field_mod: calling function_space constructor"
     
     func_space = function_space_type( &
-         num_cells=num_cells, num_dofs=num_dofs, num_unique_dofs=num_unique_dofs)
+         num_cells=num_cells, num_dofs=num_dofs, num_unique_dofs=num_unique_dofs, &
+         dim_space = 1, dim_space_p1 = 3, ngp  = 3)
 
-    f_field = field_type(vector_space=func_space,num_layers=num_layers)
+    write(*,*) "test field_mod: calling gaussian_quadrature constructor"    
+    gq = gaussian_quadrature_type()
+
+    f_field = field_type(vector_space=func_space,gq=gq,num_layers=num_layers)
 
     
     ! test the procedures of the type

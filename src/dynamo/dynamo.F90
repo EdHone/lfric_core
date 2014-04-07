@@ -5,99 +5,89 @@
 ! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
 !-------------------------------------------------------------------------------
 
+!> @mainpage Dynamo
+!> PsyKAl is the architecture for Gung Ho. Whlist the computational and optimisation
+!> infrastructure is being developed, the science code is being developed using 
+!> a hand-rolled Psy layer, Psy-lite. A PsyKAl-lite needs a dynamo!
+!> Eventually, PsyKAlite is replaced with the real Psy and Dynamo becomes Gung Ho.
+
 !> @brief Main program used to illustrate dynamo functionality.
 
-!> @details Main program used to illustrate dynamo functionality.
+!> @details Creates the function spaces and alls the set_up to populate them (
+!> either read or compute) then individual calls to the psy-layer with kernels
+!> as if the code has been pre-processed by Psyclone.
+!> Comments starting with !PSY are what the code would lool like before Psyclone
+!> generated anything.
+
+
+
 program dynamo
   use lfric
-  use v3_kernel_mod,           only: v3_kernel_type
-  use v3_solver_kernel_mod,    only: v3_solver_kernel_type
-  use psy,                     only:  invoke_rhs_v3, invoke_v3_solver_kernel
+!PSY use v3_kernel_mod,           only: v3_kernel_type
+!PSY use v3_solver_kernel_mod,    only: v3_solver_kernel_type
+  use psy,                     only: invoke_rhs_v3, invoke_v3_solver_kernel
+  use set_up_mod,              only: set_up
   implicit none
 
-  type(function_space_type)      :: v3_function_space
-  type(v3_kernel_type)           :: v3_kernel
-  type(v3_solver_kernel_type)    :: v3_solver_kernel
+  type(function_space_type)      :: v3_function_space, v2_function_space, & 
+                                    v1_function_space, v0_function_space
   type(field_type)               :: pressure_density,rhs
+  type(gaussian_quadrature_type) :: gq
 
   integer :: cell
-
-  integer :: num_cells,num_dofs,num_unique_dofs,num_layers
-
+  integer :: num_cells,num_layers,element_order
+  
   write(*,'("Dynamo:Hello, World")') 
-  call dummy_read_header("dummy_mesh_v3",     &
-       num_cells,                             &
-       num_dofs,                              &
-       num_unique_dofs,                       &
-       num_layers)
 
-  ! create the v3 function space type
-  v3_function_space = function_space_type( &
-       num_cells=num_cells, num_dofs=num_dofs, num_unique_dofs=num_unique_dofs)
+  call set_up(v0_function_space,v1_function_space,v2_function_space,      &
+  v3_function_space, num_layers)
 
-  ! read in the connectivity table, or dofmap
-  call dummy_read_dofmap("dummy_mesh_v3", &
-       num_layers,                        &
-       v3_function_space)
+  gq = gaussian_quadrature_type()
 
-  pressure_density = field_type(vector_space = v3_function_space, &
+  pressure_density = field_type(vector_space = v3_function_space,         &
+       gq = gq,                                                           &
        num_layers = num_layers)
 
-  rhs = field_type(vector_space = v3_function_space, &
+  rhs = field_type(vector_space = v3_function_space,                      &
+       gq = gq,                                                           &
        num_layers = num_layers)
 
-  v3_kernel = v3_kernel_type()
-  v3_solver_kernel = v3_solver_kernel_type()
   !Construct PSy layer given a list of kernels. This is the line the code
   !generator may parse and do its stuff.
- ! call invoke (v3_kernel(rhs) )
+
+  write(*,*) "dynamo:calling 1st kernel"
+  !PSY call invoke (v3_kernel_type(rhs) )
   call invoke_rhs_v3(rhs)
- ! call invoke (v3_solver_kernel(pressure_density,rhs) )
+
+  write(*,*) "dynamo:calling 2nd kernel"
+  !PSY call invoke (v3_solver_kernel_type(pressure_density,rhs) )
   call invoke_v3_solver_kernel(pressure_density,rhs)
-  do cell=1,num_cells*num_layers
-    write(*,*) cell,pressure_density%data(cell),rhs%data(cell)
-  end do
+
+  write(*,*) 'RHS field = '
+  call print_field(rhs)
+  write(*,*) 'LHS field = '
+  call print_field(pressure_density)
+
 end program dynamo
 
-subroutine dummy_read_header(filename ,num_cells, num_dofs, num_unique_dofs, &
-     num_layers)
-  ! dummy read the mesh routine, or at least the header
-  implicit none
-  character(*), intent(in) :: filename ! this is dummy and not used
-  integer , intent(out) :: num_cells, num_dofs, num_unique_dofs, num_layers
+subroutine print_field(field)
+! Subroutine to print field to screen
+use lfric
 
-  ! no file or file format, just coded for now v3, lowest order on quads
-  ! Bi-linear plane, 3x3x3 
-  ! this is completely discontinuous so the dofs are all independent.
-  num_cells = 9
-  num_dofs = 1
-  num_unique_dofs = 9
-  num_layers = 3
-  return
-end subroutine dummy_read_header
+implicit none
 
-subroutine dummy_read_dofmap(filename,num_layers,v3space)
-  use function_space_mod, only: function_space_type
-  implicit none
-  character(*), intent(in) :: filename ! this is a dummy and not used
-  integer , intent(in) :: num_layers
-  type(function_space_type) :: v3space
-  
+type(field_type), intent(in)  :: field
 
-  integer :: cell
-  integer :: map(1) ! really hacky but in the real code this could be
-                    ! allocatable, depending on what the mesh read in 
-                    ! and it won't be done in this routine.
+integer :: cell, layer, df
+integer, pointer :: map(:)
 
-  ! this routine explicitly populates the dof map for a v3 space on a 
-  ! bi-periodic plane  with quads at lowest order
-  
-  ! 1st cell
-  map(1) = 1
-  do cell = 1, v3space%get_ncell()
-     call v3space%populate_cell_dofmap(cell,map)
-     map(1) = map(1) + num_layers
+do cell=1,field%vspace%get_ncell()
+  call field%vspace%get_cell_dofmap(cell,map)
+  do df=1,field%vspace%get_ndf()
+    do layer=0,field%get_nlayers()-1
+      write(*,*) cell,df,layer+1,field%data(map(df)+layer)
+    end do
   end do
+end do
 
-end subroutine dummy_read_dofmap
-  
+end subroutine print_field

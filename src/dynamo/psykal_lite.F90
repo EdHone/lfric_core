@@ -21,33 +21,44 @@ implicit none
 contains
   subroutine invoke_rhs_v3(rhs)
     use v3_kernel_mod,        only : rhs_v3_code
-
     type(field_type), intent(inout) :: rhs
     integer :: cell
-    integer :: map(1) ! harded coded for 1 df
+    integer, pointer :: map(:)
     integer :: nlayers
-    
+    integer :: ndf
+    real(kind=dp), pointer  :: v3_basis(:,:,:,:,:)
+
+! Unpack data
     nlayers=rhs%get_nlayers()
+    ndf = rhs%vspace%get_ndf()
+
+    call rhs%vspace%get_basis(v3_basis)
     do cell = 1, rhs%get_ncell()
        call rhs%vspace%get_cell_dofmap(cell,map)
-       call rhs_v3_code(nlayers,map,rhs%data)
+       call rhs_v3_code(nlayers,ndf,map,v3_basis,rhs%data,rhs%gaussian_quadrature)
     end do
+
   end subroutine invoke_rhs_v3
 
   subroutine invoke_v3_solver_kernel(pdfield,rhs)
     use v3_solver_kernel_mod, only : solver_v3_code
-  
     type(field_type), intent(inout) :: pdfield
-    type(field_type), intent(in)    :: rhs
+    type(field_type), intent(in)    :: rhs       
     integer :: cell
-    integer :: map(1) ! harded coded for 1 df
+    integer, pointer :: map(:)
     integer :: nlayers
-    
+    integer :: ndf
+    real(kind=dp), pointer  :: v3_basis(:,:,:,:,:)    
+        
     nlayers=pdfield%get_nlayers()
+    ndf = pdfield%vspace%get_ndf()
+    call pdfield%vspace%get_basis(v3_basis)
+    
     do cell = 1, pdfield%get_ncell()
        call pdfield%vspace%get_cell_dofmap(cell,map)
-       call solver_v3_code(nlayers,map,pdfield%data,rhs%data)
+       call solver_v3_code(nlayers,ndf,map,v3_basis,pdfield%data,rhs%data,pdfield%gaussian_quadrature)
     end do
+
   end subroutine invoke_v3_solver_kernel
 
 end module psy

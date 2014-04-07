@@ -11,9 +11,11 @@
 !>            a high-level module.
 
 module lfric
-  use constants_mod, only : dp
-  use function_space_mod, only: function_space_type
-  use field_mod,          only: field_type
-  use kernel_mod,         only: kernel_type
-!  use psy_mod,            only: psy_type
+  use constants_mod,           only: dp
+  use function_space_mod,      only: function_space_type
+  use field_mod,               only: field_type
+  use kernel_mod,              only: kernel_type
+  use basis_function_mod,      only: basis_function_type
+  use gaussian_quadrature_mod, only: gaussian_quadrature_type, ngp
+
 end module lfric

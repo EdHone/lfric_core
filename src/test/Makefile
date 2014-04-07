@@ -6,6 +6,7 @@ TEST_SRC   = $(wildcard *.pf)
 TEST_OBJS  = $(patsubst %.pf,$(OBJ_DIR)/%.o,$(TEST_SRC))
 SRC        = $(wildcard *.[Ff]90)
 OBJS       = $(patsubst %.[Ff]90,$(OBJ_DIR)/%.o,$(SRC))
+#OBJS       = $(wildcard $(OBJ_DIR)/*.o)
 DRIVER_OBJ = $(OBJ_DIR)/driver.o
 TARGET_OBJ = $(patsubst %Test.pf,$(OBJ_DIR)/%.o,$(TEST_SRC))
 

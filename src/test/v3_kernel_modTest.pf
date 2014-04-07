@@ -14,20 +14,23 @@ contains
   @test
   subroutine v3_kernel_test()
     use pFUnit_Mod
-    use v3_kernel_mod
-    use constants_mod
+    use v3_kernel_mod,            only : RHS_v3_code
+    use gaussian_quadrature_mod,  only : gaussian_quadrature_type
+    use constants_mod,            only : dp
     implicit none
 
     integer :: num_layers, ndf, map(1)
-    type(v3_kernel_type) :: v3_kernel
+    type(gaussian_quadrature_type) :: gq
     real(kind=dp) :: xdata(1)
     real(kind=dp) :: answer, tol
-    
+    real(kind=dp) :: basis(3,3,3,3,1)
 
-    v3_kernel = v3_kernel_type()
+    gq=gaussian_quadrature_type()
     map(1)=1
     num_layers=1
-    call v3_kernel%RHS_v3_code(num_layers,map,xdata)
+    ndf = 1
+    basis=1.0D0
+    call RHS_v3_code(num_layers,ndf,map,basis,xdata,gq)
     
     write(*,*) "v3_kernel test"
     answer = 1.0D0

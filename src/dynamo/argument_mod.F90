@@ -13,6 +13,9 @@
 !> stencil it operates over. These are the three integers of
 !> the arg_type and the values are then one of the parameters
 !> defined in this module. 
+!> field metadata also has three logicals controlling whether the psy layer
+!> needs to pass the basis function, the differential basis function,
+!> and the guassian quadrature type.
 !> Another metadatum which describes the kernel, not the fields
 !> is what the kernel will iterate over. Usually cells, sometimes
 !> all the dofs.
@@ -48,6 +51,9 @@ module argument_mod
      integer :: arg_intent
      integer :: vspace
      integer :: stencil
+     logical :: basis
+     logical :: diff_basis
+     logical :: gaussian_quad
   end type arg_type
 
 end module argument_mod

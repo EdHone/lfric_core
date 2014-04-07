@@ -7,40 +7,33 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Provides access to the members of the v3_kernel class.
+!> @brief Kernel which operates on v3 field. Determines the RHS of Galerkin projection
 
-!> @details Accessor functions for the v3_kernel class are defined in this module.
+!> @detail The kernel computes the integral of rho_df * P 
+!! with P_analytic over a single column
 
-!> @param RHS_v3_code              Code to implement the RHS for a v3 field
-!> @param gaussian_quadrature      Contains result of gaussian quadrature
 
 module v3_kernel_mod
 use lfric
-use gaussian_quadrature_mod, only: gaussian_quadrature_type, &
-                                   ngp ! parameter for how many GQ points
 use argument_mod,            only: arg_type, &          ! the type
                                    gh_rw, v3, fe, cells ! the enums
 
+
 implicit none
-
-
-private
-type(gaussian_quadrature_type) :: gaussian_quadrature
-
 
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-
+!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
 type, public, extends(kernel_type) :: v3_kernel_type
   private
   type(arg_type) :: meta_args(1) = [ &
-       arg_type(gh_rw,v3,fe) &
+       arg_type(gh_rw,v3,fe,.true.,.false.,.true.) &
        ]
   integer :: iterates_over = cells
+
 contains
   procedure, nopass :: rhs_v3_code
-!  procedure :: operate
 end type
 
 !-------------------------------------------------------------------------------
@@ -58,57 +51,47 @@ end interface
 public rhs_v3_code              
 contains
 
-type(v3_kernel_type) function v3_kernel_constructor() 
-  ! no arguments, simply call the constructor for gaussian quadrature
-  gaussian_quadrature  = gaussian_quadrature_type()
+type(v3_kernel_type) function v3_kernel_constructor() result(self)
   return
 end function v3_kernel_constructor
-  
-subroutine rhs_v3_code(nlayers,map,x)
+
+!> @brief The subroutine which is called directly by the psy layer
+!! @param[in] nlayers Integer the number of layers
+!! @param[in] ndf The number of degrees of freedom per cell
+!! @param[in] map Integer array holding the dofmap for the cell at the base of the column
+!! @param[in] v3_basis Real 5-dim array holding basis functions evaluated at gaussian quadrature points
+!! @param[inout] X Real array, the actual data
+!! @param[inout] gq Type, gaussian quadrature rule
+subroutine rhs_v3_code(nlayers,ndf,map,v3_basis,x,gq)
   ! needs to compute the integral of rho_df * P 
   ! P_analytic over a single column
   
   !Arguments
-  integer, intent(in) :: nlayers
-  integer, intent(in) :: map(1) ! hard coded
-  real(kind=dp), intent(inout) :: X(*)
-
+  integer, intent(in) :: nlayers, ndf
+  integer, intent(in) :: map(ndf)
+  real(kind=dp), intent(in), dimension(ndf,ngp,ngp,ngp,1) :: v3_basis 
+  real(kind=dp), intent(inout) :: x(*)
+  type(gaussian_quadrature_type), intent(inout) :: gq
 
   !Internal variables
   integer               :: df, k
-  integer               :: ndf
   integer               :: qp1, qp2, qp3
   real(kind=dp), dimension(ngp,ngp,ngp) :: f
-  real(kind=dp), dimension(1,ngp,ngp,ngp) :: v3_basis 
-
-  v3_basis = 1.0 ! hard-coded values, but the size is correct.
-
-  ndf=1
-  
+   
   ! compute the analytic R integrated over one cell
   do k = 0, nlayers-1
     do df = 1, ndf
        do qp1 = 1, ngp
           do qp2 = 1, ngp
              do qp3 = 1, ngp
-                f(qp1,qp2,qp3) = v3_basis(df,qp1,qp2,qp3) * real(k+1)
+                f(qp1,qp2,qp3) = v3_basis(df,qp1,qp2,qp3,1) * real(k+1)
              end do
           end do
        end do
-      x(map(df) + k) = gaussian_quadrature%integrate(f)
+       x(map(df) + k) = gq%integrate(f)
     end do
   end do
   
 end subroutine rhs_v3_code
-
-!subroutine operate(self,cell)
-!    class(kernel_type)  :: self
-!    integer, intent(in) :: cell
-!end subroutine operate
-
-function dummy_integration()
-  real :: dummy_integration
-  dummy_integration = 0.5
-end function dummy_integration
 
 end module v3_kernel_mod
