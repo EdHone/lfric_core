@@ -20,7 +20,7 @@ use gaussian_quadrature_mod, only : gaussian_quadrature_type,              &
                                     ngp_h,ngp_v
 use argument_mod,            only : arg_type,                              &
                                     gh_read, gh_inc, v2, fe, cells 
-use constants_mod,           only : dp
+use constants_mod,           only : r_def
 use kernel_mod,              only : kernel_type
 
 implicit none
@@ -62,23 +62,23 @@ end function matrix_vector_kernel_constructor
 subroutine matrix_vector_code(nlayers,ndf,undf,map,basis,lhs,x,gq)
   ! compute the integral of v*x
   !Arguments
-  integer,                                     intent(in)    :: nlayers, ndf,undf
-  integer,                                     intent(in)    :: map(ndf)
-  real(kind=dp), dimension(3,ndf,ngp_h,ngp_v), intent(in)    :: basis  
-  real(kind=dp),                               intent(in)    :: x(undf)
-  real(kind=dp),                               intent(inout) :: lhs(undf)
-  type(gaussian_quadrature_type),              intent(inout) :: gq
+  integer,                                        intent(in)    :: nlayers, ndf,undf
+  integer,                                        intent(in)    :: map(ndf)
+  real(kind=r_def), dimension(3,ndf,ngp_h,ngp_v), intent(in)    :: basis  
+  real(kind=r_def),                               intent(in)    :: x(undf)
+  real(kind=r_def),                               intent(inout) :: lhs(undf)
+  type(gaussian_quadrature_type),                 intent(inout) :: gq
 
   !Internal variables
-  integer                                :: df1, df2, k
-  integer                                :: qp1, qp2
+  integer                                   :: df1, df2, k
+  integer                                   :: qp1, qp2
   
-  real(kind=dp), dimension(ndf)          :: x_e, lhs_e
-  real(kind=dp), dimension(ngp_h,ngp_v)  :: f
-  real(kind=dp), dimension(ndf,ndf)      :: mass_matrix
-  real(kind=dp), dimension(1,3)          :: basisfun_i 
-  real(kind=dp), dimension(3,1)          :: basisfun_j 
-  real(kind=dp), dimension(1,1)          :: T_1
+  real(kind=r_def), dimension(ndf)          :: x_e, lhs_e
+  real(kind=r_def), dimension(ngp_h,ngp_v)  :: f
+  real(kind=r_def), dimension(ndf,ndf)      :: mass_matrix
+  real(kind=r_def), dimension(1,3)          :: basisfun_i 
+  real(kind=r_def), dimension(3,1)          :: basisfun_j 
+  real(kind=r_def), dimension(1,1)          :: T_1
 
   ! compute the LHS integrated over one cell and solve
   do k = 0, nlayers-1

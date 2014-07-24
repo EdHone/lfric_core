@@ -15,24 +15,24 @@ contains
   subroutine test_of_matrix_invert()
     use pFUnit_Mod
     use matrix_invert_mod, only : matrix_invert
-    use constants_mod, only : dp
+    use constants_mod,     only : r_def
     implicit none
 
-    real(kind=dp) :: a(4,4),a_inv(4,4),answer(4,4)
-    real(kind=dp) :: tol,one
+    real(kind=r_def) :: a(4,4), a_inv(4,4), answer(4,4)
+    real(kind=r_def) :: tol, one
 
     ! This uses 2D P1_DG mass matrix as an example
-    a(1,:) = 1.0_dp/9.0_dp*(/ 4.0_dp, 2.0_dp, 2.0_dp, 1.0_dp /)
-    a(2,:) = 1.0_dp/9.0_dp*(/ 2.0_dp, 4.0_dp, 1.0_dp, 2.0_dp /)
-    a(3,:) = 1.0_dp/9.0_dp*(/ 2.0_dp, 1.0_dp, 4.0_dp, 2.0_dp /)
-    a(4,:) = 1.0_dp/9.0_dp*(/ 1.0_dp, 2.0_dp, 2.0_dp, 4.0_dp /)
+    a(1,:) = 1.0_r_def/9.0_r_def*(/ 4.0_r_def, 2.0_r_def, 2.0_r_def, 1.0_r_def /)
+    a(2,:) = 1.0_r_def/9.0_r_def*(/ 2.0_r_def, 4.0_r_def, 1.0_r_def, 2.0_r_def /)
+    a(3,:) = 1.0_r_def/9.0_r_def*(/ 2.0_r_def, 1.0_r_def, 4.0_r_def, 2.0_r_def /)
+    a(4,:) = 1.0_r_def/9.0_r_def*(/ 1.0_r_def, 2.0_r_def, 2.0_r_def, 4.0_r_def /)
 
-    call matrix_invert(a,a_inv,4)
+    call matrix_invert(a, a_inv,4)
 
-    answer = matmul(a,a_inv)
+    answer = matmul(a, a_inv)
 
-    tol=1.0e-14
-    one = 1.0_dp
+    tol = 1.0e-14_r_def
+    one = 1.0_r_def
 
     @assertEqual( one, answer(1,1), tol )
     @assertEqual( one, answer(2,2), tol )

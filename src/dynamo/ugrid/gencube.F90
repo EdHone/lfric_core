@@ -34,8 +34,8 @@
 !!  </pre>
 !-------------------------------------------------------------------------------
 module gencube_mod
-use constants_mod,       only: dp, pi
-use ugrid_generator_mod, only: ugrid_generator_type
+use constants_mod,       only : r_def, str_def, pi
+use ugrid_generator_mod, only : ugrid_generator_type
 implicit none
 private
 
@@ -50,7 +50,7 @@ integer, parameter :: ngrids = 2
 !operator.
 integer, parameter :: nsmooth = 1
 
-real(kind=dp), parameter :: piby4 = pi / 4.0_dp
+real(kind=r_def), parameter :: piby4 = pi / 4.0_r_def
 
 !-------------------------------------------------------------------------------
 !> @brief    Cubed sphere generator type (function object).
@@ -71,29 +71,29 @@ type, extends(ugrid_generator_type), public :: gencube_type
   private
 
   !n x n cells on each panel smallest and largest n
-  integer                    :: n0
-  integer                    :: nfacex
-  integer                    :: nedgex
-  integer                    :: nvertx
-  integer      , allocatable :: neoff(:,:)
-  integer      , allocatable :: neofv(:,:)
-  integer      , allocatable :: nface(:)
-  integer      , allocatable :: nedge(:)
-  integer      , allocatable :: nvert(:)
-  integer      , allocatable :: fnxtf(:,:,:)
-  integer      , allocatable :: eoff(:,:,:)
-  integer      , allocatable :: voff(:,:,:)
-  integer      , allocatable :: fnxte(:,:,:)
-  integer      , allocatable :: vofe(:,:,:)
-  integer      , allocatable :: fofv(:,:,:)
-  integer      , allocatable :: eofv(:,:,:)
-  real(kind=dp), allocatable :: flong(:,:)
-  real(kind=dp), allocatable :: flat(:,:)
-  real(kind=dp), allocatable :: vlong(:,:)
-  real(kind=dp), allocatable :: vlat(:,:)
-  real(kind=dp), allocatable :: farea(:,:)
-  real(kind=dp), allocatable :: ldist(:,:)
-  real(kind=dp), allocatable :: ddist(:,:)
+  integer                       :: n0
+  integer                       :: nfacex
+  integer                       :: nedgex
+  integer                       :: nvertx
+  integer         , allocatable :: neoff(:,:)
+  integer         , allocatable :: neofv(:,:)
+  integer         , allocatable :: nface(:)
+  integer         , allocatable :: nedge(:)
+  integer         , allocatable :: nvert(:)
+  integer         , allocatable :: fnxtf(:,:,:)
+  integer         , allocatable :: eoff(:,:,:)
+  integer         , allocatable :: voff(:,:,:)
+  integer         , allocatable :: fnxte(:,:,:)
+  integer         , allocatable :: vofe(:,:,:)
+  integer         , allocatable :: fofv(:,:,:)
+  integer         , allocatable :: eofv(:,:,:)
+  real(kind=r_def), allocatable :: flong(:,:)
+  real(kind=r_def), allocatable :: flat(:,:)
+  real(kind=r_def), allocatable :: vlong(:,:)
+  real(kind=r_def), allocatable :: vlat(:,:)
+  real(kind=r_def), allocatable :: farea(:,:)
+  real(kind=r_def), allocatable :: ldist(:,:)
+  real(kind=r_def), allocatable :: ddist(:,:)
 
 contains
   procedure :: get_dimensions
@@ -225,11 +225,11 @@ subroutine get_coordinates(self, node_coordinates)
   implicit none
 
   class(gencube_type), intent(in) :: self
-  real(kind=dp),      intent(out) :: node_coordinates(:,:)
+  real(kind=r_def),   intent(out) :: node_coordinates(:,:)
 
   !Internal variables
   integer :: iv
-  real(kind=dp) :: long, lat
+  real(kind=r_def) :: long, lat
 
   do iv = 1, self%nvert(ngrids)
     long    = self%vlong(iv,ngrids)
@@ -320,15 +320,15 @@ subroutine generate(self)
   !Internal variables
   integer :: igrid
 
-  integer       :: n, n2
-  real(kind=dp) :: dlambda
+  integer          :: n, n2
+  real(kind=r_def) :: dlambda
 
   do igrid = 1, ngrids
 
     !Size of panels on this grid
     n       = self%n0*(2**(igrid-1))
     n2      = n*n
-    dlambda = 0.5_dp*pi/n
+    dlambda = 0.5_r_def*pi/n
 
     self%nface(igrid) = 6*n2
     self%nedge(igrid) = 2*self%nface(igrid)
@@ -369,29 +369,23 @@ subroutine part1(self, igrid, dlambda, n, n2)
 
   !Arguments
   class(gencube_type), intent(inout) :: self
-  integer,       intent(in)          :: igrid
-  integer,       intent(in)          :: n
-  integer,       intent(in)          :: n2
-  real(kind=dp), intent(in)          :: dlambda
+  integer,          intent(in)       :: igrid
+  integer,          intent(in)       :: n
+  integer,          intent(in)       :: n2
+  real(kind=r_def), intent(in)       :: dlambda
 
   !Internal variables
-  real(kind=dp) :: lambda1, lambda2
-  real(kind=dp) :: lat, long
+  real(kind=r_def) :: lambda1, lambda2
+  real(kind=r_def) :: lat, long
+  real(kind=r_def) :: t1, t2
+  real(kind=r_def) :: x1, y1, z1
+  real(kind=r_def) :: x2, y2, z2
+  real(kind=r_def) :: x3, y3, z3
+  real(kind=r_def) :: x4, y4, z4
+  real(kind=r_def) :: x5, y5, z5
+  real(kind=r_def) :: x6, y6, z6
 
-  real(kind=dp) :: t1, t2
-
-  integer :: p1
-
-  real(kind=dp) :: x1, y1, z1
-  real(kind=dp) :: x2, y2, z2
-  real(kind=dp) :: x3, y3, z3
-  real(kind=dp) :: x4, y4, z4
-  real(kind=dp) :: x5, y5, z5
-  real(kind=dp) :: x6, y6, z6
-
-  integer :: j, i
-
-  integer :: ixv
+  integer          :: i, j, ixv, p1
 
   !Loop over vertices/faces of one panel
   do j = 1, n
@@ -409,7 +403,7 @@ subroutine part1(self, igrid, dlambda, n, n2)
       ixv = (j-1)*n + i
 
       !Cartesian coordinates of vertex
-      x1 = 1.0_dp/sqrt(1.0_dp + t1*t1 + t2*t2)
+      x1 = 1.0_r_def/sqrt(1.0_r_def + t1*t1 + t2*t2)
       y1 = x1*t1
       z1 = x1*t2
 
@@ -651,16 +645,16 @@ subroutine part3(self, igrid, n, n2)
   integer,             intent(in)    :: n2
 
   !Internal variables
-  integer :: pp, p1
-  integer :: ixv, iv
-  real(kind=dp) :: t1, t2
+  integer          :: pp, p1
+  integer          :: ixv, iv
+  real(kind=r_def) :: t1, t2
 
-  real(kind=dp) :: lambda1
-  real(kind=dp) :: lambda2
+  real(kind=r_def) :: lambda1
+  real(kind=r_def) :: lambda2
 
-  real(kind=dp) :: lat, long
+  real(kind=r_def) :: lat, long
 
-  real(kind=dp) :: x1, y1, z1
+  real(kind=r_def) :: x1, y1, z1
 
   !All faces have 4 edges and vertices
   self%neoff(1:self%nface(igrid),igrid) = 4
@@ -700,7 +694,7 @@ subroutine part3(self, igrid, n, n2)
   t1      = tan(lambda1)
 
   !Cartesian coordinates of vertex
-  x1 = 1.0_dp/sqrt(1.0_dp + t1*t1 + t2*t2)
+  x1 = 1.0_r_def/sqrt(1.0_r_def + t1*t1 + t2*t2)
   y1 = x1*t1
   z1 = x1*t2
 
@@ -806,7 +800,7 @@ end subroutine part4
 !-------------------------------------------------------------------------------
 
 subroutine part5(self)
-  use coord_algorithms_mod, only: xyz2ll, ll2xyz, starea2, spdist
+  use coord_algorithms_mod, only : xyz2ll, ll2xyz, starea2, spdist
   implicit none
 
   !Arguments
@@ -818,23 +812,23 @@ subroutine part5(self)
   integer :: if1, if2, ixv,  ie0, ie1, i
   integer :: iv1, iv2
 
-  real(kind=dp) :: lat, long
-  real(kind=dp) :: rmag
+  real(kind=r_def) :: lat, long
+  real(kind=r_def) :: rmag
 
-  real(kind=dp) :: xc, yc, zc
-  real(kind=dp) :: x0, y0, z0
-  real(kind=dp) :: x1, y1, z1
-  real(kind=dp) :: x2, y2, z2
+  real(kind=r_def) :: xc, yc, zc
+  real(kind=r_def) :: x0, y0, z0
+  real(kind=r_def) :: x1, y1, z1
+  real(kind=r_def) :: x2, y2, z2
 
-  real(kind=dp) :: aface, atri
+  real(kind=r_def) :: aface, atri
 
-  real(kind=dp) :: lmn
-  real(kind=dp) :: lmx
-  real(kind=dp) :: dmn
-  real(kind=dp) :: dmx
-  real(kind=dp) :: dav
+  real(kind=r_def) :: lmn
+  real(kind=r_def) :: lmx
+  real(kind=r_def) :: dmn
+  real(kind=r_def) :: dmx
+  real(kind=r_def) :: dav
 
-  real(kind=dp) :: s
+  real(kind=r_def) :: s
 
   !Calculate geometrical quantities
   do igrid = 1, ngrids
@@ -845,9 +839,9 @@ subroutine part5(self)
       !First locate face centres at barycentres of 
       !surrounding vertices
       do if1 = 1, self%nface(igrid)
-        xc = 0.0_dp
-        yc = 0.0_dp
-        zc = 0.0_dp
+        xc = 0.0_r_def
+        yc = 0.0_r_def
+        zc = 0.0_r_def
         do i = 1, 4
           ixv  = self%voff(if1,i,igrid)
           long = self%vlong(ixv,igrid)
@@ -857,7 +851,7 @@ subroutine part5(self)
           yc = yc + y1
           zc = zc + z1
         end do
-        rmag = 1.0_dp/sqrt(xc*xc + yc*yc + zc*zc)
+        rmag = 1.0_r_def/sqrt(xc*xc + yc*yc + zc*zc)
         xc = xc*rmag
         yc = yc*rmag
         zc = zc*rmag
@@ -869,9 +863,9 @@ subroutine part5(self)
       !next relocate vertices at barycentres of 
       !surrounding face centres - needed for h operator
 !      do iv1 = 1, self%nvert(igrid)
-!        xc = 0.0_dp
-!        yc = 0.0_dp
-!        zc = 0.0_dp
+!        xc = 0.0_r_def
+!        yc = 0.0_r_def
+!        zc = 0.0_r_def
 !        do i = 1, self%neofv(iv1,igrid)
 !          if1  = self%fofv(iv1,i,igrid)
 !          long = self%flong(if1,igrid)
@@ -881,7 +875,7 @@ subroutine part5(self)
 !          yc = yc + y1
 !          zc = zc + z1
 !        enddo
-!        rmag = 1.0_dp/sqrt(xc*xc + yc*yc + zc*zc)
+!        rmag = 1.0_r_def/sqrt(xc*xc + yc*yc + zc*zc)
 !        xc = xc*rmag
 !        yc = yc*rmag
 !        zc = zc*rmag
@@ -898,7 +892,7 @@ subroutine part5(self)
       lat  = self%flat(if1,igrid)
       call ll2xyz(long,lat,x0,y0,z0)
       !Compute face area
-      aface = 0.0_dp
+      aface = 0.0_r_def
       do i = 1, 4
 
         ie1  = self%eoff(if1,i,igrid)
@@ -921,11 +915,11 @@ subroutine part5(self)
 
     !Tabulate lengths of edges and distances between face centres
     !across each edge
-    lmn = 5.0_dp
-    lmx = 0.0_dp
-    dmn = 5.0_dp
-    dmx = 0.0_dp
-    dav = 0.0_dp
+    lmn = 5.0_r_def
+    lmx = 0.0_r_def
+    dmn = 5.0_r_def
+    dmx = 0.0_r_def
+    dav = 0.0_r_def
 
     do ie0 = 1, self%nedge(igrid)
 
@@ -976,36 +970,36 @@ end subroutine part5
 !-------------------------------------------------------------------------------
 
 subroutine part6(self)
-  use coord_algorithms_mod, only: ll2xyz
+  use coord_algorithms_mod, only : ll2xyz
   implicit none
 
   !Arguments
   class(gencube_type), intent(inout) :: self
 
   !Internal variables
-  integer :: igrid
-  logical :: lfound
+  integer          :: igrid
+  logical          :: lfound
 
-  integer       :: if0, if1, if2, if3
-  integer       :: ix1, ix2
-  integer       :: ie1
-  integer       :: ixmin, ifmin
+  integer          :: if0, if1, if2, if3
+  integer          :: ix1, ix2
+  integer          :: ie1
+  integer          :: ixmin, ifmin
 
-  integer       :: if21, if22
-  integer       :: iv0
+  integer          :: if21, if22
+  integer          :: iv0
 
-  real(kind=dp) :: x0, y0, z0
-  real(kind=dp) :: x1, y1, z1
-  real(kind=dp) :: x2, y2, z2
+  real(kind=r_def) :: x0, y0, z0
+  real(kind=r_def) :: x1, y1, z1
+  real(kind=r_def) :: x2, y2, z2
 
-  real(kind=dp) :: d1x, d1y, d1z
-  real(kind=dp) :: d2x, d2y, d2z
+  real(kind=r_def) :: d1x, d1y, d1z
+  real(kind=r_def) :: d2x, d2y, d2z
 
-  real(kind=dp) :: long, lat
+  real(kind=r_def) :: long, lat
   
-  real(kind=dp) :: thetamin, theta
+  real(kind=r_def) :: thetamin, theta
 
-  real(kind=dp) :: sn, cs
+  real(kind=r_def) :: sn, cs
 
 
   !Sort FNXTF into anticlockwise order on each grid
@@ -1054,7 +1048,7 @@ subroutine part6(self)
              + z0*(d1x*d2y - d1y*d2x)
           theta = atan2(sn,cs)
 
-          if ((theta < thetamin) .and. (theta > 0.0_dp)) then
+          if ((theta < thetamin) .and. (theta > 0.0_r_def)) then
             ixmin    = ix2
             ifmin    = if2
             thetamin = theta
@@ -1127,7 +1121,7 @@ subroutine part6(self)
              + y0*(d1z*d2x - d1x*d2z) &
              + z0*(d1x*d2y - d1y*d2x)
           theta = atan2(sn,cs)
-          if ((theta < thetamin) .and. (theta > 0.0_dp)) then
+          if ((theta < thetamin) .and. (theta > 0.0_r_def)) then
             ixmin = ix2
             ifmin = if2
             thetamin = theta
@@ -1219,19 +1213,19 @@ subroutine part8(self)
   class(gencube_type), intent(inout) :: self
 
   !Internal variables
-  real(kind=dp) :: sn
+  real(kind=r_def) :: sn
 
-  real(kind=dp) :: x0,  y0,  z0
-  real(kind=dp) :: x1,  y1,  z1
-  real(kind=dp) :: d1x, d1y, d1z
-  real(kind=dp) :: d2x, d2y, d2z
-  real(kind=dp) :: lat, long
+  real(kind=r_def) :: x0,  y0,  z0
+  real(kind=r_def) :: x1,  y1,  z1
+  real(kind=r_def) :: d1x, d1y, d1z
+  real(kind=r_def) :: d2x, d2y, d2z
+  real(kind=r_def) :: lat, long
 
-  integer :: igrid
-  integer :: ie0
+  integer          :: igrid
+  integer          :: ie0
 
-  integer :: if1, if2
-  integer :: iv1, iv2
+  integer          :: if1, if2
+  integer          :: iv1, iv2
 
   !Sort VOFE so that VOFE(1) -> VOFE(2) (tangent vector)
   !is 90 degrees anticlockwise of FNXTE(1) -> FNXTE(2) (normal vector)
@@ -1269,7 +1263,7 @@ subroutine part8(self)
          + y0*(d1z*d2x - d1x*d2z) &
          + z0*(d1x*d2y - d1y*d2x)
 
-      if (sn < 0.0_dp) then
+      if (sn < 0.0_r_def) then
         !swap the two vertices
         self%vofe(ie0,1,igrid) = iv2
         self%vofe(ie0,2,igrid) = iv1
@@ -1296,18 +1290,16 @@ subroutine write_data(self)
   !Arguments
   class(gencube_type), intent(inout) :: self
 
-  integer :: iv, if1, if2, j
+  integer          :: iv, if1, if2, j
+  integer          :: ie1, iv1, iv2
+  integer          :: igrid
 
-  integer :: ie1, iv1, iv2
+  real(kind=r_def) :: long, lat
 
-  integer :: igrid
+  real(kind=r_def) :: x1, y1, z1
+  real(kind=r_def) :: x2, y2, z2
 
-  real(kind=dp) :: long, lat
-
-  real(kind=dp) :: x1, y1, z1
-  real(kind=dp) :: x2, y2, z2
-
-  character(len=80) :: ygridfile
+  character(len=str_def) :: ygridfile
 
   !Write out coordinates of edges for plotting
   open(44,file='primalgrid.dat',form='formatted')

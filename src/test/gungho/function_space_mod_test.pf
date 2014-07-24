@@ -15,7 +15,7 @@ contains
   subroutine test_func_space()
     use pFUnit_Mod
     use function_space_mod, only : function_space_type, V0, V1, V2, V3
-    use constants_mod, only : dp
+    use constants_mod, only : r_def
     use mesh_mod, only : num_cells, v_unique_dofs, num_layers
     use gaussian_quadrature_mod, only : ngp_h, ngp_v
     use basis_function_mod,         only : &
@@ -29,53 +29,53 @@ contains
     type(function_space_type) :: v0_func_space, v1_func_space, &
                                  v2_func_space, v3_func_space
 
-    integer :: num_dofs, num_unique_dofs
-    integer :: testncell, testundf, test_fs
-    real(kind=dp), pointer, dimension(:,:,:,:) :: test_basis
-    integer :: i,j
+    integer          :: num_dofs, num_unique_dofs
+    integer          :: testncell, testundf, test_fs
+    real(kind=r_def), pointer, dimension(:,:,:,:) :: test_basis
+    integer          :: i,j
     integer, pointer :: testmap(:)
-    real(kind=dp) :: epsilon
-    real(kind=dp), pointer, dimension(:,:) :: test_nodes
+    real(kind=r_def) :: epsilon
+    real(kind=r_def), pointer, dimension(:,:) :: test_nodes
 
-    integer :: test_v0_dofmap_result_1,&
-               test_v0_dofmap_result_2
+    integer          :: test_v0_dofmap_result_1,&
+                        test_v0_dofmap_result_2
 
-    real(kind=dp) :: test_v0_basis_result, &
-                     test_v0_diff_basis_result
+    real(kind=r_def) :: test_v0_basis_result, &
+                        test_v0_diff_basis_result
 
-    real(kind=dp) :: test_v0_nodal_coords_1, &
-                     test_v0_nodal_coords_2, &
-                     test_v0_nodal_coords_3
+    real(kind=r_def) :: test_v0_nodal_coords_1, &
+                        test_v0_nodal_coords_2, &
+                        test_v0_nodal_coords_3
 
-    integer :: test_v1_dofmap_result_1,&
-               test_v1_dofmap_result_2
+    integer          :: test_v1_dofmap_result_1,&
+                        test_v1_dofmap_result_2
 
-    real(kind=dp) :: test_v1_basis_result, &
-                     test_v1_diff_basis_result
+    real(kind=r_def) :: test_v1_basis_result, &
+                        test_v1_diff_basis_result
 
-    real(kind=dp) :: test_v1_nodal_coords_1, &
-                     test_v1_nodal_coords_2, &
-                     test_v1_nodal_coords_3
+    real(kind=r_def) :: test_v1_nodal_coords_1, &
+                        test_v1_nodal_coords_2, &
+                        test_v1_nodal_coords_3
 
-    integer :: test_v2_dofmap_result_1,&
-               test_v2_dofmap_result_2
+    integer          :: test_v2_dofmap_result_1,&
+                        test_v2_dofmap_result_2
 
-    real(kind=dp) :: test_v2_basis_result, &
-                     test_v2_diff_basis_result
+    real(kind=r_def) :: test_v2_basis_result, &
+                        test_v2_diff_basis_result
 
-    real(kind=dp) :: test_v2_nodal_coords_1, &
-                     test_v2_nodal_coords_2, &
-                     test_v2_nodal_coords_3
+    real(kind=r_def) :: test_v2_nodal_coords_1, &
+                        test_v2_nodal_coords_2, &
+                        test_v2_nodal_coords_3
 
-    integer :: test_v3_dofmap_result_1,&
-               test_v3_dofmap_result_2
+    integer          :: test_v3_dofmap_result_1,&
+                        test_v3_dofmap_result_2
 
-    real(kind=dp) :: test_v3_basis_result, &
-                     test_v3_diff_basis_result
+    real(kind=r_def) :: test_v3_basis_result, &
+                        test_v3_diff_basis_result
 
-    real(kind=dp) :: test_v3_nodal_coords_1, &
-                     test_v3_nodal_coords_2, &
-                     test_v3_nodal_coords_3
+    real(kind=r_def) :: test_v3_nodal_coords_1, &
+                        test_v3_nodal_coords_2, &
+                        test_v3_nodal_coords_3
     
     ! set some sizes ...
     num_cells = 35
@@ -106,18 +106,18 @@ contains
     v1_diff_basis=atan(4.0)
     v2_diff_basis=atan(4.0)
     v3_diff_basis=atan(4.0)
-    v0_nodal_coords(1,:)=0.152689632_dp
-    v0_nodal_coords(2,:)=0.562554751_dp
-    v0_nodal_coords(3,:)=-0.8234_dp
-    v1_nodal_coords(1,:)=0.152689632_dp
-    v1_nodal_coords(2,:)=0.562554751_dp
-    v1_nodal_coords(3,:)=-0.8234_dp
-    v2_nodal_coords(1,:)=0.152689632_dp
-    v2_nodal_coords(2,:)=0.562554751_dp
-    v2_nodal_coords(3,:)=-0.8234_dp
-    v3_nodal_coords(1,:)=0.152689632_dp
-    v3_nodal_coords(2,:)=0.562554751_dp
-    v3_nodal_coords(3,:)=-0.8234_dp
+    v0_nodal_coords(1,:)=0.152689632_r_def
+    v0_nodal_coords(2,:)=0.562554751_r_def
+    v0_nodal_coords(3,:)=-0.8234_r_def
+    v1_nodal_coords(1,:)=0.152689632_r_def
+    v1_nodal_coords(2,:)=0.562554751_r_def
+    v1_nodal_coords(3,:)=-0.8234_r_def
+    v2_nodal_coords(1,:)=0.152689632_r_def
+    v2_nodal_coords(2,:)=0.562554751_r_def
+    v2_nodal_coords(3,:)=-0.8234_r_def
+    v3_nodal_coords(1,:)=0.152689632_r_def
+    v3_nodal_coords(2,:)=0.562554751_r_def
+    v3_nodal_coords(3,:)=-0.8234_r_def
     allocate( v0_dofmap(0:num_cells,v_unique_dofs(1,2)) )
     allocate( v1_dofmap(0:num_cells,v_unique_dofs(2,2)) )
     allocate( v2_dofmap(0:num_cells,v_unique_dofs(3,2)) )

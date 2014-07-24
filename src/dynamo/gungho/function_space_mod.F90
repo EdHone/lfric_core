@@ -16,7 +16,7 @@
 
 module function_space_mod
 
-use constants_mod, only:dp
+use constants_mod, only : r_def
 
 implicit none
 
@@ -34,14 +34,14 @@ type, public :: function_space_type
   !! or dofmap for the whole function space over the bottom level of the domain.
   integer, allocatable :: dofmap(:,:)
   !> 4-dim allocatable array of reals which hold the values of the basis function
-  real(kind=dp), allocatable :: basis(:,:,:,:)
+  real(kind=r_def), allocatable :: basis(:,:,:,:)
   !> 4-dim allocatable array of reals which hold the values of the basis function
   !! for the differential  functions space
-  real(kind=dp), allocatable :: diff_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: diff_basis(:,:,:,:)
 
   !> A two dimensional, allocatable array of reals which holds the coordinates
   !! of the function_space degrees of freedom
-  real(kind=dp), allocatable :: nodal_coords(:,:)
+  real(kind=r_def), allocatable :: nodal_coords(:,:)
 
 contains
   !final :: destructor
@@ -119,15 +119,16 @@ type(function_space_type), target, allocatable, save :: v3_function_space
 contains
 
 function get_instance(function_space) result(instance)
-  use basis_function_mod,         only : &
+  use basis_function_mod,      only : &
               v0_basis, v1_basis, v2_basis, v3_basis, &
               v0_diff_basis, v1_diff_basis, v2_diff_basis, v3_diff_basis, &
               v0_nodal_coords, v1_nodal_coords, v2_nodal_coords, v3_nodal_coords
 
-  use dofmap_mod,                 only : &
+  use dofmap_mod,              only : &
               v0_dofmap, v1_dofmap, v2_dofmap, v3_dofmap
-  use gaussian_quadrature_mod,    only : ngp_h, ngp_v
-  use mesh_mod, only : num_cells, v_unique_dofs, num_layers
+
+  use gaussian_quadrature_mod, only : ngp_h, ngp_v
+  use mesh_mod,                only : num_cells, v_unique_dofs, num_layers
 
   implicit none
 
@@ -225,11 +226,11 @@ subroutine init_function_space(self, &
   integer, intent(in) :: ngp_h,ngp_v
 ! The following four arrays have intent inout because the move_allocs in the
 ! code need access to the arrays to free them in their original locations
-  integer, intent(inout), allocatable  :: dofmap(:,:)
-  real(kind=dp), intent(inout), allocatable  :: basis(:,:,:,:)
-  real(kind=dp), intent(inout), allocatable  :: diff_basis(:,:,:,:)
-  real(kind=dp), intent(inout), allocatable  :: nodal_coords(:,:)
-  integer, intent(in) :: fs
+  integer,          intent(inout), allocatable  :: dofmap(:,:)
+  real(kind=r_def), intent(inout), allocatable  :: basis(:,:,:,:)
+  real(kind=r_def), intent(inout), allocatable  :: diff_basis(:,:,:,:)
+  real(kind=r_def), intent(inout), allocatable  :: nodal_coords(:,:)
+  integer,          intent(in)                  :: fs
 
   self%ncell           =  num_cells
   self%nlayers         =  num_layers
@@ -325,7 +326,7 @@ end function get_cell_dofmap
 function get_basis(self)  result(basis)
   implicit none
   class(function_space_type), target, intent(in)  :: self  
-  real(kind=dp),              pointer             :: basis(:,:,:,:)
+  real(kind=r_def),              pointer          :: basis(:,:,:,:)
 
   basis => self%basis
 
@@ -338,7 +339,7 @@ end function get_basis
 function get_diff_basis(self) result(diff_basis)
   implicit none
   class(function_space_type), target, intent(in)  :: self  
-  real(kind=dp),              pointer             :: diff_basis(:,:,:,:)
+  real(kind=r_def),              pointer          :: diff_basis(:,:,:,:)
 
   diff_basis => self%diff_basis
 
@@ -351,7 +352,7 @@ end function get_diff_basis
 function get_nodes(self) result(nodal_coords)
   implicit none
   class(function_space_type), target, intent(in)  :: self
-  real(kind=dp),              pointer             :: nodal_coords(:,:)
+  real(kind=r_def),              pointer          :: nodal_coords(:,:)
   
   nodal_coords => self%nodal_coords
   

@@ -20,7 +20,7 @@ use gaussian_quadrature_mod, only: gaussian_quadrature_type, &
 use argument_mod,            only: arg_type, &          ! the type
                                    gh_inc, v1, fe, cells ! the enums
 use kernel_mod,              only: kernel_type
-use constants_mod,           only: dp
+use constants_mod,           only: r_def
 
 implicit none
 
@@ -74,21 +74,21 @@ subroutine rhs_v1_code(nlayers,ndf,undf,map,v1_basis,x,gq)
   !Arguments
   integer, intent(in) :: nlayers, ndf,undf
   integer, intent(in) :: map(ndf)
-  real(kind=dp), intent(in), dimension(3,ndf,ngp_h,ngp_v) :: v1_basis 
-  real(kind=dp), intent(inout) :: x(undf)
+  real(kind=r_def), intent(in), dimension(3,ndf,ngp_h,ngp_v) :: v1_basis 
+  real(kind=r_def), intent(inout) :: x(undf)
   type(gaussian_quadrature_type), intent(inout) :: gq
 
   !Internal variables
-  integer               :: df, k
-  integer               :: qp1, qp2
-  real(kind=dp), dimension(ngp_h,ngp_v) :: f
-  real(kind=dp), dimension(1,3)  :: basisfun_i
-  real(kind=dp), dimension(3,1)  :: constantvec
-  real(kind=dp), dimension(1,1) :: T_1
+  integer                                  :: df, k
+  integer                                  :: qp1, qp2
+  real(kind=r_def), dimension(ngp_h,ngp_v) :: f
+  real(kind=r_def), dimension(1,3)         :: basisfun_i
+  real(kind=r_def), dimension(3,1)         :: constantvec
+  real(kind=r_def), dimension(1,1)         :: T_1
 
-  constantvec(1,1) =  1.0_dp;
-  constantvec(2,1) =  2.0_dp;  
-  constantvec(3,1) =  4.0_dp;  
+  constantvec(1,1) =  1.0_r_def;
+  constantvec(2,1) =  2.0_r_def;  
+  constantvec(3,1) =  4.0_r_def;  
   ! Compute the analytic R integrated over one cell
   do k = 0, nlayers-1
     do df = 1, ndf

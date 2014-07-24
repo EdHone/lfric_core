@@ -10,10 +10,10 @@
 !> @brief Kernel which computes LHS of Galerkin projection and solves equation
 
 module v3_solver_kernel_mod
-use kernel_mod, only : kernel_type
-use constants_mod, only : dp
+use kernel_mod,              only : kernel_type
+use constants_mod,           only : r_def
 use gaussian_quadrature_mod, only : ngp_h, ngp_v, gaussian_quadrature_type
-use argument_mod,            only : arg_type, &          ! the type
+use argument_mod,            only : arg_type, &                      ! the type
                                     gh_read, gh_write, v3, fe, cells ! the enums
 
 use matrix_invert_mod,       only : matrix_invert                                 
@@ -66,21 +66,21 @@ subroutine solver_v3_code(nlayers,ndf,undf,map,v3_basis,x,rhs,gq)
   ! P_analytic over a single column
   
   !Arguments
-  integer, intent(in) :: nlayers, ndf,undf
-  integer, intent(in) :: map(ndf)
-!  real(kind=dp), intent(in), dimension(ndf,ngp,ngp,ngp,1) :: v3_basis  
-  real(kind=dp), intent(in), dimension(1,ndf,ngp_h,ngp_v) :: v3_basis  
-  real(kind=dp), intent(inout) :: x(undf)
-  real(kind=dp), intent(in) :: rhs(undf)
-  type(gaussian_quadrature_type), intent(in) :: gq
+  integer,          intent(in)                               :: nlayers, ndf,undf
+  integer,          intent(in)                               :: map(ndf)
+!  real(kind=r_def), intent(in), dimension(ndf,ngp,ngp,ngp,1) :: v3_basis  
+  real(kind=r_def), intent(in), dimension(1,ndf,ngp_h,ngp_v) :: v3_basis  
+  real(kind=r_def), intent(inout)                            :: x(undf)
+  real(kind=r_def), intent(in)                               :: rhs(undf)
+  type(gaussian_quadrature_type), intent(in)                 :: gq
 
   !Internal variables
   integer               :: df1, df2, k
   integer               :: qp1, qp2
   
-  real(kind=dp) :: x_e(ndf), rhs_e(ndf)
-  real(kind=dp), dimension(ngp_h,ngp_v) :: f
-  real(kind=dp), dimension(ndf,ndf) :: mass_matrix_v3, inv_mass_matrix_v3
+  real(kind=r_def)                         :: x_e(ndf), rhs_e(ndf)
+  real(kind=r_def), dimension(ngp_h,ngp_v) :: f
+  real(kind=r_def), dimension(ndf,ndf)     :: mass_matrix_v3, inv_mass_matrix_v3
   
   ! compute the LHS integrated over one cell and solve
   do k = 0, nlayers-1

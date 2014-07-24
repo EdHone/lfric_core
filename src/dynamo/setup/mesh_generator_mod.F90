@@ -13,9 +13,9 @@
 !-------------------------------------------------------------------------------
 module mesh_generator_mod
 
-use reference_element_mod, only: nfaces,   nedges,   nverts, &
+use reference_element_mod, only : nfaces,   nedges,   nverts, &
                                  nfaces_h, nedges_h, nverts_h
-use constants_mod, only : dp                                 
+use constants_mod,         only : r_def                                 
 
 implicit none
 
@@ -31,9 +31,9 @@ integer :: nface_g, nedge_g, nvert_g
 
 ! This is the minimal set of information, from which all other connectivity can be computed
 
-integer, allocatable :: cell_next(:,:)
-integer, allocatable :: vert_on_cell(:,:)
-real(kind=dp), allocatable    :: mesh_vertex(:,:)
+integer,          allocatable :: cell_next(:,:)
+integer,          allocatable :: vert_on_cell(:,:)
+real(kind=r_def), allocatable :: mesh_vertex(:,:)
 
 ! Extra connectivity for easy dofmap computation
 ! In terminology of Logg 08 these are:
@@ -77,10 +77,10 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
   use log_mod, only : log_event, log_scratch_space, &
                       LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR
 
-  integer,           intent( in ) :: ncells
-  integer,           intent( in ) :: nx, ny
-  integer,           intent( in ) :: nlayers
-  real( kind = dp ), intent( in ) :: dx, dy, dz
+  integer,              intent( in ) :: ncells
+  integer,              intent( in ) :: nx, ny
+  integer,              intent( in ) :: nlayers
+  real( kind = r_def ), intent( in ) :: dx, dy, dz
 
   ! Loop indices
   integer         :: i, j, k, id, jd
@@ -277,10 +277,10 @@ subroutine mesh_generator_cubedsphere( filename, ncells, nlayers, dz )
   
   implicit none
 
-  character(*), intent(in)   :: filename
-  integer, intent(in)        :: ncells
-  integer, intent(in)        :: nlayers
-  real(kind=dp), intent(in)  :: dz
+  character(*),     intent(in) :: filename
+  integer,          intent(in) :: ncells
+  integer,          intent(in) :: nlayers
+  real(kind=r_def), intent(in) :: dz
 
 ! file unit for mesh data file
   integer, parameter :: mesh_data_unit = 44
@@ -290,11 +290,10 @@ subroutine mesh_generator_cubedsphere( filename, ncells, nlayers, dz )
   integer :: nvert_in, nface_in, nedge_in
   integer :: num_nodes_per_face, num_nodes_per_edge, num_edges_per_face
 ! lat/long coordinates
-  real(kind=dp) :: long, lat, r
-
   !2D ugrid and generator strategy
   type(ugrid_2d_type)                 :: ugrid_2d
   class(ugrid_file_type), allocatable :: file_handler
+  real(kind=r_def) :: long, lat, r
 
 ! topologically a cube
   nedge_h_g = 2*ncells
@@ -539,6 +538,28 @@ subroutine mesh_connectivity( ncells )
   end if
 
 end subroutine mesh_connectivity
+
+subroutine llr2xyz(long,lat,r,x,y,z)
+!-------------------------------------------------------------------------------
+!  Subroutine to convert longitude and latitude to cartesian coordinates
+!-------------------------------------------------------------------------------
+      
+  real(kind=r_def), intent(in)  :: long,lat,r
+  real(kind=r_def), intent(out) :: x,y,z
+  real(kind=r_def)              :: cln,sln,clt,slt
+
+  sln=sin(long)
+  cln=cos(long)
+  slt=sin(lat)
+  clt=cos(lat)
+
+  x=r*cln*clt
+  y=r*sln*clt
+  z=r*slt
+
+  return
+      
+end  subroutine llr2xyz
 !-------------------------------------------------------------------------------
       
 subroutine xyz2llr(x,y,z,long,lat,r)
@@ -550,34 +571,34 @@ subroutine xyz2llr(x,y,z,long,lat,r)
   use constants_mod, only: pi
 
 
-  real(kind=dp), intent(in)  :: x, y, z
-  real(kind=dp), intent(out) :: long, lat, r
-  real(kind=dp) :: tln, tlt
-  real(kind=dp) :: tol = 10e-8
+  real(kind=r_def), intent(in)  :: x, y, z
+  real(kind=r_def), intent(out) :: long, lat, r
+  real(kind=r_def)              :: tln, tlt
+  real(kind=r_def)              :: tol = 10e-8_r_def
 
   if ( abs(x) < tol ) then
-    if ( y >= 0.0 ) then
-      long = 0.5*pi
+    if ( y >= 0.0_r_def ) then
+      long = 0.5_r_def*pi
     else
-      long = 1.5*pi
+      long = 1.5_r_def*pi
     end if
   else
     tln = y/x
     long = atan(tln)
-    if ( x < 0.0 ) then
+    if ( x < 0.0_r_def ) then
       long = long + pi
     end if
-    if ( long < 0.0 ) then
-      long = long + 2.0*pi
+    if ( long < 0.0_r_def ) then
+      long = long + 2.0_r_def*pi
     end if
   end if
 
   r = sqrt(x*x + y*y)
   if ( abs(r) < tol ) then
-    if (z > 0.0 ) then
-      lat =  0.5*pi
+    if (z > 0.0_r_def ) then
+      lat =  0.5_r_def*pi
     else
-      lat = -0.5*pi
+      lat = -0.5_r_def*pi
     end if
   else
     tlt = z/r

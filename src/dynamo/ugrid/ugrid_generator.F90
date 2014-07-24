@@ -11,7 +11,7 @@
 !-------------------------------------------------------------------------------
 
 module ugrid_generator_mod
-use constants_mod, only: dp
+use constants_mod, only : r_def
 implicit none
 private
 
@@ -79,10 +79,10 @@ abstract interface
 
   subroutine get_coordinates_interface (self, node_coordinates)
 
-    import :: ugrid_generator_type, dp
+    import :: ugrid_generator_type, r_def
     class(ugrid_generator_type), intent(in) :: self
 
-    real(kind=dp), intent(out) :: node_coordinates(:,:)
+    real(kind=r_def), intent(out) :: node_coordinates(:,:)
 
   end subroutine get_coordinates_interface
 
@@ -99,7 +99,7 @@ abstract interface
                        face_node_connectivity, edge_node_connectivity, &
                        face_edge_connectivity, face_face_connectivity)
 
-    import :: ugrid_generator_type, dp
+    import :: ugrid_generator_type, r_def
     class(ugrid_generator_type), intent(in) :: self
 
     integer, intent(out) :: face_node_connectivity(:,:)

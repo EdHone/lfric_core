@@ -8,7 +8,7 @@
 !!  @details Contains routines for conversion of e.g. lat-long to Cartesian XYZ.
 !-------------------------------------------------------------------------------
 module coord_algorithms_mod
-use constants_mod, only: dp
+use constants_mod, only : r_def
 implicit none
 private
 
@@ -39,11 +39,11 @@ subroutine ll2xyz(long,lat,x,y,z)
   implicit none
  
   !Arguments
-  real(kind=dp), intent(in)  :: long,lat
-  real(kind=dp), intent(out) :: x,y,z 
+  real(kind=r_def), intent(in)  :: long,lat
+  real(kind=r_def), intent(out) :: x,y,z 
  
   !Internal variables
-  real(kind=dp) :: cln, sln, clt, slt
+  real(kind=r_def) :: cln, sln, clt, slt
  
   sln=sin(long)
   cln=cos(long)
@@ -73,11 +73,11 @@ subroutine llr2xyz(long,lat,radius,x,y,z)
   implicit none
  
   !Arguments
-  real(kind=dp), intent(in)  :: long,lat,radius
-  real(kind=dp), intent(out) :: x,y,z 
+  real(kind=r_def), intent(in)  :: long,lat,radius
+  real(kind=r_def), intent(out) :: x,y,z 
  
   !Internal variables
-  real(kind=dp) :: cln, sln, clt, slt
+  real(kind=r_def) :: cln, sln, clt, slt
  
   sln = sin(long)
   cln = cos(long)
@@ -102,39 +102,39 @@ end subroutine llr2xyz
 !--------------------------------------------------------------------------------
 
 subroutine xyz2ll(x,y,z,long,lat)
-  use constants_mod, only: pi
+  use constants_mod, only : pi
   implicit none
 
   !Arguments
-  real(kind=dp), intent(in)  :: x,y,z
-  real(kind=dp), intent(out) :: long, lat
+  real(kind=r_def), intent(in)  :: x,y,z
+  real(kind=r_def), intent(out) :: long, lat
 
   !Internal variables
-  real(kind=dp) :: tln, tlt, r
+  real(kind=r_def) :: tln, tlt, r
 
-  if (x == 0.0_dp) then
-    if (y >= 0.0_dp) then
-      long = 0.5_dp*pi
+  if (x == 0.0_r_def) then
+    if (y >= 0.0_r_def) then
+      long = 0.5_r_def*pi
     else
-      long = 1.5_dp*pi
+      long = 1.5_r_def*pi
     end if
   else
     tln=y/x
     long=atan(tln)
-    if (x < 0.0_dp) then
+    if (x < 0.0_r_def) then
       long=long+pi
     endif
-    if (long < 0.0_dp) then
-      long=long+2.0_dp*pi
+    if (long < 0.0_r_def) then
+      long=long+2.0_r_def*pi
     endif
   end if
 
   r=sqrt(x*x+y*y)
-  if (r == 0.0_dp) then
-    if (z > 0.0_dp) then
-      lat=0.5_dp*pi
+  if (r == 0.0_r_def) then
+    if (z > 0.0_r_def) then
+      lat=0.5_r_def*pi
     else
-      lat=-0.5_dp*pi
+      lat=-0.5_r_def*pi
     end if
   else
     tlt=z/r
@@ -168,13 +168,13 @@ subroutine starea2(x0,y0,z0,x1,y1,z1,x2,y2,z2,area)
   implicit none
 
   !Arguments
-  real(kind=dp), intent(in)  :: x0, y0, z0   
-  real(kind=dp), intent(in)  :: x1, y1, z1
-  real(kind=dp), intent(in)  :: x2, y2, z2
-  real(kind=dp), intent(out) :: area
+  real(kind=r_def), intent(in)  :: x0, y0, z0   
+  real(kind=r_def), intent(in)  :: x1, y1, z1
+  real(kind=r_def), intent(in)  :: x2, y2, z2
+  real(kind=r_def), intent(out) :: area
 
   !Internal variables
-  real(kind=dp) :: d0,d1,d2,s,t0,t1,t2,t3
+  real(kind=r_def) :: d0,d1,d2,s,t0,t1,t2,t3
 
   !Distances between pairs of points
   call spdist(x0,y0,z0,x1,y1,z1,d2)
@@ -182,16 +182,16 @@ subroutine starea2(x0,y0,z0,x1,y1,z1,x2,y2,z2,area)
   call spdist(x2,y2,z2,x0,y0,z0,d1)
 
   !Half perimeter
-  s=0.5_dp*(d0+d1+d2)
+  s=0.5_r_def*(d0+d1+d2)
 
   !Tangents
-  t0 = tan(0.5_dp*(s-d0))
-  t1 = tan(0.5_dp*(s-d1))
-  t2 = tan(0.5_dp*(s-d2))
-  t3 = tan(0.5_dp*s)
+  t0 = tan(0.5_r_def*(s-d0))
+  t1 = tan(0.5_r_def*(s-d1))
+  t2 = tan(0.5_r_def*(s-d2))
+  t3 = tan(0.5_r_def*s)
 
   !Area
-  area = 4.0_dp*atan(sqrt(t0*t1*t2*t3))
+  area = 4.0_r_def*atan(sqrt(t0*t1*t2*t3))
 
   return
 end subroutine starea2
@@ -215,19 +215,19 @@ subroutine spdist(x1,y1,z1,x2,y2,z2,s)
   implicit none
 
   !Arguments
-  real(kind=dp), intent(in)  :: x1, y1, z1, x2, y2, z2
-  real(kind=dp), intent(out) :: s
+  real(kind=r_def), intent(in)  :: x1, y1, z1, x2, y2, z2
+  real(kind=r_def), intent(out) :: s
 
   !Internal variables
-  real(kind=dp) :: dx, dy, dz
-  real(kind=dp) :: ad
+  real(kind=r_def) :: dx, dy, dz
+  real(kind=r_def) :: ad
 
   dx = x2 - x1
   dy = y2 - y1
   dz = z2 - z1
 
   ad = sqrt(dx*dx + dy*dy + dz*dz)
-  s = 2.0_dp*asin(0.5_dp*ad)
+  s = 2.0_r_def*asin(0.5_r_def*ad)
 
   return
 end subroutine spdist

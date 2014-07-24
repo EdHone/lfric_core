@@ -20,7 +20,7 @@ module basis_function_mod
   use num_dof_mod
   use reference_element_mod
 
-  use constants_mod, only: dp
+  use constants_mod, only: r_def
   use gaussian_quadrature_mod, only: gaussian_quadrature_type, &
                                      ngp_v, ngp_h !parameter for how many GQ points
 
@@ -28,42 +28,42 @@ module basis_function_mod
 
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V0 function space
-  real(kind=dp), allocatable :: v0_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v0_basis(:,:,:,:)
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V1 function space
-  real(kind=dp), allocatable :: v1_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v1_basis(:,:,:,:)
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V2 function space
-  real(kind=dp), allocatable :: v2_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v2_basis(:,:,:,:)
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V3 function space
-  real(kind=dp), allocatable :: v3_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v3_basis(:,:,:,:)
 
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V0 differential function space
-  real(kind=dp), allocatable :: v0_diff_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v0_diff_basis(:,:,:,:)
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V1 differential function space
-  real(kind=dp), allocatable :: v1_diff_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v1_diff_basis(:,:,:,:)
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V2 differential function space
-  real(kind=dp), allocatable :: v2_diff_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v2_diff_basis(:,:,:,:)
   !> 4-dim allocatable arrays of reals which hold the values of the basis
   !> functions for the V3 differential function space
-  real(kind=dp), allocatable :: v3_diff_basis(:,:,:,:)
+  real(kind=r_def), allocatable :: v3_diff_basis(:,:,:,:)
 
   !> 2-dim allocatable arrays of reals which hold the values of the nodal
   !> co-ordinates for the V0 function space
-  real(kind=dp), allocatable :: v0_nodal_coords(:,:)
+  real(kind=r_def), allocatable :: v0_nodal_coords(:,:)
   !> 2-dim allocatable arrays of reals which hold the values of the nodal
   !> co-ordinates for the V1 function space
-  real(kind=dp), allocatable :: v1_nodal_coords(:,:)
+  real(kind=r_def), allocatable :: v1_nodal_coords(:,:)
   !> 2-dim allocatable arrays of reals which hold the values of the nodal
   !> co-ordinates for the V2 function space
-  real(kind=dp), allocatable :: v2_nodal_coords(:,:)
+  real(kind=r_def), allocatable :: v2_nodal_coords(:,:)
   !> 2-dim allocatable arrays of reals which hold the values of the nodal
   !> co-ordinates for the V3 function space
-  real(kind=dp), allocatable :: v3_nodal_coords(:,:)
+  real(kind=r_def), allocatable :: v3_nodal_coords(:,:)
 
 contains 
 
@@ -81,10 +81,10 @@ contains
     integer :: i, jx, jy, jz, order, idx, j1, j2, h_ctr
     integer :: j(3), j2l_edge(12,3), j2l_face(6,3), face_idx(6), edge_idx(12,2)
     integer, allocatable :: lx(:), ly(:), lz(:)
-    real(kind=dp)    :: fx, fy, fz, gx, gy, gz, dfx, dfy, dfz
-    real(kind=dp)    :: x1(k+2), x2(k+1)
-    !real(kind=dp)    :: unit_vec_v2(nv2,3), unit_vec_v1(nv1,3)
-    real(kind=dp),allocatable    :: unit_vec_v2(:,:), unit_vec_v1(:,:)
+    real(kind=r_def)     :: fx, fy, fz, gx, gy, gz, dfx, dfy, dfz
+    real(kind=r_def)     :: x1(k+2), x2(k+1)
+    !real(kind=r_def)     :: unit_vec_v2(nv2,3), unit_vec_v1(nv1,3)
+    real(kind=r_def), allocatable    :: unit_vec_v2(:,:), unit_vec_v1(:,:)
     type( gaussian_quadrature_type ), pointer :: gq
 
     allocate(v0_basis(1,v_unique_dofs(1,2),ngp_h,ngp_v))
@@ -120,7 +120,7 @@ contains
     do i=1,k+1
       x2(i) = real(i-1)/real(k)
     end do
-    if ( k == 0 ) x2(1) = 0.5
+    if ( k == 0 ) x2(1) = 0.5_r_def
 
     ! some look arrays based upon reference cube topology
     face_idx = (/ 1, k+2, k+2, 1, 1, k+2 /)
@@ -241,7 +241,7 @@ contains
     !do idx=1,nv1
     do idx = 1,v_unique_dofs(2,2)
       do i=1,3
-        unit_vec_v1(idx,i) = 0.0
+        unit_vec_v1(idx,i) = 0.0_r_def
       end do
     end do
 
@@ -256,7 +256,7 @@ contains
           lx(idx) =  jx
           ly(idx) =  jy
           lz(idx) =  jz
-          unit_vec_v1(idx,1) = 1.0
+          unit_vec_v1(idx,1) = 1.0_r_def
           idx = idx + 1
         end do
       end do
@@ -268,7 +268,7 @@ contains
           lx(idx) =  jx
           ly(idx) =  jy
           lz(idx) =  jz
-          unit_vec_v1(idx,2) = 1.0
+          unit_vec_v1(idx,2) = 1.0_r_def
           idx = idx + 1
         end do
       end do
@@ -280,7 +280,7 @@ contains
           lx(idx) =  jx
           ly(idx) =  jy
           lz(idx) =  jz
-          unit_vec_v1(idx,3) = 1.0
+          unit_vec_v1(idx,3) = 1.0_r_def
           idx = idx + 1
         end do
       end do
@@ -339,7 +339,7 @@ contains
           if (lx(i) <= order) then
              gx = gq%poly1d(order-1,jx,x2(lx(i)),x2,lx(i))
           else
-             gx = 0.0
+             gx = 0.0_r_def
           end if
           do jy=1,ngp_v
              fy = gq%poly1d(order,jy,x1(ly(i)),x1,ly(i))
@@ -347,7 +347,7 @@ contains
              if (ly(i) <= order) then 
                 gy = gq%poly1d(order-1,jy,x2(ly(i)),x2,ly(i))
              else
-                gy = 0.0
+                gy = 0.0_r_def
              end if
              do jz=1,ngp_v
                 fz = gq%poly1d(order,jz,x1(lz(i)),x1,lz(i))
@@ -355,7 +355,7 @@ contains
                 if (lz(i) <= order) then     
                    gz = gq%poly1d(order-1,jz,x2(lz(i)),x2,lz(i))
                 else
-                   gz = 0.0
+                   gz = 0.0_r_def
                 end if
                 
                 v1_basis(1,i,h_ctr,jz)=gx*fy*fz*unit_vec_v1(i,1)
@@ -374,11 +374,11 @@ contains
           end do
        end do
        v1_nodal_coords(1,i)= &
-             unit_vec_v2(i,1)*x2(lx(i)) + (1.0 - unit_vec_v1(i,1))*x1(lx(i))
+             unit_vec_v2(i,1)*x2(lx(i)) + (1.0_r_def - unit_vec_v1(i,1))*x1(lx(i))
        v1_nodal_coords(2,i)= &
-             unit_vec_v1(i,2)*x2(ly(i)) + (1.0 - unit_vec_v1(i,2))*x1(ly(i))
+             unit_vec_v1(i,2)*x2(ly(i)) + (1.0_r_def - unit_vec_v1(i,2))*x1(ly(i))
        v1_nodal_coords(3,i)= &
-             unit_vec_v1(i,3)*x2(lz(i)) + (1.0 - unit_vec_v1(i,3))*x1(lz(i))
+             unit_vec_v1(i,3)*x2(lz(i)) + (1.0_r_def - unit_vec_v1(i,3))*x1(lz(i))
     end do
 
 
@@ -390,7 +390,7 @@ contains
     !do idx=1,nv2
     do idx=1,v_unique_dofs(3,2)
       do i=1,3
-        unit_vec_v2(idx,i) = 0.0
+        unit_vec_v2(idx,i) = 0.0_r_def
       end do
     end do
 
@@ -403,7 +403,7 @@ contains
           lx(idx) =  jx
           ly(idx) =  jy
           lz(idx) =  jz
-          unit_vec_v2(idx,1) = 1.0
+          unit_vec_v2(idx,1) = 1.0_r_def
           idx = idx + 1
         end do
       end do
@@ -415,7 +415,7 @@ contains
           lx(idx) =  jx
           ly(idx) =  jy
           lz(idx) =  jz
-          unit_vec_v2(idx,2) = 1.0
+          unit_vec_v2(idx,2) = 1.0_r_def
           idx = idx + 1
         end do
       end do
@@ -427,7 +427,7 @@ contains
           lx(idx) =  jx
           ly(idx) =  jy
           lz(idx) =  jz
-          unit_vec_v2(idx,3) = 1.0
+          unit_vec_v2(idx,3) = 1.0_r_def
           idx = idx + 1
         end do
       end do
@@ -459,7 +459,7 @@ contains
           if (lx(i) <= order) then
              gx = gq%poly1d(order-1,jx,x2(lx(i)),x2,lx(i))
           else
-             gx = 0.0
+             gx = 0.0_r_def
           end if
           do jy=1,ngp_v
              fy = gq%poly1d(order,jy,x1(ly(i)),x1,ly(i))
@@ -467,7 +467,7 @@ contains
              if (ly(i) <= order) then
                 gy = gq%poly1d(order-1,jy,x2(ly(i)),x2,ly(i))
              else
-                gy = 0.0
+                gy = 0.0_r_def
              end if
              do jz=1,ngp_v
                 fz = gq%poly1d(order,jz,x1(lz(i)),x1,lz(i))
@@ -475,7 +475,7 @@ contains
                 if (lz(i) <= order) then
                    gz = gq%poly1d(order-1,jz,x2(lz(i)),x2,lz(i))
                 else
-                   gz = 0.0
+                   gz = 0.0_r_def
                 end if
             
                 v2_basis(1,i,h_ctr,jz)=fx*gy*gz*unit_vec_v2(i,1)
@@ -543,9 +543,6 @@ contains
     deallocate ( unit_vec_v2, unit_vec_v1)
 
   end subroutine get_basis
-
-
- 
 
 end module basis_function_mod
 

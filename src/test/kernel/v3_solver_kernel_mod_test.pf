@@ -14,29 +14,29 @@ contains
   @test
   subroutine v3_solver_kernel_test()
     use pFUnit_Mod
-    use v3_solver_kernel_mod, only : solver_v3_code
-    use constants_mod,        only : dp
-    use gaussian_quadrature_mod,  only : gaussian_quadrature_type
+    use v3_solver_kernel_mod,    only : solver_v3_code
+    use constants_mod,           only : r_def
+    use gaussian_quadrature_mod, only : gaussian_quadrature_type
     implicit none
 
     integer :: num_layers, ndf, map(1),undf
     type(gaussian_quadrature_type) :: gq
-    real(kind=dp) :: xdata(1)
-    real(kind=dp) :: rhsdata(1)
-    real(kind=dp) :: answer, tol
-    real(kind=dp) :: basis(3,3,3,3,1)
+    real(kind=r_def) :: xdata(1)
+    real(kind=r_def) :: rhsdata(1)
+    real(kind=r_def) :: answer, tol
+    real(kind=r_def) :: basis(3,3,3,3,1)
 
-    basis=1.0D0
-    map(1)=1
-    num_layers=1
-    ndf=1
-    undf=1
-    rhsdata(1)=1.0D0
-    call solver_v3_code(num_layers,ndf,undf,map,basis,xdata,rhsdata, &
+    basis = 1.0_r_def
+    map(1) = 1
+    num_layers = 1
+    ndf = 1
+    undf = 1
+    rhsdata(1) = 1.0_r_def
+    call solver_v3_code(num_layers, ndf, undf, map, basis, xdata, rhsdata, &
                         gq%get_instance())
 
-    answer = 1.0D0
-    tol=1.0e-14
+    answer = 1.0_r_def
+    tol    = 1.0e-14_r_def
     @assertEqual( answer, xdata(1), tol )
 
   end subroutine v3_solver_kernel_test

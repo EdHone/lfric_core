@@ -15,11 +15,11 @@
 !> @param gaussian_quadrature      Contains result of gaussian quadrature
 
 module v2_kernel_mod
-use constants_mod,           only: dp
+use constants_mod,           only: r_def
 use kernel_mod,              only: kernel_type
 use gaussian_quadrature_mod, only: gaussian_quadrature_type, &
                                    ngp_h,ngp_v
-use argument_mod,            only: arg_type, &          ! the type
+use argument_mod,            only: arg_type, &           ! the type
                                    gh_inc, v2, fe, cells ! the enums
 
 
@@ -59,7 +59,7 @@ type(v2_kernel_type) function v2_kernel_constructor() result(self)
   return
 end function v2_kernel_constructor
   
-subroutine rhs_v2_code(nlayers,ndf,undf,map,basis,x,gq)
+subroutine rhs_v2_code(nlayers, ndf, undf, map,basis, x, gq)
 
 !> @brief This subroutine calculates the RHS of Galerkin projection on W2 space.
 !! @param[in] nlayers Integer: The number of layers.
@@ -73,23 +73,23 @@ subroutine rhs_v2_code(nlayers,ndf,undf,map,basis,x,gq)
   !  P_analytic over a single column
 
   !Arguments
-  integer,                                     intent(in)    :: nlayers, ndf,undf
-  integer,                                     intent(in)    :: map(ndf)
-  real(kind=dp), dimension(3,ndf,ngp_h,ngp_v), intent(in)    :: basis 
-  real(kind=dp),                               intent(inout) :: x(undf)
-  type(gaussian_quadrature_type),              intent(inout) :: gq
+  integer,                                        intent(in)    :: nlayers, ndf,undf
+  integer,                                        intent(in)    :: map(ndf)
+  real(kind=r_def), dimension(3,ndf,ngp_h,ngp_v), intent(in)    :: basis 
+  real(kind=r_def),                               intent(inout) :: x(undf)
+  type(gaussian_quadrature_type),                 intent(inout) :: gq
 
   !Internal variables
-  integer               :: df, k
-  integer               :: qp1, qp2
-  real(kind=dp), dimension(ngp_h,ngp_v) :: f
-  real(kind=dp), dimension(1,3) :: basisfun_i
-  real(kind=dp), dimension(3,1) :: constantvec
-  real(kind=dp), dimension(1,1) :: T_1
+  integer                                  :: df, k
+  integer                                  :: qp1, qp2
+  real(kind=r_def), dimension(ngp_h,ngp_v) :: f
+  real(kind=r_def), dimension(1,3)         :: basisfun_i
+  real(kind=r_def), dimension(3,1)         :: constantvec
+  real(kind=r_def), dimension(1,1)         :: T_1
 
-  constantvec(1,1) =  4.0_dp;
-  constantvec(2,1) =  2.0_dp;  
-  constantvec(3,1) =  1.0_dp;  
+  constantvec(1,1) =  4.0_r_def;
+  constantvec(2,1) =  2.0_r_def;  
+  constantvec(3,1) =  1.0_r_def;  
   ! Compute the analytic R integrated over one cell
   do k = 0, nlayers-1
     do df = 1, ndf

@@ -12,8 +12,8 @@
 !-------------------------------------------------------------------------------
 
 module ugrid_2d_mod
-use constants_mod,  only: dp
-use ugrid_file_mod, only: ugrid_file_type
+use constants_mod,  only : r_def
+use ugrid_file_mod, only : ugrid_file_type
 implicit none
 private
 
@@ -40,7 +40,7 @@ type, public :: ugrid_2d_type
   integer :: num_edges_per_face   !< Number of edges bordering each face
 
   !Coordinates
-  real(kind=dp), allocatable :: node_coordinates(:,:) !< Coordinates of nodes
+  real(kind=r_def), allocatable :: node_coordinates(:,:) !< Coordinates of nodes
 
   !Connectivity
   integer, allocatable :: face_node_connectivity(:,:) !< Nodes belonging to each face
@@ -322,7 +322,7 @@ subroutine get_node_coords(self, node_coords)
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
-  real(kind=dp),        intent(out) :: node_coords(:,:)
+  real(kind=r_def),        intent(out) :: node_coords(:,:)
 
   integer :: i
 
@@ -351,7 +351,7 @@ subroutine get_node_coords_transpose(self, node_coords)
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
-  real(kind=dp),        intent(out) :: node_coords(:,:)
+  real(kind=r_def),     intent(out) :: node_coords(:,:)
 
   integer :: i
 
@@ -380,7 +380,7 @@ subroutine get_node_coords_xyz(self, node_coords)
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
-  real(kind=dp),        intent(out) :: node_coords(:,:)
+  real(kind=r_def),     intent(out) :: node_coords(:,:)
 
   integer :: i
 
@@ -416,7 +416,7 @@ subroutine get_node_coords_xyz_transpose(self, node_coords)
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
-  real(kind=dp),        intent(out) :: node_coords(:,:)
+  real(kind=r_def),     intent(out) :: node_coords(:,:)
 
   integer :: i
 
@@ -567,7 +567,7 @@ subroutine write_coordinates(self)
 
   integer :: inode
 
-  real(kind=dp), allocatable :: tmp_xyz(:,:)
+  real(kind=r_def), allocatable :: tmp_xyz(:,:)
 
   allocate(tmp_xyz(1:3,1:self%num_nodes))
   call self%get_node_coords_xyz(tmp_xyz)

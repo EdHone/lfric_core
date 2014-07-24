@@ -1,6 +1,6 @@
 module dummy_read_setup_mod
 
-use constants_mod, only : dp
+use constants_mod, only : r_def
 
 implicit none
 
@@ -9,20 +9,20 @@ contains
 subroutine dummy_read_setup(filename ,num_cells, num_layers, element_order, &
      v_unique_dofs,v_dof_entity)
 
-  use mesh_generator_mod,    only: mesh_generator_init,        &
-                                   mesh_generator_cubedsphere, &
-                                   mesh_generator_biperiodic,  &
-                                   mesh_connectivity
-  use reference_element_mod, only: reference_cube
-  use num_dof_mod,           only: num_dof_init
+  use mesh_generator_mod,    only : mesh_generator_init,        &
+                                    mesh_generator_cubedsphere, &
+                                    mesh_generator_biperiodic,  &
+                                    mesh_connectivity
+  use reference_element_mod, only : reference_cube
+  use num_dof_mod,           only : num_dof_init
   ! dummy read the setup file, or at least the header
   implicit none
-  character(*), intent(in) :: filename 
-  integer , intent(out)    :: num_cells,  num_layers, element_order
-  integer, intent(out)     :: v_unique_dofs(4,2)
-  integer, intent(out)     :: v_dof_entity(4,0:3)
-  logical                  :: l_spherical
-  real(kind=dp), parameter :: delta=1.0_dp
+  character(*), intent(in)    :: filename 
+  integer , intent(out)       :: num_cells,  num_layers, element_order
+  integer, intent(out)        :: v_unique_dofs(4,2)
+  integer, intent(out)        :: v_dof_entity(4,0:3)
+  logical                     :: l_spherical
+  real(kind=r_def), parameter :: delta = 1.0_r_def
 
   ! no file or file format, just coded for now 
   ! Bi-linear plane, 3x3x3 

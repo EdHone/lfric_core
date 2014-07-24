@@ -10,11 +10,11 @@
 
 module dynamo_algorithm_mod
 
-  use field_mod,  only: field_type
-  use log_mod,    only: log_event, log_scratch_space, LOG_LEVEL_INFO
-  use psy,        only: invoke_rhs_v3, invoke_v3_solver_kernel,            &
+  use field_mod,  only : field_type
+  use log_mod,    only : log_event, log_scratch_space, LOG_LEVEL_INFO
+  use psy,        only : invoke_rhs_v3, invoke_v3_solver_kernel,            &
                         invoke_rhs_v2, invoke_rhs_v1
-  use solver_mod, only: solver_algorithm
+  use solver_mod, only : solver_algorithm
 
   implicit none
 
@@ -34,8 +34,8 @@ contains
 
     implicit none
 
-    type( field_type ), intent( in ) :: pressure_density
-    type( field_type ), intent( in ) :: rhs
+    type( field_type ), intent( in )    :: pressure_density
+    type( field_type ), intent( in )    :: rhs
     type( field_type ), intent( inout ) :: flux_velocity
     type( field_type ), intent( inout ) :: rhs_v2
     type( field_type ), intent( inout ) :: circulation

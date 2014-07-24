@@ -1,0 +1,62 @@
+!-------------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown, 
+! Met Office and NERC 2014. 
+! However, it has been created with the help of the GungHo Consortium, 
+! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-------------------------------------------------------------------------------
+
+!> @brief Defines various constants.
+
+!> @details Various physical and geometrical constants are defined in this module.
+!! Their values are also set here.
+module constants_mod
+use, intrinsic :: iso_fortran_env, only : real64, int32
+implicit none
+
+!Define default application-defined kinds for all intrinsic data types
+!Reals
+!< default real for the application
+integer,       parameter    :: r_def     = real64
+
+real, private               :: r_val
+double precision, private   :: dp_val
+
+!< native kind for real 
+integer,       parameter    :: r_native  = kind(r_val)
+!< native kind for double precision
+integer,       parameter    :: dp_native = kind(dp_val)
+
+!Complex
+
+!Integers
+!< default integer for the application
+integer,       parameter    :: i_def    = int32
+
+integer, private            :: i_val
+!< native kind for integer 
+integer,       parameter    :: i_native = kind(i_val)
+
+!Logical
+logical, private            :: l_val
+integer,       parameter    :: l_def    = kind(l_val)
+integer,       parameter    :: l_native = kind(l_val)
+
+!Character
+character, private          :: c_val
+integer,       parameter    :: c_def    = kind(c_val)
+integer,       parameter    :: c_native = kind(c_val)
+
+!String Length
+integer,       parameter    :: str_def  = 128
+
+!Numerical constants
+real(kind=r_def), parameter :: pi  = 3.141592654_r_def    !< pi value
+real(kind=r_def), parameter :: eps = 3.0e-15_r_def        !< relative precision
+
+! Physical constants
+real(kind=r_def), parameter :: earth_radius = 6371229.0_r_def
+
+integer (kind=i_def), parameter :: max_iter = 10 ! maximum iteration number for solver
+
+end module constants_mod
+

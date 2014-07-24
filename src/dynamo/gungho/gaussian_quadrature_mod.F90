@@ -16,7 +16,7 @@
 !> quadrature is returned.
 
 module gaussian_quadrature_mod
-use constants_mod, only: dp, pi, eps
+use constants_mod, only: r_def, pi, eps
 implicit none
 private
 
@@ -26,7 +26,7 @@ private
 type, public :: gaussian_quadrature_type
   private
   !> allocatable arrays which holds the values of the gaussian quadrature
-  real(kind=dp), allocatable :: xgp(:), xgp_h(:,:), wgp(:), wgp_h(:)
+  real(kind=r_def), allocatable :: xgp(:), xgp_h(:,:), wgp(:), wgp_h(:)
 contains
   !> Function returns a pointer to the Gaussian quadrature. If a Gaussian quadrature
   !> quadrature had not yet been created, it creates one before returning the pointer
@@ -104,54 +104,54 @@ subroutine init_gauss(self)
   class(gaussian_quadrature_type) :: self
 
   integer             :: i, j, m
-  real(kind=dp)       :: p1, p2, p3, pp, z, z1
+  real(kind=r_def)    :: p1, p2, p3, pp, z, z1
   
   allocate( self%xgp(ngp_v) )
   allocate( self%wgp(ngp_v) ) 
   allocate( self%xgp_h(ngp_h,2) ) 
   allocate( self%wgp_h(ngp_h) ) 
 
-  z1 = 0.0_dp
+  z1 = 0.0_r_def
   m = (ngp_v + 1) / 2
 
   !Roots are symmetric in the interval - so only need to find half of them  
 
   do i = 1, m ! Loop over the desired roots 
 
-    z = cos( pi * (i-0.25_dp) / (ngp_v+0.5_dp) )
+    z = cos( pi * (i - 0.25_r_def) / (ngp_v + 0.5_r_def) )
 
     !Starting with the above approximation to the ith root, we enter the main
     !loop of refinement by NEWTON'S method   
     do while ( abs(z-z1) > eps )
-      p1 = 1.0_dp
-      p2 = 0.0_dp
+      p1 = 1.0_r_def
+      p2 = 0.0_r_def
 
       !Loop up the recurrence relation to get the Legendre polynomial evaluated
       !at z                 
       do j = 1, ngp_v
         p3 = p2
         p2 = p1
-        p1 = ((2.0_dp*j-1.0_dp) * z * p2 - (j-1.0_dp)*p3) / j
+        p1 = ((2.0_r_def * j - 1.0_r_def) * z * p2 - (j - 1.0_r_def) * p3) / j
       end do
 
       !p1 is now the desired Legendre polynomial. We next compute pp, its
       !derivative, by a standard relation involving also p2, the polynomial of one
       !lower order.      
-      pp = ngp_v*(z*p1-p2)/(z*z-1.0_dp)
+      pp = ngp_v * (z * p1 - p2)/(z*z - 1.0_r_def)
       z1 = z
       z = z1 - p1/pp             ! Newton's Method  
     end do
 
-    self%xgp(i) =  - z                  ! Roots will be bewteen -1.0 & 1.0 
-    self%xgp(ngp_v+1-i) =  + z            ! and symmetric about the origin  
-    self%wgp(i) = 2.0/((1.0-z*z)*pp*pp) ! Compute the wgpht and its       
-    self%wgp(ngp_v+1-i) = self%wgp(i)          ! symmetric counterpart         
+    self%xgp(i) =  - z                                  ! Roots will be bewteen -1.0 & 1.0 
+    self%xgp(ngp_v+1-i) =  + z                          ! and symmetric about the origin  
+    self%wgp(i) = 2.0_r_def/((1.0_r_def - z*z) * pp*pp) ! Compute the wgpht and its       
+    self%wgp(ngp_v+1-i) = self%wgp(i)                   ! symmetric counterpart         
 
   end do     ! i loop
       
   !Shift quad points from [-1,1] to [0,1]
   do i=1,ngp_v
-    self%xgp(i) = 0.5*(self%xgp(i) + 1.0)
+    self%xgp(i) = 0.5_r_def*(self%xgp(i) + 1.0_r_def)
   end do
 
 ! This is correct for quads (will need modification for hexes/triangles)
@@ -174,19 +174,19 @@ subroutine test_integrate(self)
   !
   !-----------------------------------------------------------------------------
 
-  use log_mod, only: log_event, log_scratch_space, LOG_LEVEL_INFO
+  use log_mod, only : log_event, log_scratch_space, LOG_LEVEL_INFO
 
   implicit none
 
   class(gaussian_quadrature_type) :: self
 
-  integer          :: i,k
-  real(kind=dp)    :: func(ngp_v*ngp_v,ngp_v)
-  real(kind=dp)    :: answer
+  integer          :: i, k
+  real(kind=r_def) :: func(ngp_v*ngp_v, ngp_v)
+  real(kind=r_def) :: answer
 
   do i=1,ngp_h
     do k=1,ngp_v
-      func(i,k) = self%xgp_h(i,1)*self%xgp_h(i,2)*1.0_dp*1.0_dp
+      func(i,k) = self%xgp_h(i,1)*self%xgp_h(i,2)*1.0_r_def*1.0_r_def
     end do
   end do
 
@@ -206,19 +206,19 @@ function integrate(self,f)
 
   class(gaussian_quadrature_type), intent(in) :: self
 
-  real(kind=dp), intent(in) :: f(ngp_v*ngp_v,ngp_v)
-  real(kind=dp)             :: integrate
+  real(kind=r_def), intent(in) :: f(ngp_v*ngp_v, ngp_v)
+  real(kind=r_def)             :: integrate
 
   integer :: i,k
 
-  integrate = 0.0_dp
+  integrate = 0.0_r_def
   do i=1,ngp_h
     do k=1,ngp_v  
       integrate = integrate + self%wgp_h(i)*self%wgp(k)*f(i,k)
     end do
   end do
   
-  integrate = 0.5_dp*0.5_dp*0.5_dp*integrate
+  integrate = 0.5_r_def*0.5_r_def*0.5_r_def*integrate
 
   return
 end function integrate
@@ -234,13 +234,13 @@ function poly1d(self, order, ik, xindex, x , bindex)
   ! quadrature point to evaluate basis function at
   integer,                         intent(in) :: ik
   ! Point function is unity at
-  real(kind=dp),                   intent(in) :: xindex
+  real(kind=r_def),                intent(in) :: xindex
   ! Index of basis function
   integer,                         intent(in) :: bindex
   ! grid points
-  real(kind=dp),                   intent(in) :: x(order+bindex)
+  real(kind=r_def),                intent(in) :: x(order+bindex)
 
-  real(kind=dp) :: poly1d
+  real(kind=r_def) :: poly1d
   ! internal tempories
   ! loop counters
   integer       :: j
@@ -271,28 +271,28 @@ function poly1d_deriv(self, order,ik,xindex,x,bindex)
   ! quadrature point to evaluate basis function at
   integer,                         intent(in) :: ik
   ! Point function is unity at
-  real(kind=dp),                   intent(in) :: xindex
+  real(kind=r_def),                intent(in) :: xindex
   ! grid points
-  real(kind=dp),                   intent(in) :: x(order+1)
+  real(kind=r_def),                intent(in) :: x(order+1)
 
   ! tempories
-  real(kind=dp) :: poly1d_deriv
-  real(kind=dp) :: denom,t
-  integer       :: k,j
+  real(kind=r_def) :: poly1d_deriv
+  real(kind=r_def) :: denom,t
+  integer          :: k, j
 
 
-  poly1d_deriv = 0.0
-  denom = 1.0
+  poly1d_deriv = 0.0_r_def
+  denom = 1.0_r_def
 
   do j=1,bindex-1
-    denom = denom * 1.0/(xindex-x(j))  
+    denom = denom * 1.0_r_def/(xindex-x(j))  
   end do
   do j=bindex+1,order+1
-    denom = denom * 1.0/(xindex-x(j))  
+    denom = denom * 1.0_r_def/(xindex-x(j))  
   end do
 
   do k=1,bindex-1
-    t = 1.0
+    t = 1.0_r_def
     do j=1,order+1
       if (j .ne. bindex .and. j .ne. k ) then
         t = t * (self%xgp(ik) - x(j))
@@ -301,7 +301,7 @@ function poly1d_deriv(self, order,ik,xindex,x,bindex)
     poly1d_deriv = poly1d_deriv + t*denom
   end do  
   do k=bindex+1,order+1
-    t = 1.0
+    t = 1.0_r_def
     do j=1,order+1
       if (j .ne. bindex .and. j .ne. k ) then
         t = t * (self%xgp(ik) - x(j))

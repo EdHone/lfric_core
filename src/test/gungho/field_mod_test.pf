@@ -21,7 +21,7 @@ contains
     use field_mod,               only : field_type,      &
                                         field_proxy_type 
     use function_space_mod,      only : function_space_type, V0
-    use constants_mod, only : dp
+    use constants_mod, only : r_def
     use mesh_mod, only : num_cells, v_unique_dofs, num_layers
     use gaussian_quadrature_mod, only : gaussian_quadrature_type, &
                                         ngp_h, ngp_v
@@ -55,9 +55,9 @@ contains
     allocate(v0_nodal_coords(3,v_unique_dofs(1,2)))
     v0_basis=sqrt(2.0)
     v0_diff_basis=atan(4.0)
-    v0_nodal_coords(1,:)=0.152689632_dp
-    v0_nodal_coords(2,:)=0.562554751_dp
-    v0_nodal_coords(3,:)=-0.8234_dp
+    v0_nodal_coords(1,:)=0.152689632_r_def
+    v0_nodal_coords(2,:)=0.562554751_r_def
+    v0_nodal_coords(3,:)=-0.8234_r_def
     allocate( v0_dofmap(0:num_cells,v_unique_dofs(1,2)) )
     do i=0,num_cells
        v0_dofmap(i,:) = i+64

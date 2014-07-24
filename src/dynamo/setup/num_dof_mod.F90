@@ -35,15 +35,15 @@ contains
 
     ! numbers of dofs in each space for an element 
     integer :: nv0,nv0_cell,nv0_face,nv0_edge,nv0_vert,            &
-              nv1,nv1_cell,nv1_face,nv1_edge,                     &
-              nv2,nv2_cell,nv2_face,                              &
-              nv3,nv3_cell
+               nv1,nv1_cell,nv1_face,nv1_edge,                     &
+               nv2,nv2_cell,nv2_face,                              &
+               nv3,nv3_cell
 
     ! global numbers of unique dofs
     integer :: nv0_g, nv1_g, nv2_g, nv3_g
 
     integer :: ndof_entity_v0(0:3), ndof_entity_v1(0:3),           &
-              ndof_entity_v2(0:3), ndof_entity_v3(0:3)
+               ndof_entity_v2(0:3), ndof_entity_v3(0:3)
 
 
     ! local values

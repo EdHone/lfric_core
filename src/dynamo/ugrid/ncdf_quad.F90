@@ -9,13 +9,13 @@
 !!  @details Implementation of the ugrid file class for quads in netCDF format.
 !-------------------------------------------------------------------------------
 module ncdf_quad_mod
-use constants_mod,  only: dp
-use ugrid_file_mod, only: ugrid_file_type
-use netcdf, only: nf90_max_name, nf90_open, nf90_write, nf90_noerr,        &
-                  nf90_strerror, nf90_put_var, nf90_get_var, nf90_put_att, &      
-                  nf90_def_var, nf90_inq_varid, nf90_int, nf90_double,     &
-                  nf90_clobber, nf90_enddef, nf90_inquire_dimension,       &
-                  nf90_inq_dimid, nf90_def_dim, nf90_create, nf90_close
+use constants_mod,  only : r_def
+use ugrid_file_mod, only : ugrid_file_type
+use netcdf,         only : nf90_max_name, nf90_open, nf90_write, nf90_noerr,        &
+                          nf90_strerror, nf90_put_var, nf90_get_var, nf90_put_att, &      
+                          nf90_def_var, nf90_inq_varid, nf90_int, nf90_double,     &
+                          nf90_clobber, nf90_enddef, nf90_inquire_dimension,       &
+                          nf90_inq_dimid, nf90_def_dim, nf90_create, nf90_close
 implicit none
 private
 
@@ -587,7 +587,7 @@ subroutine read(self,                                                    &
 
   !Arguments
   class(ncdf_quad_type),  intent(inout) :: self                        
-  real(kind=dp),          intent(out)   :: node_coordinates(:,:)       
+  real(kind=r_def),          intent(out)   :: node_coordinates(:,:)       
   integer,                intent(out)   :: face_node_connectivity(:,:) 
   integer,                intent(out)   :: edge_node_connectivity(:,:) 
   integer,                intent(out)   :: face_edge_connectivity(:,:) 
@@ -654,7 +654,7 @@ subroutine write(self,                                                   &
   integer,               intent(in)    :: num_nodes                   
   integer,               intent(in)    :: num_edges                   
   integer,               intent(in)    :: num_faces                   
-  real(kind=dp),         intent(in)    :: node_coordinates(:,:)       
+  real(kind=r_def),      intent(in)    :: node_coordinates(:,:)       
   integer,               intent(in)    :: face_node_connectivity(:,:) 
   integer,               intent(in)    :: edge_node_connectivity(:,:) 
   integer,               intent(in)    :: face_edge_connectivity(:,:) 

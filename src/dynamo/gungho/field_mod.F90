@@ -15,7 +15,7 @@
 
 module field_mod
 
-  use constants_mod,            only : dp
+  use constants_mod,            only : r_def
   use function_space_mod,       only : function_space_type
   use gaussian_quadrature_mod,  only : gaussian_quadrature_type
 
@@ -43,7 +43,7 @@ module field_mod
     type( gaussian_quadrature_type ), pointer         &
                                       :: gaussian_quadrature => null( )
     !> Allocatable array of type real which holds the values of the field
-    real(kind=dp), allocatable         :: data( : )
+    real(kind=r_def), allocatable         :: data( : )
 
   contains
 
@@ -94,7 +94,7 @@ module field_mod
     type( gaussian_quadrature_type ), pointer, public &
                                       :: gaussian_quadrature
     !> Allocatable array of type real which holds the values of the field
-    real(kind=dp), public, pointer         :: data( : )
+    real(kind=r_def), public, pointer         :: data( : )
 
   contains
   end type field_proxy_type 
@@ -194,17 +194,17 @@ contains
   subroutine set_field_scalar(self, scalar)
     implicit none
     class(field_type), intent(inout) :: self
-    real(kind=dp)                    :: scalar
+    real(kind=r_def)                 :: scalar
     
     self%data(:) = scalar
   end subroutine set_field_scalar
 
   subroutine axpy(self, a,x,y)
     implicit none
-    class(field_type), intent(inout):: self
-    real(kind=dp),     intent(in)   :: a
-    class(field_type), intent(in)   :: x
-    class(field_type), intent(in)   :: y
+    class(field_type), intent(inout) :: self
+    real(kind=r_def),     intent(in) :: a
+    class(field_type), intent(in)    :: x
+    class(field_type), intent(in)    :: y
     
     self%data(:) = a*x%data(:) + y%data(:)
   end subroutine axpy

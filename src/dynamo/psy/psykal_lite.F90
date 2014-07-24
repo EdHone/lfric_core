@@ -14,8 +14,8 @@
 
 module psy
 
-  use field_mod, only : field_type, field_proxy_type 
-  use constants_mod, only : dp
+  use field_mod,     only : field_type, field_proxy_type 
+  use constants_mod, only : r_def
 
   implicit none
 
@@ -29,10 +29,10 @@ contains
     implicit none
 
     type( field_type ), intent( in ) :: right_hand_side
-    type( field_proxy_type ) :: right_hand_side_proxy
-    integer :: cell
-    integer, pointer :: map(:)
-    real(kind=dp), pointer  :: basis(:,:,:,:)
+    type( field_proxy_type )         :: right_hand_side_proxy
+    integer                          :: cell
+    integer, pointer                 :: map(:)
+    real(kind=r_def), pointer        :: basis(:,:,:,:)
 
     right_hand_side_proxy = right_hand_side%get_proxy()
     ! Unpack data
@@ -59,12 +59,12 @@ contains
     type( field_type ), intent( in ) :: pdfield
     type( field_type ), intent( in ) :: rhs
 
-    integer                 :: cell
-    integer, pointer        :: map(:)
-    real(kind=dp), pointer  :: basis(:,:,:,:)
+    integer                          :: cell
+    integer, pointer                 :: map(:)
+    real(kind=r_def), pointer        :: basis(:,:,:,:)
 
-    type( field_proxy_type )        :: pd_proxy
-    type( field_proxy_type )        :: rhs_proxy 
+    type( field_proxy_type )         :: pd_proxy
+    type( field_proxy_type )         :: rhs_proxy 
 
     pd_proxy  = pdfield%get_proxy()
     rhs_proxy = rhs%get_proxy()
@@ -95,9 +95,9 @@ contains
     type( field_type ), intent( inout ) :: right_hand_side
 
     type( field_proxy_type)             :: rhs_proxy
-    integer :: cell
-    integer, pointer :: map(:)
-    real(kind=dp), pointer  :: basis(:,:,:,:)
+    integer                             :: cell
+    integer, pointer                    :: map(:)
+    real(kind=r_def), pointer           :: basis(:,:,:,:)
 
     rhs_proxy = right_hand_side%get_proxy()
     ! Unpack data
@@ -123,10 +123,10 @@ contains
 
     type( field_type ), intent( inout ) :: rhs
 
-    type( field_proxy_type) :: rhs_p
-    integer :: cell
-    integer, pointer :: map(:)
-    real(kind=dp), pointer  :: basis(:,:,:,:)
+    type( field_proxy_type)             :: rhs_p
+    integer                             :: cell
+    integer, pointer                    :: map(:)
+    real(kind=r_def), pointer           :: basis(:,:,:,:)
 
     rhs_p = rhs%get_proxy()
     ! Unpack data
@@ -149,9 +149,9 @@ contains
     type(field_type), intent(inout) :: x
     type(field_type), intent(inout) :: Ax
 
-    integer                 :: cell
-    integer, pointer        :: map(:)
-    real(kind=dp), pointer  :: basis(:,:,:,:)
+    integer                         :: cell
+    integer, pointer                :: map(:)
+    real(kind=r_def), pointer       :: basis(:,:,:,:)
 
     type( field_proxy_type )        :: x_p
     type( field_proxy_type )        :: Ax_p
@@ -175,11 +175,11 @@ contains
 
   end subroutine invoke_matrix_vector
 
-  real(kind=dp) function inner_prod(x,y)
+  real(kind=r_def) function inner_prod(x,y)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
     type( field_type ), intent( in ) :: x,y
-    type( field_proxy_type)             ::  x_p,y_p
+    type( field_proxy_type)          ::  x_p,y_p
 
     integer                          :: i,undf
 
@@ -195,7 +195,7 @@ contains
        stop
     endif
 
-    inner_prod = 0.0_dp
+    inner_prod = 0.0_r_def
     do i = 1,undf
        inner_prod = inner_prod + ( x_p%data(i) * y_p%data(i) )
     end do

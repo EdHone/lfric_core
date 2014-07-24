@@ -1,3 +1,4 @@
+ADD_TEST_SUITE(constants_mod_test_suite)
 ADD_TEST_SUITE(log_mod_test_suite)
 ADD_TEST_SUITE(function_space_mod_test_suite)
 ADD_TEST_SUITE(field_mod_test_suite)

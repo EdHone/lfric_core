@@ -13,14 +13,14 @@
 !! @parameter rhs field_type the right hand side, b
 
 module solver_mod
-  use constants_mod,   only : dp, max_iter
-  use log_mod,         only : log_event, LOG_LEVEL_INFO, LOG_LEVEL_ERROR, &
-                              LOG_LEVEL_DEBUG
-  use field_mod,       only : field_type
-  use function_space_mod, only : function_space_type
+  use constants_mod,           only : r_def, str_def, max_iter
+  use log_mod,                 only : log_event, LOG_LEVEL_INFO, LOG_LEVEL_ERROR, &
+                                      LOG_LEVEL_DEBUG
+  use field_mod,               only : field_type
+  use function_space_mod,      only : function_space_type
   use gaussian_quadrature_mod, only : gaussian_quadrature_type
                                    
-  use psy,             only : inner_prod, invoke_matrix_vector
+  use psy,                     only : inner_prod, invoke_matrix_vector
 
   implicit none
   private
@@ -38,34 +38,34 @@ contains
     type(field_type), intent(inout)    :: lhs
     type(field_type), intent(in)       :: rhs
 
-    character(len=80)                  :: cmessage
+    character(len=str_def)             :: cmessage
     ! The temporary fields
     type(field_type)                   :: res, cr, p, v, s, t
 
     ! the scalars 
     ! the greeks - standard BiCGStab
-    real(kind=dp)                      :: rho,alpha,omega,beta, norm
-    real(kind=dp)                      :: ts,tt
+    real(kind=r_def)                   :: rho,alpha,omega,beta, norm
+    real(kind=r_def)                   :: ts,tt
     ! others
-    real(kind=dp)                      :: err,sc_err, tol, init_err
+    real(kind=r_def)                   :: err,sc_err, tol, init_err
     integer                            :: iter
     integer                            :: rhs_fs
     type(function_space_type)          :: fs
     type( gaussian_quadrature_type )   :: gq 
     type( gaussian_quadrature_type ), pointer :: null_gq => null()
 
-    tol = 1.0e-8
+    tol = 1.0e-8_r_def
     ! compute the residual this is a global sum to the PSy ---
     sc_err = inner_prod(rhs,rhs)
     sc_err = sqrt(sc_err)
     write(cmessage,'("solver_algorithm: starting ... ||b|| = ",E15.8)') sc_err
     call log_event(trim(cmessage), LOG_LEVEL_INFO)
-    call lhs%set_field_scalar(0.0_dp)
+    call lhs%set_field_scalar(0.0_r_def)
     
     rhs_fs = rhs%which_function_space()
     v = field_type(fs%get_instance(rhs_fs),                                &
          gq%get_instance() )
-    call v%set_field_scalar(0.0_dp)
+    call v%set_field_scalar(0.0_r_def)
 
     call invoke_matrix_vector(v,lhs)
     err = inner_prod(v,v)
@@ -78,9 +78,9 @@ contains
     err = sqrt(err)/sc_err
     init_err=err
     
-    alpha  = 1.0
-    omega  = 1.0
-    norm   = 1.0
+    alpha  = 1.0_r_def
+    omega  = 1.0_r_def
+    norm   = 1.0_r_def
     
     cr = field_type(fs%get_instance(rhs_fs),                               &
          null_gq )
@@ -88,13 +88,13 @@ contains
     
     p = field_type(fs%get_instance(rhs_fs),                                &
          null_gq )
-    call p%set_field_scalar(0.0_dp)
+    call p%set_field_scalar(0.0_r_def)
     
     t = field_type(fs%get_instance(rhs_fs),                                &
          gq%get_instance() )
     s = field_type(fs%get_instance(rhs_fs),                                &
          null_gq )
-    call v%set_field_scalar(0.0_dp)
+    call v%set_field_scalar(0.0_r_def)
     
     do iter = 1, max_iter
        
@@ -105,7 +105,7 @@ contains
        !      ! this is where the preconitioner would go
        call s%copy_field_data(t)
        call p%axpy( beta,p,s)
-       call v%set_field_scalar(0.0_dp)
+       call v%set_field_scalar(0.0_r_def)
        call invoke_matrix_vector(v,p)
       
        norm = inner_prod(cr,v)
@@ -114,7 +114,7 @@ contains
        
        !precon cs, s - again no preconditioner
        ! either use a cs or zero t first as its an inc field!
-       call t%set_field_scalar(0.0_dp)
+       call t%set_field_scalar(0.0_r_def)
        call invoke_matrix_vector(t,s)
        
        tt = inner_prod(t,t)

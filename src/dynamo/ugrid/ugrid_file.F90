@@ -10,7 +10,7 @@
 !!           procedure interfaces. Used to implement the OO strategy pattern.
 !-------------------------------------------------------------------------------
 module ugrid_file_mod
-use constants_mod, only: dp
+use constants_mod, only : r_def
 implicit none
 private
 
@@ -45,11 +45,11 @@ abstract interface
   !-----------------------------------------------------------------------------
 
   subroutine new_open_interface(self, fname)
-    import :: ugrid_file_type, dp
+    import :: ugrid_file_type, r_def
 
     !Arguments
     class(ugrid_file_type), intent(inout) :: self
-    character(len=*),       intent(in) :: fname
+    character(len=*),       intent(in)    :: fname
 
   end subroutine new_open_interface
 
@@ -60,7 +60,7 @@ abstract interface
   !-----------------------------------------------------------------------------
 
   subroutine close_interface(self)
-    import :: ugrid_file_type, dp
+    import :: ugrid_file_type, r_def
 
     !Arguments
     class(ugrid_file_type), intent(in) :: self
@@ -81,7 +81,7 @@ abstract interface
 
   subroutine get_dimensions_interface(self, num_nodes, num_edges, num_faces, &
               num_nodes_per_face, num_edges_per_face, num_nodes_per_edge)
-    import :: ugrid_file_type, dp
+    import :: ugrid_file_type, r_def
 
     !Arguments
     class(ugrid_file_type), intent(inout)  :: self                        
@@ -110,11 +110,11 @@ abstract interface
                   face_node_connectivity, edge_node_connectivity,   &
                   face_edge_connectivity, face_face_connectivity)
 
-    import :: ugrid_file_type, dp
+    import :: ugrid_file_type, r_def
 
     !Arguments
     class(ugrid_file_type), intent(inout) :: self                        
-    real(kind=dp),          intent(out)   :: node_coordinates(:,:)       
+    real(kind=r_def),       intent(out)   :: node_coordinates(:,:)       
     integer,                intent(out)   :: face_node_connectivity(:,:) 
     integer,                intent(out)   :: edge_node_connectivity(:,:) 
     integer,                intent(out)   :: face_edge_connectivity(:,:) 
@@ -142,14 +142,14 @@ abstract interface
                   face_node_connectivity, edge_node_connectivity,          &
                   face_edge_connectivity, face_face_connectivity)
 
-    import :: ugrid_file_type, dp
+    import :: ugrid_file_type, r_def
 
     !Arguments
     class(ugrid_file_type), intent(inout) :: self                        
     integer,                intent(in)    :: num_nodes                   
     integer,                intent(in)    :: num_edges                   
     integer,                intent(in)    :: num_faces                   
-    real(kind=dp),          intent(in)    :: node_coordinates(:,:)       
+    real(kind=r_def),       intent(in)    :: node_coordinates(:,:)       
     integer,                intent(in)    :: face_node_connectivity(:,:) 
     integer,                intent(in)    :: edge_node_connectivity(:,:) 
     integer,                intent(in)    :: face_edge_connectivity(:,:) 

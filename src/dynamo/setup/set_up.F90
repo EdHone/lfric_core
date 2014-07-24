@@ -15,14 +15,14 @@
 
 module set_up_mod
 
-  use constants_mod,              only : dp
+  use constants_mod,              only : r_def, str_def
   use function_space_mod,         only : function_space_type
   use reference_element_mod,      only : reference_cube
 
-  use mesh_generator_mod,         only : mesh_generator_init,  &
-                                   mesh_generator_cubedsphere, &
-                                   mesh_generator_biperiodic,  &
-                                   mesh_connectivity
+  use mesh_generator_mod,         only : mesh_generator_init,        &
+                                         mesh_generator_cubedsphere, &
+                                         mesh_generator_biperiodic,  &
+                                         mesh_connectivity
   use num_dof_mod,                only : num_dof_init
   use basis_function_mod,         only : get_basis, &
               v0_basis, v1_basis, v2_basis, v3_basis, &
@@ -39,14 +39,14 @@ contains
 !> be replaced with code that reads the information in)
   subroutine set_up( )
 
-    use log_mod, only : log_event, LOG_LEVEL_INFO
+    use log_mod,  only : log_event, LOG_LEVEL_INFO
     use mesh_mod, only : num_cells, num_layers, element_order, l_spherical, &
                          num_cells_1d, v_unique_dofs, v_dof_entity
 
     implicit none
 
-    real(kind=dp), parameter                 :: delta=1.0_dp
-    character(len = 100)                     :: filename
+    real(kind=r_def), parameter              :: delta = 1.0_r_def
+    character(len = str_def)                 :: filename
 
     ! hard-coded these numbers are
     num_cells_1d = 4 
