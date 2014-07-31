@@ -19,8 +19,10 @@ module solver_mod
   use field_mod,               only : field_type
   use function_space_mod,      only : function_space_type
   use gaussian_quadrature_mod, only : gaussian_quadrature_type
-                                   
-  use psy,                     only : inner_prod, invoke_matrix_vector
+
+  use psy,             only : invoke_inner_prod, invoke_matrix_vector,         &
+                              invoke_axpy, invoke_minus_field_data,            &
+                              invoke_copy_field_data, invoke_set_field_scalar
 
   implicit none
   private
@@ -56,101 +58,124 @@ contains
 
     tol = 1.0e-8_r_def
     ! compute the residual this is a global sum to the PSy ---
-    sc_err = inner_prod(rhs,rhs)
+    !PSY call invoke ( inner_prod(rhs,rhs,sc_err))
+    call invoke_inner_prod(rhs,rhs,sc_err)
     sc_err = sqrt(sc_err)
     write(cmessage,'("solver_algorithm: starting ... ||b|| = ",E15.8)') sc_err
     call log_event(trim(cmessage), LOG_LEVEL_INFO)
-    call lhs%set_field_scalar(0.0_r_def)
-    
+    !PSY call invoke ( set_field_scalar(0.0_r_def, lhs))
+    call invoke_set_field_scalar(0.0_r_def, lhs)
+
     rhs_fs = rhs%which_function_space()
     v = field_type(fs%get_instance(rhs_fs),                                &
          gq%get_instance() )
-    call v%set_field_scalar(0.0_r_def)
+    !PSY call invoke ( set_field_scalar(0.0_r_def, v))
+    call invoke_set_field_scalar(0.0_r_def, v)
 
     call invoke_matrix_vector(v,lhs)
-    err = inner_prod(v,v)
-    
+    !PSY call invoke ( inner_prod(v,v,err))
+    call invoke_inner_prod(v,v,err)
+
     res = field_type(fs%get_instance(rhs_fs),                              &
          null_gq )    
-    call res%minus_field_data(rhs,v)
-    
-    err = inner_prod(res,res)
+    !PSY call invoke ( minus_field_data(rhs,v,res))
+    call invoke_minus_field_data(rhs,v,res)
+
+    !PSY call invoke ( inner_prod(res,res,err))
+    call invoke_inner_prod(res,res,err)
     err = sqrt(err)/sc_err
     init_err=err
-    
+
     alpha  = 1.0_r_def
     omega  = 1.0_r_def
     norm   = 1.0_r_def
-    
+
     cr = field_type(fs%get_instance(rhs_fs),                               &
          null_gq )
-    call cr%copy_field_data(res)
-    
+    !PSY call invoke ( copy_field_data(res,cr))
+    call invoke_copy_field_data(res,cr)
+
     p = field_type(fs%get_instance(rhs_fs),                                &
          null_gq )
-    call p%set_field_scalar(0.0_r_def)
-    
+    !PSY call invoke ( set_field_scalar(0.0_r_def, p))
+    call invoke_set_field_scalar(0.0_r_def, p)
+
     t = field_type(fs%get_instance(rhs_fs),                                &
          gq%get_instance() )
     s = field_type(fs%get_instance(rhs_fs),                                &
          null_gq )
-    call v%set_field_scalar(0.0_r_def)
-    
+    !PSY call invoke ( set_field_scalar(0.0_r_def, v))
+    call invoke_set_field_scalar(0.0_r_def, v)
+
     do iter = 1, max_iter
-       
-       rho = inner_prod(cr,res)
-       beta = (rho/norm) * (alpha/omega)
-       call t%axpy((-beta*omega),v,res)
-       
-       !      ! this is where the preconitioner would go
-       call s%copy_field_data(t)
-       call p%axpy( beta,p,s)
-       call v%set_field_scalar(0.0_r_def)
-       call invoke_matrix_vector(v,p)
-      
-       norm = inner_prod(cr,v)
-       alpha = rho/norm
-       call s%axpy(-alpha,v,res)
-       
-       !precon cs, s - again no preconditioner
-       ! either use a cs or zero t first as its an inc field!
-       call t%set_field_scalar(0.0_r_def)
-       call invoke_matrix_vector(t,s)
-       
-       tt = inner_prod(t,t)
-       ts = inner_prod(t,s)
-       
-       omega = ts/tt
-       
-       !      lhs = lhs + omega * s + alpha * p
-       call lhs%axpy(omega,s,lhs)
-       call lhs%axpy(alpha,p,lhs)
-       call res%axpy(-omega,t,s)
-       norm = rho
-       
-       ! check for convergence
-       err = inner_prod(res,res)
-       err = sqrt(err)/sc_err
-       
-       write(cmessage,'("solver_algorithm[",I2,"]: res = ", E15.8)')        &
+
+      !PSY call invoke ( inner_prod(cr,res,rho))
+      call invoke_inner_prod(cr,res,rho)
+      beta = (rho/norm) * (alpha/omega)
+      !PSY call invoke ( axpy((-beta*omega),v,res,t))
+      call invoke_axpy((-beta*omega),v,res,t)
+
+      !      ! this is where the preconitioner would go
+      !PSY call invoke ( copy_field_data(t,s))
+      call invoke_copy_field_data(t,s)
+      !PSY call invoke ( axpy(beta,p,s,p))
+      call invoke_axpy(beta,p,s,p)
+      !PSY call invoke ( set_field_scalar(0.0_r_def, v))
+      call invoke_set_field_scalar(0.0_r_def, v)
+      call invoke_matrix_vector(v,p)
+
+      !PSY call invoke ( inner_prod(cr,v,norm))
+      call invoke_inner_prod(cr,v,norm)
+      alpha = rho/norm
+      !PSY call invoke ( axpy(-alpha,v,res,s))
+      call invoke_axpy(-alpha,v,res,s)
+
+      !precon cs, s - again no preconditioner
+      ! either use a cs or zero t first as its an inc field!
+      !PSY call invoke ( set_field_scalar(0.0_r_def, t))
+      call invoke_set_field_scalar(0.0_r_def, t)
+      call invoke_matrix_vector(t,s)
+
+      !PSY call invoke ( inner_prod(t,t,tt), &
+      !PSY               inner_prod(t,s,ts))
+      call invoke_inner_prod(t,t,tt)
+      call invoke_inner_prod(t,s,ts)
+
+      omega = ts/tt
+
+      !      lhs = lhs + omega * s + alpha * p
+      !PSY call invoke ( axpy(omega,s,lhs,lhs)
+      !PSY             , axpy(alpha,p,lhs,lhs)
+      !PSY             , axpy(-omega,t,s,res) )
+      call invoke_axpy(omega,s,lhs,lhs)
+      call invoke_axpy(alpha,p,lhs,lhs)
+      call invoke_axpy(-omega,t,s,res)
+      norm = rho
+
+      ! check for convergence
+      !PSY call invoke ( inner_prod(res,res,err))
+      call invoke_inner_prod(res,res,err)
+      err = sqrt(err)/sc_err
+
+      write(cmessage,'("solver_algorithm[",I2,"]: res = ", E15.8)')        &
             iter, err
-       call log_event(trim(cmessage), LOG_LEVEL_DEBUG)
-       
-       if (err < tol) then 
-          write(cmessage,'("solver_algorithm:converged in ", I2," iters, init=",E12.4," final=",E15.8)') iter,init_err,err
-          call log_event(trim(cmessage),LOG_LEVEL_INFO)
-          exit
-       end if
+      call log_event(trim(cmessage), LOG_LEVEL_DEBUG)
+
+      if (err < tol) then 
+        write(cmessage,'("solver_algorithm:converged in ", I2," iters, init=",E12.4," final=",E15.8)') iter,init_err,err
+        call log_event(trim(cmessage),LOG_LEVEL_INFO)
+        exit
+      end if
     end do
-    
+
     if(iter.ge.max_iter) then
-       write(cmessage,'("solver_algortihm: NOT converged in", I3," iters, Res=",E15.8)') &
+      write(cmessage,'("solver_algortihm: NOT converged in", I3," iters, Res=",E15.8)') &
             iter, err
-       call log_event(trim(cmessage),LOG_LEVEL_ERROR)
-       call log_event(" ... time to flee, bye.",LOG_LEVEL_ERROR)
-       stop
+      call log_event(trim(cmessage),LOG_LEVEL_ERROR)
+      call log_event(" ... time to flee, bye.",LOG_LEVEL_ERROR)
+      stop
     end if
-    
+
   end subroutine solver_algorithm
-  
+
 end module solver_mod

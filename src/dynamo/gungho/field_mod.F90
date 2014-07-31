@@ -56,14 +56,6 @@ module field_mod
     !>
     procedure, public :: print_field
 
-    !> function which subtracts one field from another
-    procedure         :: minus_field_data
-    !> function which copies one field to another
-    procedure         :: copy_field_data
-    !> function which sets the values of the field to a scalar
-    procedure         :: set_field_scalar
-    !> function which computes a*x +y where x and y are fields and a is  scalar
-    procedure         :: axpy
     !> function returns the enumerated integer for the functions_space on which
     !! the field lives
     procedure         :: which_function_space
@@ -173,41 +165,6 @@ contains
     end do
 
   end subroutine print_field
-
-  subroutine minus_field_data(self, a, b)
-    implicit none
-    class(field_type), intent(inout) :: self
-    class(field_type), intent(in)    :: a
-    class(field_type), intent(in)    :: b
-
-    self%data(:) = a%data(:) - b%data(:)
-  end subroutine minus_field_data
-
-  subroutine copy_field_data(self, fdata)
-    implicit none
-    class(field_type), intent(inout) :: self
-    class(field_type), intent(in)    :: fdata
-    
-    self%data(:) = fdata%data(:)
-  end subroutine copy_field_data
-
-  subroutine set_field_scalar(self, scalar)
-    implicit none
-    class(field_type), intent(inout) :: self
-    real(kind=r_def)                 :: scalar
-    
-    self%data(:) = scalar
-  end subroutine set_field_scalar
-
-  subroutine axpy(self, a,x,y)
-    implicit none
-    class(field_type), intent(inout) :: self
-    real(kind=r_def),     intent(in) :: a
-    class(field_type), intent(in)    :: x
-    class(field_type), intent(in)    :: y
-    
-    self%data(:) = a*x%data(:) + y%data(:)
-  end subroutine axpy
 
   function which_function_space(self) result(fs)
     implicit none

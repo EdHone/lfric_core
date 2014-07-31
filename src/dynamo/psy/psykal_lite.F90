@@ -175,12 +175,14 @@ contains
 
   end subroutine invoke_matrix_vector
 
-  real(kind=r_def) function inner_prod(x,y)
+  subroutine invoke_inner_prod(x,y,inner_prod)
+  ! Calculate inner product of x and y
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
-    type( field_type ), intent( in ) :: x,y
-    type( field_proxy_type)          ::  x_p,y_p
+    type( field_type ),  intent(in ) :: x,y
+    real(kind=r_def),    intent(out) :: inner_prod
 
+    type( field_proxy_type)          ::  x_p,y_p
     integer                          :: i,undf
 
     x_p = x%get_proxy()
@@ -189,17 +191,206 @@ contains
     undf = x_p%vspace%get_undf()
     !sanity check
     if(undf .ne. y_p%vspace%get_undf() ) then
-       ! they are not on the same function space
-       call log_event("Psy:inner_prod:x and y live on different w-spaces",LOG_LEVEL_ERROR)
-       !abort
-       stop
+      ! they are not on the same function space
+      call log_event("Psy:inner_prod:x and y live on different w-spaces",LOG_LEVEL_ERROR)
+      !abort
+      stop
     endif
 
     inner_prod = 0.0_r_def
     do i = 1,undf
-       inner_prod = inner_prod + ( x_p%data(i) * y_p%data(i) )
+      inner_prod = inner_prod + ( x_p%data(i) * y_p%data(i) )
     end do
 
-  end function inner_prod
+  end subroutine invoke_inner_prod
     
+  subroutine invoke_axpy(scalar,field1,field2,field_res)
+  ! axpy :  (a * x + y) ; a-scalar, x,y-vector
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    implicit none
+    type( field_type ), intent(in )    :: field1,field2
+    type( field_type ), intent(inout ) :: field_res
+    real(kind=r_def),   intent(in )    :: scalar
+    type( field_proxy_type)            :: field1_proxy,field2_proxy      &
+                                        , field_res_proxy
+    integer                            :: i,undf
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+    field_res_proxy = field_res%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf .ne. field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:axpy:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    if(undf .ne. field_res_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:axpy:field1 and result_field live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+
+    do i = 1,undf
+      field_res_proxy%data(i) = (scalar * field1_proxy%data(i)) + field2_proxy%data(i)
+    end do
+  end subroutine invoke_axpy
+
+  subroutine invoke_axmy(scalar,field1,field2,field_res)
+  ! axmy :  (a * x - y) ; a-scalar, x,y-vector
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    implicit none
+    type( field_type ), intent(in )    :: field1,field2
+    type( field_type ), intent(inout ) :: field_res
+    real(kind=r_def),   intent(in )    :: scalar
+    type( field_proxy_type)            :: field1_proxy,field2_proxy      &
+                                        , field_res_proxy
+    integer                            :: i,undf
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+    field_res_proxy = field_res%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf .ne. field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:axmy:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    if(undf .ne. field_res_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:axmy:field1 and result_field live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+
+    do i = 1,undf
+      field_res_proxy%data(i) = (scalar * field1_proxy%data(i)) - field2_proxy%data(i)
+    end do
+  end subroutine invoke_axmy
+
+  subroutine invoke_copy_field_data(field1,field_res)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    implicit none
+    type( field_type ), intent(in )    :: field1
+    type( field_type ), intent(inout ) :: field_res
+    type( field_proxy_type)            :: field1_proxy , field_res_proxy
+    integer                            :: i,undf
+
+    field1_proxy = field1%get_proxy()
+    field_res_proxy = field_res%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf .ne. field_res_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:copy_field_data:field1 and field_res live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+
+    do i = 1,undf
+      field_res_proxy%data(i) = field1_proxy%data(i)
+    end do
+  end subroutine invoke_copy_field_data
+
+  subroutine invoke_minus_field_data(field1,field2,field_res)
+  ! Subtract values of field2 from values of field1
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    implicit none
+    type( field_type ), intent(in )    :: field1,field2
+    type( field_type ), intent(inout ) :: field_res
+    type( field_proxy_type)            :: field1_proxy,field2_proxy      &
+                                        , field_res_proxy
+    integer                            :: i,undf
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+    field_res_proxy = field_res%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf .ne. field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:minus_field_data:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    if(undf .ne. field_res_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:minus_field_data:field1 and result_field live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+
+    do i = 1,undf
+      field_res_proxy%data(i) = field1_proxy%data(i) - field2_proxy%data(i)
+    end do
+  end subroutine invoke_minus_field_data
+
+  subroutine invoke_plus_field_data(field1,field2,field_res)
+  ! Add values of field2 to values of field1
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    implicit none
+    type( field_type ), intent(in )    :: field1,field2
+    type( field_type ), intent(inout ) :: field_res
+    type( field_proxy_type)            :: field1_proxy,field2_proxy      &
+                                        , field_res_proxy
+    integer                            :: i,undf
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+    field_res_proxy = field_res%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf .ne. field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:plus_field_data:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    if(undf .ne. field_res_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:plus_field_data:field1 and result_field live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+
+    do i = 1,undf
+      field_res_proxy%data(i) = field1_proxy%data(i) + field2_proxy%data(i)
+    end do
+  end subroutine invoke_plus_field_data
+
+  subroutine invoke_set_field_scalar(scalar, field_res)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    implicit none
+    type( field_type ), intent(inout ) :: field_res
+    real(kind=r_def),   intent(in )    :: scalar
+    type( field_proxy_type)            :: field_res_proxy
+    integer                            :: i,undf
+
+    field_res_proxy = field_res%get_proxy()
+
+    undf = field_res_proxy%vspace%get_undf()
+
+    do i = 1,undf
+      field_res_proxy%data(i) = scalar
+    end do
+  end subroutine invoke_set_field_scalar
+
 end module psy
