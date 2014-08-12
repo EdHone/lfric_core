@@ -64,5 +64,8 @@ $(TEST_OBJ_DIR) $(TEST_OBJ_SUBDIRS):
 	@mkdir -p $@
 
 .PHONY: clean
-clean: cleanpfunit
+clean:
 	-rm -rf $(OBJ_DIR)
+ifdef ALL
+	$(MAKE) cleanpfunit
+endif
