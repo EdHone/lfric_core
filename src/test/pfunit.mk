@@ -40,7 +40,7 @@ pfunit: $(PFUNIT_BUILD)/Makefile
 $(PFUNIT_INSTALL)/include/driver.F90: pfunit
 $(PFUNIT_INSTALL)/bin/pFUnitParser.py: pfunit
 
-$(PFUNIT_BUILD)/Makefile: $(PFUNIT_BUILD)
+$(PFUNIT_BUILD)/Makefile: | $(PFUNIT_BUILD)
 	cd $(PFUNIT_BUILD); $(CMAKE) -DINSTALL_PATH=$(PFUNIT_INSTALL) \
 	                             $(PFUNIT_SOURCE)
 

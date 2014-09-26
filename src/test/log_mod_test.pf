@@ -67,7 +67,7 @@ contains
     character(:), allocatable :: string
 
     character(len=80) :: buffer
-    write( buffer, '("Event level ", I0, ", expected tag >", A, "<")') &
+    write( buffer, '(I0, A)') &
            this%level, this%expected_tag
     string = trim( buffer )
   end function toString
