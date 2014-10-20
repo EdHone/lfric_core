@@ -11,22 +11,21 @@
 !-------------------------------------------------------------------------------
 module ugrid_file_mod
 use constants_mod, only : r_def
+use file_mod, only      : file_type
+
 implicit none
 private
 
 !-------------------------------------------------------------------------------
 !> @brief Abstract ugrid file type
 !!
-!! @details  Defines the interface for a whole family of ugrid IO
+!! @details  Defines the interface for a whole family of ugrid
 !!           strategies, which extend this abstract type.
 !-------------------------------------------------------------------------------
 
-type, abstract, public :: ugrid_file_type
+type, abstract, public, extends(file_type) :: ugrid_file_type
   private
 contains
-  procedure (new_open_interface ),      deferred :: fopen
-  procedure (new_open_interface ),      deferred :: fnew
-  procedure (close_interface),          deferred :: fclose
   procedure (get_dimensions_interface), deferred :: get_dimensions
   procedure (read_interface ),          deferred :: read
   procedure (write_interface),          deferred :: write
@@ -36,36 +35,6 @@ end type ugrid_file_type
 ! Abstract interfaces
 !-------------------------------------------------------------------------------
 abstract interface
-
-  !-----------------------------------------------------------------------------
-  !> @brief  Interface: Open an existing file, or create a new file.
-  !!
-  !! @param[in] self               The ugrid file strategy object.
-  !! @param[in] fname              Filename
-  !-----------------------------------------------------------------------------
-
-  subroutine new_open_interface(self, fname)
-    import :: ugrid_file_type, r_def
-
-    !Arguments
-    class(ugrid_file_type), intent(inout) :: self
-    character(len=*),       intent(in)    :: fname
-
-  end subroutine new_open_interface
-
-  !-----------------------------------------------------------------------------
-  !> @brief  Interface: Close a file
-  !!
-  !! @param[in] self               The ugrid file strategy object.
-  !-----------------------------------------------------------------------------
-
-  subroutine close_interface(self)
-    import :: ugrid_file_type, r_def
-
-    !Arguments
-    class(ugrid_file_type), intent(in) :: self
-
-  end subroutine close_interface
 
   !-----------------------------------------------------------------------------
   !> @brief  Interface: Gets numbers of nodes etc. for array dimensions.
@@ -81,7 +50,7 @@ abstract interface
 
   subroutine get_dimensions_interface(self, num_nodes, num_edges, num_faces, &
               num_nodes_per_face, num_edges_per_face, num_nodes_per_edge)
-    import :: ugrid_file_type, r_def
+    import :: ugrid_file_type
 
     !Arguments
     class(ugrid_file_type), intent(inout)  :: self                        

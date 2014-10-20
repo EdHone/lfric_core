@@ -248,7 +248,7 @@ subroutine read_from_file(self, filename)
   class(ugrid_2d_type), intent(inout) :: self
   character(len=*),        intent(in) :: filename
 
-  call self%file_handler%fopen(trim(filename))
+  call self%file_handler%file_open(trim(filename))
 
   call self%file_handler%get_dimensions(                 &
          num_nodes          = self%num_nodes,            &
@@ -267,7 +267,7 @@ subroutine read_from_file(self, filename)
       face_edge_connectivity = self%face_edge_connectivity,   &
       face_face_connectivity = self%face_face_connectivity)
 
-  call self%file_handler%fclose()
+  call self%file_handler%file_close()
 
   return
 end subroutine read_from_file
@@ -289,7 +289,7 @@ subroutine write_to_file(self, filename)
   class(ugrid_2d_type), intent(inout) :: self
   character(len=*),        intent(in) :: filename
 
-  call self%file_handler%fnew(trim(filename))
+  call self%file_handler%file_new(trim(filename))
 
   call self%file_handler%write(                             &
       num_nodes              = self%num_nodes,              &
@@ -301,7 +301,7 @@ subroutine write_to_file(self, filename)
       face_edge_connectivity = self%face_edge_connectivity, &
       face_face_connectivity = self%face_face_connectivity)
 
-  call self%file_handler%fclose()
+  call self%file_handler%file_close()
 
   return
 end subroutine write_to_file

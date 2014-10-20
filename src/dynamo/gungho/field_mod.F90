@@ -17,6 +17,7 @@ module field_mod
   use constants_mod,            only : r_def
   use function_space_mod,       only : function_space_type
   use gaussian_quadrature_mod,  only : gaussian_quadrature_type
+  !use field_io_strategy_mod,    only : field_io_strategy_type
 
   implicit none
 
@@ -64,6 +65,12 @@ module field_mod
     !> function returns the enumerated integer for the Gaussian quadrature
     !! associated with this field 
     procedure         :: which_gaussian_quadrature
+
+    !> Routine to read field
+    procedure         :: read_field
+
+    !> Routine to write field
+    procedure         :: write_field
 
   end type field_type
 
@@ -227,5 +234,35 @@ contains
     gq = self%gaussian_quadrature%which()
     return
   end function which_gaussian_quadrature
+
+  !> Reads the field
+  !! @param[in] io_strategy An IO strategy method to use for this read.
+  !>
+  subroutine read_field( self, io_strategy )
+    use field_io_strategy_mod,    only : field_io_strategy_type
+
+    implicit none
+
+    class( field_type ),             target, intent( inout ) :: self
+    class( field_io_strategy_type ),         intent( in   ) :: io_strategy
+    
+    call io_strategy % read_field_data ( self % data(:) )    
+
+  end subroutine read_field
+
+  !> Writes the field
+  !! @param[in] io_strategy An IO strategy method to use for this write.
+  !>
+  subroutine write_field( self, io_strategy )
+    use field_io_strategy_mod,    only : field_io_strategy_type
+
+    implicit none
+
+    class( field_type ),             target, intent( inout ) :: self
+    class( field_io_strategy_type ),         intent( inout ) :: io_strategy
+    
+    call io_strategy % write_field_data ( self % data(:) )    
+
+  end subroutine write_field
 
 end module field_mod

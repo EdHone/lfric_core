@@ -50,7 +50,7 @@ type, public, extends(ugrid_file_type) :: ncdf_quad_type
   integer :: nMesh2_face_len               !< Number of faces
 
   integer                      :: ncid     !< NetCDF file ID
-  character(len=nf90_max_name) :: fname    !< Filename
+  character(len=nf90_max_name) :: file_name!< Filename
   character(len=nf90_max_name) :: num_vars !< Number of variables in file
 
   !Dimension ids
@@ -73,9 +73,9 @@ contains
   procedure :: get_dimensions
   procedure :: read
   procedure :: write
-  procedure :: fopen
-  procedure :: fclose
-  procedure :: fnew
+  procedure :: file_open
+  procedure :: file_close
+  procedure :: file_new
 end type
 
 !-------------------------------------------------------------------------------
@@ -86,34 +86,34 @@ contains
 !-------------------------------------------------------------------------------
 !>  @brief   Open an existing netCDF file.  
 !!
-!!  @param[in,out]  self   The netcdf file object.
-!!  @param[in]      fname  Name of the file to open.
+!!  @param[in,out]  self      The netcdf file object.
+!!  @param[in]      file_name Name of the file to open.
 !-------------------------------------------------------------------------------
 
-subroutine fopen(self, fname)
+subroutine file_open(self, file_name)
   implicit none
 
   !Arguments
   class(ncdf_quad_type), intent(inout) :: self
-  character(len=*),      intent(in)    :: fname
+  character(len=*),      intent(in)    :: file_name
 
   !Internal variables
   integer :: ierr
 
-  self%fname = fname
+  self%file_name = file_name
 
-  ierr = nf90_open( trim(self%fname), nf90_write, self%ncid )
+  ierr = nf90_open( trim(self%file_name), nf90_write, self%ncid )
   if (ierr /= nf90_noerr) then 
     write(*,*) 'Error in ncdf_open: '   &
       //trim(nf90_strerror(ierr))       &
-      //': '//trim(self%fname)
+      //': '//trim(self%file_name)
   end if
 
   !Set up the variable ids
   call inquire_ids(self)
 
   return
-end subroutine fopen
+end subroutine file_open
 
 !-------------------------------------------------------------------------------
 !>  @brief   Closes a netCDF file.
@@ -121,11 +121,11 @@ end subroutine fopen
 !!  @param[in]  self   The netcdf file object.
 !-------------------------------------------------------------------------------
 
-subroutine fclose(self)
+subroutine file_close(self)
   implicit none
 
   !Arguments
-  class(ncdf_quad_type), intent(in) :: self
+  class(ncdf_quad_type), intent(inout) :: self
 
   !Internal variables
   integer :: ierr
@@ -136,7 +136,7 @@ subroutine fclose(self)
   end if
 
   return
-end subroutine fclose
+end subroutine file_close
 
 !-------------------------------------------------------------------------------
 !>  @brief          Create a new netCDF file.
@@ -144,30 +144,30 @@ end subroutine fclose
 !!  @description    Creates an opens a new, clean netCDF file. If a file of the
 !!                  same name already exists, this routine will clobber it.
 !!
-!!  @param[in,out]  self    The netcdf file object.
-!!  @param[in]      fname   The name of the file to create/open.
+!!  @param[in,out]  self      The netcdf file object.
+!!  @param[in]      file_name The name of the file to create/open.
 !-------------------------------------------------------------------------------
 
-subroutine fnew(self, fname)
+subroutine file_new(self, file_name)
   implicit none
 
   !Arguments
   class(ncdf_quad_type), intent(inout) :: self
-  character(len=*),      intent(in)    :: fname
+  character(len=*),      intent(in)    :: file_name
 
   !Internal variables
   integer :: ierr
 
-  self%fname = fname
+  self%file_name = file_name
 
-  ierr = nf90_create( trim(self%fname), nf90_clobber, self%ncid )
+  ierr = nf90_create( trim(self%file_name), nf90_clobber, self%ncid )
 
   if (ierr /= NF90_NOERR) then
     call abort('Error in ncdf_create: '//trim(nf90_strerror(ierr)))
   end if
 
   return
-end subroutine fnew
+end subroutine file_new
 
 !-------------------------------------------------------------------------------
 !>  @brief   Defines netCDF dimensions in the netCDF file.

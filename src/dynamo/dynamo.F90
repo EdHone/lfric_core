@@ -20,6 +20,7 @@
 
 program dynamo
 
+  use constants_mod,           only : str_max_filename
   use dynamo_algorithm_rk_timestep_mod, &
                                only : dynamo_algorithm_rk_timestep
   use field_mod,               only : field_type
@@ -27,6 +28,8 @@ program dynamo
   use log_mod,                 only : log_event, LOG_LEVEL_INFO
   use set_up_mod,              only : set_up
   use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3
+  use field_io_mod,            only : write_state_netcdf                      &
+                                    , write_state_plain_text
 
   implicit none
 
@@ -38,6 +41,9 @@ program dynamo
                                      
   type( gaussian_quadrature_type ) :: gq
   integer                          :: coord
+
+  type( field_type ), allocatable  :: state(:)
+  integer                          :: n_fields
 
   call log_event( 'Dynamo running...', LOG_LEVEL_INFO )
 
@@ -64,6 +70,12 @@ program dynamo
                       gq = gq%get_instance(GQ3) )
                                            
 
+  n_fields = 1
+  allocate(state(1:n_fields))
+  state(1) = theta
+  call write_state_netcdf( n_fields, state, 'field_before.nc' )
+  deallocate(state)
+
   call dynamo_algorithm_rk_timestep( chi, u, rho, theta, exner, xi)                       
 
 ! do some i/o
@@ -75,6 +87,15 @@ program dynamo
   call log_event( '   ];', LOG_LEVEL_INFO )
   call u%print_field( '   u =[' )
   call log_event( '   ];', LOG_LEVEL_INFO )
+
+  n_fields = 4
+  allocate(state(1:n_fields))
+  state(1) = rho
+  state(2) = exner
+  state(3) = theta
+  state(4) = u
+  call write_state_plain_text( n_fields, state, 'field_output.txt' )
+  deallocate(state)
 
   call log_event( 'Dynamo completed', LOG_LEVEL_INFO )
 
