@@ -1,0 +1,134 @@
+!-------------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown, 
+! Met Office and NERC 2014. 
+! However, it has been created with the help of the GungHo Consortium, 
+! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-------------------------------------------------------------------------------
+
+!> A container module for various routines that are part of the driver layer
+!> and hence sit outside of the PsyKAl structure
+module driver_layer
+
+  implicit none
+
+  private 
+  public :: interpolated_output
+
+contains
+!> @brief An procedure to interpolate a field onto a defined set of points
+!> @details An algorithm for computing interpolated output on a defined set of points
+!>          and dumping to file.
+!>          Effectively this routine evaluates a field using the known finite
+!>          polynomial expansion of the field at a given point and
+!>          dumps the value to file
+!> @deprecated This is a tempoary implementation until a proper i/o + plotting
+!> stategy is implemented
+!> @param[in] step  The current timestep
+!> @param[in] f     A field to compute output data from
+!> @param[in] chi   A 3D coordinate field
+!> @param[in] fname The name of the field to be output
+  subroutine interpolated_output(step, n_out, f, chi, fname) 
+
+    use log_mod,                   only: log_event, log_scratch_space, LOG_LEVEL_INFO
+    use constants_mod,             only: r_def  
+    use field_mod,                 only: field_type
+    use mesh_generator_mod,        only: domain_size
+    use find_output_cell_mod,      only: find_output_cell
+    use evaluate_output_field_mod, only: evaluate_output_field    
+
+    implicit none
+! Timestep
+    integer,            intent(in) :: step
+! Dimension of input field
+    integer,            intent(in) :: n_out
+! Field to output
+    type( field_type ), intent(in) :: f(n_out)
+! Coodinate fields
+    type( field_type ), intent(in) :: chi(3)  
+! name of field
+    character(6),       intent(in) :: fname
+
+    integer                       :: nx(3), i, j, k, out_cell, dir 
+    integer, parameter            :: output_unit = 21
+    real(kind=r_def), allocatable :: x_out(:,:,:,:), f_out(:,:,:,:)  
+    real(kind=r_def)              :: dx(3)
+    character(18)                 :: outname
+    character(8)                  :: outtime
+    
+! Create uniform grid for output (nx,ny,nz)
+    nx(1) = 100
+    nx(2) = 2
+    nx(3) = 10 
+
+    allocate( x_out(3,nx(3),nx(2),nx(1)), f_out(n_out,nx(3),nx(2),nx(1)) )
+
+! Create regular domain
+    dx(1) = (domain_size%maximum%x - domain_size%minimum%x)/real(nx(1)-1)
+    dx(2) = (domain_size%maximum%y - domain_size%minimum%y)/real(nx(2)-1)
+    dx(3) = (domain_size%maximum%z - domain_size%minimum%z)/real(nx(3)-1)
+
+    do i = 1,nx(1)
+      do j = 1,nx(2)
+        do k = 1,nx(3)
+          x_out(1,k,j,i) = real(i-1)*dx(1) + domain_size%minimum%x
+          x_out(2,k,j,i) = real(j-1)*dx(2) + domain_size%minimum%y
+          x_out(3,k,j,i) = real(k-1)*dx(3) + domain_size%minimum%z
+        end do
+      end do
+    end do
+
+! For each point on regular grid find the computational cell that it is located
+! in and evaluate the field at that point -> This is very inefficient for large
+! grids
+    do i = 1,nx(1)
+      do j = 1,nx(2)
+! find grid cell each output point lives in
+        out_cell = find_output_cell( chi, x_out(:,1,j,i) )
+! evaluate field at output points
+        do dir = 1,n_out
+          call evaluate_output_field( f(dir), chi, x_out(:,:,j,i), out_cell, nx(3), f_out(dir,:,j,i))
+        end do
+      end do
+    end do
+
+
+! Write output field to a file indexed by the timestep and the field name
+! File is formatted to allow easy matlab plotting
+    write(outtime,'(i8.8)') step
+    outname = fname//outtime//'.m'
+
+    write( log_scratch_space, '(A,A)' ) 'Writing interpolated output: ',outname
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  
+    open(output_unit, file = outname, status = "replace")
+    write(output_unit,*) 'II = ',nx(1),';'
+    write(output_unit,*) 'JJ = ',nx(2),';'
+    write(output_unit,*) 'KK = ',nx(3),';'
+    write(output_unit,*) 'LL = ',3+n_out,';'
+    write(output_unit,*) 'data = ['
+    do i = 1,nx(1)
+      do j = 1,nx(2)
+        do k = 1,nx(3)    
+          if ( n_out == 1) then
+            write(output_unit,'(4e16.8)') x_out(1,k,j,i), x_out(2,k,j,i), x_out(3,k,j,i), &
+                                          f_out(1,k,j,i)
+          else
+            write(output_unit,'(6e16.8)') x_out(1,k,j,i), x_out(2,k,j,i), x_out(3,k,j,i), &
+                                          f_out(1,k,j,i), f_out(2,k,j,i), f_out(3,k,j,i)
+          end if 
+        end do
+      end do
+    end do
+    write(output_unit,*) '];'
+    write(output_unit,*) ' '
+    write(output_unit,*) 'x=zeros(LL,KK,JJ,II); id=1; '
+    write(output_unit,*) 'for i=1:II; for j=1:JJ; for k=1:KK;'
+    write(output_unit,*) 'for l=1:LL;'
+    write(output_unit,*) 'x(l,k,j,i) = data(id,l);'
+    write(output_unit,*) 'end;' 
+    write(output_unit,*) 'id = id + 1; end; end; end;'
+    close(output_unit)
+  
+  end subroutine interpolated_output 
+
+end module driver_layer

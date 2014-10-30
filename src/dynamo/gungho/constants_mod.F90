@@ -51,6 +51,9 @@ integer,       parameter    :: str_def          = 128
 integer,       parameter    :: str_long         = 255
 integer,       parameter    :: str_max_filename = 255
 
+! Default numbers
+real(kind=r_def), parameter :: large_real = huge(0.0_r_def)
+
 !Numerical constants
 real(kind=r_def), parameter :: pi  = 3.141592654_r_def    !< pi value
 real(kind=r_def), parameter :: eps = 3.0e-15_r_def        !< relative precision

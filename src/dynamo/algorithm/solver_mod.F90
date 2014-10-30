@@ -12,7 +12,7 @@
 module solver_mod
   use constants_mod,           only : r_def, str_def, max_iter
   use log_mod,                 only : log_event, LOG_LEVEL_INFO, LOG_LEVEL_ERROR, &
-                                      LOG_LEVEL_DEBUG
+                                      LOG_LEVEL_DEBUG, log_scratch_space
   use field_mod,               only : field_type
   use function_space_mod,      only : function_space_type
   use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3
@@ -44,11 +44,15 @@ contains
     type(field_type), intent(in)       :: chi(3)
     integer, intent(in)                :: space
     
-    if ( space == w3 ) then
-      call invoke_w3_solver_kernel(lhs, rhs, chi)
-    else
-      call bicg_solver_algorithm(lhs, rhs, space)
-    end if        
+    select case ( space )
+      case ( w3 )
+        call invoke_w3_solver_kernel(lhs, rhs, chi)
+      case ( w0, w1, w2 )
+        call bicg_solver_algorithm(lhs, rhs, space)
+      case default
+       write( log_scratch_space, '(A)' )  'Invalid space for linear solver, stopping'
+       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+    end select
   end subroutine solver_algorithm
 
 !> @brief BiCGStab solver with no preconditioning. 

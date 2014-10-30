@@ -43,6 +43,17 @@ integer, allocatable ::  face_on_cell(:,:), edge_on_cell(:,:)
 
 ! together this gives all the cell -> d connectivity (3,d), d=0,1,2
 
+! types definitions for computing/storing the domain size
+  type coordinate
+    real(kind=r_def) :: x,y,z
+  end type coordinate
+
+  type domain_limits
+    type(coordinate) :: minimum, maximum
+  end type
+
+  type(domain_limits) :: domain_size
+
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
@@ -75,8 +86,9 @@ end subroutine mesh_generator_init
 !>
 subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
 
-  use log_mod, only : log_event, log_scratch_space, &
-                      LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR
+  use constants_mod, only: earth_radius
+  use log_mod,       only: log_event, log_scratch_space, &
+                           LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR
 
   integer,              intent( in ) :: ncells
   integer,              intent( in ) :: nx, ny
@@ -93,6 +105,10 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
     call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     stop
   end if
+
+! reset earth radius to 1 to avoid problems with routines 
+! multiplying position by earth_radius
+  earth_radius = 1.0_r_def
 
 ! topologically a torus
   nedge_h_g = 2*nx*ny
@@ -210,6 +226,8 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
       end do
     end do
   end do
+
+  call set_domain_size()
    
 ! Diagnostic information  
   call log_event( 'grid connectivity', LOG_LEVEL_DEBUG )
@@ -396,7 +414,9 @@ subroutine mesh_generator_cubedsphere( filename, ncells, nlayers, dz )
         vert_on_cell(vert,j+k*ncells) = vert_on_cell(vert,j) + k*nvert_in
       end do
     end do
-  end do  
+  end do 
+
+  call set_domain_size()
  
 ! Diagnostic information  
   call log_event( 'grid connectivity', LOG_LEVEL_INFO )
@@ -635,5 +655,67 @@ subroutine get_cell_coords(cell, ncells, nlayers, vert_coords)
   end do
 
 end subroutine get_cell_coords
+
+!-------------------------------------------------------------------------------
+!> @brief Subroutine to compute the domain limits (x,y,z) for Cartesian domains,
+!>        and (lambda,phi,r) for spherical domains
+subroutine set_domain_size()
+
+  use constants_mod, only: pi
+  use mesh_mod,      only: l_spherical
+  
+  if ( l_spherical ) then
+    domain_size%minimum%x =  0.0_r_def 
+    domain_size%maximum%x =  2.0_r_def*pi
+    domain_size%minimum%y = -0.5_r_def*pi
+    domain_size%maximum%y =  0.5_r_def*pi
+  else
+    domain_size%minimum%x =  minval(mesh_vertex(1,:))
+    domain_size%maximum%x =  maxval(mesh_vertex(1,:))
+    domain_size%minimum%y =  minval(mesh_vertex(2,:))
+    domain_size%maximum%y =  maxval(mesh_vertex(2,:))
+  end if
+  domain_size%minimum%z =  minval(mesh_vertex(3,:))
+  domain_size%maximum%z =  maxval(mesh_vertex(3,:))
+
+end subroutine set_domain_size
+
+!-------------------------------------------------------------------------------
+!> @brief Function to convert a flux vector in cartesian coordinates (x,y,z) 
+!> to one in spherical coodinates (lambda,phi,r)
+!> @detail convert 3d cartesian velocity u = (u1,u2,u3) in cartesian coordinates at (x,y,z) 
+!> to spherical velocity v = (v1,v2,v3) (in m/s) in spherical coordinates at (lambda,phi,r)
+!> @param[in]  x_vec vector (x,y,z) location in cartesian coodinates
+!> @param[in]  cartesian_vec components of a flux vector (u,v,w) in cartesian coordinates
+!> @param[out] spherical_vec components of a flux vector (u,v,w) on spherical coordinates
+pure function cart2sphere_vector(x_vec, cartesian_vec) result ( spherical_vec )
+     use constants_mod, only: r_def, pi
+
+     implicit none
+
+     real(kind=r_def), intent(in)  :: x_vec(3)
+     real(kind=r_def), intent(in)  :: cartesian_vec(3)
+     real(kind=r_def)              :: spherical_vec(3)
+
+     real(kind=r_def) :: r, t, phi
+
+     t = x_vec(1)**2 + x_vec(2)**2
+     r = sqrt(t + x_vec(3)**2)
+
+     spherical_vec(1) = (- x_vec(2)*cartesian_vec(1) &
+                         + x_vec(1)*cartesian_vec(2) ) / t
+     spherical_vec(2) = (-x_vec(1)*x_vec(3)*cartesian_vec(1) &
+                         -x_vec(2)*x_vec(3)*cartesian_vec(2) &
+                                        + t*cartesian_vec(3))/(r*r*sqrt(t))
+     spherical_vec(3) = (x_vec(1)*cartesian_vec(1) &
+                       + x_vec(2)*cartesian_vec(2) &
+                       + x_vec(3)*cartesian_vec(3)) / r
+
+! convert from (dlambda/dt,dphi/dt,dr/dt) to (u,v,w) in m/s
+     phi = 0.5_r_def*pi - acos(x_vec(3)/r)
+     spherical_vec(1) = spherical_vec(1)*r*cos(phi)
+     spherical_vec(2) = spherical_vec(2)*r
+
+end function cart2sphere_vector
 
 end module mesh_generator_mod

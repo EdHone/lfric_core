@@ -5,30 +5,39 @@
 ! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
 !-------------------------------------------------------------------------------
 
-!> A Runge-Kutta time-discretisation of the 3D equations, currently using 3-stage SSP.
-!>
+!>@brief A Runge-Kutta time-discretisation of the 3D equations, currently using 3-stage SSP.
+!>@details An algorithm for timstepping the 3D linear no advection equations
+!>         using a 3-stage SSP Runge-Kutta algortihm. The algorithm
+!>         initialialises all fields, sets up tempoary fields and perform the
+!>         timestepping and checks to see if it should dump output
 module dynamo_algorithm_rk_timestep_mod
 
-  use log_mod,      only: log_event, log_scratch_space, LOG_LEVEL_INFO
-  use psy,          only: invoke_assign_coordinate_kernel,                   &
-                          invoke_initial_theta_kernel,                       &
-                          invoke_initial_u_kernel,                           &
-                          invoke_initial_rho_kernel,                         &
-                          invoke_calc_exner_kernel,                          &
-                          invoke_rtheta_kernel,                              &
-                          invoke_ru_kernel,                                  &
-                          invoke_rrho_kernel,                                &
-                          invoke_compute_mass_matrix,                        &
-                          invoke_copy_field_data, invoke_set_field_scalar,   &
-                          invoke_axpy
+  use log_mod,       only: log_event, log_scratch_space, LOG_LEVEL_INFO
+  use psy,           only: invoke_assign_coordinate_kernel,                  &
+                           invoke_initial_theta_kernel,                      &
+                           invoke_initial_u_kernel,                          &
+                           invoke_initial_rho_kernel,                        &
+                           invoke_calc_exner_kernel,                         &
+                           invoke_rtheta_kernel,                             &
+                           invoke_ru_kernel,                                 &
+                           invoke_rrho_kernel,                               &
+                           invoke_compute_mass_matrix,                       &
+                           invoke_copy_field_data,                           &
+                           invoke_set_field_scalar,                          &
+                           invoke_axpy
                         
-  use field_mod,    only: field_type, field_proxy_type 
-  use function_space_mod, only : function_space_type
-  use solver_mod,   only: solver_algorithm
-  use argument_mod, only: w0, w1, w2, w3
-  use constants_mod, only : r_def
-  use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3
-                                                                                                                                                
+  use field_mod,     only: field_type 
+  use function_space_mod, &
+                     only: function_space_type
+  use solver_mod,    only: solver_algorithm
+  use argument_mod,  only: w0, w1, w2, w3
+  use constants_mod, only: r_def
+  use gaussian_quadrature_mod, &
+                     only : gaussian_quadrature_type, GQ3
+  use galerkin_projection_algorithm_mod, &
+                     only : galerkin_projection_algorithm
+  use driver_layer,  only : interpolated_output
+
   implicit none
 
   private
@@ -36,8 +45,6 @@ module dynamo_algorithm_rk_timestep_mod
 
 contains
 
-  !> An algorithm for timestepping using a Runge Kutta method.
-  !>
   subroutine dynamo_algorithm_rk_timestep( chi, u, rho, theta, exner, xi)
 
     implicit none
@@ -53,16 +60,19 @@ contains
                           
     type( field_type ), allocatable :: rt_prediction(:),  &
                                        ru_prediction(:),  &
-                                       rr_prediction(:)                        
+                                       rr_prediction(:) 
+    type( field_type ) :: projected_field(3)                                       
     
     integer :: theta_fs, u_fs, rho_fs
     integer :: theta_gq, u_gq, rho_gq
-    integer :: n, nt
+    integer :: n, nt, output_freq
     integer :: stage, num_rk_stage, st
     real(kind=r_def), allocatable :: ak(:,:)
     real(kind=r_def) :: dt = 1.0_r_def
     type(function_space_type) :: fs
     type( gaussian_quadrature_type ) :: gq
+    integer, parameter :: vector_field = 3, &
+                          scalar_field = 1
     
 ! SSP3 weights
     num_rk_stage = 3
@@ -111,6 +121,11 @@ contains
                                          gq = gq%get_instance(rho_gq) )
     end do   
 
+    do stage = 1,3 
+      projected_field(stage) = field_type( vector_space = fs%get_instance(theta_fs),&
+                                           gq = gq%get_instance(theta_gq) )
+    end do
+
     !Construct PSy layer given a list of kernels. This is the line the code
     !generator may parse and do its stuff.
     
@@ -126,9 +141,17 @@ contains
     call invoke_calc_exner_kernel   ( exner, rho, theta, chi)     
         
     call invoke_compute_mass_matrix( theta, xi, u, chi ) 
+
+    call galerkin_projection_algorithm(projected_field(1), theta, chi, scalar_field) 
+    call interpolated_output(0, scalar_field, projected_field(1), chi, 'theta_')
+    call galerkin_projection_algorithm(projected_field(1), rho,   chi, scalar_field)
+    call interpolated_output(0, scalar_field, projected_field(1), chi, 'rho___')                    
+    call galerkin_projection_algorithm(projected_field(:), u,     chi, vector_field)
+    call interpolated_output(0, vector_field, projected_field(:), chi, 'u_____')
 !================================================================================    
     ! Timestep
     nt = 30 ! number of timesteps
+    output_freq = nt
     do n = 1,nt
       call log_event( '/****************************************************************************/ ', &
                       LOG_LEVEL_INFO )
@@ -190,6 +213,14 @@ contains
         call rho_inc%print_minmax('min/max rho_inc = ');
 
       end do
+      if ( mod(n, output_freq) == 0 ) then
+        call galerkin_projection_algorithm(projected_field(1), theta, chi, scalar_field) 
+        call interpolated_output(n, scalar_field, projected_field(1), chi, 'theta_')
+        call galerkin_projection_algorithm(projected_field(1), rho,   chi, scalar_field)
+        call interpolated_output(n, scalar_field, projected_field(1), chi, 'rho___')                    
+        call galerkin_projection_algorithm(projected_field(:), u,     chi, vector_field)
+        call interpolated_output(n, vector_field, projected_field(:), chi, 'u_____')     
+      end if
       write( log_scratch_space, '(A,I0)' ) 'End of timestep ', n
       call log_event( log_scratch_space, LOG_LEVEL_INFO )
       call log_event( '\****************************************************************************/ ', &

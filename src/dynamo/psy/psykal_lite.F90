@@ -11,22 +11,6 @@
 
 !> @details Contains hand-rolled versions of the Psy layer that can be used for
 !> simple testing and development of the scientific code
-!> @param invoke_RHS_W3                     Invoke the RHS for a w3 field
-!> @param invoke_w3_solver_kernel           Invoke the solver for a w3 field kernel
-!> @param invoke_rhs_w2                     Invoke the RHS for a w2 field
-!> @param invoke_rhs_w1                     Invoke the RHS for a w1 field
-!> @param invoke_matrix_vector_w0           Invoke the A*x for x in W0 field
-!> @param invoke_matrix_vector_w1           Invoke the A*x for x in W1 field
-!> @param invoke_matrix_vector_w2           Invoke the A*x for x in W2 field
-!> @param invoke_assign_coordinate_kernel   Invoke the projection of coordinate into a vspace
-!> @param invoke_initial_theta_kernel       Invoke the theta initialisation
-!> @param invoke_initial_u_kernel           Invoke the u initialisation
-!> @param invoke_initial_rho_kernel         Invoke the rho initialisation
-!> @param invoke_calc_exner_kernel          Invoke the calculation of exner pressure
-!> @param invoke_rtheta_kernel              Invoke the RHS of the theta equation
-!> @param invoke_ru_kernel                  Invoke the RHS of the u equation
-!> @param invoke_rrho_kernel                Invoke the RHS of the rho equation
-!> @param invoke_compute_mass_matrix        Invoke the computation of W0 & W2 mass matrices
 
 module psy
 
@@ -37,7 +21,8 @@ module psy
 
 contains
 
-!> Invoke the RHS kernel for a w3 field
+!> Invoke_RHS_W3: Invoke the RHS for the Galerkin projection of a function
+!> into the w3 space
   subroutine invoke_rhs_w3( right_hand_side, chi )
 
     use w3_rhs_kernel_mod, only : rhs_w3_code
@@ -82,7 +67,6 @@ contains
   end subroutine invoke_rhs_w3
   
 !-------------------------------------------------------------------------------  
-
 !> Invoke the solver kernel for a w3 field kernel
   subroutine invoke_w3_solver_kernel( lhs, rhs, chi )
 
@@ -130,7 +114,8 @@ contains
   end subroutine invoke_w3_solver_kernel
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_rhs_w2: Invoke the RHS for the galerkin projection
+!>                of a function into the w2 space
   subroutine invoke_rhs_w2( right_hand_side )
 
     use w2_kernel_mod, only : rhs_w2_code
@@ -161,7 +146,8 @@ contains
   end subroutine invoke_rhs_w2
   
 !------------------------------------------------------------------------------- 
-
+!> Invoke_rhs_w1: Invoke the RHS for the Galerkin projection 
+!>                of a function into the w1 space
   subroutine invoke_rhs_w1( rhs )
 
     use w1_kernel_mod, only : rhs_w1_code
@@ -192,8 +178,8 @@ contains
   end subroutine invoke_rhs_w1
   
 !-------------------------------------------------------------------------------  
-
-  subroutine invoke_matrix_vector_w0(x,Ax)
+!> Invoke_matrix_vector_w0: Invoke the A*x for x in W0 field
+  subroutine invoke_matrix_vector_w0(Ax,x)
     use matrix_vector_w0_mod, only : matrix_vector_w0_code
     type(field_type), intent(inout) :: x
     type(field_type), intent(inout) :: Ax
@@ -213,16 +199,16 @@ contains
                                    x_p%vspace%get_nlayers(), &
                                    x_p%vspace%get_ndf( ), &
                                    map, &
-                                   x_p%data, &
-                                   Ax_p%data &
+                                   Ax_p%data, &
+                                   x_p%data &
                                    )
     end do
 
   end subroutine invoke_matrix_vector_w0
   
 !-------------------------------------------------------------------------------  
-
-  subroutine invoke_matrix_vector_w1(x,Ax)
+!> Invoke_matrix_vector_w1: Invoke the A*x for x in W1 field
+  subroutine invoke_matrix_vector_w1(Ax,x)
     use matrix_vector_w1_mod, only : matrix_vector_w1_code
     type(field_type), intent(inout) :: x
     type(field_type), intent(inout) :: Ax
@@ -242,16 +228,16 @@ contains
                                    x_p%vspace%get_nlayers(), &
                                    x_p%vspace%get_ndf( ), &
                                    map, &
-                                   x_p%data, &
-                                   Ax_p%data &                                   
+                                   Ax_p%data, &
+                                   x_p%data &                                   
                                    )
     end do
 
   end subroutine invoke_matrix_vector_w1
   
 !-------------------------------------------------------------------------------  
-
-  subroutine invoke_matrix_vector_w2(x,Ax)
+!> Invoke_matrix_vector_w2: Invoke the A*x for x in W2 field
+  subroutine invoke_matrix_vector_w2(Ax,x)
     use matrix_vector_w2_mod, only : matrix_vector_w2_code
     type(field_type), intent(inout) :: x
     type(field_type), intent(inout) :: Ax
@@ -273,15 +259,15 @@ contains
                                    x_p%vspace%get_ndf( ), &
                                    map, &
                                    boundary_dofs, &
-                                   x_p%data, &
-                                   Ax_p%data &
+                                   Ax_p%data, &
+                                   x_p%data &
                                    )
     end do
 
   end subroutine invoke_matrix_vector_w2
  
 !-------------------------------------------------------------------------------  
-  
+!> Invoke_assign_coordinate_kernel: Invoke the projection of coordinate into a vspace  
   subroutine invoke_assign_coordinate_kernel( chi )
 
     use assign_coordinate_kernel_mod, only : assign_coordinate_code
@@ -331,7 +317,7 @@ contains
   end subroutine invoke_assign_coordinate_kernel
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_initial_theta_kernel: Invoke the theta initialisation
   subroutine invoke_initial_theta_kernel( theta, chi )
 
     use initial_theta_kernel_mod, only : initial_theta_code
@@ -364,7 +350,7 @@ contains
   end subroutine invoke_initial_theta_kernel
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_initial_u_kernel: Invoke the u initialisation
   subroutine invoke_initial_u_kernel( u )
 
     use initial_u_kernel_mod, only : initial_u_code
@@ -389,7 +375,7 @@ contains
   end subroutine invoke_initial_u_kernel   
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_initial_rho_kernel: Invoke the rho initialisation
   subroutine invoke_initial_rho_kernel( rho )
 
     use initial_rho_kernel_mod, only : initial_rho_code
@@ -414,7 +400,7 @@ contains
   end subroutine invoke_initial_rho_kernel  
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_calc_exner_kernel: Invoke the calculation of exner pressure
   subroutine invoke_calc_exner_kernel( exner, rho, theta, chi )
 
     use calc_exner_kernel_mod, only : calc_exner_code
@@ -467,7 +453,7 @@ contains
   end subroutine invoke_calc_exner_kernel  
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_rtheta_kernel: Invoke the RHS of the theta equation
   subroutine invoke_rtheta_kernel( r_theta, u,  chi )
 
     use rtheta_kernel_mod, only : rtheta_code
@@ -519,7 +505,7 @@ contains
   end subroutine invoke_rtheta_kernel 
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_ru_kernel: Invoke the RHS of the u equation
   subroutine invoke_ru_kernel( r_u, exner, theta, chi )
 
     use ru_kernel_mod, only : ru_code
@@ -583,7 +569,7 @@ contains
   end subroutine invoke_ru_kernel   
   
 !-------------------------------------------------------------------------------  
-
+!> Invoke_rrho_kernel: Invoke the RHS of the rho equation
   subroutine invoke_rrho_kernel( r_rho, u, chi )
 
     use rrho_kernel_mod, only : rrho_code
@@ -644,7 +630,7 @@ contains
   end subroutine invoke_rrho_kernel   
   
 !-------------------------------------------------------------------------------   
-
+!> Invoke_compute_mass_matrix: Invoke the computation of W0 & W2 mass matrices
   subroutine invoke_compute_mass_matrix( w0_field, w1_field, w2_field, chi )
     use mass_matrices_mod, only: compute_mass_matrix
     
@@ -699,9 +685,8 @@ contains
   end subroutine invoke_compute_mass_matrix
   
 !-------------------------------------------------------------------------------   
-
+!> invoke_inner_prod: Calculate inner product of x and y
   subroutine invoke_inner_prod(x,y,inner_prod)
-  ! Calculate inner product of x and y
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
     type( field_type ),  intent(in ) :: x,y
@@ -730,9 +715,8 @@ contains
   end subroutine invoke_inner_prod
   
 !-------------------------------------------------------------------------------   
-    
+!> invoke_axpy:  (a * x + y) ; a-scalar, x,y-vector     
   subroutine invoke_axpy(scalar,field1,field2,field_res)
-  ! axpy :  (a * x + y) ; a-scalar, x,y-vector
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
     type( field_type ), intent(in )    :: field1,field2
@@ -769,9 +753,8 @@ contains
   end subroutine invoke_axpy
   
 !-------------------------------------------------------------------------------   
-
+!> invoke_axmy:  (a * x - y) ; a-scalar, x,y-vector
   subroutine invoke_axmy(scalar,field1,field2,field_res)
-  ! axmy :  (a * x - y) ; a-scalar, x,y-vector
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
     type( field_type ), intent(in )    :: field1,field2
@@ -808,7 +791,7 @@ contains
   end subroutine invoke_axmy
   
 !-------------------------------------------------------------------------------   
-
+!> invoke_copy_field_data: copy the data from one field to another ( a = b )
   subroutine invoke_copy_field_data(field1,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
@@ -836,9 +819,9 @@ contains
   end subroutine invoke_copy_field_data
   
 !-------------------------------------------------------------------------------   
-
+!> invoke_minus_field_data: Subtract values of field2 from values of field 
+!> ( c = a - b )
   subroutine invoke_minus_field_data(field1,field2,field_res)
-  ! Subtract values of field2 from values of field1
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
     type( field_type ), intent(in )    :: field1,field2
@@ -874,9 +857,9 @@ contains
   end subroutine invoke_minus_field_data
   
 !-------------------------------------------------------------------------------   
-
+!> invoke_plus_field_data:  Add values of field2 to values of field1
+!> ( c = a + b )
   subroutine invoke_plus_field_data(field1,field2,field_res)
-  ! Add values of field2 to values of field1
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
     type( field_type ), intent(in )    :: field1,field2
@@ -912,7 +895,7 @@ contains
   end subroutine invoke_plus_field_data
   
 !-------------------------------------------------------------------------------   
-
+!> invoke_set_field_scalar: set all values in a field to a single value
   subroutine invoke_set_field_scalar(scalar, field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
     implicit none
@@ -929,5 +912,121 @@ contains
       field_res_proxy%data(i) = scalar
     end do
   end subroutine invoke_set_field_scalar
+
+!-------------------------------------------------------------------------------   
+!> Invoke_gp_rhs: Invoke the scalar RHS for a Galerkin projection
+  subroutine invoke_gp_rhs( rhs, field, chi )
+
+    use gp_rhs_kernel_mod, only : gp_rhs_code
+
+    implicit none
+
+    type( field_type ),  intent( in ) :: rhs, field
+    type( field_type ),  intent( in ) :: chi(3)
+
+    type( field_proxy_type)           :: rhs_proxy, field_proxy
+    type( field_proxy_type)           :: chi_proxy(3)
+
+    integer          :: cell
+    integer, pointer :: map(:), map_chi(:), map_f(:)
+
+    real(kind=r_def), pointer  :: basis(:,:,:,:), f_basis(:,:,:,:), &
+                                  chi_diff_basis(:,:,:,:)
+
+    rhs_proxy    = rhs%get_proxy()
+    field_proxy  = field%get_proxy()
+    chi_proxy(1) = chi(1)%get_proxy()
+    chi_proxy(2) = chi(2)%get_proxy()
+    chi_proxy(3) = chi(3)%get_proxy()
+
+    ! Unpack data
+    basis          => rhs_proxy   %vspace%get_basis( )
+    f_basis        => field_proxy %vspace%get_basis( )
+    chi_diff_basis => chi_proxy(1)%vspace%get_diff_basis( )
+
+    do cell = 1, rhs_proxy%vspace%get_ncell()
+       map     => rhs_proxy   %vspace%get_cell_dofmap( cell )
+       map_f   => field_proxy %vspace%get_cell_dofmap( cell ) 
+       map_chi => chi_proxy(1)%vspace%get_cell_dofmap( cell )
+
+       call gp_rhs_code( rhs_proxy%vspace%get_nlayers(), &
+                         rhs_proxy%vspace%get_ndf( ), &
+                         map, &
+                         basis, &
+                         rhs_proxy%data, &
+                         rhs_proxy%gaussian_quadrature, &
+                         field_proxy%vspace%get_ndf(), &
+                         map_f, &
+                         f_basis, &
+                         field_proxy%data, &
+                         chi_proxy(1)%vspace%get_ndf( ), &
+                         map_chi, &
+                         chi_diff_basis, &
+                         chi_proxy(1)%data, &
+                         chi_proxy(2)%data, &
+                         chi_proxy(3)%data)
+    end do
+
+  end subroutine invoke_gp_rhs
+  
+!-------------------------------------------------------------------------------  
+!> Invoke_gp_vector_rhs: Invoke the vector RHS for a Galerkin projection
+  subroutine invoke_gp_vector_rhs( rhs, field, chi )
+
+    use gp_vector_rhs_kernel_mod, only : gp_vector_rhs_code
+
+    implicit none
+
+    type( field_type ),  intent( in ) :: rhs(3), field
+    type( field_type ),  intent( in ) :: chi(3)
+
+    type( field_proxy_type)           :: rhs_proxy(3), field_proxy
+    type( field_proxy_type)           :: chi_proxy(3)
+
+    integer          :: cell, dir
+    integer, pointer :: map(:), map_chi(:), map_f(:)
+
+    real(kind=r_def), pointer  :: basis(:,:,:,:), f_basis(:,:,:,:), &
+                                  chi_basis(:,:,:,:), chi_diff_basis(:,:,:,:)
+
+    do dir = 1,3
+      rhs_proxy(dir) = rhs(dir)%get_proxy()
+      chi_proxy(dir) = chi(dir)%get_proxy()
+    end do
+    field_proxy  = field%get_proxy()
+
+    ! Unpack data
+    basis          => rhs_proxy(1)%vspace%get_basis( )
+    f_basis        => field_proxy %vspace%get_basis( )
+    chi_basis      => chi_proxy(1)%vspace%get_basis( )
+    chi_diff_basis => chi_proxy(1)%vspace%get_diff_basis( )
+
+    do cell = 1, rhs_proxy(1)%vspace%get_ncell()
+       map     => rhs_proxy(1)%vspace%get_cell_dofmap( cell )
+       map_f   => field_proxy %vspace%get_cell_dofmap( cell ) 
+       map_chi => chi_proxy(1)%vspace%get_cell_dofmap( cell )
+
+       call gp_vector_rhs_code( rhs_proxy(1)%vspace%get_nlayers(), &
+                                rhs_proxy(1)%vspace%get_ndf( ), &
+                                map, &
+                                basis, &
+                                rhs_proxy(1)%data, &
+                                rhs_proxy(2)%data, &
+                                rhs_proxy(3)%data, &
+                                rhs_proxy(1)%gaussian_quadrature, &
+                                field_proxy%vspace%get_ndf(), &
+                                map_f, &
+                                f_basis, &
+                                field_proxy%data, &
+                                chi_proxy(1)%vspace%get_ndf( ), &
+                                map_chi, &
+                                chi_basis, &
+                                chi_diff_basis, &
+                                chi_proxy(1)%data, &
+                                chi_proxy(2)%data, &
+                                chi_proxy(3)%data)
+    end do
+
+  end subroutine invoke_gp_vector_rhs
 
 end module psy

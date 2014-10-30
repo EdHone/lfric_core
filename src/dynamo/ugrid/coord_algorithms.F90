@@ -18,6 +18,7 @@ public :: llr2xyz
 public :: xyz2ll
 public :: starea2
 public :: spdist
+public :: cartesian_distance
 
 !--------------------------------------------------------------------------------
 ! Contained functions / subroutines
@@ -197,7 +198,7 @@ subroutine starea2(x0,y0,z0,x1,y1,z1,x2,y2,z2,area)
 end subroutine starea2
 
 !-------------------------------------------------------------------------------
-!> @brief  Calculate the spherical distance between to points.
+!> @brief  Calculate the spherical distance between two points.
 !!
 !! @details  Calculate the spherical distance s between two points with 
 !!           Cartesian coordinates (x1,y1,z1), (x2,y2,z2) on the unit sphere.
@@ -231,6 +232,36 @@ subroutine spdist(x1,y1,z1,x2,y2,z2,s)
 
   return
 end subroutine spdist
+
+!-------------------------------------------------------------------------------
+!> @brief  Calculate the cartesian distance between two points.
+!!
+!! @details  Calculate the cartesian distance s between two points with 
+!!           Cartesian coordinates (x1,y1,z1), (x2,y2,z2) 
+!!
+!! @param[in]  x(3)  First point in Cartesian coordinates.
+!! @param[in]  y(3)  Second point in Cartesian coordinates.
+!! @param[out] s   Cartesian distance between the points.
+!-------------------------------------------------------------------------------
+
+pure function cartesian_distance(x,y) result( s )
+  implicit none
+
+  !Arguments
+  real(kind=r_def), intent(in)  :: x(3), y(3)
+  real(kind=r_def)              :: s
+
+  !Internal variables
+  real(kind=r_def) :: dx, dy, dz
+
+  dx = y(1) - x(1)
+  dy = y(2) - x(2)
+  dz = y(3) - x(3)
+
+  s = sqrt(dx*dx + dy*dy + dz*dz)
+  return
+end function cartesian_distance
+
 
 end module coord_algorithms_mod
 

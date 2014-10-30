@@ -123,7 +123,7 @@ contains
   procedure evaluate_basis
 !> Accessor function to evaluate the differential of a basis function
   procedure evaluate_diff_basis
-  
+
 end type function_space_type
 !-------------------------------------------------------------------------------
 ! Module parameters
@@ -540,6 +540,5 @@ pure function evaluate_diff_basis(self, df, xi) result(dp)
   end if
 
 end function evaluate_diff_basis
-
 
 end module function_space_mod
