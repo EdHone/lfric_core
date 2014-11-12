@@ -506,17 +506,17 @@ contains
   
 !-------------------------------------------------------------------------------  
 !> Invoke_ru_kernel: Invoke the RHS of the u equation
-  subroutine invoke_ru_kernel( r_u, exner, theta, chi )
+  subroutine invoke_ru_kernel( r_u, rho, theta, chi )
 
     use ru_kernel_mod, only : ru_code
 
-    type( field_type ), intent( in ) :: r_u, exner, theta
+    type( field_type ), intent( in ) :: r_u, rho, theta
     type( field_type ), intent( in ) :: chi(3) 
 
     integer                 :: cell
     integer, pointer        :: map_w3(:), map_w2(:), map_w0(:), boundary_dofs(:,:)
 
-    type( field_proxy_type )        :: r_u_proxy, exner_proxy, theta_proxy
+    type( field_proxy_type )        :: r_u_proxy, rho_proxy, theta_proxy
     type( field_proxy_type )        :: chi_proxy(3) 
     
     real(kind=r_def), pointer  :: basis_w3(:,:,:,:), &
@@ -526,7 +526,7 @@ contains
                                   diff_basis_w2(:,:,:,:)
 
     r_u_proxy  = r_u%get_proxy()
-    exner_proxy = exner%get_proxy()
+    rho_proxy  = rho%get_proxy()
     theta_proxy = theta%get_proxy()
     chi_proxy(1) = chi(1)%get_proxy()
     chi_proxy(2) = chi(2)%get_proxy()
@@ -534,14 +534,14 @@ contains
     
     boundary_dofs => r_u_proxy%vspace%get_boundary_dofs()
     
-    basis_w3 => exner_proxy%vspace%get_basis() 
+    basis_w3 => rho_proxy%vspace%get_basis() 
     basis_w2 => r_u_proxy%vspace%get_basis() 
     diff_basis_w2 => r_u_proxy%vspace%get_diff_basis() 
     basis_w0 => theta_proxy%vspace%get_basis() 
     diff_basis_w0 => chi_proxy(1)%vspace%get_diff_basis() 
     
     do cell = 1, r_u_proxy%vspace%get_ncell()
-       map_w3 => exner_proxy%vspace%get_cell_dofmap( cell )
+       map_w3 => rho_proxy%vspace%get_cell_dofmap( cell )
        map_w2 => r_u_proxy%vspace%get_cell_dofmap( cell )
        map_w0 => theta_proxy%vspace%get_cell_dofmap( cell )
        call ru_code( r_u_proxy%vspace%get_nlayers(), &
@@ -552,10 +552,10 @@ contains
                      r_u_proxy%gaussian_quadrature, &     
                      boundary_dofs, &
                      r_u_proxy%data, &
-                     exner_proxy%vspace%get_ndf( ), &
+                     rho_proxy%vspace%get_ndf( ), &
                      map_w3, &
                      basis_w3, &                             
-                     exner_proxy%data, &
+                     rho_proxy%data, &
                      theta_proxy%vspace%get_ndf( ), &
                      map_w0, &
                      basis_w0, &

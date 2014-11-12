@@ -63,20 +63,23 @@ end function ru_kernel_constructor
 !! @param[in] map_w2 Integer array holding the dofmap for the cell at the base of the column for w2
 !! @param[in] w2_basis Real 4-dim array holding basis functions evaluated at gaussian quadrature points 
 !! @param[in] w2_diff_basis Real 4-dim array holding differntial of the basis functions evaluated at gaussian quadrature points
+!! @param[inout] gq The gaussian quadrature rule
+!! @param[in] boundary_value array of flags (= 0) for dofs that live on the
+!!            vertical boundaries of the cell (=1 for other dofs)
 !! @param[inout] r_u Real array the data 
+!! @param[in] ndf_w3 The number of degrees of freedom per cell for w3
+!! @param[in] map_w3 Integer array holding the dofmap for the cell at the base of the column for w3
+!! @param[in] w3_basis Real 4-dim array holding basis functions evaluated at gaussian quadrature points 
+!! @param[in] rho Real array. The density
 !! @param[in] ndf_w0 The number of degrees of freedom per cell for w0
 !! @param[in] map_w0 Integer array holding the dofmap for the cell at the base of the column for w0
 !! @param[in] w0_basis Real 4-dim array holding basis functions evaluated at gaussian quadrature points 
+!! @param[in] theta Real array. potential temperature
 !! @param[in] w0_diff_basis Real 4-dim array holding differntial of the basis functions evaluated at gaussian quadrature point
 !! @param[in] chi_1 Real array. the physical x coordinate in w0
 !! @param[in] chi_2 Real array. the physical y coordinate in w0
 !! @param[in] chi_3 Real array. the physical z coordinate in w0
-!! @param[in] theta Real array. potential temperature
-!! @param[in] ndf_w3 The number of degrees of freedom per cell for w3
-!! @param[in] map_w3 Integer array holding the dofmap for the cell at the base of the column for w3
-!! @param[in] w3_basis Real 4-dim array holding basis functions evaluated at gaussian quadrature points 
-!! @param[in] exner Real array. exner pressure
-!! @param[inout] gq The gaussian quadrature rule 
+ 
 subroutine ru_code(nlayers,ndf_w2, map_w2, w2_basis, w2_diff_basis, gq,        &
                            boundary_value, r_u,                                &
                            ndf_w3, map_w3, w3_basis, rho,                      &

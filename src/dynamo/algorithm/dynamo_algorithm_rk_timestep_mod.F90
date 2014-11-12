@@ -173,7 +173,7 @@ contains
         call invoke_rtheta_kernel( rt_prediction(stage), u, chi )
         !PSY call invoke ( set_field_scalar(0.0_r_def, ru_prediction(stage)))
         call invoke_set_field_scalar(0.0_r_def, ru_prediction(stage))
-        call invoke_ru_kernel    ( ru_prediction(stage), exner, theta, chi )
+        call invoke_ru_kernel    ( ru_prediction(stage), rho, theta, chi )
         call invoke_rrho_kernel  ( rr_prediction(stage), u, chi )  
         
         !PSY call invoke ( set_field_scalar(0.0_r_def, r_theta))
