@@ -23,7 +23,7 @@ ALL_OBJS = $(foreach proj, $(shell echo $(PROGRAMS) | tr a-z A-Z), $($(proj)_OBJ
 
 # Compile a list of all possible objects by substituting .[Ff]90 with .o on all
 # source files:
-ALL_POSSIBLE_OBJS = $(patsubst ./%, $(OBJ_DIR)/%.o, $(basename $(shell find . -name "*.[Ff]90")))
+ALL_POSSIBLE_OBJS = $(patsubst ./%, $(OBJ_DIR)/%.o, $(basename $(shell find . -name "[^.]*.[Ff]90")))
 
 # Find any objects which could be built but aren't used:
 UNUSED_OBJS = $(filter-out $(ALL_OBJS), $(ALL_POSSIBLE_OBJS))

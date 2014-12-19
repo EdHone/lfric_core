@@ -17,7 +17,6 @@ module field_mod
   use constants_mod,            only : r_def
   use function_space_mod,       only : function_space_type
   use gaussian_quadrature_mod,  only : gaussian_quadrature_type
-  !use field_io_strategy_mod,    only : field_io_strategy_type
 
   implicit none
 
