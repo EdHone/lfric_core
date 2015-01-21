@@ -2273,8 +2273,8 @@ Results for the 2D gravity wave test simulated using the linear equations
 \begin_layout Standard
 \begin_inset CommandInset bibtex
 LatexCommand bibtex
-bibfiles "/net/home/h01/dynamics/BiB_Styles/master"
-options "/net/home/h01/dynamics/BiB_Styles/wileyqj"
+bibfiles "../biblio/master"
+options "../biblio/wileyqj"
 
 \end_inset
 
