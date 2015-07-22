@@ -25,8 +25,8 @@ use argument_mod,            only : arg_type, func_type,                     &
                                     GH_BASIS, GH_DIFF_BASIS, GH_ORIENTATION, &
                                     CELLS
 use reference_profile_mod,   only : reference_profile
-use mesh_generator_mod,      only : xyz2llr, sphere2cart_vector
-use mesh_mod,                only : l_spherical
+use coord_transform_mod,     only : xyz2llr, sphere2cart_vector
+use slush_mod,               only : l_spherical
 
 implicit none
 

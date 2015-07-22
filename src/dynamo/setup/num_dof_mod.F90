@@ -10,25 +10,24 @@
 !>
 module num_dof_mod
 
-  use mesh_generator_mod, only : nface_g,nedge_g,nvert_g
+  use mesh_mod,      only: mesh_type
+  use constants_mod, only: i_def
 
 contains 
 
-  !> Compute the local and global number of dofs.
-  !>
-  !> @param ncells Number of cells.
-  !> @param nlayers Number of vertical cells.
-  !> @param k Order of RT space ( = 0 for lowest order )
-  !>
-  subroutine num_dof_init( ncells, nlayers, k, w_unique_dofs, w_dof_entity )
+  !> @brief Compute the local and global number of dofs.
+  !> @param[in]  mesh          Mesh object to base dof maps on
+  !> @param[in]  k             Order of RT space ( = 0 for lowest order )
+  !> @param[out] w_unique_dofs
+  !> @param[out] w_dof_entity
+  subroutine num_dof_init( mesh, k, w_unique_dofs, w_dof_entity )
 
     use log_mod, only : log_event, log_scratch_space, LOG_LEVEL_INFO
 
     implicit none
 
-    integer, intent( in ) :: ncells
-    integer, intent( in ) :: nlayers
-    integer, intent( in ) :: k
+    type (mesh_type), intent(in) :: mesh
+    integer,          intent(in) :: k
 
     integer, intent( out ) :: w_unique_dofs(4,2) ! there are 4 vspaces
     integer, intent( out ) :: w_dof_entity(4,0:3)
@@ -45,7 +44,20 @@ contains
     integer :: ndof_entity_w0(0:3), ndof_entity_w1(0:3),           &
                ndof_entity_w2(0:3), ndof_entity_w3(0:3)
 
+    ! Local variables for Mesh Properties
+    integer (i_def) :: ncells
+    integer (i_def) :: nlayers
+    integer (i_def) :: nface_g
+    integer (i_def) :: nedge_g
+    integer (i_def) :: nvert_g
+
     ! local values
+    nlayers = mesh%get_nlayers()
+    ncells  = mesh%get_ncells_2d()
+    nface_g = mesh%get_nfaces()
+    nedge_g = mesh%get_nedges()
+    nvert_g = mesh%get_nverts()
+
     nw0 = (k+2)*(k+2)*(k+2)
     nw0_cell = k*k*k
     nw0_face = k*k

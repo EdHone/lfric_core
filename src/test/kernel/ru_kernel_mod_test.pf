@@ -25,7 +25,7 @@ contains
     use ru_kernel_mod,              only : ru_code
     use constants_mod,              only : r_def, GRAVITY
     use quadrature_mod,             only : quadrature_type, QR3
-    use mesh_mod,                   only : l_spherical
+    use slush_mod,                  only : l_spherical
     use reference_profile_mod,      only : reference_profile
     use initial_rho_kernel_mod,     only : initial_rho_code
 

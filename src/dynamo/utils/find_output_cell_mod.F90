@@ -8,8 +8,8 @@ module find_output_cell_mod
 
 use constants_mod,        only: i_def, r_def, LARGE_REAL, earth_radius
 use field_mod,            only: field_type, field_proxy_type 
-use mesh_mod,             only: l_spherical
-use coord_algorithms_mod, only: cartesian_distance, llr2xyz
+use slush_mod,            only: l_spherical
+use coord_transform_mod,  only: cartesian_distance, llr2xyz
 
 implicit none
 

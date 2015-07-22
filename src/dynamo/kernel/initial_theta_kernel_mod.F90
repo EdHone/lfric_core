@@ -19,8 +19,8 @@ use argument_mod,            only: arg_type,                  &
                                    W0,                        &
                                    CELLS
 use constants_mod,           only: PI, r_def, earth_radius, L_NONLINEAR
-use mesh_generator_mod,      only: xyz2llr
-use mesh_mod,                only: l_spherical
+use coord_transform_mod,     only: xyz2llr
+use slush_mod,               only: l_spherical
 use generate_global_gw_fields_mod, only: generate_global_gw_pert
 use reference_profile_mod,   only: reference_profile
 implicit none

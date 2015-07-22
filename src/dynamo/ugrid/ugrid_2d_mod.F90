@@ -382,8 +382,10 @@ end subroutine get_node_coords_transpose
 !-------------------------------------------------------------------------------
 
 subroutine get_node_coords_xyz(self, node_coords)
+
   use constants_mod, only: earth_radius
-  use coord_algorithms_mod, only: llr2xyz
+  use coord_transform_mod, only: llr2xyz
+
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
@@ -419,7 +421,7 @@ end subroutine get_node_coords_xyz
 
 subroutine get_node_coords_xyz_transpose(self, node_coords)
   use constants_mod, only: earth_radius
-  use coord_algorithms_mod, only: llr2xyz
+  use coord_transform_mod, only: llr2xyz
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self

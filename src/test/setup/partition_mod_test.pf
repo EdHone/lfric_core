@@ -12,6 +12,7 @@ module partition_mod_test
   use ESMF
   use pFUnit_Mod
   use partition_mod
+  use constants_mod, only : r_def
   use suite_fixture_mod, only : get_esmf_handle
 
   implicit none 
@@ -103,6 +104,9 @@ contains
   integer :: lid
   integer :: gid
 
+  real(r_def) :: dx
+  real(r_def) :: dy
+
   character(len = str_def) :: filename
 
   !------------------------------------------------
@@ -112,11 +116,12 @@ contains
   num_cells_y = 3
   xproc = 1
   yproc = 1
+  dx = 6000.0_r_def
+  dy = 2000.0_r_def
   local_rank = this%local_rank
   total_ranks = this%total_ranks
   halo_depth=1
-
-  global_mesh=global_mesh_type( num_cells_x ,num_cells_y )
+  global_mesh=global_mesh_type( num_cells_x ,num_cells_y, dx, dy )
   partitioner_ptr => partitioner_biperiodic
   !
   ! Generate the partition

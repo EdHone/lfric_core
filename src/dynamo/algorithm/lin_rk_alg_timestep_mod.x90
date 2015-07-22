@@ -38,6 +38,7 @@ module lin_rk_alg_timestep_mod
   use solver_mod,     only : solver_algorithm
   use driver_layer,  only : interpolated_output
   use operator_mod,  only : operator_type
+  use mesh_mod,      only: mesh_type
 
   implicit none
 
@@ -45,11 +46,19 @@ module lin_rk_alg_timestep_mod
   public :: lin_rk_alg_timestep
 
 contains
-
-  subroutine lin_rk_alg_timestep( chi, u, rho, theta)
+  !>-------------------------------------------------
+  !> @brief
+  !> @details
+  !> @param[in]    mesh Mesh object on which the model runs
+  !> @param[inout] chi
+  !> @param[inout] u
+  !> @param[inout] rho
+  !> @param[inout] theta
+  subroutine lin_rk_alg_timestep( mesh, chi, u, rho, theta)
 
     implicit none
 
+    type( mesh_type  ), intent( in )    :: mesh
 ! coordinate fields
     type( field_type ), intent( inout ) :: chi(3)
 ! prognostic fields    
@@ -139,14 +148,17 @@ contains
 
     call galerkin_projection_algorithm(projected_field(1),                     &
          theta, chi, scalar_field, qr, mm=mm_w0) 
-    call interpolated_output(0, scalar_field, projected_field(1), chi, 'theta_')
+    call interpolated_output(mesh, 0, scalar_field, projected_field(1), chi,   &
+                             'theta_')
     call invoke_set_field_scalar(0.0_r_def, projected_field(1))
     call galerkin_projection_algorithm(projected_field(1),                     &
          rho,   chi,  scalar_field, qr, mm=mm_w0)
-    call interpolated_output(0, scalar_field, projected_field(1), chi, 'rho___')                    
+    call interpolated_output(mesh, 0, scalar_field, projected_field(1), chi,   &
+                             'rho___')                    
     call galerkin_projection_algorithm(projected_field(:),                     &
          u,     chi, vector_field, qr, mm=mm_w0)
-    call interpolated_output(0, vector_field, projected_field(:), chi, 'u_____')
+    call interpolated_output(mesh, 0, vector_field, projected_field(:), chi,   &
+                             'u_____')
 !================================================================================    
     ! Timestep
     nt = 30 ! number of timesteps
@@ -213,13 +225,16 @@ contains
       if ( mod(n, output_freq) == 0 ) then
         call galerkin_projection_algorithm(projected_field(1),                  &
              theta, chi, scalar_field, qr, mm=mm_w0) 
-        call interpolated_output(n, scalar_field, projected_field(1), chi, 'theta_')
+        call interpolated_output(mesh, n, scalar_field, projected_field(1), chi,&
+                                 'theta_')
         call galerkin_projection_algorithm(projected_field(1),                  &
              rho,   chi, scalar_field, qr, mm=mm_w0)
-        call interpolated_output(n, scalar_field, projected_field(1), chi, 'rho___')                    
+        call interpolated_output(mesh, n, scalar_field, projected_field(1), chi,&
+                                 'rho___')                    
         call galerkin_projection_algorithm(projected_field(:),                  &
              u,     chi, vector_field, qr, mm=mm_w0)
-        call interpolated_output(n, vector_field, projected_field(:), chi, 'u_____')     
+        call interpolated_output(mesh,n, vector_field, projected_field(:), chi, &
+                                 'u_____')     
       end if
       write( log_scratch_space, '(A,I0)' ) 'End of timestep ', n
       call log_event( log_scratch_space, LOG_LEVEL_INFO )

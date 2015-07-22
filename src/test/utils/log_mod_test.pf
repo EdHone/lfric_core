@@ -96,7 +96,7 @@ contains
   !>
   subroutine setUp( this )
 
-  use mesh_mod, only : total_ranks
+  use slush_mod, only : total_ranks
 
     implicit none
 

@@ -796,7 +796,7 @@ end function partition_constructor
 
   do i = 1,number_of_cells
     cell_id = input_cells%dat
-    call global_mesh%get_vert_on_cell( cell_id, verts )
+    call global_mesh%get_vert_on_cell(cell_id,verts)
     do j = 1,nverts_h
       call global_mesh%get_cell_on_vert( verts(j), cells )
       do k = 1,global_mesh%get_max_cells_per_vertex()
@@ -1021,9 +1021,14 @@ pure function binary_search( array_to_be_searched, value_to_find ) result ( id )
 
 end function binary_search
 
+
 !==============================================================================
-! The following routine returns a partition object for unit testing.
+! The following routines are only available when setting data for unit testing.
 !==============================================================================
+!> @brief   Stucture-Constructor (for unit testing)
+!> @returns A partition object based on a 9-cell global mesh (3x3) with one
+!>          partition and quadralateral reference cells
+!============================================================================
 function partition_constructor_unit_test_data() result (self)
 
   implicit none

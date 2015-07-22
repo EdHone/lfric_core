@@ -114,8 +114,8 @@ subroutine linear_ru_code(nlayers,                                             &
   use reference_profile_mod,    only: reference_profile 
   use enforce_bc_mod,           only: enforce_bc_w2
   use calc_exner_pointwise_mod, only: linear_calc_exner_pointwise
-  use mesh_generator_mod,      only : xyz2llr, sphere2cart_vector
-  use mesh_mod,                only : l_spherical, f_lat
+  use coord_transform_mod,      only: xyz2llr, sphere2cart_vector
+  use slush_mod,                only: l_spherical, f_lat
   use rotation_vector_mod,      only: rotation_vector_fplane,  &
                                       rotation_vector_sphere
   use cross_product_mod,        only: cross_product

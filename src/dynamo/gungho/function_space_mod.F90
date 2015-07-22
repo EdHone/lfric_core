@@ -173,11 +173,12 @@ function get_instance(function_space) result(instance)
               w0_dofmap, w1_dofmap, w2_dofmap, w3_dofmap, &
               w0_orientation, w1_orientation, w2_orientation, w3_orientation
 
-  use mesh_mod,                only : num_cells, w_unique_dofs, num_layers
+  use slush_mod, only : num_cells, w_unique_dofs, num_layers
 
   implicit none
 
   integer :: function_space
+
   type(function_space_type), pointer :: instance 
 
   select case (function_space)

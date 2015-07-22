@@ -97,8 +97,8 @@ subroutine gp_vector_rhs_code(nlayers, &
                              )
                        
   use coordinate_jacobian_mod, only: coordinate_jacobian
-  use mesh_mod,                only: l_spherical
-  use mesh_generator_mod,      only: cart2sphere_vector
+  use slush_mod,               only: l_spherical
+  use coord_transform_mod,     only: cart2sphere_vector
                          
 
   !Arguments

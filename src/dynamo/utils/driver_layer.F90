@@ -23,21 +23,24 @@ contains
 !>          dumps the value to file
 !> @deprecated This is a tempoary implementation until a proper i/o + plotting
 !> stategy is implemented
+!> @param[in] mesh  The mesh object the model runs on
 !> @param[in] step  The current timestep
 !> @param[in] n_out The number of output fields to generate from f
 !> @param[in] f     A field to compute output data from
 !> @param[in] chi   A 3D coordinate field
 !> @param[in] fname The name of the field to be output
-  subroutine interpolated_output(step, n_out, f, chi, fname) 
+  subroutine interpolated_output(mesh, step, n_out, f, chi, fname) 
 
     use log_mod,                   only: log_event, log_scratch_space, LOG_LEVEL_INFO
     use constants_mod,             only: r_def  
     use field_mod,                 only: field_type
-    use mesh_generator_mod,        only: domain_size
     use find_output_cell_mod,      only: find_output_cell
     use evaluate_output_field_mod, only: evaluate_output_field    
+    use mesh_mod,                  only: mesh_type, domain_limits
 
     implicit none
+! Mesh
+    type (mesh_type),   intent(in) :: mesh
 ! Timestep
     integer,            intent(in) :: step
 ! Dimension of input field
@@ -55,13 +58,17 @@ contains
     real(kind=r_def)              :: dx(3)
     character(18)                 :: outname
     character(8)                  :: outtime
-    
+
+    type (domain_limits) :: domain_size
+
 ! Create uniform grid for output (nx,ny,nz)
     nx(1) = 100
     nx(2) = 50
     nx(3) = 11 
 
     allocate( x_out(3,nx(3),nx(2),nx(1)), f_out(n_out,nx(3),nx(2),nx(1)) )
+
+    domain_size = mesh%get_domain_size()
 
 ! Create regular domain
     dx(1) = (domain_size%maximum%x - domain_size%minimum%x)/real(nx(1)-1)
@@ -87,7 +94,7 @@ contains
         out_cell = find_output_cell( chi, x_out(:,1,j,i) )
 ! evaluate field at output points
         do dir = 1,n_out
-          call evaluate_output_field( f(dir), chi, x_out(:,:,j,i), out_cell, nx(3), f_out(dir,:,j,i))
+          call evaluate_output_field( mesh, f(dir), chi, x_out(:,:,j,i), out_cell, nx(3), f_out(dir,:,j,i) )
         end do
       end do
     end do

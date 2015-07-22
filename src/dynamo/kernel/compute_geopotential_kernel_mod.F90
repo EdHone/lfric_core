@@ -19,8 +19,9 @@ use argument_mod,            only : arg_type, func_type,                     &
                                     W0, GH_BASIS,                            &
                                     CELLS
 use constants_mod,           only: r_def, earth_radius, GRAVITY 
-use mesh_generator_mod,      only: xyz2llr
-use mesh_mod,                only: l_spherical
+use coord_transform_mod,     only: xyz2llr
+use slush_mod,               only: l_spherical
+
 implicit none
 
 !-------------------------------------------------------------------------------

@@ -39,7 +39,7 @@ contains
 
 
 
-    use mesh_mod,                only : num_cells, w_unique_dofs, num_layers
+    use slush_mod, only: num_cells, w_unique_dofs, num_layers
     
     implicit none
 

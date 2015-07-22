@@ -35,6 +35,8 @@ real(kind=r_def), allocatable :: tangent_to_edge( :,: )
 integer :: nverts, nfaces, nedges
 integer :: nverts_h, nfaces_h, nedges_h
 
+! Variable specifying reference element type
+integer :: reference_element
 
 !Entity naming convention for reference cube:
 !

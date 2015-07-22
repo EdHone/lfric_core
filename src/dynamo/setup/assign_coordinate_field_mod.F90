@@ -8,9 +8,8 @@
 !-------------------------------------------------------------------------------
 !> @brief Module to assign the values of the coordinates of the mesh to a field
 module assign_coordinate_field_mod
-  use constants_mod, only : r_def, earth_radius
-  USE mesh_mod,                ONLY : dz, l_spherical 
- 
+  use constants_mod, only: r_def, earth_radius
+  use slush_mod,     only: l_spherical 
 
 contains
 !> @brief Subroutine which assigns the values of the coordinates of the mesh
@@ -20,48 +19,55 @@ contains
 !! and the data atributes of the field so that its values can be assigned.
 !! calls two subroutines, get_cell_coords from the mesh generator and then
 !! assign_coordinate on a column by column basis
-!! @param[out] chi Real array of size 3 (x,y,z) of fields
-  subroutine assign_coordinate_field(chi)
-    use field_mod, only : field_type, field_proxy_type
-    use reference_element_mod, only : nverts, x_vert
-    use mesh_generator_mod, only : get_cell_coords
+!! @param[in]  mesh Mesh object on which this field is attached
+!! @param[out] chi  Real array of size 3 (x,y,z) of fields
+
+  subroutine assign_coordinate_field(mesh,chi)
+
+    use field_mod,             only: field_type, field_proxy_type
+    use reference_element_mod, only: nverts, x_vert
+    use mesh_mod,              only: mesh_type
+
     implicit none
 
+    type( mesh_type),   intent( in    ) :: mesh
     type( field_type ), intent( inout ) :: chi(3)
     
-    type( field_proxy_type ) :: chi_proxy(3)
-    real(kind=r_def), pointer      :: dof_coords(:,:) => null()
-    real(kind=r_def), allocatable  :: vert_coords(:,:,:)
-    integer :: cell
+    type( field_proxy_type )      :: chi_proxy(3)
+    real(kind=r_def), pointer     :: dof_coords(:,:) => null()
+    real(kind=r_def), allocatable :: vert_coords(:,:,:)
+    real(r_def) :: dz
+    integer     :: cell
+    integer     :: undf
     integer, pointer :: map(:) => null()    
-    integer :: undf
-
+ 
     ! break encapsulation and get the proxy.
     chi_proxy(1) = chi(1)%get_proxy()
     chi_proxy(2) = chi(2)%get_proxy()
     chi_proxy(3) = chi(3)%get_proxy()
     undf = chi_proxy(1)%vspace%get_undf()
+    dz   = mesh%get_dz()
 
-    allocate( vert_coords(3,nverts,chi_proxy(1)%vspace%get_nlayers() ) )    
+    allocate( vert_coords(3,nverts,chi_proxy(1)%vspace%get_nlayers() ) )
     dof_coords => chi_proxy(1)%vspace%get_nodes( )
+
     do cell = 1,chi_proxy(1)%vspace%get_ncell()
        map => chi_proxy(1)%vspace%get_cell_dofmap( cell )
-       call get_cell_coords(cell, &
-                            chi_proxy(1)%vspace%get_ncell(), &
-                            chi_proxy(1)%vspace%get_nlayers(), &
-                            vert_coords)
-       
+
+       call mesh%get_column_coords(cell,vert_coords)
+
        call assign_coordinate( chi_proxy(1)%vspace%get_nlayers(), &
-                                    chi_proxy(1)%vspace%get_ndf( ), &
-                                    nverts, &
-                                    undf, &
-                                    map, &
-                                    chi_proxy(1)%data, &
-                                    chi_proxy(2)%data, &
-                                    chi_proxy(3)%data, & 
-                                    vert_coords, &  
-                                    dof_coords, &
-                                    x_vert &
+                               chi_proxy(1)%vspace%get_ndf( ), &
+                               nverts, &
+                               undf, &
+                               map, &
+                               dz,&
+                               chi_proxy(1)%data, &
+                               chi_proxy(2)%data, &
+                               chi_proxy(3)%data, & 
+                               vert_coords, &  
+                               dof_coords, &
+                               x_vert &
                                         )                                     
     end do       
     ! loop over all the cells
@@ -70,26 +76,29 @@ contains
   end subroutine assign_coordinate_field
 
 !> @brief determines and assigns the coordinates for a single column
-!! @param[in] nlayers integer: loop bound
-!! @param[in] ndf integer: array size and loop bound
-!! @param[in] nverts integer: array size and loop bound
-!! @param[in] undf integer: array size and loop bound
-!! @param[in] map integer array: indirection map
-!! @param[out] chi_1 real array: size undf x coord
-!! @param[out] chi_2 real array: size undf y coord
-!! @param[out] chi_3 real array: size undf z coord
-!! @param[in] vertex_coords real array: (3,nverts,nlayers)
-!! @param[in] chi_hat_node real array: (3,ndf)
-!! @param[in] chi_hat_vert real array: (nverts,3)
-  subroutine assign_coordinate(nlayers,ndf,nverts,undf,map,chi_1,chi_2,chi_3, &
+!! @param[in]  nlayers       integer: loop bound
+!! @param[in]  ndf           integer: array size and loop bound
+!! @param[in]  nverts        integer: array size and loop bound
+!! @param[in]  undf          integer: array size and loop bound
+!! @param[in]  map           integer array: indirection map
+!! @param[in]  dz            Mesh layer thickness
+!! @param[out] chi_1         real array: size undf x coord
+!! @param[out] chi_2         real array: size undf y coord
+!! @param[out] chi_3         real array: size undf z coord
+!! @param[in]  vertex_coords real array: (3,nverts,nlayers)
+!! @param[in]  chi_hat_node  real array: (3,ndf)
+!! @param[in]  chi_hat_vert  real array: (nverts,3)
+  subroutine assign_coordinate(nlayers,ndf,nverts,undf,map,dz,chi_1,chi_2,chi_3, &
        vertex_coords,chi_hat_node,chi_hat_vert)
     
     !Arguments
     integer, intent(in) :: nlayers, ndf, nverts, undf
-    integer, intent(in) :: map(ndf)  
+    integer, intent(in) :: map(ndf)
+    real(kind=r_def), intent(in)  :: dz
     real(kind=r_def), intent(out) :: chi_1(undf), chi_2(undf), chi_3(undf)
     real(kind=r_def), intent(in)  :: vertex_coords(3,nverts,nlayers)
     real(kind=r_def), intent(in)  :: chi_hat_node(3,ndf), chi_hat_vert(nverts,3)
+
 
     !Internal variables
     integer          :: k, df, dfk, vert

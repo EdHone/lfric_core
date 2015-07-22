@@ -69,7 +69,7 @@ subroutine rotation_vector_sphere(ndf, ngp_h, ngp_v, chi_1, chi_2, chi_3, v0_bas
 ! Compute the rotation vector Omega = (0, 2*cos(lat), 2*sin(lat)) on quadrature points 
 !-------------------------------------------------------------------------------
 
-use coord_algorithms_mod, only: xyz2ll
+use coord_transform_mod, only: xyz2ll
 
 integer,          intent(in)  :: ndf, ngp_h, ngp_v
 real(kind=r_def), intent(in)  :: chi_1(ndf), chi_2(ndf), chi_3(ndf)

@@ -119,6 +119,14 @@ module constants_mod
                                                                !< In other words, it is the number of potential 
                                                                !< residual vectors to calculate at each iteration 
                                                                !< of the solver
+
+  integer (kind=i_def), parameter :: TRI  = 1                  !< For triangular reference elements
+  integer (kind=i_def), parameter :: QUAD = 2                  !< For quadrilateral reference elements
+
+  ! Missing data indicators
+  real    (r_def), parameter :: RMDI = -huge(0.0_r_def)        !< Missing data indicator value for real numbers
+  integer (i_def), parameter :: IMDI = -huge(0_i_def)          !< Missing data indicator value for integer numbers
+
  !> @}
  !> @name Formulation switches
  logical, parameter :: L_NONLINEAR = .true.

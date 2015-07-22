@@ -364,7 +364,9 @@ end subroutine generate
 !-------------------------------------------------------------------------------
 
 subroutine part1(self, igrid, dlambda, n, n2)
-  use coord_algorithms_mod, only: xyz2ll
+
+  use coord_transform_mod, only: xyz2ll
+
   implicit none
 
   !Arguments
@@ -635,7 +637,7 @@ end subroutine part2
 !-------------------------------------------------------------------------------
 
 subroutine part3(self, igrid, n, n2)
-  use coord_algorithms_mod, only: xyz2ll
+  use coord_transform_mod, only: xyz2ll
   implicit none
 
   !Arguments
@@ -800,7 +802,7 @@ end subroutine part4
 !-------------------------------------------------------------------------------
 
 subroutine part5(self)
-  use coord_algorithms_mod, only : xyz2ll, ll2xyz, starea2, spdist
+  use coord_transform_mod, only : xyz2ll, ll2xyz, starea2, spdist
   implicit none
 
   !Arguments
@@ -970,7 +972,7 @@ end subroutine part5
 !-------------------------------------------------------------------------------
 
 subroutine part6(self)
-  use coord_algorithms_mod, only : ll2xyz
+  use coord_transform_mod, only : ll2xyz
   implicit none
 
   !Arguments
@@ -1206,7 +1208,7 @@ end subroutine part7
 !-------------------------------------------------------------------------------
 
 subroutine part8(self)
-  use coord_algorithms_mod, only: ll2xyz
+  use coord_transform_mod, only: ll2xyz
   implicit none
 
   !Arguments
@@ -1284,7 +1286,7 @@ end subroutine part8
 !-------------------------------------------------------------------------------
 
 subroutine write_data(self)
-  use coord_algorithms_mod, only: ll2xyz
+  use coord_transform_mod, only: ll2xyz
   implicit none
 
   !Arguments

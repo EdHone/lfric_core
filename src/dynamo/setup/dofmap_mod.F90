@@ -22,7 +22,9 @@ module dofmap_mod
 
 use num_dof_mod
 use reference_element_mod
-use mesh_generator_mod, only: nedge_h_g, nvert_h_g, face_on_cell, edge_on_cell, vert_on_cell
+use mesh_mod,      only: mesh_type
+use constants_mod, only: i_def
+use slush_mod,     only: l_spherical
 
 implicit none
 
@@ -57,45 +59,55 @@ integer, allocatable :: w3_orientation(:,:)
 !-------------------------------------------------------------------------------
 contains 
 
-!> Subroutine to get the dofmap and copy is into the function space
-!> @param[in] nlayers the number of vertical layers
-!> @param[in] function_space the function space
-!> @param[in] ndf_entity the number of dofs on each grid entity
-subroutine get_dofmap(nlayers, w_dof_entity, &
-                      ncell, w_unique_dofs )
+!> @brief Subroutine to get the dofmap and copy is into the function space
+!> @param[in] mesh           Mesh object to base dof maps on
+!> @param[in] function_space The function space
+!> @param[in] ndf_entity     The number of dofs on each grid entity
+
+subroutine get_dofmap(mesh, w_dof_entity, w_unique_dofs)
   
   implicit none
   
-  integer, intent(in)       :: nlayers
-  integer, intent(in)       :: w_dof_entity(4,0:3)
-  integer, intent(in)       :: ncell
-  integer, intent(in)       :: w_unique_dofs(4,2) 
+  type (mesh_type), intent(in) :: mesh
 
-  allocate( w0_dofmap(w_unique_dofs(1,2),0:ncell) )
-  allocate( w1_dofmap(w_unique_dofs(2,2),0:ncell) )
-  allocate( w2_dofmap(w_unique_dofs(3,2),0:ncell) )
-  allocate( w3_dofmap(w_unique_dofs(4,2),0:ncell) )
+  integer, intent(in) :: w_dof_entity(4,0:3)
+  integer, intent(in) :: w_unique_dofs(4,2) 
+
+  integer(i_def) :: ncells
+
+  ncells = mesh%get_ncells_2d()
+
+  allocate( w0_dofmap(w_unique_dofs(1,2),0:ncells) )
+  allocate( w1_dofmap(w_unique_dofs(2,2),0:ncells) )
+  allocate( w2_dofmap(w_unique_dofs(3,2),0:ncells) )
+  allocate( w3_dofmap(w_unique_dofs(4,2),0:ncells) )
   
-  call dofmap_populate(ncell, nlayers, &
-                       w_unique_dofs(1,2), w_dof_entity(1,:), w0_dofmap)
-  call dofmap_populate(ncell, nlayers, &
-                       w_unique_dofs(2,2), w_dof_entity(2,:), w1_dofmap)
-  call dofmap_populate(ncell, nlayers, &
-                       w_unique_dofs(3,2), w_dof_entity(3,:), w2_dofmap)
-  call dofmap_populate(ncell, nlayers, &
-                       w_unique_dofs(4,2), w_dof_entity(4,:), w3_dofmap)
+  call dofmap_populate( mesh, ncells,                                         &
+                        w_unique_dofs(1,2), w_dof_entity(1,:), w0_dofmap)
+  call dofmap_populate( mesh, ncells,                                         &
+                        w_unique_dofs(2,2), w_dof_entity(2,:), w1_dofmap)
+  call dofmap_populate( mesh, ncells,                                         &
+                        w_unique_dofs(3,2), w_dof_entity(3,:), w2_dofmap)
+  call dofmap_populate( mesh, ncells,                                         &
+                        w_unique_dofs(4,2), w_dof_entity(4,:), w3_dofmap)
+
 
 end subroutine get_dofmap
 
-!> Subroutine to compute the dofmap based upon grid connectivities for a function space
-!> @param[in] ncells the number of horizontal cells
-!> @param[in] nlayers the number of vertical layers
-!> @param[in] ndof_sum the total number of dofs associated with a single cell
-!> @param[in] ndf_entity the number of dofs on each grid entity
+!> @brief Subroutine to compute the dofmap based upon grid connectivities for
+!>        a function space
+!> @param[in] mesh       Mesh object to base dof maps on
+!> @param[in] ncells     The number of horizontal cells
+!> @param[in] ndof_sum   The total number of dofs associated with a single cell
+!> @param[in] ndf_entity The number of dofs on each grid entity
 !> @param[out] dofmap
-subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
+subroutine dofmap_populate(mesh, ncells, ndof_sum, ndof_entity, dofmap)
 
-  integer, intent(in) :: ncells, nlayers
+  implicit none
+
+  ! Mesh object to apply dofmap on 
+  type (mesh_type), intent(in) :: mesh
+  integer (i_def),  intent(in) :: ncells
 
 ! number of dofs per entity for this space
   integer, intent(in) :: ndof_entity(0:3)
@@ -107,6 +119,7 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
 
 ! loop counters
   integer :: i, j, k
+  integer(i_def) :: nlayers
 
   integer :: id, id0, jd, jdp, dof_idx
 ! Number of entities for a single layer  
@@ -115,11 +128,12 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
 ! entity dofmaps
   integer, allocatable :: dofmap_d0(:,:), dofmap_d1(:,:), dofmap_d2(:,:), dofmap_d3(:,:)
 
-! dofmaps for a 3D horizontal layer
-  nvert_layer = 2*nvert_h_g 
-  nedge_layer = 2*nedge_h_g + nvert_h_g
-  nface_layer = nedge_h_g + 2*ncells
-  
+  ! dofmaps for a 3D horizontal layer
+  nlayers     =   mesh%get_nlayers()
+  nvert_layer = 2*mesh%get_nverts_2d()
+  nedge_layer = 2*mesh%get_nedges_2d() + mesh%get_nverts_2d()
+  nface_layer =   mesh%get_nedges_2d() + 2*ncells
+
   if ( ndof_entity(0) > 0 ) then
     allocate( dofmap_d0(ndof_entity(0),nvert_layer) )
   else
@@ -167,7 +181,7 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
   
 ! assign dofs for connectivity (3,2) (dofs on faces)
     do j=1,nfaces_h
-      jd = face_on_cell(j,i) 
+      jd = mesh%get_face_on_cell(j,i) 
       if ( dofmap_d2(1,jd) == 0 ) then
         do k=1,ndof_entity(2)
           dofmap_d2(k,jd) = id        
@@ -181,7 +195,7 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
     end do
     id0 = id
     do j=nfaces_h+1,nfaces
-      jd = face_on_cell(j,i) 
+      jd = mesh%get_face_on_cell(j,i) 
       if ( dofmap_d2(1,jd) == 0 ) then
         do k=1,ndof_entity(2)
           dofmap_d2(k,jd) = id        
@@ -200,8 +214,8 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
     end do
 ! assign dofs for connectivity (3,1) (dofs on edges)  
     do j=1,nedges_h
-      jd  = edge_on_cell(j,i)   
-      jdp = edge_on_cell(j+nedges-nedges_h,i)  
+      jd  = mesh%get_edge_on_cell(j,i)   
+      jdp = mesh%get_edge_on_cell(j+nedges-nedges_h,i)  
       if ( dofmap_d1(1,jd) == 0 ) then
         do k=1,ndof_entity(1)
           dofmap_d1(k,jd)  = id
@@ -211,7 +225,7 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
       end if
     end do
     do j=5,8
-      jd  = edge_on_cell(j,i) 
+      jd  = mesh%get_edge_on_cell(j,i) 
       if ( dofmap_d1(1,jd) == 0 ) then
         do k=1,ndof_entity(1)
           dofmap_d1(k,jd)  = id
@@ -220,7 +234,7 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
       end if
     end do
     do j=1,nedges
-      jd  = edge_on_cell(j,i) 
+      jd  = mesh%get_edge_on_cell(j,i) 
       do k=1,ndof_entity(1)
         dofmap(dof_idx,i) = dofmap_d1(k,jd)
         dof_idx = dof_idx + 1  
@@ -228,8 +242,8 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
     end do 
 ! assign dofs for connectivity (3,0) (dofs on verts)    
     do j=1,nverts_h
-      jd  = vert_on_cell(j,i)
-      jdp = vert_on_cell(j+nverts_h,i)
+      jd  = mesh%get_vert_on_cell(j,i)
+      jdp = mesh%get_vert_on_cell(j+nverts_h,i)
       if ( dofmap_d0(1,jd) == 0 ) then
         do k=1,ndof_entity(0)
           dofmap_d0(k,jd)  = id
@@ -239,7 +253,7 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
       end if
     end do
     do j=1,nverts
-      jd  = vert_on_cell(j,i)
+      jd  = mesh%get_vert_on_cell(j,i)
       do k=1,ndof_entity(0)
         dofmap(dof_idx,i) = dofmap_d0(k,jd) 
         dof_idx = dof_idx + 1  
@@ -256,57 +270,65 @@ subroutine dofmap_populate(ncells,nlayers,ndof_sum,ndof_entity,dofmap)
 
 end subroutine dofmap_populate
 
-!> Subroutine to compute the orientation of vectors
-!> @param[in] ncell the number of horizontal cells
+!> @brief Subroutine to compute the orientation of vectors
+!> @param[in] mesh          Mesh object to base dof maps on
 !> @param[in] w_unique_dofs The number of dofs in each function space
-subroutine get_orientation(ncell,w_unique_dofs, w_dof_entity)
+!> @param[in] w_dof_entity
+subroutine get_orientation(mesh, w_unique_dofs, w_dof_entity)
 !-----------------------------------------------------------------------------
 ! Subroutine to read orientation
 !-----------------------------------------------------------------------------
   
   implicit none
 
-  integer, intent(in) :: ncell
-  integer, intent(in) :: w_unique_dofs(4,2)
-  integer, intent(in) :: w_dof_entity(4,0:3)
+  type (mesh_type), intent(in) :: mesh
+  integer,          intent(in) :: w_unique_dofs(4,2)
+  integer,          intent(in) :: w_dof_entity(4,0:3)
 
-  allocate( w0_orientation(0:ncell,w_unique_dofs(1,2)) )
-  allocate( w1_orientation(0:ncell,w_unique_dofs(2,2)) )
-  allocate( w2_orientation(0:ncell,w_unique_dofs(3,2)) )
-  allocate( w3_orientation(0:ncell,w_unique_dofs(4,2)) )
+  integer(i_def) :: ncells
 
-  call orientation_populate( ncell,                                       &
+  ncells = mesh%get_ncells_2d()
+
+  allocate( w0_orientation(0:ncells,w_unique_dofs(1,2)) )
+  allocate( w1_orientation(0:ncells,w_unique_dofs(2,2)) )
+  allocate( w2_orientation(0:ncells,w_unique_dofs(3,2)) )
+  allocate( w3_orientation(0:ncells,w_unique_dofs(4,2)) )
+
+  call orientation_populate( mesh, ncells,                                &
                              w_unique_dofs(1,2),                          &
                              w_dof_entity(1,:),                           &
                              w0_orientation )
 
-  call orientation_populate( ncell,                                       &
-                            w_unique_dofs(2,2),                           &
-                            w_dof_entity(2,:),                            &
-                            w1_orientation )
-  call orientation_populate( ncell,                                       &
+  call orientation_populate( mesh, ncells,                                &
+                             w_unique_dofs(2,2),                          &
+                             w_dof_entity(2,:),                           &
+                             w1_orientation )
+  call orientation_populate( mesh, ncells,                                &
                              w_unique_dofs(3,2),                          &
                              w_dof_entity(3,:),                           &
                              w2_orientation )
-  call orientation_populate( ncell,                                       &
+  call orientation_populate( mesh, ncells,                                &
                              w_unique_dofs(4,2),                          &
                              w_dof_entity(4,:),                           &
                              w3_orientation )
 
 end subroutine get_orientation
 
-!> Subroutine to compute the orientation of vectors
-!> @param[in] ncells the number of horizontal cells
-!> @param[in] ndf the total number of dofs associated with a single cell
-!> @param[in] ndf_entity the number of dofs associated with each grid entity in a single cell
+!> @brief Subroutine to compute the orientation of vectors
+!> @param[in] mesh         Mesh object to base dof maps on
+!> @param[in] ncells       The number of horizontal cells
+!> @param[in] ndf          The total number of dofs associated with a
+!>                         single cell
+!> @param[in] ndf_entity   The number of dofs associated with each grid
+!>                         entity in a single cell
 !> @param[out] orientation The output orientation
-subroutine orientation_populate(ncells, ndf, ndf_entity, orientation)
+subroutine orientation_populate(mesh, ncells, ndf, ndf_entity, orientation)
 
   use reference_element_mod, only: nfaces_h, nedges_h
-  use mesh_generator_mod,    only: cell_next, vert_on_cell
   
   implicit none
-  
+
+  type (mesh_type), intent(in) :: mesh
   integer, intent(in)  :: ncells
   integer, intent(in)  :: ndf
   integer, intent(in)  :: ndf_entity(0:3)
@@ -350,10 +372,10 @@ subroutine orientation_populate(ncells, ndf, ndf_entity, orientation)
 ! Face orientation for this cell  
     do face = 1,nfaces_h
       if ( face_orientation(face,cell) == 0 ) then
-        next_cell = cell_next(face,cell)
+        next_cell = mesh%get_cell_next(face,cell)
         common_face = 0
         do next_face = 1,nfaces_h
-          if ( cell_next(next_face,next_cell) == cell) common_face = next_face
+          if ( mesh%get_cell_next(next_face,next_cell) == cell) common_face = next_face
         end do
         face_orientation(face,cell) = 1
 ! if neighbouring faces are in set (1,1),(1,2),(2,2),(3,3),(3,4),(4,4)
@@ -372,15 +394,16 @@ subroutine orientation_populate(ncells, ndf, ndf_entity, orientation)
     do edge = 1,nedges_h
 ! This works as horizontal edges == horizontal faces    
       if ( edge_orientation(edge,cell) == 0 ) then
-        next_cell = cell_next(edge,cell)
+        next_cell = mesh%get_cell_next(edge,cell)
         common_edge = 0
         do next_edge = 1,nedges_h
-          if ( cell_next(next_edge,next_cell) == cell) common_edge = next_edge 
+          if ( mesh%get_cell_next(next_edge,next_cell) == cell) common_edge = next_edge 
         end do
         edge_orientation(edge,cell) = 1
         
-        vert_1 = vert_on_cell(edge,cell)
-        vert_1_next = vert_on_cell(common_edge,next_cell)      
+        vert_1      = mesh%get_vert_on_cell(edge,cell)
+        vert_1_next = mesh%get_vert_on_cell(common_edge,next_cell)
+
 ! if neighbouring edges are (1,2), (2,1) or (3,4), (4,3) then
         if ( max(edge,common_edge) < 3 .or. min(edge,common_edge) > 2 ) then 
           if ( vert_1 == vert_1_next ) then

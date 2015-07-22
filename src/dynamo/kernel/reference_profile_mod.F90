@@ -8,10 +8,10 @@
 !-------------------------------------------------------------------------------
 !> @brief Module for computing a linear hydrostatially balanced reference state
 module reference_profile_mod
-use constants_mod,      only: r_def, N_SQ, GRAVITY, Cp, Rd, &
-                              KAPPA, P_ZERO, earth_radius
-use mesh_generator_mod, only: xyz2llr 
-use mesh_mod,           only: l_spherical
+use constants_mod,       only: r_def, N_SQ, GRAVITY, Cp, Rd, &
+                               KAPPA, P_ZERO, earth_radius
+use coord_transform_mod, only: xyz2llr 
+use slush_mod,           only: l_spherical
 use generate_global_gw_fields_mod, only: generate_global_gw_fields
 
 implicit none

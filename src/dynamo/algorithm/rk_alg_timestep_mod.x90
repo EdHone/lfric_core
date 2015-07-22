@@ -34,6 +34,7 @@ module rk_alg_timestep_mod
   use initial_rho_kernel_mod,            only: initial_rho_kernel_type
   use vorticity_rhs_kernel_mod,          only: vorticity_rhs_kernel_type 
 
+  use mesh_mod,      only: mesh_type
   use field_mod,     only: field_type
   use function_space_mod, &
                      only: function_space_type, W0, W1, W2, W3
@@ -52,9 +53,20 @@ module rk_alg_timestep_mod
 
 contains
 
-  subroutine rk_alg_timestep( chi, u, rho, theta, xi)
+  !>-------------------------------------------------
+  !> @brief
+  !> @details
+  !> @param[in]    mesh Mesh object on which the model runs
+  !> @param[inout] chi
+  !> @param[inout] u
+  !> @param[inout] rho
+  !> @param[inout] theta
+  !> @param[inout] xi
+  subroutine rk_alg_timestep( mesh, chi, u, rho, theta, xi)
 
     implicit none
+
+    type (mesh_type), intent(in) :: mesh 
 
     ! coordinate fields
     type( field_type ), intent( inout ) :: chi(3)
@@ -151,14 +163,14 @@ contains
 
     call galerkin_projection_algorithm(projected_field(1),                     &
          theta, chi, SCALAR_FIELD, qr, mm=mm_w0)
-    call interpolated_output(0, SCALAR_FIELD, projected_field(1), chi, 'theta_')
+    call interpolated_output(mesh, 0, SCALAR_FIELD, projected_field(1), chi, 'theta_')
     call invoke_set_field_scalar(0.0_r_def, projected_field(1))
     call galerkin_projection_algorithm(projected_field(1),                     &
          rho,   chi,  SCALAR_FIELD, qr, mm=mm_w0)
-    call interpolated_output(0, SCALAR_FIELD, projected_field(1), chi, 'rho___')
+    call interpolated_output(mesh, 0, SCALAR_FIELD, projected_field(1), chi, 'rho___')
     call galerkin_projection_algorithm(projected_field(:),                     &
          u,     chi, VECTOR_FIELD, qr, mm=mm_w0)
-    call interpolated_output(0, VECTOR_FIELD, projected_field(:), chi, 'u_____')
+    call interpolated_output(mesh, 0, VECTOR_FIELD, projected_field(:), chi, 'u_____')
 
     !==========================================================================
     ! Timestep
@@ -239,13 +251,13 @@ contains
       if ( mod(n, output_freq) == 0 ) then
         call galerkin_projection_algorithm(projected_field(1),                  &
              theta, chi, SCALAR_FIELD, qr, mm=mm_w0)
-        call interpolated_output(n, SCALAR_FIELD, projected_field(1), chi, 'theta_')
+        call interpolated_output(mesh, n, SCALAR_FIELD, projected_field(1), chi, 'theta_')
         call galerkin_projection_algorithm(projected_field(1),                  &
              rho,   chi, SCALAR_FIELD, qr, mm=mm_w0)
-        call interpolated_output(n, SCALAR_FIELD, projected_field(1), chi, 'rho___')
+        call interpolated_output(mesh, n, SCALAR_FIELD, projected_field(1), chi, 'rho___')
         call galerkin_projection_algorithm(projected_field(:),                  &
              u,     chi, VECTOR_FIELD, qr, mm=mm_w0)
-        call interpolated_output(n, VECTOR_FIELD, projected_field(:), chi, 'u_____')
+        call interpolated_output(mesh, n, VECTOR_FIELD, projected_field(:), chi, 'u_____')
       end if
 
       write( log_scratch_space, '(A,I0)' ) 'End of timestep ', n

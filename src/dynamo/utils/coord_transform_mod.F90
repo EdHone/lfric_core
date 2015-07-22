@@ -7,18 +7,24 @@
 !!
 !!  @details Contains routines for conversion of e.g. lat-long to Cartesian XYZ.
 !-------------------------------------------------------------------------------
-module coord_algorithms_mod
+module coord_transform_mod
+
 use constants_mod, only : r_def
+
 implicit none
+
 private
 
-!Public subroutines
+! Public subroutines
 public :: ll2xyz
 public :: llr2xyz
 public :: xyz2ll
+public :: xyz2llr
 public :: starea2
 public :: spdist
 public :: cartesian_distance
+public :: sphere2cart_vector
+public :: cart2sphere_vector
 
 !--------------------------------------------------------------------------------
 ! Contained functions / subroutines
@@ -145,6 +151,57 @@ subroutine xyz2ll(x,y,z,long,lat)
   return
 end subroutine xyz2ll
 
+
+!-------------------------------------------------------------------------------
+      
+subroutine xyz2llr(x,y,z,long,lat,r)
+  
+!-------------------------------------------------------------------------------
+!  Subroutine to convert cartesian coordinates to longitude and latitude
+!------------------------------------------------------------------------------- 
+
+  use constants_mod, only: PI
+
+
+  real(kind=r_def), intent(in)  :: x, y, z
+  real(kind=r_def), intent(out) :: long, lat, r
+  real(kind=r_def)              :: tln, tlt
+  real(kind=r_def)              :: tol = 10.0e-8_r_def
+
+  if ( abs(x) < tol ) then
+    if ( y >= 0.0_r_def ) then
+      long = 0.5_r_def*PI
+    else
+      long = 1.5_r_def*PI
+    end if
+  else
+    tln = y/x
+    long = atan(tln)
+    if ( x < 0.0_r_def ) then
+      long = long + PI
+    end if
+    if ( long < 0.0_r_def ) then
+      long = long + 2.0_r_def*PI
+    end if
+  end if
+
+  r = sqrt(x*x + y*y)
+  if ( abs(r) < tol ) then
+    if (z > 0.0_r_def ) then
+      lat =  0.5_r_def*PI
+    else
+      lat = -0.5_r_def*PI
+    end if
+  else
+    tlt = z/r
+    lat = atan(tlt)
+  end if
+  
+  r = sqrt(x*x + y*y + z*z)  
+
+end subroutine xyz2llr
+
+
 !-------------------------------------------------------------------------------
 !>  @brief  Calculate the area of a spherical triangle.
 !!
@@ -263,5 +320,72 @@ pure function cartesian_distance(x,y) result( s )
 end function cartesian_distance
 
 
-end module coord_algorithms_mod
+!-------------------------------------------------------------------------------
+!> @brief Function to convert a vector in sperical coordinates to one in
+!> cartesian coodinates
+!> @param[in]  llr location in spherical coodinates
+!> @param[in]  dlambda input vector in spherical coordinates
+!> @param[return] dx output vector in cartesian coordinates
+function sphere2cart_vector( dlambda, llr ) result ( dx )
+  use constants_mod,     only: r_def
+  use matrix_invert_mod, only: matrix_invert_3x3
+  implicit none
+
+  real(kind=r_def), intent(in)  :: dlambda(3)
+  real(kind=r_def), intent(in)  :: llr(3)
+  real(kind=r_def)              :: dx(3)
+
+  real(kind=r_def)              :: A(3,3), A_inv(3,3)
+
+! Form transformation matrix
+  A(1,:) = (/ -sin(llr(1)),              cos(llr(1)),              0.0_r_def   /)
+  A(2,:) = (/ -sin(llr(2))*cos(llr(1)), -sin(llr(2))*sin(llr(1)), -cos(llr(2)) /)
+  A(3,:) = (/  cos(llr(2))*cos(llr(1)),  cos(llr(2))*sin(llr(1)), -sin(llr(2)) /)
+! form inverse
+  A_inv = matrix_invert_3x3(A)
+  dx(:) = matmul(A_inv, dlambda)
+  return
+
+end function sphere2cart_vector
+
+!-------------------------------------------------------------------------------
+!> @brief Function to convert a flux vector in cartesian coordinates (x,y,z) 
+!> to one in spherical coodinates (lambda,phi,r)
+!> @detail convert 3d cartesian velocity u = (u1,u2,u3) in cartesian coordinates at (x,y,z) 
+!> to spherical velocity v = (v1,v2,v3) (in m/s) in spherical coordinates at (lambda,phi,r)
+!> @param[in]  x_vec vector (x,y,z) location in cartesian coodinates
+!> @param[in]  cartesian_vec components of a flux vector (u,v,w) in cartesian coordinates
+!> @param[out] spherical_vec components of a flux vector (u,v,w) on spherical coordinates
+pure function cart2sphere_vector(x_vec, cartesian_vec) result ( spherical_vec )
+     use constants_mod, only: r_def, PI
+
+     implicit none
+
+     real(kind=r_def), intent(in)  :: x_vec(3)
+     real(kind=r_def), intent(in)  :: cartesian_vec(3)
+
+     real(kind=r_def)              :: spherical_vec(3)
+
+     real(kind=r_def)              :: r, t, phi
+
+     t = x_vec(1)**2 + x_vec(2)**2
+     r = sqrt(t + x_vec(3)**2)
+
+     spherical_vec(1) = (- x_vec(2)*cartesian_vec(1) &
+                         + x_vec(1)*cartesian_vec(2) ) / t
+     spherical_vec(2) = (-x_vec(1)*x_vec(3)*cartesian_vec(1) &
+                         -x_vec(2)*x_vec(3)*cartesian_vec(2) &
+                                        + t*cartesian_vec(3))/(r*r*sqrt(t))
+     spherical_vec(3) = (x_vec(1)*cartesian_vec(1) &
+                       + x_vec(2)*cartesian_vec(2) &
+                       + x_vec(3)*cartesian_vec(3)) / r
+
+! convert from (dlambda/dt,dphi/dt,dr/dt) to (u,v,w) in m/s
+     phi = 0.5_r_def*PI - acos(x_vec(3)/r)
+     spherical_vec(1) = spherical_vec(1)*r*cos(phi)
+     spherical_vec(2) = spherical_vec(2)*r
+
+end function cart2sphere_vector
+
+end module coord_transform_mod
 

@@ -33,7 +33,8 @@ program dynamo
   use assign_coordinate_field_mod, only : assign_coordinate_field
   use field_io_mod,            only : write_state_netcdf                      &
                                     , write_state_plain_text
-  use mesh_mod,                only : total_ranks, local_rank
+  use slush_mod,               only : total_ranks, local_rank
+  
   use log_mod,                 only : log_event,         &
                                       log_set_level,     &
                                       log_scratch_space, &
@@ -41,6 +42,7 @@ program dynamo
                                       LOG_LEVEL_INFO,    &
                                       LOG_LEVEL_DEBUG,   &
                                       LOG_LEVEL_TRACE
+  use mesh_mod, only: mesh_type
 
   implicit none
 
@@ -48,9 +50,11 @@ program dynamo
 
   ! coordinate fields
   type( field_type ) :: chi(3)
-! prognostic fields    
+
+  ! prognostic fields    
   type( field_type ) :: u, rho, theta, xi
-                                     
+                  
+  type(mesh_type)                  :: mesh
   integer                          :: coord
   type( field_type ), allocatable  :: state(:)
   integer                          :: n_fields
@@ -111,7 +115,7 @@ program dynamo
 
   end do cli_argument_loop 
 
-  call set_up( )
+  call set_up(mesh)
 
   do coord = 1,3
     chi(coord) = field_type( vector_space = function_space%get_instance( W0 ) )
@@ -132,12 +136,12 @@ program dynamo
   deallocate(state)
 
   call log_event( "Dynamo: computing W0 coordinate fields", LOG_LEVEL_INFO )
-  call assign_coordinate_field( chi )
+  call assign_coordinate_field(mesh, chi)
 
   if ( L_NONLINEAR ) then
-    call rk_alg_timestep( chi, u, rho, theta, xi)                       
+    call rk_alg_timestep( mesh, chi, u, rho, theta, xi)                       
   else
-    call lin_rk_alg_timestep( chi, u, rho, theta)   
+    call lin_rk_alg_timestep( mesh, chi, u, rho, theta)   
   end if
 
    ! do some i/o

@@ -19,6 +19,8 @@ private
 
 type, public :: global_mesh_type
   private
+!> Coords of vertices in full domain
+  real(kind=r_def), allocatable :: vert_coords(:,:)
 !> Full domain cell to cell connectivities
   integer, allocatable :: cell_next_2d(:,:)
 !> Full domain vertices on a cell
@@ -34,6 +36,10 @@ type, public :: global_mesh_type
   integer              :: num_cells_x
 !> no of cells across a face, perpendicular to num_cells_x (or across full domain in y-dirn for biperiodic)
   integer              :: num_cells_y
+!> Total number of vertices in the full domain
+  integer              :: nverts
+!> Total number of edges in the full domain
+  integer              :: nedges
 !> total number of cells in full domain
   integer              :: ncells
 !> number of vertices on each cell
@@ -42,6 +48,7 @@ type, public :: global_mesh_type
   integer              :: nedges_per_cell
 !> maximum number of cells around a vertex
   integer              :: max_cells_per_vertex
+
 contains
 !> Get the cell id that is x_cells across (E is +ve) and
 !> y_cells up/down (N is +ve) from given cell_number.
@@ -52,18 +59,10 @@ contains
 !> @param[in] y_cells Offset in the N/S direction
 !> @return the cell id of the cell at the given offset to the start cell
   procedure, public :: get_cell_id
-!> Get the vertices that are incident with a particular cell
-!> @param[in] cell_number The number of the cell being queried
-!> @param[out] verts The vertices around the given cell
-  procedure, public :: get_vert_on_cell
 !> Get the cells that are incident on a particular vertex
 !> @param[in] vertex_number The number of the vertex being queried
 !> @param[out] cells The cells around the given vertex
-  procedure, public :: get_cell_on_vert
-!> Get the edges that are incident with a particular cell
-!> @param[in] cell_number The number of the cell being queried
-!> @param[out] edges The edges around the given cell
-  procedure, public :: get_edge_on_cell
+  procedure, public :: get_cell_on_vert 
 !> Get the cells that are incident on a particular edge
 !> @param[in] edge_number The number of the edge being queried
 !> @param[out] cells The cells either side of the given edge
@@ -87,6 +86,41 @@ contains
 !> @return The maximum number of cells that can be incident with a vertex
   procedure, public :: get_max_cells_per_vertex
 
+  !> @brief Type-bound function
+  !> @details    Get the edges that are incident with a
+  !>             particular cell
+  !> @param[in]  cell_gid The global id of the cell being queried 
+  !> @param[out] The edges around the given cell
+  procedure, public :: get_edge_on_cell
+
+  !> @brief Type-bound subroutine
+  !> @details    Get the vertices that are incident with a
+  !>             particular cell
+  !> @param[in]  cell_gid The global id of the cell being queried 
+  !> @parma[out] The vertices around the given cell
+  procedure, public :: get_vert_on_cell
+
+  !> Type-bound function
+  !> @return Number of vertices per 2D-cell
+  procedure, public :: get_nverts_per_cell
+
+  !> Type-bound function
+  !> @return Number of edges per 2D-cell
+  procedure, public :: get_nedges_per_cell
+
+  !> Type-bound function
+  !> @param [in]  cell_gid   The global id of the requested cell
+  !> @return An array containing the global ids of cells adjacent to
+  !>         the cell with global id [cell_gid]
+  procedure, public :: get_cell_next
+
+  !> Type-bound function
+  !> @param [in]  vert_gid   The global id of the requested vertex
+  !> @return A three-element array containing the coordinates of a 
+  !>         single vertex on the global mesh. Currently, these are in
+  !>         spherical coords [long,lat,radius] 
+  procedure, public :: get_vert_coords
+
 end type global_mesh_type
 
 interface global_mesh_type
@@ -99,7 +133,7 @@ contains
 
 !> Construct a the full domain cell to cell connectivities for a
 !> biperiodic mesh
-function global_mesh_constructor_biperiodic( num_cells_x, num_cells_y ) result(self)
+function global_mesh_constructor_biperiodic( num_cells_x, num_cells_y, dx, dy ) result(self)
 
 use reference_element_mod, only : nfaces_h, &
                                   W, S, E, N, &
@@ -109,13 +143,15 @@ implicit none
 
 integer, intent(in) :: num_cells_x
 integer, intent(in) :: num_cells_y
+real(kind=r_def), intent(in) :: dx
+real(kind=r_def), intent(in) :: dy
 
 type(global_mesh_type) :: self
 
 integer :: i,j
 integer :: id
-integer :: vert_no
-integer :: edge_no
+real(kind=r_def) :: xstart
+real(kind=r_def) :: ystart
 
 ! Defaults for a biperiodic mesh
 self%ncells = num_cells_x*num_cells_y
@@ -165,74 +201,74 @@ end do
 
 ! Populate vertices around each cell
 allocate( self%vert_on_cell_2d( self%nverts_per_cell, self%ncells ) )
-vert_no = 0
+self%nverts = 0
 self%vert_on_cell_2d = 0
 do i = 1,self%ncells
 ! 1. south west corner of cell
   if(self%vert_on_cell_2d(SWB,i) == 0)then
-    vert_no = vert_no + 1
-    self%vert_on_cell_2d(SWB,i) = vert_no
-    if(self%cell_next_2d(W,i) > 0)then                     ! and south east corner of cell to west
-      self%vert_on_cell_2d(SEB,self%cell_next_2d(W,i)) = vert_no
+    self%nverts = self%nverts + 1
+    self%vert_on_cell_2d(SWB,i) = self%nverts
+    if(self%cell_next_2d(W,i) > 0)then                     ! and south east corner of cell to west 
+      self%vert_on_cell_2d(SEB,self%cell_next_2d(W,i)) = self%nverts
       if(self%cell_next_2d(S,self%cell_next_2d(W,i)) > 0)then      ! and north east corner of cell to south west
-        self%vert_on_cell_2d(NEB,self%cell_next_2d(S,self%cell_next_2d(W,i))) = vert_no
+        self%vert_on_cell_2d(NEB,self%cell_next_2d(S,self%cell_next_2d(W,i))) = self%nverts
       end if
     end if
     if(self%cell_next_2d(S,i) > 0)then                     ! and north west corner of cell to south
-      self%vert_on_cell_2d(NWB, self%cell_next_2d(S,i)) = vert_no
+      self%vert_on_cell_2d(NWB, self%cell_next_2d(S,i)) = self%nverts
       if(self%cell_next_2d(W,self%cell_next_2d(S,i)) > 0)then      ! and again north east corner of cell to south west (in case other route to southwest goes through a missing cell)
-        self%vert_on_cell_2d(NEB,self%cell_next_2d(W,self%cell_next_2d(S,i))) = vert_no
+        self%vert_on_cell_2d(NEB,self%cell_next_2d(W,self%cell_next_2d(S,i))) = self%nverts
       end if
     end if
   end if
 ! 2. south east corner of cell
   if(self%vert_on_cell_2d(SEB,i) == 0)then
-    vert_no = vert_no + 1
-    self%vert_on_cell_2d(SEB,i) = vert_no
-    if(self%cell_next_2d(E,i) > 0)then                     ! and south west corner of cell to east
-      self%vert_on_cell_2d(SWB,self%cell_next_2d(E,i)) = vert_no
+    self%nverts = self%nverts + 1
+    self%vert_on_cell_2d(SEB,i) = self%nverts
+    if(self%cell_next_2d(E,i) > 0)then                     ! and south west corner of cell to east 
+      self%vert_on_cell_2d(SWB,self%cell_next_2d(E,i)) = self%nverts
       if(self%cell_next_2d(S,self%cell_next_2d(E,i)) > 0)then      ! and north west corner of cell to south east
-        self%vert_on_cell_2d(NWB,self%cell_next_2d(S,self%cell_next_2d(E,i))) = vert_no
+        self%vert_on_cell_2d(NWB,self%cell_next_2d(S,self%cell_next_2d(E,i))) = self%nverts
       end if
     end if
     if(self%cell_next_2d(S,i) > 0)then                     ! and north east corner of cell to south
-      self%vert_on_cell_2d(NEB,self%cell_next_2d(S,i)) = vert_no
+      self%vert_on_cell_2d(NEB,self%cell_next_2d(S,i)) = self%nverts
       if(self%cell_next_2d(E,self%cell_next_2d(S,i)) > 0)then      ! and again north west corner of cell to south east (in case other route to southeast goes through a missing cell)
-        self%vert_on_cell_2d(NWB,self%cell_next_2d(E,self%cell_next_2d(S,i))) = vert_no
+        self%vert_on_cell_2d(NWB,self%cell_next_2d(E,self%cell_next_2d(S,i))) = self%nverts
       end if
     end if
   end if
 ! 3. north east corner of cell
   if(self%vert_on_cell_2d(NEB,i) == 0)then
-    vert_no = vert_no + 1
-    self%vert_on_cell_2d(NEB,i) = vert_no
-    if(self%cell_next_2d(E,i) > 0)then                     ! and north west corner of cell to east
-      self%vert_on_cell_2d(NWB,self%cell_next_2d(E,i)) = vert_no
+    self%nverts = self%nverts + 1
+    self%vert_on_cell_2d(NEB,i) = self%nverts
+    if(self%cell_next_2d(E,i) > 0)then                     ! and north west corner of cell to east 
+      self%vert_on_cell_2d(NWB,self%cell_next_2d(E,i)) = self%nverts
       if(self%cell_next_2d(N,self%cell_next_2d(E,i)) > 0)then      ! and south west corner of cell to north east
-        self%vert_on_cell_2d(SWB,self%cell_next_2d(N,self%cell_next_2d(E,i))) = vert_no
+        self%vert_on_cell_2d(SWB,self%cell_next_2d(N,self%cell_next_2d(E,i))) = self%nverts
       end if
     end if
     if(self%cell_next_2d(N,i) > 0)then                     ! and south east corner of cell to north
-      self%vert_on_cell_2d(SEB,self%cell_next_2d(N,i)) = vert_no
+      self%vert_on_cell_2d(SEB,self%cell_next_2d(N,i)) = self%nverts
       if(self%cell_next_2d(E,self%cell_next_2d(N,i)) > 0)then      ! and again south west corner of cell to north east (in case other route to northeast goes through a missing cell)
-        self%vert_on_cell_2d(SWB,self%cell_next_2d(E,self%cell_next_2d(N,i))) = vert_no
+        self%vert_on_cell_2d(SWB,self%cell_next_2d(E,self%cell_next_2d(N,i))) = self%nverts
       end if
     end if
   end if
 ! 4. north west corner of cell
   if(self%vert_on_cell_2d(NWB,i) == 0)then
-    vert_no = vert_no + 1
-    self%vert_on_cell_2d(NWB,i) = vert_no
-    if(self%cell_next_2d(W,i) > 0)then                     ! and north east corner of cell to west
-      self%vert_on_cell_2d(NEB,self%cell_next_2d(W,i)) = vert_no
+    self%nverts = self%nverts + 1
+    self%vert_on_cell_2d(NWB,i) = self%nverts
+    if(self%cell_next_2d(W,i) > 0)then                     ! and north east corner of cell to west 
+      self%vert_on_cell_2d(NEB,self%cell_next_2d(W,i)) = self%nverts
       if(self%cell_next_2d(N,self%cell_next_2d(W,i)) > 0)then      ! and south east corner of cell to north west
-        self%vert_on_cell_2d(SEB,self%cell_next_2d(N,self%cell_next_2d(W,i))) = vert_no
+        self%vert_on_cell_2d(SEB,self%cell_next_2d(N,self%cell_next_2d(W,i))) = self%nverts
       end if
     end if
     if(self%cell_next_2d(N,i) > 0)then                     ! and south west corner of cell to north
-      self%vert_on_cell_2d(SWB,self%cell_next_2d(N,i)) = vert_no
+      self%vert_on_cell_2d(SWB,self%cell_next_2d(N,i)) = self%nverts
       if(self%cell_next_2d(W,self%cell_next_2d(N,i)) > 0)then      ! and again south east corner of cell to north west (in case other route to northwest goes through a missing cell)
-        self%vert_on_cell_2d(SEB,self%cell_next_2d(W,self%cell_next_2d(N,i))) = vert_no
+        self%vert_on_cell_2d(SEB,self%cell_next_2d(W,self%cell_next_2d(N,i))) = self%nverts
       end if
     end if
   end if
@@ -240,59 +276,69 @@ end do
 
 ! Populate edges around each cell
 allocate( self%edge_on_cell_2d( self%nedges_per_cell, self%ncells ))
-edge_no = 0
+self%nedges = 0
 self%edge_on_cell_2d = 0
 do i = 1,self%ncells
 ! 1. south edge of cell
   if(self%edge_on_cell_2d(SB,i) == 0)then
-    edge_no = edge_no + 1
-    self%edge_on_cell_2d(SB,i) = edge_no
+    self%nedges = self%nedges + 1
+    self%edge_on_cell_2d(SB,i) = self%nedges
     if(self%cell_next_2d(S,i) > 0)then             ! and north edge of cell to south
-      self%edge_on_cell_2d(NB,self%cell_next_2d(S,i)) = edge_no
+      self%edge_on_cell_2d(NB,self%cell_next_2d(S,i)) = self%nedges
     end if
   end if
 ! 2. east edge of cell
   if(self%edge_on_cell_2d(EB,i) == 0)then
-    edge_no = edge_no + 1
-    self%edge_on_cell_2d(EB,i) = edge_no
+    self%nedges = self%nedges + 1
+    self%edge_on_cell_2d(EB,i) = self%nedges
     if(self%cell_next_2d(E,i) > 0)then             ! and west edge of cell to east
-      self%edge_on_cell_2d(WB,self%cell_next_2d(E,i)) = edge_no
+      self%edge_on_cell_2d(WB,self%cell_next_2d(E,i)) = self%nedges
     end if
   end if
 ! 3. north edge of cell
   if(self%edge_on_cell_2d(NB,i) == 0)then
-    edge_no = edge_no + 1
-    self%edge_on_cell_2d(NB,i) = edge_no
+    self%nedges = self%nedges + 1
+    self%edge_on_cell_2d(NB,i) = self%nedges
     if(self%cell_next_2d(N,i) > 0)then             ! and south edge of cell to north
-      self%edge_on_cell_2d(SB,self%cell_next_2d(N,i)) = edge_no
+      self%edge_on_cell_2d(SB,self%cell_next_2d(N,i)) = self%nedges
     end if
   end if
 ! 4. west edge of cell
   if(self%edge_on_cell_2d(WB,i) == 0)then
-    edge_no = edge_no + 1
-    self%edge_on_cell_2d(WB,i) = edge_no
+    self%nedges = self%nedges + 1
+    self%edge_on_cell_2d(WB,i) = self%nedges
     if(self%cell_next_2d(W,i) > 0)then             ! and east edge of cell to west
-      self%edge_on_cell_2d(EB,self%cell_next_2d(W,i)) = edge_no
+      self%edge_on_cell_2d(EB,self%cell_next_2d(W,i)) = self%nedges
     end if
   end if
 end do
 
 ! Populate cells around each vertex
-allocate(self%cell_on_vert_2d( self%max_cells_per_vertex, vert_no ))
+allocate(self%cell_on_vert_2d( self%max_cells_per_vertex, self%nverts ))
 call calc_cell_on_vertex( self%vert_on_cell_2d, &
                           self%nverts_per_cell, &
                           self%ncells, &
                           self%cell_on_vert_2d, &
                           self%max_cells_per_vertex, &
-                          vert_no)
+                          self%nverts)
 
 ! Populate cells either side of each edge
-allocate(self%cell_on_edge_2d( 2, edge_no ))  ! There can only ever be 2 cells incident on an edge (whatever the topography!)
+allocate(self%cell_on_edge_2d( 2, self%nedges ))  ! There can only ever be 2 cells incident on an edge (whatever the topography!)
 call calc_cell_on_edge(self%edge_on_cell_2d, &
                        self%nedges_per_cell, &
                        self%ncells, &
                        self%cell_on_edge_2d, &
-                       edge_no)
+                       self%nedges)
+
+allocate( self%vert_coords(3, self%nverts) )
+xstart=-(dx*num_cells_x/2.0)
+ystart=-(dy*num_cells_y/2.0)
+do i = 1,self%ncells
+  self%vert_coords(1,self%vert_on_cell_2d(1,i)) = xstart+real(modulo(i-1,num_cells_x))*dx
+  self%vert_coords(2,self%vert_on_cell_2d(1,i)) = ystart+real((i-1)/num_cells_y)*dy
+  self%vert_coords(3,self%vert_on_cell_2d(1,i)) = 0.0
+end do
+
 
 end function global_mesh_constructor_biperiodic
 
@@ -337,18 +383,28 @@ call ugrid_2d%get_dimensions( num_nodes              = nvert_in, &
                               num_nodes_per_edge     = num_nodes_per_edge, &
                               max_num_faces_per_node = max_num_faces_per_node )
 
+self%nverts = nvert_in
+self%nedges = nedge_in
 self%ncells = nface_in
-self%nverts_per_cell = num_nodes_per_face
+
+self%nverts_per_cell      = num_nodes_per_face
+self%nedges_per_cell      = num_edges_per_face
+self%max_cells_per_vertex = max_num_faces_per_node
+
 self%num_cells_x = nint(sqrt(float(nface_in)/6.0))
 self%num_cells_y = self%num_cells_x
-self%nedges_per_cell=num_edges_per_face
-self%max_cells_per_vertex=max_num_faces_per_node
+
+allocate( self%vert_coords(3, nvert_in) )
+call ugrid_2d%get_node_coords(self%vert_coords)
 
 allocate( self%cell_next_2d( num_edges_per_face, nface_in ) )
 call ugrid_2d%get_face_face_connectivity( self%cell_next_2d )
 
 allocate( self%vert_on_cell_2d( num_nodes_per_face, nface_in ) )
 call ugrid_2d%get_face_node_connectivity( self%vert_on_cell_2d )
+
+allocate( self%edge_on_cell_2d( num_edges_per_face, nedge_in ) )
+call ugrid_2d%get_face_edge_connectivity( self%edge_on_cell_2d )
 
 allocate( self%cell_on_vert_2d( self%max_cells_per_vertex, nvert_in ) )
 call calc_cell_on_vertex( self%vert_on_cell_2d, &
@@ -357,9 +413,6 @@ call calc_cell_on_vertex( self%vert_on_cell_2d, &
                           self%cell_on_vert_2d, &
                           self%max_cells_per_vertex, &
                           nvert_in)
-
-allocate(self%edge_on_cell_2d( num_edges_per_face, nface_in ))
-call ugrid_2d%get_face_edge_connectivity( self%edge_on_cell_2d )
 
 ! Populate cells either side of each edge
 allocate( self%cell_on_edge_2d(2,nedge_in) )  ! There can only ever be 2 cells incident on an edge (whatever the topography!)
@@ -500,20 +553,16 @@ end do
 end function get_cell_id
 
 
+subroutine get_vert_on_cell(self, cell_gid, verts)
 
-subroutine get_vert_on_cell( self, cell_number, verts )
+  implicit none
+  class (global_mesh_type), intent(in)  :: self
+  integer (i_def),          intent(in)  :: cell_gid
+  integer (i_def),          intent(out) :: verts(:)
 
-implicit none
-
-class(global_mesh_type), intent(in) :: self
-
-integer, intent(in)  :: cell_number
-integer, intent(out) :: verts(:)
-
-verts = self%vert_on_cell_2d(:,cell_number)
+  verts(:) = self%vert_on_cell_2d(:,cell_gid)
 
 end subroutine get_vert_on_cell
-
 
 
 subroutine get_cell_on_vert( self, vertex_number, cells)
@@ -530,18 +579,16 @@ cells = self%cell_on_vert_2d(:,vertex_number)
 end subroutine get_cell_on_vert
 
 
-subroutine get_edge_on_cell( self, cell_number, edges)
+subroutine get_edge_on_cell(self, cell_gid, edges)
 
-implicit none
+  implicit none
+  class (global_mesh_type), intent(in)  :: self
+  integer (i_def),          intent(in)  :: cell_gid
+  integer (i_def),          intent(out) :: edges(:)
 
-class(global_mesh_type), intent(in) :: self
-integer, intent(in) :: cell_number
-integer, intent(out) :: edges(:)
-
-edges=self%edge_on_cell_2d(:,cell_number)
+  edges(:) = self%edge_on_cell_2d(:,cell_gid)
 
 end subroutine get_edge_on_cell
-
 
 
 subroutine get_cell_on_edge( self, edge_number, cells)
@@ -570,6 +617,17 @@ end function get_ncells
 
 
 
+function get_nverts_per_cell( self ) result (nverts_per_cell)
+
+  implicit none
+  class(global_mesh_type), intent(in) :: self
+  integer :: nverts_per_cell
+
+  nverts_per_cell = self%nverts_per_cell
+
+end function get_nverts_per_cell
+
+
 function get_num_cells_x( self ) result (num_cells_x)
 
 class(global_mesh_type), intent(in) :: self
@@ -593,7 +651,6 @@ num_cells_y = self%num_cells_y
 end function get_num_cells_y
 
 
-
 function get_max_cells_per_vertex( self ) result (max_cells_per_vertex)
 
 class(global_mesh_type), intent(in) :: self
@@ -605,15 +662,57 @@ max_cells_per_vertex = self%max_cells_per_vertex
 end function get_max_cells_per_vertex
 
 
-!==============================================================================
-! The following routine returns a global mesh object for unit testing only
-!==============================================================================
+function get_nedges_per_cell( self ) result (nedges_per_cell)
 
+  implicit none
+  class(global_mesh_type), intent(in) :: self
+  integer                             :: nedges_per_cell
+
+  nedges_per_cell = self%nedges_per_cell
+
+end function get_nedges_per_cell
+
+
+subroutine get_vert_coords (self, vert_gid, vert_coords)
+
+  implicit none
+  class (global_mesh_type), intent(in)  :: self
+  integer,                  intent(in)  :: vert_gid
+  real(r_def),              intent(out) :: vert_coords(:)
+
+  vert_coords(:) = self%vert_coords(:,vert_gid)
+
+end subroutine get_vert_coords
+
+
+subroutine get_cell_next (self, cell_gid, cell_next)
+
+  implicit none
+  class (global_mesh_type), intent(in)  :: self
+  integer (i_def),          intent(in)  :: cell_gid
+  integer(i_def),           intent(out) :: cell_next(:)
+
+  cell_next(:) = self%cell_next_2d(:,cell_gid)
+
+end subroutine get_cell_next
+
+!==============================================================================
+! The following routines are only available when setting data for unit testing.
+!==============================================================================
+!> @brief   Stucture-Constructor (for unit testing)
+!> @return  A 2D global mesh object based on a 9-cell global mesh. 
+!>          3x3 cell arrangement of quadralateral cells
+!============================================================================
 function global_mesh_constructor_unit_test_data() result (self)
 
   implicit none
 
   type(global_mesh_type) :: self
+
+  integer(i_def) :: nverts = 16
+  integer(i_def) :: nedges = 24
+
+  real(r_def)    :: planet_radius = 30000.0
 
   ! Returns global_mesh_object of size 3x3 quad reference cell.
   ! As per reference cell, direction of numbering is anti-clockwise
@@ -621,10 +720,6 @@ function global_mesh_constructor_unit_test_data() result (self)
   ! Vertices: Bottom Left (south-west)
   ! Edges:    Left        (west)
   ! Faces:    Left        (west)
-
-  integer(i_def) :: nverts = 16
-  integer(i_def) :: nedges = 24
-
   self%num_cells_x = 3
   self%num_cells_y = 3
   self%ncells      = 9
@@ -639,6 +734,27 @@ function global_mesh_constructor_unit_test_data() result (self)
   allocate( self%edge_on_cell_2d (self%nedges_per_cell, self%ncells) )
   allocate( self%cell_on_vert_2d (self%max_cells_per_vertex, nverts) )
   allocate( self%cell_on_edge_2d (2, nedges) )
+  allocate( self%vert_coords     (3, nverts) )
+
+  ! Note: These test coordinates are in [Long, Lat] in units of Radians
+  self%vert_coords(1:2,1)  = [-2.0, -2.0]
+  self%vert_coords(1:2,2)  = [-1.0, -2.0]
+  self%vert_coords(1:2,3)  = [ 1.0, -2.0]
+  self%vert_coords(1:2,4)  = [ 2.0, -2.0]
+  self%vert_coords(1:2,5)  = [-2.0, -1.0]
+  self%vert_coords(1:2,6)  = [-1.0, -1.0]
+  self%vert_coords(1:2,7)  = [ 1.0, -1.0]
+  self%vert_coords(1:2,8)  = [ 2.0, -1.0]
+  self%vert_coords(1:2,9)  = [-2.0,  1.0]
+  self%vert_coords(1:2,10) = [-1.0,  1.0]
+  self%vert_coords(1:2,11) = [ 1.0,  1.0]
+  self%vert_coords(1:2,12) = [ 2.0,  1.0]
+  self%vert_coords(1:2,13) = [-2.0,  2.0]
+  self%vert_coords(1:2,14) = [-1.0,  2.0]
+  self%vert_coords(1:2,15) = [ 1.0,  2.0]
+  self%vert_coords(1:2,16) = [ 2.0,  2.0]
+
+  self%vert_coords(3,:)    = planet_radius
 
   self%cell_next_2d(:,1)     = [0, 0, 2, 4]
   self%cell_next_2d(:,2)     = [1, 0, 3, 5]
@@ -711,8 +827,7 @@ function global_mesh_constructor_unit_test_data() result (self)
   self%cell_on_edge_2d(:,22) = [7, 0]
   self%cell_on_edge_2d(:,23) = [8, 0]
   self%cell_on_edge_2d(:,24) = [9, 0]
-  
-end function global_mesh_constructor_unit_test_data
 
+end function global_mesh_constructor_unit_test_data
 
 end module global_mesh_mod

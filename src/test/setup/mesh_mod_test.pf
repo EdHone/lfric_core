@@ -1,0 +1,387 @@
+!-----------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown,
+! Met Office and NERC 2014.
+! However, it has been created with the help of the GungHo Consortium,
+! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-----------------------------------------------------------------------------
+
+!> @brief pFunut tests for the mesh module
+!>
+module mesh_mod_test
+
+  use pFUnit_Mod
+  use reference_element_mod, only: reference_cube,       &
+                                   deallocate_reference, &
+                                   reference_element
+  use constants_mod,         only: r_def, i_def, QUAD, PI
+  use coord_transform_mod,   only: llr2xyz
+
+  implicit none
+
+  private
+  public test_mesh, setUp, tearDown
+
+
+  @testCase
+  type, public, extends( TestCase ) :: mesh_test_type
+  contains
+    procedure :: setUp
+    procedure :: tearDown
+    procedure :: test_mesh
+  end type mesh_test_type
+
+contains
+
+  subroutine setUp(this)
+    implicit none
+    class( mesh_test_type ), intent( inout ) :: this
+    reference_element = QUAD
+
+    call reference_cube()
+
+  end subroutine setUp
+
+  subroutine tearDown(this)
+    implicit none
+    class( mesh_test_type ), intent( inout ) :: this
+    call deallocate_reference()
+  end subroutine tearDown
+
+
+  @test
+  !> @brief Test mesh object functionality
+  subroutine test_mesh(this)
+
+    use slush_mod,       only: l_spherical
+    use global_mesh_mod, only: global_mesh_type
+    use partition_mod,   only: partition_type
+    use mesh_mod,        only: mesh_type, domain_limits
+
+    implicit none
+
+    class( mesh_test_type ), intent( inout ) :: this
+
+    type (global_mesh_type)  :: global_mesh
+    type (partition_type)    :: partition
+    type (mesh_type)         :: mesh
+    type (domain_limits)     :: domain
+
+    integer(i_def) :: nlayers
+    real(r_def)    :: dz
+
+    ! Dummy test variables
+    integer(i_def) :: gid, lid, iface, iedge
+    integer(i_def) :: test_integer
+    real(r_def)    :: test_real
+
+    real(r_def), allocatable :: test_real_array1(:)
+    real(r_def), allocatable :: test_real_array2(:)
+    real(r_def), allocatable :: test_real_array1_2d(:,:)
+    real(r_def), allocatable :: test_real_array2_2d(:,:)
+    real(r_def), allocatable :: test_real_array1_3d(:,:,:)
+    real(r_def), allocatable :: test_real_array2_3d(:,:,:)
+
+    ! Get unit test data objects
+    global_mesh = global_mesh_type()
+    partition   = partition_type()
+
+    ! Set the input variables for mesh construction
+    l_spherical = .true.
+    nlayers     = 5_i_def
+    dz          = 2000.0_r_def
+
+   
+    ! Instantiate the mesh
+    mesh = mesh_type(partition, global_mesh, nlayers, dz)
+
+    !========================================
+    ! Test output from mesh object methods
+    !========================================
+
+    !-------------------------------------------------------------------
+    ! Test get_nlayers
+    test_integer = mesh%get_nlayers()
+    @assertEqual ( 5, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_ncells_2d
+    test_integer = mesh%get_ncells_2d()
+    @assertEqual ( 9, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nverts_2d
+    test_integer = mesh%get_nverts_2d()
+    @assertEqual ( 16, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nedges_2d
+    test_integer = mesh%get_nedges_2d()
+    @assertEqual ( 24, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_ncells
+    test_integer = mesh%get_ncells()
+    @assertEqual ( 45, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nverts
+    test_integer = mesh%get_nverts()
+    @assertEqual ( 96, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nedges
+    test_integer = mesh%get_nedges()
+    @assertEqual ( 224, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nfaces
+    test_integer = mesh%get_nfaces()
+    @assertEqual ( 174, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nverts_per_cell
+    test_integer = mesh%get_nverts_per_cell()
+    @assertEqual ( 8, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nedges_per_cell
+    test_integer = mesh%get_nedges_per_cell()
+    @assertEqual ( 12, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_nfaces_per_cell
+    test_integer = mesh%get_nfaces_per_cell()
+    @assertEqual ( 6, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_cell_gid
+    lid=2
+    test_integer = mesh%get_cell_gid(lid)
+    @assertEqual ( 2, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_cell_lid
+    gid=3
+    test_integer = mesh%get_cell_lid(gid)
+    @assertEqual ( 3, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_cell_next()
+    iface=6
+    lid=23
+    test_integer = mesh%get_cell_next(iface, lid)
+    @assertEqual ( 32, test_integer )
+
+    iface=3
+    lid=9
+    test_integer = mesh%get_cell_next(iface, lid)
+    @assertEqual ( 0, test_integer )
+
+    iface=3
+    lid=18
+    test_integer = mesh%get_cell_next(iface, lid)
+    @assertEqual ( 0, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_face_on_cell()
+    iface=3
+    lid=9
+    test_integer = mesh%get_face_on_cell(iface, lid)
+    @assertEqual ( 39, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_edge_on_cell()
+    iedge=1
+    lid=5
+    test_integer = mesh%get_edge_on_cell(iedge, lid)
+    @assertEqual ( 31, test_integer )
+
+    iedge=5
+    lid=5
+    test_integer = mesh%get_edge_on_cell(iedge, lid)
+    @assertEqual ( 11, test_integer )
+
+    iedge=9
+    lid=5
+    test_integer = mesh%get_edge_on_cell(iedge, lid)
+    @assertEqual ( 32, test_integer )
+
+    iedge=12
+    lid=5
+    test_integer = mesh%get_edge_on_cell(iedge, lid)
+    @assertEqual ( 40, test_integer )
+
+    iedge=6
+    lid=9
+    test_integer = mesh%get_edge_on_cell(iedge, lid)
+    @assertEqual ( 46, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_vert_coords
+    ! Note: Returns coords in cartesian coords [x,y,z]
+    ! Test multiple vertices
+    allocate( test_real_array1(3), test_real_array2(3) )
+
+    lid=3
+    test_real_array2(:) = [ 8757.7975, -13639.4614, -25244.1295 ]
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=4
+    test_real_array2(:) = [ -6745.3529, -14738.8649, -25244.1295 ]
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=7
+    test_real_array2(:) = [  5195.3457, -11352.0374, -27278.9228 ]
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=10
+    test_real_array2(:) = [ -6745.3529, -14738.8649, 25244.1295 ]
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=16
+    test_real_array2(:) = [ 5195.3457, -11352.0374, 27278.9228 ]
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=17
+    test_real_array2(:) = [ 5541.7021, 12108.8399, -29097.5177 ]    
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=22
+    test_real_array2(:) = [ 9341.6506, 14548.7588, -26927.0715 ]    
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    lid=24
+    test_real_array2(:) = [  -7195.0431, 15721.4559, -26927.0715 ]
+    call mesh%get_vert_coords(lid, test_real_array1)
+    @assertEqual ( test_real_array2, test_real_array1, 1.0e-2_r_def )
+
+    deallocate( test_real_array1, test_real_array2 )
+
+
+    !-------------------------------------------------------------------
+    ! Test get_cell_coords
+    ! Note: Returns coords in cartesian coords [x,y,z]
+    ! Test a couple of cell ids
+    allocate( test_real_array1_2d(3,8), test_real_array2_2d(3,8) )
+
+    test_real_array2_2d(:,1) = [  6234.4148,  13622.4449, -32734.7074 ]
+    test_real_array2_2d(:,2) = [ -8094.4234,  12606.3176, -32734.7074 ] 
+    test_real_array2_2d(:,3) = [ 10509.3569, -16367.3537, -30292.9555 ]  
+    test_real_array2_2d(:,4) = [ -8094.4234, -17686.6379, -30292.9555 ]   
+    test_real_array2_2d(:,5) = [  6580.7712,  14379.2474, -34553.3022 ]    
+    test_real_array2_2d(:,6) = [ -8544.1136,  13306.6686, -34553.3022 ]
+    test_real_array2_2d(:,7) = [ 11093.2101, -17276.6511, -31975.8974 ]   
+    test_real_array2_2d(:,8) = [ -8544.1136, -18669.2289, -31975.8974 ]
+    lid=28
+    call mesh%get_cell_coords(lid, test_real_array1_2d)
+    @assertEqual ( test_real_array2_2d, test_real_array1_2d, 1.0e-2_r_def )
+
+
+    test_real_array2_2d(:,1)   = [  9925.5038, -15458.0563, -28610.0135 ]
+    test_real_array2_2d(:,2)   = [  9925.5038,  15458.0563, -28610.0135 ]
+    test_real_array2_2d(:,3)   = [  9925.5038,  15458.0563,  28610.0135 ]
+    test_real_array2_2d(:,4)   = [  9925.5038, -15458.0563,  28610.0135 ]
+    test_real_array2_2d(:,5)   = [ 10509.3569, -16367.3537, -30292.9555 ]
+    test_real_array2_2d(:,6)   = [ 10509.3569,  16367.3537, -30292.9555 ]
+    test_real_array2_2d(:,7)   = [ 10509.3569,  16367.3537,  30292.9555 ]
+    test_real_array2_2d(:,8)   = [ 10509.3569, -16367.3537,  30292.9555 ]
+
+    lid=23
+    call mesh%get_cell_coords(lid, test_real_array1_2d)
+    @assertEqual ( test_real_array2_2d, test_real_array1_2d, 1.0e-2_r_def )
+
+
+    deallocate( test_real_array1_2d, test_real_array2_2d )
+
+
+    !-------------------------------------------------------------------
+    ! Test get_column_coords
+    ! Note: Returns coords in cartesian coords [x,y,z]
+    ! Test two cells in the same column, they should return the same
+    ! column of coords
+    allocate( test_real_array1_3d(3,8,5), test_real_array2_3d(3,8,5) )
+
+    test_real_array2_3d(:,1,1) = [ -6745.3529, -14738.8649,  25244.1295 ]
+    test_real_array2_3d(:,2,1) = [  8757.7975, -13639.4614,  25244.1295 ]
+    test_real_array2_3d(:,3,1) = [ -6745.3529,  10505.2647,  27278.9228 ]
+    test_real_array2_3d(:,4,1) = [  5195.3457,  11352.0374,  27278.9228 ]
+    test_real_array2_3d(:,5,1) = [ -7195.0436, -15721.4559,  26927.0715 ]
+    test_real_array2_3d(:,6,1) = [  9341.6506, -14548.7588,  26927.0715 ]
+    test_real_array2_3d(:,7,1) = [ -7195.0431,  11205.6156,  29097.5177 ]
+    test_real_array2_3d(:,8,1) = [  5541.7021,  12108.8399,  29097.5177 ]
+    
+    test_real_array2_3d(:,1,2) = [ -7195.0431, -15721.4559,  26927.0715 ]  
+    test_real_array2_3d(:,2,2) = [  9341.6506, -14548.7588,  26927.0715 ]
+    test_real_array2_3d(:,3,2) = [ -7195.0431,  11205.6156,  29097.5177 ]  
+    test_real_array2_3d(:,4,2) = [  5541.7021,  12108.8399,  29097.5177 ] 
+    test_real_array2_3d(:,5,2) = [ -7644.7332, -16704.0469,  28610.0135 ]    
+    test_real_array2_3d(:,6,2) = [  9925.5038, -15458.0563,  28610.0135 ]
+    test_real_array2_3d(:,7,2) = [ -7644.7332,  11905.9666,  30916.1125 ]
+    test_real_array2_3d(:,8,2) = [  5888.0584,  12865.6424,  30916.1125 ]
+    
+    test_real_array2_3d(:,1,3) = [ -7644.7332, -16704.0469,  28610.0135 ]  
+    test_real_array2_3d(:,2,3) = [  9925.5038, -15458.0563,  28610.0135 ]
+    test_real_array2_3d(:,3,3) = [ -7644.7332,  11905.9666,  30916.1125 ]
+    test_real_array2_3d(:,4,3) = [  5888.0584,  12865.6424,  30916.1125 ]
+    test_real_array2_3d(:,5,3) = [ -8094.4234, -17686.6379,  30292.9555 ]
+    test_real_array2_3d(:,6,3) = [ 10509.3569, -16367.3537,  30292.9555 ]
+    test_real_array2_3d(:,7,3) = [ -8094.4234,  12606.3176,  32734.7074 ]
+    test_real_array2_3d(:,8,3) = [  6234.4148,  13622.4449,  32734.7074 ]
+ 
+    test_real_array2_3d(:,1,4) = [ -8094.4234, -17686.6379,  30292.9555 ]
+    test_real_array2_3d(:,2,4) = [ 10509.3569, -16367.3537,  30292.9555 ]
+    test_real_array2_3d(:,3,4) = [ -8094.4234,  12606.3176,  32734.7074 ]
+    test_real_array2_3d(:,4,4) = [  6234.4148,  13622.4449,  32734.7074 ]
+    test_real_array2_3d(:,5,4) = [ -8544.1136, -18669.2289,  31975.8974 ]
+    test_real_array2_3d(:,6,4) = [ 11093.2101, -17276.6511,  31975.8974 ]
+    test_real_array2_3d(:,7,4) = [ -8544.1136,  13306.6686,  34553.3022 ]
+    test_real_array2_3d(:,8,4) = [  6580.7712,  14379.2474,  34553.3022 ]
+    
+    test_real_array2_3d(:,1,5) = [ -8544.1136, -18669.2289,  31975.8974 ]
+    test_real_array2_3d(:,2,5) = [ 11093.2101, -17276.6511,  31975.8974 ]
+    test_real_array2_3d(:,3,5) = [ -8544.1136,  13306.6686,  34553.3022 ]
+    test_real_array2_3d(:,4,5) = [  6580.7712,  14379.2474,  34553.3022 ]
+    test_real_array2_3d(:,5,5) = [ -8993.8038, -19651.8199,  33658.8394 ]
+    test_real_array2_3d(:,6,5) = [ 11677.0633, -18185.9485,  33658.8394 ]
+    test_real_array2_3d(:,7,5) = [ -8993.8038,  14007.0195,  36371.8971 ]
+    test_real_array2_3d(:,8,5) = [  6927.1276,  15136.0499,  36371.8971 ]
+
+
+    lid=34
+    call mesh%get_column_coords(lid, test_real_array1_3d)
+    @assertEqual ( test_real_array2_3d, test_real_array1_3d, 1.0e-2_r_def )
+
+    lid=43
+    call mesh%get_column_coords(lid, test_real_array1_3d)
+    @assertEqual ( test_real_array2_3d, test_real_array1_3d, 1.0e-2_r_def )
+
+    deallocate( test_real_array1_3d, test_real_array2_3d )
+
+    !-------------------------------------------------------------------
+    ! Test get_domain_size
+    ! Note: At present, it returns coords in cartesian coords [x,y,z]
+    !       or in spherical coords depending on the logical l_spherical.
+    !       This should be change to only output in [x,y,z]
+    domain = mesh%get_domain_size()
+    test_real = domain % maximum % x
+    @assertEqual ( test_real,  2.0_r_def*PI )
+    test_real = domain % minimum % y
+    @assertEqual ( test_real, -0.5_r_def*PI )
+    test_real = domain % maximum % z
+    @assertEqual ( test_real, 10000.0_r_def )
+
+    !-------------------------------------------------------------------
+    ! Test get_dz
+    test_real = mesh%get_dz()
+    @assertEqual ( test_real, dz, 1.0e-2_r_def )
+
+  end subroutine test_mesh
+
+end module mesh_mod_test

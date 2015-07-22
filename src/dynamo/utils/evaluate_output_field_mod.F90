@@ -9,8 +9,9 @@ module evaluate_output_field_mod
 use constants_mod,           only: r_def, earth_radius
 use field_mod,               only: field_type, field_proxy_type
 use coordinate_jacobian_mod, only: coordinate_jacobian, coordinate_jacobian_inverse
-use mesh_mod,                only: l_spherical, dz
-use coord_algorithms_mod,    only: cartesian_distance, llr2xyz
+use mesh_mod,                only: mesh_type
+use slush_mod,               only: l_spherical
+use coord_transform_mod,     only: cartesian_distance, llr2xyz
 
 
 implicit none
@@ -25,14 +26,16 @@ contains
 !>@deprecated This is a temporary solution until a better output routine is
 !>implemented as which point this routine will be reviewed to see if it will be
 !>needed elsewhere in the model
+!>@param[in]  mesh      The 3D mesh object this field is connected with
 !>@param[in]  field     The field object to evaluate
 !>@param[in]  chi       The 3D coordinate field
 !>@param[in]  x_in      The point to evaluate the field at
 !>@param[in]  cell      The horizontal cell that x_in lies within
 !>@param[in]  nz        The number of vertical points to evaluate
 !>@param[out] field_out The array containing field evaluates at x_in
-subroutine evaluate_output_field( field, chi, x_in, cell, nz, field_out)
+subroutine evaluate_output_field( mesh, field, chi, x_in, cell, nz, field_out )
 
+  type(mesh_type),  intent(in)  :: mesh 
   type(field_type), intent(in)  :: field, chi(3) 
   integer,          intent(in)  :: cell, nz
   real(kind=r_def), intent(in)  :: x_in(3,nz)
@@ -48,10 +51,12 @@ subroutine evaluate_output_field( field, chi, x_in, cell, nz, field_out)
   integer,          parameter   :: NEWTON_ITERS = 4
   real(kind=r_def)              :: jac(3,3), jac_inv(3,3), dj(1,1), &
                                    g_func(3), gamma(1), x_loc(3), x_out(3), &
-                                   offset
+                                   offset, dz
   real(kind=r_def), allocatable :: chi_cell(:,:), dgamma(:,:) 
 
   offset = 0.0_r_def
+  dz = mesh%get_dz()
+
   if ( l_spherical ) offset = earth_radius
 
   chi_proxy(1) = chi(1)%get_proxy()

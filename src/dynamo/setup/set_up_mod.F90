@@ -15,14 +15,10 @@
 
 module set_up_mod
 
-  use constants_mod,              only : r_def, str_def, PI
+  use constants_mod,              only : r_def, str_def, PI, QUAD
   use function_space_mod,         only : function_space_type
-  use reference_element_mod,      only : reference_cube
-
-  use mesh_generator_mod,         only : mesh_generator_init,        &
-                                         mesh_generator_cubedsphere, &
-                                         mesh_generator_biperiodic,  &
-                                         mesh_connectivity
+  use reference_element_mod,      only : reference_cube, &
+                                         reference_element, nfaces, nedges, nverts
   use num_dof_mod,                only : num_dof_init
   use basis_function_mod,         only : get_basis, &
               w0_nodal_coords, w1_nodal_coords, w2_nodal_coords, w3_nodal_coords
@@ -33,33 +29,39 @@ module set_up_mod
   
 contains 
 
-!> Generates a mesh and determines the basis functions and dofmaps (this will 
-!> be replaced with code that reads the information in)
-  subroutine set_up( )
+!> @brief Generates a mesh and determines the basis functions and dofmaps
+!> @details This will be replaced with code that reads the information in
+!> @param[out] mesh Mesh object to run model on
+  subroutine set_up(mesh)
 
     use log_mod,         only : log_event, LOG_LEVEL_INFO
-    use mesh_mod,        only : num_cells, num_layers, element_order, l_spherical, &
-                                w_unique_dofs, w_dof_entity, dx, dy, dz,           &
-                                num_cells_x, num_cells_y, &
-                                xproc, yproc, &
-                                local_rank, total_ranks, &
+    use slush_mod,       only : num_cells, num_layers, element_order,         &
+                                l_spherical, w_unique_dofs, w_dof_entity,     &
+                                dx, dy, num_cells_x, num_cells_y,             &
+                                xproc, yproc, local_rank, total_ranks,        &
                                 l_fplane, f_lat
-    use partition_mod,   only : partition_type, &
-                                partitioner_interface, &
+
+    use mesh_mod,        only : mesh_type
+    use partition_mod,   only : partition_type,                 &
+                                partitioner_interface,          &
                                 partitioner_cubedsphere_serial, &
-                                partitioner_cubedsphere, &
+                                partitioner_cubedsphere,        &
                                 partitioner_biperiodic
 
     use global_mesh_mod, only : global_mesh_type
 
     implicit none
 
-    character(len = str_def)                 :: filename
+    character(len = str_def) :: filename
+    type (global_mesh_type)  :: global_mesh
+    type (partition_type)    :: partition
 
-    type(global_mesh_type) :: global_mesh
-    type(partition_type)   :: partition
+    type (mesh_type), intent(out) :: mesh
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
+
+
+    real(r_def) :: dz
 
     !Get the processor decomposition
     !Code is not set up to run in parallel - so hardcode for now
@@ -71,12 +73,12 @@ contains
 !>       and num_cells_y 
 
     ! hard-coded these numbers are
-    l_fplane = .true.
-    num_cells_x = 12
-    num_cells_y = 12
-    num_layers = 5
+    l_fplane      = .true.
+    num_cells_x   = 12
+    num_cells_y   = 12
+    num_layers    = 5
     element_order = 0
-    l_spherical = .true.
+    l_spherical   = .true.
 ! Horizontal spacings for cartesian grid    
     dx = 6000.0_r_def 
     dy = 2000.0_r_def
@@ -85,6 +87,8 @@ contains
 
     filename = 'ugrid_quads_2d.nc' 
     call log_event( "set_up: generating/reading the mesh", LOG_LEVEL_INFO )
+
+    reference_element = QUAD
 
     ! Setup reference cube  
     call reference_cube()
@@ -95,7 +99,10 @@ contains
       global_mesh=global_mesh_type( filename )
       partitioner_ptr => partitioner_cubedsphere_serial
     else
-      global_mesh=global_mesh_type( num_cells_x ,num_cells_y )
+      global_mesh=global_mesh_type( num_cells_x, &
+                                    num_cells_y, &
+                                    dx,& 
+                                    dy )
       partitioner_ptr => partitioner_biperiodic
       if ( l_fplane ) f_lat = PI/4.0_r_def
     end if
@@ -111,19 +118,7 @@ contains
 
     num_cells = partition%get_num_cells_in_layer()
 
-!  ----------------------------------------------------------
-!  Mesh generation, really a preprocessor step for reading
-! -----------------------------------------------------------
-    ! Initialise mesh
-    call mesh_generator_init( num_cells,num_layers )
-    ! Generate mesh  
-    if ( l_spherical ) then
-       call mesh_generator_cubedsphere( filename, num_layers, dz, partition )
-    else
-       call mesh_generator_biperiodic( num_cells_x, num_cells_y, num_layers, dx, dy, dz, partition )
-    end if
-    ! Extend connectivity ( cells->faces, cells->edges )  
-    call mesh_connectivity( num_cells )    
+    mesh = mesh_type(partition, global_mesh, num_layers, dz)
 
 ! -----------------------------------------------------------
 ! Initialise FE elements on the mesh constructed above
@@ -131,24 +126,24 @@ contains
 ! ----------------------------------------------------------
 
     ! initialise numbers of dofs    
-    call num_dof_init( num_cells, num_layers, element_order, w_unique_dofs, w_dof_entity )
+    call num_dof_init( mesh, element_order, w_unique_dofs, w_dof_entity )
          
     call log_event( "set_up: computing basis functions", LOG_LEVEL_INFO )
 
     ! read the values of the basis functions. 
-    call get_basis( k=element_order, &
+    call get_basis( k=element_order,             &
                     w_unique_dofs=w_unique_dofs, &
                     w_dof_entity=w_dof_entity )  
 
     call log_event( "set_up: computing the dof_map", LOG_LEVEL_INFO )
+
     ! compute the dof maps for each function space
-    call get_dofmap( nlayers=num_layers, &
-                     w_dof_entity=w_dof_entity, &
-                     ncell=num_cells, &
+    call get_dofmap( mesh=mesh,                  &
+                     w_dof_entity=w_dof_entity,  &
                      w_unique_dofs=w_unique_dofs)
     
     ! compute cell local orientations for vector spaces
-    call get_orientation( num_cells, w_unique_dofs, w_dof_entity )
+    call get_orientation( mesh, w_unique_dofs, w_dof_entity )
 
     return
 

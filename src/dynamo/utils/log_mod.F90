@@ -122,7 +122,7 @@ contains
   subroutine log_event(message, level)
 
     use, intrinsic :: iso_fortran_env, only : output_unit, error_unit
-    use mesh_mod, only : total_ranks
+    use slush_mod, only : total_ranks
 
     implicit none
 
