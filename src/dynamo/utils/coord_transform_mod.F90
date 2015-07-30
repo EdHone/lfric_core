@@ -339,8 +339,8 @@ function sphere2cart_vector( dlambda, llr ) result ( dx )
 
 ! Form transformation matrix
   A(1,:) = (/ -sin(llr(1)),              cos(llr(1)),              0.0_r_def   /)
-  A(2,:) = (/ -sin(llr(2))*cos(llr(1)), -sin(llr(2))*sin(llr(1)), -cos(llr(2)) /)
-  A(3,:) = (/  cos(llr(2))*cos(llr(1)),  cos(llr(2))*sin(llr(1)), -sin(llr(2)) /)
+  A(2,:) = (/ -sin(llr(2))*cos(llr(1)), -sin(llr(2))*sin(llr(1)),  cos(llr(2)) /)
+  A(3,:) = (/  cos(llr(2))*cos(llr(1)),  cos(llr(2))*sin(llr(1)),  sin(llr(2)) /)
 ! form inverse
   A_inv = matrix_invert_3x3(A)
   dx(:) = matmul(A_inv, dlambda)
