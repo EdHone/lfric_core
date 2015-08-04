@@ -1,0 +1,158 @@
+!-------------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown, 
+! Met Office and NERC 2014. 
+! However, it has been created with the help of the GungHo Consortium, 
+! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-------------------------------------------------------------------------------
+!
+!-------------------------------------------------------------------------------
+
+!> @brief Kernel which computes rhs of the momentum equation for the nonlinear equations,
+!>         written in the vector invariant form
+
+
+!> @detail The kernel computes the rhs of the momentum equation for the nonlinear equations,
+!>         written in the vector invariant form
+!>         This consists of four terms:
+!>         Pressure gradient: cp*theta*grad(pi)
+!>         geopotential gradient: grad(Phi) ( \quiv g for some domains)
+!>         gradient of kinetic energy: grad(1/2*u.u) = 
+!>         vorticity advection: xi/rho \cross F (with vorticity xi and mass flux F)
+!>         This results in:
+!>         ru = -xi/rho x F - grad(Phi + 1/2*u.u) - cp*theta*grad(exner)
+module geopotential_gradient_kernel_mod
+use kernel_mod,              only : kernel_type
+use argument_mod,            only : arg_type, func_type,                 &
+                                    GH_FIELD, GH_READ, GH_INC,           &
+                                    W0, W2,GH_BASIS, GH_DIFF_BASIS,      &
+                                    GH_ORIENTATION,                      &
+                                    CELLS 
+use constants_mod,           only : r_def
+
+implicit none
+
+!-------------------------------------------------------------------------------
+! Public types
+!-------------------------------------------------------------------------------
+!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+type, public, extends(kernel_type) :: geopotential_gradient_kernel_type
+  private
+  type(arg_type) :: meta_args(2) = (/                                  &
+       arg_type(GH_FIELD,   GH_INC,  W2),                              &
+       arg_type(GH_FIELD,   GH_READ, W0)                               &
+       /)
+  type(func_type) :: meta_funcs(2) = (/                                &
+       func_type(W2, GH_BASIS, GH_ORIENTATION),                        &
+       func_type(W0, GH_DIFF_BASIS)                                    &
+       /)
+  integer :: iterates_over = CELLS
+contains
+  procedure, nopass ::geopotential_gradient_code
+end type
+
+!-------------------------------------------------------------------------------
+! Constructors
+!-------------------------------------------------------------------------------
+
+! overload the default structure constructor for function space
+interface geopotential_gradient_kernel_type
+   module procedure geopotential_gradient_kernel_constructor
+end interface
+
+!-------------------------------------------------------------------------------
+! Contained functions/subroutines
+!-------------------------------------------------------------------------------
+public geopotential_gradient_code
+contains
+
+type(geopotential_gradient_kernel_type) function geopotential_gradient_kernel_constructor() result(self)
+  return
+end function geopotential_gradient_kernel_constructor
+
+!> @brief The subroutine which is called directly by the Psy layer
+!! @param[in] nlayers Integer the number of layers
+!! @param[in] ndf_w2 The number of degrees of freedom per cell for w2
+!! @param[in] undf_w2 The number unique of degrees of freedom  for w2
+!! @param[in] map_w2 Integer array holding the dofmap for the cell at the base of the column for w2
+!! @param[in] w2_basis Real 4-dim array holding basis functions evaluated at quadrature points 
+!! @param[in] orientation_w2 Orientation array for w2 fields
+!! @param[inout] r_u Real array the data 
+!! @param[in] ndf_w0 The number of degrees of freedom per cell for w0
+!! @param[in] undf_w0 The number unique of degrees of freedom  for w0
+!! @param[in] map_w0 Integer array holding the dofmap for the cell at the base of the column for w0
+!! @param[in] w0_diff_basis Real 4-dim array holding differntial of the basis functions evaluated at gaussian quadrature point
+!! @param[in] phi The geopotential
+!! @param[in] nqp_h Integer, number of quadrature points in the horizontal
+!! @param[in] nqp_v Integer, number of quadrature points in the vertical
+!! @param[in] wqp_h Real array. Quadrature weights horizontal
+!! @param[in] wqp_v Real array. Quadrature weights vertical
+subroutine geopotential_gradient_code(nlayers,                                 &
+                                      r_u, phi,                                &
+                                      ndf_w2, undf_w2, map_w2, w2_basis,       &
+                                      orientation_w2,                          &
+                                      ndf_w0, undf_w0, map_w0, w0_diff_basis,  &
+                                      nqp_h, nqp_v, wqp_h, wqp_v               &
+                                      )
+                           
+  !Arguments
+  integer, intent(in) :: nlayers,nqp_h, nqp_v
+  integer, intent(in) :: ndf_w0, ndf_w2
+  integer, intent(in) :: undf_w0, undf_w2
+  integer, dimension(ndf_w0), intent(in) :: map_w0
+  integer, dimension(ndf_w2), intent(in) :: map_w2
+  integer, dimension(ndf_w2), intent(in) :: orientation_w2
+
+  real(kind=r_def), dimension(3,ndf_w2,nqp_h,nqp_v), intent(in) :: w2_basis 
+  real(kind=r_def), dimension(3,ndf_w0,nqp_h,nqp_v), intent(in) :: w0_diff_basis   
+
+  real(kind=r_def), dimension(undf_w2), intent(inout) :: r_u
+  real(kind=r_def), dimension(undf_w0), intent(in)    :: phi
+
+  real(kind=r_def), dimension(nqp_h), intent(in)      ::  wqp_h
+  real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
+
+  !Internal variables
+  integer               :: df, k 
+  integer               :: qp1, qp2
+  
+  real(kind=r_def), dimension(ndf_w2)          :: ru_e
+  real(kind=r_def), dimension(ndf_w0)          :: phi_e
+
+  real(kind=r_def) :: grad_phi_at_quad(3), &
+                      v(3)
+  real(kind=r_def) :: geo_term
+  
+  do k = 0, nlayers-1
+    do df = 1, ndf_w0
+      phi_e(df)   = phi(map_w0(df) + k)
+    end do   
+    do df = 1, ndf_w2
+      ru_e(df) = 0.0_r_def
+    end do    
+  ! compute the RHS integrated over one cell    
+    do qp2 = 1, nqp_v
+      do qp1 = 1, nqp_h
+        grad_phi_at_quad(:) = 0.0_r_def
+        do df = 1, ndf_w0
+          grad_phi_at_quad(:)   = grad_phi_at_quad(:) &
+                                + phi_e(df)*w0_diff_basis(:,df,qp1,qp2) 
+        end do
+
+        do df = 1, ndf_w2
+          v  = w2_basis(:,df,qp1,qp2)*real(orientation_w2(df),r_def)
+! geopotential term
+          geo_term = dot_product( grad_phi_at_quad(:), v)
+
+          ru_e(df) = ru_e(df) -  wqp_h(qp1)*wqp_v(qp2)*geo_term 
+
+        end do
+      end do
+    end do
+    do df = 1, ndf_w2
+      r_u( map_w2(df) + k ) =  r_u( map_w2(df) + k ) + ru_e(df)
+    end do 
+  end do
+  
+end subroutine geopotential_gradient_code
+
+end module geopotential_gradient_kernel_mod

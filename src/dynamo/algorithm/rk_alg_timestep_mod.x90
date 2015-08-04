@@ -33,7 +33,11 @@ module rk_alg_timestep_mod
   use rrho_kernel_mod,                   only: rrho_kernel_type
   use initial_rho_kernel_mod,            only: initial_rho_kernel_type
   use vorticity_rhs_kernel_mod,          only: vorticity_rhs_kernel_type
-  use rotation_kernel_mod,               only: rotation_kernel_type 
+  use rotation_kernel_mod,               only: rotation_kernel_type
+  use pressure_gradient_kernel_mod,      only: pressure_gradient_kernel_type
+  use kinetic_energy_gradient_kernel_mod,only: kinetic_energy_gradient_kernel_type
+  use geopotential_gradient_kernel_mod,  only: geopotential_gradient_kernel_type
+  use vorticity_advection_kernel_mod,    only: vorticity_advection_kernel_type
 
   use mesh_mod,      only: mesh_type
   use field_mod,     only: field_type
@@ -261,8 +265,14 @@ contains
         call invoke( rtheta_kernel_type( rt_prediction(stage), theta, mass_flux, rho, qr) )
         !PSY call invoke ( set_field_scalar(0.0_r_def, ru_prediction(stage)))
         call invoke_set_field_scalar(0.0_r_def, ru_prediction(stage))
-        call invoke( rotation_kernel_type( ru_prediction(stage), u, chi, qr ) )
-        call invoke( ru_kernel_type( ru_prediction(stage), u, mass_flux, rho, theta, geopotential, xi, chi, qr ) )
+        call invoke( rotation_kernel_type                ( ru_prediction(stage), u, chi, qr ) )
+        call invoke( pressure_gradient_kernel_type       ( ru_prediction(stage), rho, theta, qr ) )
+        call invoke( kinetic_energy_gradient_kernel_type ( ru_prediction(stage), u, chi, qr ) )
+        call invoke( geopotential_gradient_kernel_type   ( ru_prediction(stage), geopotential, qr ) )
+        call invoke( vorticity_advection_kernel_type     ( ru_prediction(stage), mass_flux, rho, xi, chi, qr ) )
+        ! Ru kernel only being used for boundary dof's
+        call invoke( ru_kernel_type( ru_prediction(stage) ) ) 
+
         !PSY call invoke ( set_field_scalar(0.0_r_def, r_theta))
         call invoke_set_field_scalar(0.0_r_def, r_theta)
         !PSY call invoke ( set_field_scalar(0.0_r_def, r_u))

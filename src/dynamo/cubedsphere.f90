@@ -36,7 +36,7 @@ output_faces = .FALSE.
 silent       = .FALSE.    ! Useful for runtime/memory profiling
 
 argc = command_argument_count()
-if(argc.ne.2) then
+if(argc /= 2) then
     write(output_unit, "(A)") "Usage: cubedsphere <n_divs> <output_spec>"
     write(output_unit, "(A)") "  n_divs      : number of divisions per edge"
     write(output_unit, "(A)") "  output_spec:"

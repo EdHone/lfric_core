@@ -100,7 +100,7 @@ contains
 
 ! Create the data
     u_proxy%data(:) = 2.0_r_def
-    r_rho_proxy%data(:) = 0.0
+    r_rho_proxy%data(:) = 0.0_r_def
 
     do cell = 1, r_rho_proxy%vspace%get_ncell()
 

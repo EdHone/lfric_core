@@ -295,138 +295,41 @@ contains
   
 !-------------------------------------------------------------------------------  
 !> Invoke_ru_kernel: Invoke the RHS of the u equation
-  subroutine invoke_ru_kernel( r_u, u, mass_flux, rho, theta, phi, xi, chi, qr )
+  subroutine invoke_ru_kernel( r_u )
 
     use ru_kernel_mod, only : ru_code
 
-    type( field_type ), intent( in ) :: r_u, u, mass_flux, rho, xi, theta, phi
-    type( field_type ), intent( in ) :: chi(3) 
-    type( quadrature_type), intent( in ) :: qr
+    type( field_type ), intent( in ) :: r_u
 
-    integer                 :: cell, nlayers, nqp_h, nqp_v
-    integer                 :: ndf_w0, ndf_w1, ndf_w2, ndf_w3
-    integer                 :: undf_w0, undf_w1, undf_w2, undf_w3
-    integer                 :: dim_w0, dim_w1, diff_dim_w0, dim_w2, diff_dim_w2,dim_w3
-    integer, pointer        :: map_w3(:), map_w2(:), map_w1(:), map_w0(:) => null()
+    integer                 :: cell, nlayers
+    integer                 :: ndf_w2
+    integer                 :: undf_w2
+    integer, pointer        :: map_w2(:) => null()
     integer, pointer        :: boundary_dofs(:,:) => null()
-    integer, pointer        :: orientation_w1(:), orientation_w2(:) => null()
 
-    type( field_proxy_type )        :: r_u_proxy, rho_proxy, theta_proxy, &
-                                       u_proxy, f_proxy, xi_proxy, phi_proxy
-    type( field_proxy_type )        :: chi_proxy(3) 
+    type( field_proxy_type )        :: r_u_proxy
     
-    real(kind=r_def), allocatable  :: basis_w3(:,:,:,:), &
-                                      basis_w2(:,:,:,:), &
-                                      basis_w1(:,:,:,:), &
-                                      basis_w0(:,:,:,:), &
-                                      diff_basis_w0(:,:,:,:), &
-                                      diff_basis_w2(:,:,:,:) 
-
-    real(kind=r_def), pointer :: xp(:,:) => null()
-    real(kind=r_def), pointer :: zp(:) => null()
-    real(kind=r_def), pointer :: wh(:), wv(:) => null()
-
     r_u_proxy  = r_u%get_proxy()
-    u_proxy    = u%get_proxy()
-    f_proxy    = mass_flux%get_proxy()
-    rho_proxy  = rho%get_proxy()
-    xi_proxy   = xi%get_proxy()   
-    theta_proxy = theta%get_proxy()
-    phi_proxy  = phi%get_proxy()
-    chi_proxy(1) = chi(1)%get_proxy()
-    chi_proxy(2) = chi(2)%get_proxy()
-    chi_proxy(3) = chi(3)%get_proxy()
     
     boundary_dofs => r_u_proxy%vspace%get_boundary_dofs()
     
-    nlayers = rho_proxy%vspace%get_nlayers()
-    nqp_h=qr%get_nqp_h()
-    nqp_v=qr%get_nqp_v()
-    zp=>qr%get_xqp_v()
-    xp=>qr%get_xqp_h()
-    wh=>qr%get_wqp_h()
-    wv=>qr%get_wqp_v()
-
-    ndf_w3  = rho_proxy%vspace%get_ndf( )
-    dim_w3  = rho_proxy%vspace%get_dim_space( )
-    undf_w3 = rho_proxy%vspace%get_undf()
-    allocate(basis_w3(dim_w3,ndf_w3,nqp_h,nqp_v))
+    nlayers = r_u_proxy%vspace%get_nlayers()
 
     ndf_w2      = r_u_proxy%vspace%get_ndf( )
-    dim_w2      = r_u_proxy%vspace%get_dim_space( )
-    diff_dim_w2 = r_u_proxy%vspace%get_dim_space_diff( )
     undf_w2     = r_u_proxy%vspace%get_undf()
-    allocate(basis_w2(dim_w2,ndf_w2,nqp_h,nqp_v))
-    allocate(diff_basis_w2(diff_dim_w2,ndf_w2,nqp_h,nqp_v))
-
-    ndf_w1  = xi_proxy%vspace%get_ndf( )
-    dim_w1  = xi_proxy%vspace%get_dim_space( )
-    undf_w1 = xi_proxy%vspace%get_undf()
-    allocate(basis_w1(dim_w1,ndf_w1,nqp_h,nqp_v))
-
-    ndf_w0      = theta_proxy%vspace%get_ndf( )
-    dim_w0      = theta_proxy%vspace%get_dim_space( )
-    diff_dim_w0 = theta_proxy%vspace%get_dim_space_diff( )
-    undf_w0     = theta_proxy%vspace%get_undf()
-    allocate(basis_w0(dim_w0,ndf_w0,nqp_h,nqp_v))
-    allocate(diff_basis_w0(diff_dim_w0,ndf_w0,nqp_h,nqp_v))
-
-    call rho_proxy%vspace%compute_basis_function( &
-         basis_w3, ndf_w3, nqp_h, nqp_v, xp, zp)    
-
-    call r_u_proxy%vspace%compute_basis_function( &
-         basis_w2, ndf_w2, nqp_h, nqp_v, xp, zp)    
-
-    call r_u_proxy%vspace%compute_diff_basis_function( &
-         diff_basis_w2, ndf_w2, nqp_h, nqp_v, xp, zp)
-
-    call xi_proxy%vspace%compute_basis_function( &
-         basis_w1, ndf_w1, nqp_h, nqp_v, xp, zp)   
-
-    call theta_proxy%vspace%compute_basis_function( &
-         basis_w0, ndf_w0, nqp_h, nqp_v, xp, zp)    
-
-    call theta_proxy%vspace%compute_diff_basis_function( &
-         diff_basis_w0, ndf_w0, nqp_h, nqp_v, xp, zp)
 
     do cell = 1, r_u_proxy%vspace%get_ncell()
 
-       map_w3 => rho_proxy%vspace%get_cell_dofmap( cell )
        map_w2 => r_u_proxy%vspace%get_cell_dofmap( cell )
-       map_w1 => xi_proxy%vspace%get_cell_dofmap( cell )
-       map_w0 => theta_proxy%vspace%get_cell_dofmap( cell )
-       orientation_w2 => r_u_proxy%vspace%get_cell_orientation ( cell )
-       orientation_w1 => xi_proxy%vspace%get_cell_orientation ( cell )
 
        call ru_code( nlayers,                                              &
                      r_u_proxy%data,                                       &
-                     u_proxy%data,                                         &
-                     f_proxy%data,                                         &
-                     rho_proxy%data,                                       &
-                     theta_proxy%data,                                     &
-                     phi_proxy%data,                                       &
-                     xi_proxy%data,                                        &
-                     chi_proxy(1)%data,                                    &
-                     chi_proxy(2)%data,                                    &
-                     chi_proxy(3)%data,                                    &
                      ndf_w2, undf_w2,                                      &
-                     map_w2, basis_w2, diff_basis_w2,                      &
-                     orientation_w2,                                       &
-                     boundary_dofs,                                        &
-                     ndf_w3, undf_w3,                                      &
-                     map_w3, basis_w3,                                     &
-                     ndf_w0, undf_w0,                                      &
-                     map_w0, basis_w0, diff_basis_w0,                      &
-                     ndf_w1, undf_w1,                                      &
-                     map_w1, basis_w1,                                     &
-                     orientation_w1,                                       &
-                     nqp_h, nqp_v, wh, wv                                  &
+                     map_w2,                                               &
+                     boundary_dofs                                         &
                      )
     end do
 
-    deallocate(basis_w3, basis_w2, diff_basis_w2, basis_w1, &
-               basis_w0, diff_basis_w0)
-    
   end subroutine invoke_ru_kernel
   
 !-------------------------------------------------------------------------------  
