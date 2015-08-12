@@ -85,6 +85,10 @@ module mesh_mod
 
   type, public :: mesh_type
 
+    !> The partition object that describes this local
+    !> mesh's partition of the global mesh
+    type(partition_type) :: partition
+
     !> The domain limits (x,y,z) for Cartesian domains
     !>                   (long, lat, radius) for spherical
     type (domain_limits), private :: domain_size
@@ -150,6 +154,12 @@ module mesh_mod
     !> Edge ids on cell
     integer(i_def), allocatable, private :: edge_on_cell (:,:)
 
+    !> The rank of the "owner" of each of the vertex entities around each cell
+    integer(i_def), allocatable :: vertex_ownership( :, : )
+
+    !> The rank of the "owner" of each of the edge entities around each cell
+    integer(i_def), allocatable :: edge_ownership( :, : )
+
   contains
 
     procedure, public :: get_id
@@ -176,6 +186,27 @@ module mesh_mod
     procedure, public :: get_domain_size
     procedure, public :: get_domain_top
     procedure, public :: get_dz
+    !> Get the ownership of a vertex
+    procedure, public :: is_vertex_owned
+    !> Get the ownership of an edge
+    procedure, public :: is_edge_owned
+    !> Get the ownership of a cell
+    procedure, public :: is_cell_owned
+    !> Get the number of core cells from the partition object
+    !> @return core_cells The total number of core cells on the local partition
+    procedure, public :: get_num_cells_core
+    !> Get the number of owned cells from the partition object
+    !> @return owned_cells The total number of core cells on the local partition
+    procedure, public :: get_num_cells_owned
+    !> Returns the maximum depth of the halo from the partition object
+    !> @return halo_depth The maximum depth of halo cells
+    procedure, public :: get_halo_depth
+    !> Returns the total number of halo cells in a particular depth of halo in a 2d
+    !> slice from the partition object
+    !> @param[in] depth The depth of the halo being queried
+    !> @return halo_cells The total number of halo cells of the particular depth 
+    !> on the local partition
+    procedure, public :: get_num_cells_halo
 
   end type mesh_type
 
@@ -614,6 +645,98 @@ contains
   end function get_domain_size
 
 
+  function is_vertex_owned( self, vertex, cell ) result (owner)
+
+  class(mesh_type), intent(in) :: self
+
+  integer, intent( in ) :: cell, vertex
+  logical               :: owner
+
+  owner=.false.
+  if (self%vertex_ownership( vertex, cell )==self%partition%get_local_rank())owner=.true.
+
+  end function is_vertex_owned
+
+
+  function is_edge_owned( self, edge, cell ) result (owner)
+
+  class(mesh_type), intent(in) :: self
+
+  integer, intent( in ) :: cell, edge
+  logical               :: owner
+
+  owner=.false.
+  if(self%edge_ownership( edge, cell )==self%partition%get_local_rank())owner=.true.
+
+  end function is_edge_owned
+
+
+  function is_cell_owned( self, cell ) result (owner)
+
+  class(mesh_type), intent(in) :: self
+
+  integer, intent( in ) :: cell
+  logical               :: owner
+
+  owner=.false.
+  if(self%partition%get_cell_owner(cell)==self%partition%get_local_rank())owner=.true.
+
+  end function is_cell_owned
+
+
+  function get_num_cells_core( self ) result ( core_cells )
+    implicit none
+
+    class(mesh_type), intent(in) :: self
+
+    integer :: core_cells
+
+    core_cells = self%partition%get_num_cells_core()
+
+  end function get_num_cells_core
+
+
+  function get_num_cells_owned( self ) result ( owned_cells )
+    implicit none
+
+    class(mesh_type), intent(in) :: self
+
+    integer :: owned_cells
+
+    owned_cells = self%partition%get_num_cells_owned()
+
+  end function get_num_cells_owned
+
+
+  function get_halo_depth( self ) result ( halo_depth )
+    implicit none
+
+    class(mesh_type), intent(in) :: self
+
+    integer :: halo_depth
+
+    halo_depth = self%partition%get_halo_depth()
+
+  end function get_halo_depth
+
+
+  function get_num_cells_halo( self, depth ) result ( halo_cells )
+    implicit none
+
+    class(mesh_type), intent(in) :: self
+
+    integer, intent(in) :: depth
+    integer             :: halo_cells
+
+    if( depth > self%get_halo_depth() )then
+      halo_cells = 0
+    else
+      halo_cells = self%partition%get_num_cells_halo(depth)
+    end if
+
+  end function get_num_cells_halo
+
+
 
   !============================================================================
   !> @brief Stucture-Constructor
@@ -642,6 +765,20 @@ contains
     real(r_def),    intent(in) :: dz
 
     type(mesh_type) :: self
+
+    integer :: num_in_list ! number of cells in a partitioned layer
+    integer :: i, j, k     ! loop counters
+
+    ! Arrays used in entity ownership calculation - see their names
+    ! for a descriptioin of what they actually contain
+    integer, allocatable :: cells_on_vertex( : )
+    integer, allocatable :: cells_on_vertex_owner( : )
+    integer, allocatable :: vertices_on_cell( : )
+    integer, allocatable :: edges_on_cell( : )
+    integer, allocatable :: cells_on_edge( : )
+    integer, allocatable :: cells_on_edge_owner( : )
+
+    self%partition  = partition
 
     nlayers         = nlayers_in
     ncells_2d       = partition%get_num_cells_in_layer()
@@ -672,6 +809,77 @@ contains
     call mesh_extruder     (self)
     call mesh_connectivity (self)
     call set_domain_size   (self)
+
+    ! Get number of cells in a partitioned layer
+    num_in_list = partition%get_num_cells_in_layer()
+
+    !Assign ownership of call vertices
+    allocate( &
+       self%vertex_ownership( global_mesh%get_nverts_per_cell(), num_in_list ) &
+            )
+    allocate( cells_on_vertex( global_mesh%get_max_cells_per_vertex() ) )
+    allocate( cells_on_vertex_owner( global_mesh%get_max_cells_per_vertex() ) )
+    allocate( vertices_on_cell( global_mesh%get_nverts_per_cell() ) )
+    do i = 1, num_in_list
+      call global_mesh%get_vert_on_cell( partition%get_gid_from_lid(i), &
+                                         vertices_on_cell )
+      do j = 1,global_mesh%get_nverts_per_cell()
+        call global_mesh%get_cell_on_vert( vertices_on_cell(j), &
+                                           cells_on_vertex )
+        cells_on_vertex_owner(:)=0
+        do k = 1,global_mesh%get_max_cells_per_vertex()
+         ! If cell_on_vertex is 0 then this is a vertex with fewer than
+         ! max_cells_per_vertex cells around it, so don't process
+         ! non-existent cells
+          if( cells_on_vertex(k) > 0 )then
+            if( partition%get_lid_from_gid( cells_on_vertex(k) ) > 0 )then
+              cells_on_vertex_owner(k) = partition%get_cell_owner( &
+                              partition%get_lid_from_gid( cells_on_vertex(k) ) &
+                                                                 )
+            else
+             ! This is so far off in the halos, this partition is definitely not
+             ! the owner so mark with a rank_no higher than total_ranks
+             cells_on_vertex_owner(k) = partition%get_total_ranks() + 1  
+            end if
+          end if
+        end do
+        self%vertex_ownership(j,i) = maxval( cells_on_vertex_owner )
+      end do
+    end do
+    deallocate( vertices_on_cell )
+    deallocate( cells_on_vertex_owner )
+    deallocate( cells_on_vertex )
+
+    !Assign ownership of call edges
+    allocate( &
+         self%edge_ownership( global_mesh%get_nedges_per_cell(), num_in_list ) &
+            )
+    allocate( cells_on_edge(2) )
+    allocate( cells_on_edge_owner(2) )
+    allocate( edges_on_cell( global_mesh%get_nedges_per_cell() ) )
+    do i = 1, num_in_list
+      call global_mesh%get_edge_on_cell( partition%get_gid_from_lid(i), &
+                                         edges_on_cell )
+      do j = 1,global_mesh%get_nedges_per_cell()
+        call global_mesh%get_cell_on_edge( edges_on_cell(j), &
+                                           cells_on_edge )
+        do k = 1,2
+          if( partition%get_lid_from_gid( cells_on_edge(k) ) > 0 )then
+            cells_on_edge_owner(k)=partition%get_cell_owner( &
+                                partition%get_lid_from_gid( cells_on_edge(k) ) &
+                                                           )
+          else
+           ! This is so far off in the halos, this partition is definitely not
+           ! the owner so mark with a rank_no higher than total_ranks
+           cells_on_edge_owner(k) = partition%get_total_ranks() + 1 
+          end if
+        end do
+        self%edge_ownership(j,i) = maxval( cells_on_edge_owner )
+      end do
+    end do
+    deallocate( edges_on_cell )
+    deallocate( cells_on_edge_owner )
+    deallocate( cells_on_edge )
 
   end function mesh_constructor
 

@@ -122,7 +122,6 @@ contains
   subroutine log_event(message, level)
 
     use, intrinsic :: iso_fortran_env, only : output_unit, error_unit
-    use slush_mod, only : total_ranks
 
     implicit none
 
@@ -130,7 +129,9 @@ contains
     integer,       intent( in ) :: level
 
     type(ESMF_LogMsg_Flag) :: log_flag
+    type(ESMF_VM) :: vm
     integer :: rc
+    integer :: total_ranks
 
     integer        :: unit
     character (5)  :: tag
@@ -163,6 +164,9 @@ contains
           log_flag=ESMF_LOGMSG_ERROR
       end select
 
+
+      call ESMF_VMGetCurrent(vm=vm, rc=rc)
+      call ESMF_VMGet(vm=vm, petCount=total_ranks, rc=rc)
       if(total_ranks > 1)then
         call ESMF_LogWrite(trim( message ), log_flag, rc=rc)
       else

@@ -41,6 +41,39 @@ integer, allocatable :: w2_dofmap(:,:)
 !! for the whole W3 function space over the bottom level of the domain.
 integer, allocatable :: w3_dofmap(:,:)
 
+!> The index within the dofmap of the last "owned" dof in the W0 function space
+integer              :: w0_last_dof_owned
+!> The index within the dofmap of the last "annexed" dof in the W0 function
+!> space ("Annexed" dofs that those that are not owned, but are on owned cells)
+integer              :: w0_last_dof_annexed
+!> The index within the dofmap of the last of the halo dofs (from the various
+!> depths of halo) in the W0 function space
+integer, allocatable :: w0_last_dof_halo(:)
+!> The index within the dofmap of the last "owned" dof in the W1 function space
+integer              :: w1_last_dof_owned
+!> The index within the dofmap of the last "annexed" dof in the W1 function
+!> space ("Annexed" dofs that those that are not owned, but are on owned cells)
+integer              :: w1_last_dof_annexed
+!> The index within the dofmap of the last of the halo dofs (from the various
+!> depths of halo) in the W1 function space
+integer, allocatable :: w1_last_dof_halo(:)
+!> The index within the dofmap of the last "owned" dof in the W2 function space
+integer              :: w2_last_dof_owned
+!> The index within the dofmap of the last "annexed" dof in the W2 function
+!> space ("Annexed" dofs that those that are not owned, but are on owned cells)
+integer              :: w2_last_dof_annexed
+!> The index within the dofmap of the last of the halo dofs (from the various
+!> depths of halo) in the W2 function space
+integer, allocatable :: w2_last_dof_halo(:)
+!> The index within the dofmap of the last "owned" dof in the W3 function space
+integer              :: w3_last_dof_owned
+!> The index within the dofmap of the last "annexed" dof in the W3 function
+!> space ("Annexed" dofs that those that are not owned, but are on owned cells)
+integer              :: w3_last_dof_annexed
+!> The index within the dofmap of the last of the halo dofs (from the various
+!> depths of halo) in the W3 function space
+integer, allocatable :: w3_last_dof_halo(:)
+
 !> A two dim integer array which holds the orientation data for the
 !> W0 function space
 integer, allocatable :: w0_orientation(:,:)
@@ -81,16 +114,44 @@ subroutine get_dofmap(mesh, w_dof_entity, w_unique_dofs)
   allocate( w1_dofmap(w_unique_dofs(2,2),0:ncells) )
   allocate( w2_dofmap(w_unique_dofs(3,2),0:ncells) )
   allocate( w3_dofmap(w_unique_dofs(4,2),0:ncells) )
-  
-  call dofmap_populate( mesh, ncells,                                         &
-                        w_unique_dofs(1,2), w_dof_entity(1,:), w0_dofmap)
-  call dofmap_populate( mesh, ncells,                                         &
-                        w_unique_dofs(2,2), w_dof_entity(2,:), w1_dofmap)
-  call dofmap_populate( mesh, ncells,                                         &
-                        w_unique_dofs(3,2), w_dof_entity(3,:), w2_dofmap)
-  call dofmap_populate( mesh, ncells,                                         &
-                        w_unique_dofs(4,2), w_dof_entity(4,:), w3_dofmap)
 
+  allocate( w0_last_dof_halo(mesh%get_halo_depth()) )
+  allocate( w1_last_dof_halo(mesh%get_halo_depth()) )
+  allocate( w2_last_dof_halo(mesh%get_halo_depth()) )
+  allocate( w3_last_dof_halo(mesh%get_halo_depth()) )
+
+  call dofmap_populate( mesh, &
+                        ncells, &
+                        w_unique_dofs(1,2), &
+                        w_dof_entity(1,:), &
+                        w0_dofmap, &
+                        w0_last_dof_owned,&
+                        w0_last_dof_annexed,&
+                        w0_last_dof_halo)
+  call dofmap_populate( mesh, &
+                        ncells, &
+                        w_unique_dofs(2,2), &
+                        w_dof_entity(2,:), &
+                        w1_dofmap, &
+                        w1_last_dof_owned,&
+                        w1_last_dof_annexed,&
+                        w1_last_dof_halo)
+  call dofmap_populate( mesh, &
+                        ncells, &
+                        w_unique_dofs(3,2), &
+                        w_dof_entity(3,:), &
+                        w2_dofmap, &
+                        w2_last_dof_owned,&
+                        w2_last_dof_annexed,&
+                        w2_last_dof_halo)
+  call dofmap_populate( mesh, &
+                        ncells, &
+                        w_unique_dofs(4,2), &
+                        w_dof_entity(4,:), &
+                        w3_dofmap, &
+                        w3_last_dof_owned,&
+                        w3_last_dof_annexed,&
+                        w3_last_dof_halo)
 
 end subroutine get_dofmap
 
@@ -100,8 +161,20 @@ end subroutine get_dofmap
 !> @param[in] ncells     The number of horizontal cells
 !> @param[in] ndof_sum   The total number of dofs associated with a single cell
 !> @param[in] ndf_entity The number of dofs on each grid entity
-!> @param[out] dofmap
-subroutine dofmap_populate(mesh, ncells, ndof_sum, ndof_entity, dofmap)
+!> @param[out] dofmap    The dofmap generated by the routine
+!> @param[out] last_dof_owned The index of the last owned dof in the dofmap
+!> @param[out] last_dof_annexed The index of the last annexed dof in the dofmap
+!>           (an annexed dof is one which is not owned, but is on an owned cell)
+!> @param[out] last_dof_halo An array of the indices of the last halo dofs in
+!>                           the various depths of halo
+subroutine dofmap_populate( mesh, &
+                            ncells, &
+                            ndof_sum, &
+                            ndof_entity, &
+                            dofmap, &
+                            last_dof_owned, &
+                            last_dof_annexed, &
+                            last_dof_halo )
 
   implicit none
 
@@ -117,13 +190,23 @@ subroutine dofmap_populate(mesh, ncells, ndof_sum, ndof_entity, dofmap)
 ! output dofmap for this space
   integer, intent(out) :: dofmap(ndof_sum,0:ncells)
 
+! output number of dofs that are owned, have been annexed by the neighbouring partition
+! and are in the various levels of halo
+  integer :: last_dof_owned
+  integer :: last_dof_annexed
+  integer :: last_dof_halo(:)
+
 ! loop counters
-  integer :: i, j, k
+  integer :: i, j, k, m
   integer(i_def) :: nlayers
 
-  integer :: id, id0, jd, jdp, dof_idx
+! Indices into the dofmap
+  integer :: id_owned, id_halo, id0, jd, jdp, dof_idx
 ! Number of entities for a single layer  
   integer :: nvert_layer, nedge_layer, nface_layer
+
+! Start and end points of the cell indices to loop over
+  integer :: start,finish
 
 ! entity dofmaps
   integer, allocatable :: dofmap_d0(:,:), dofmap_d1(:,:), dofmap_d2(:,:), dofmap_d3(:,:)
@@ -167,96 +250,212 @@ subroutine dofmap_populate(mesh, ncells, ndof_sum, ndof_entity, dofmap)
 ! (3,1) -> edges on cells
 ! (3,0) -> vertices on cells
 
-  id = 1
-! loop over 3 entities (cells)
+  id_owned = 1
+  id_halo  = -1
+
+! loop over 3 entities (cells) starting with core + owned + first depth halo
+! then proceding with further halo depths as required
+
+  start=1
+  finish=mesh%get_num_cells_core() + &
+         mesh%get_num_cells_owned() + &
+         mesh%get_num_cells_halo(1)
+
+  halo_loop: do m = 1, mesh%get_halo_depth()
+    cell_loop: do i = start, finish
+
+! assign dofs for connectivity (3,3) (dofs in cell)
+      if(mesh%is_cell_owned(i))then
+        do j=1,ndof_entity(3)
+          dofmap_d3(j,i) = id_owned
+          id_owned = id_owned + nlayers
+        end do
+      else
+        do j=1,ndof_entity(3)
+          dofmap_d3(j,i) = id_halo
+          id_halo = id_halo - nlayers
+        end do
+      end if
+
+! assign dofs for connectivity (3,2) (dofs on faces)
+      do j=1,nfaces_h
+        jd = mesh%get_face_on_cell(j,i) 
+        if(mesh%is_edge_owned(j,i))then
+          if ( dofmap_d2(1,jd) == 0 ) then
+            do k=1,ndof_entity(2)
+              dofmap_d2(k,jd) = id_owned
+              id_owned = id_owned + nlayers
+            end do
+          end if
+        else
+          if ( dofmap_d2(1,jd) == 0 ) then
+            do k=1,ndof_entity(2)
+              dofmap_d2(k,jd) = id_halo
+              id_halo = id_halo - nlayers
+            end do
+          end if
+        end if
+      end do
+      if(mesh%is_cell_owned(i))then
+        id0 = id_owned
+        do j=nfaces_h+1,nfaces
+          jd = mesh%get_face_on_cell(j,i) 
+          if ( dofmap_d2(1,jd) == 0 ) then
+            do k=1,ndof_entity(2)
+              dofmap_d2(k,jd) = id_owned        
+              id_owned = id_owned + nlayers + 1
+            end do
+          end if
+          if (j==nfaces_h+1) then
+            id_owned = id0 + 1
+          else
+            id_owned = id_owned - 1
+          end if
+        end do
+      else
+        id0 = id_halo
+        do j=nfaces_h+1,nfaces
+          jd = mesh%get_face_on_cell(j,i) 
+          if ( dofmap_d2(1,jd) == 0 ) then
+            do k=1,ndof_entity(2)
+              dofmap_d2(k,jd) = id_halo        
+              id_halo = id_halo - nlayers - 1
+            end do
+          end if
+          if (j==nfaces_h+1) then
+            id_halo = id0 - 1
+          else
+            id_halo = id_halo + 1
+          end if
+        end do
+      end if
+
+! assign dofs for connectivity (3,1) (dofs on edges)  
+      do j=1,nedges_h
+        jd  = mesh%get_edge_on_cell(j,i)   
+        jdp = mesh%get_edge_on_cell(j+nedges-nedges_h,i)  
+        if(mesh%is_edge_owned(j,i))then
+          if ( dofmap_d1(1,jd) == 0 ) then
+            do k=1,ndof_entity(1)
+              dofmap_d1(k,jd)  = id_owned
+              dofmap_d1(k,jdp) = id_owned + 1
+              id_owned = id_owned + nlayers + 1
+            end do
+          end if
+        else
+          if ( dofmap_d1(1,jd) == 0 ) then
+            do k=1,ndof_entity(1)
+              dofmap_d1(k,jd)  = id_halo
+              dofmap_d1(k,jdp) = id_halo - 1
+              id_halo = id_halo - nlayers - 1
+            end do
+          end if
+        end if
+      end do
+      do j=nedges_h+1,nedges-nedges_h
+        jd  = mesh%get_edge_on_cell(j,i) 
+        if(mesh%is_vertex_owned(j-nedges_h,i))then
+          if ( dofmap_d1(1,jd) == 0 ) then
+            do k=1,ndof_entity(1)
+              dofmap_d1(k,jd)  = id_owned
+              id_owned = id_owned + nlayers 
+            end do
+          end if
+        else
+          if ( dofmap_d1(1,jd) == 0 ) then
+            do k=1,ndof_entity(1)
+              dofmap_d1(k,jd)  = id_halo
+              id_halo = id_halo - nlayers 
+            end do
+          end if
+        end if
+      end do
+
+! assign dofs for connectivity (3,0) (dofs on verts)    
+      do j=1,nverts_h
+        jd  = mesh%get_vert_on_cell(j,i)
+        jdp = mesh%get_vert_on_cell(j+nverts_h,i)
+        if(mesh%is_vertex_owned(j,i))then
+          if ( dofmap_d0(1,jd) == 0 ) then
+            do k=1,ndof_entity(0)
+              dofmap_d0(k,jd)  = id_owned
+              dofmap_d0(k,jdp)  = id_owned + 1
+              id_owned = id_owned + nlayers + 1     
+            end do
+          end if
+        else
+          if ( dofmap_d0(1,jd) == 0 ) then
+            do k=1,ndof_entity(0)
+              dofmap_d0(k,jd)  = id_halo
+              dofmap_d0(k,jdp)  = id_halo - 1
+              id_halo = id_halo - nlayers - 1  
+            end do
+          end if
+        end if
+      end do
+
+      if(i == mesh%get_num_cells_core() + mesh%get_num_cells_owned())then
+        last_dof_owned = id_owned - 1
+        last_dof_annexed = id_owned - id_halo - 2
+      end if
+
+    end do cell_loop
+
+    last_dof_halo(m) = id_owned - id_halo - 2
+
+    start=finish+1
+    if(m < mesh%get_halo_depth())finish=start+mesh%get_num_cells_halo(m+1)-1
+
+  end do halo_loop
+
+
+! Copy from the dofmap_dn arrays into one dofmap array
+
   do i=1,ncells
     dof_idx = 1
-! assign dofs for connectivity (3,3) (dofs in cell)
-    do j=1,ndof_entity(3)
-      dofmap_d3(j,i) = id
-      dofmap(dof_idx,i) = dofmap_d3(j,i)
-      id = id + nlayers
+    ! dofs in cells
+    do k=1,ndof_entity(3)
+      if( dofmap_d3(k,i) > 0 )then
+        dofmap(dof_idx,i) = dofmap_d3(k,i)
+      else if( dofmap_d3(k,i) < 0 )then
+        dofmap(dof_idx,i) = id_owned - (dofmap_d3(k,i) + 1)
+      end if
       dof_idx = dof_idx + 1
     end do
-  
-! assign dofs for connectivity (3,2) (dofs on faces)
-    do j=1,nfaces_h
+    ! dofs on faces
+    do j=1,nfaces
       jd = mesh%get_face_on_cell(j,i) 
-      if ( dofmap_d2(1,jd) == 0 ) then
-        do k=1,ndof_entity(2)
-          dofmap_d2(k,jd) = id        
-          id = id + nlayers
-        end do
-      end if
       do k=1,ndof_entity(2)
-        dofmap(dof_idx,i) = dofmap_d2(k,jd)
+        if( dofmap_d2(k,jd) > 0 )then
+          dofmap(dof_idx,i) = dofmap_d2(k,jd)
+        else if( dofmap_d2(k,jd) < 0 )then
+          dofmap(dof_idx,i) = id_owned - (dofmap_d2(k,jd) + 1)
+        end if
         dof_idx = dof_idx + 1
       end do
     end do
-    id0 = id
-    do j=nfaces_h+1,nfaces
-      jd = mesh%get_face_on_cell(j,i) 
-      if ( dofmap_d2(1,jd) == 0 ) then
-        do k=1,ndof_entity(2)
-          dofmap_d2(k,jd) = id        
-          id = id + nlayers + 1
-        end do
-      end if
-      do k=1,ndof_entity(2)
-        dofmap(dof_idx,i) = dofmap_d2(k,jd)
-        dof_idx = dof_idx + 1
-      end do
-      if (j==nfaces_h+1) then
-        id = id0 + 1
-      else
-        id = id - 1
-      end if
-    end do
-! assign dofs for connectivity (3,1) (dofs on edges)  
-    do j=1,nedges_h
-      jd  = mesh%get_edge_on_cell(j,i)   
-      jdp = mesh%get_edge_on_cell(j+nedges-nedges_h,i)  
-      if ( dofmap_d1(1,jd) == 0 ) then
-        do k=1,ndof_entity(1)
-          dofmap_d1(k,jd)  = id
-          dofmap_d1(k,jdp) = id+1
-          id = id + nlayers + 1
-        end do
-      end if
-    end do
-    do j=5,8
-      jd  = mesh%get_edge_on_cell(j,i) 
-      if ( dofmap_d1(1,jd) == 0 ) then
-        do k=1,ndof_entity(1)
-          dofmap_d1(k,jd)  = id
-          id = id + nlayers 
-        end do
-      end if
-    end do
+    ! dofs on edges
     do j=1,nedges
       jd  = mesh%get_edge_on_cell(j,i) 
       do k=1,ndof_entity(1)
-        dofmap(dof_idx,i) = dofmap_d1(k,jd)
-        dof_idx = dof_idx + 1  
+        if( dofmap_d1(k,jd) > 0 )then
+          dofmap(dof_idx,i) = dofmap_d1(k,jd)
+        else if( dofmap_d1(k,jd) < 0 )then
+          dofmap(dof_idx,i) = id_owned - (dofmap_d1(k,jd) + 1)
+        end if
+        dof_idx = dof_idx + 1
       end do
     end do 
-! assign dofs for connectivity (3,0) (dofs on verts)    
-    do j=1,nverts_h
-      jd  = mesh%get_vert_on_cell(j,i)
-      jdp = mesh%get_vert_on_cell(j+nverts_h,i)
-      if ( dofmap_d0(1,jd) == 0 ) then
-        do k=1,ndof_entity(0)
-          dofmap_d0(k,jd)  = id
-          dofmap_d0(k,jdp)  = id + 1
-          id = id + nlayers + 1  
-        end do
-      end if
-    end do
+    ! dofs on vertices
     do j=1,nverts
       jd  = mesh%get_vert_on_cell(j,i)
       do k=1,ndof_entity(0)
-        dofmap(dof_idx,i) = dofmap_d0(k,jd) 
-        dof_idx = dof_idx + 1  
+        if( dofmap_d0(k,jd) > 0 )then
+          dofmap(dof_idx,i) = dofmap_d0(k,jd)
+        else if( dofmap_d0(k,jd) < 0 )then
+          dofmap(dof_idx,i) = id_owned - (dofmap_d0(k,jd) + 1)
+        end if
+        dof_idx = dof_idx + 1
       end do
     end do
   end do

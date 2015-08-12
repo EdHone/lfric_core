@@ -70,12 +70,21 @@ contains
 !> Returns the total number of owned cells in a 2d slice on the local partition
 !> @return core_cells The total number of owned cells on the local partition
   procedure, public :: get_num_cells_owned
+!> Returns the maximum depth of the halo
+!> @return halo_depth The maximum depth of halo cells
+  procedure, public :: get_halo_depth
 !> Returns the total number of halo cells in a particular depth of halo in a 2d
 !> slice on the local partition
 !> @param[in] depth The depth of the halo being queried
-!> @return core_cells The total number of halo cells of the particular depth
+!> @return halo_cells The total number of halo cells of the particular depth
 !> on the local partition
   procedure, public :: get_num_cells_halo
+!> Returns the local rank number
+!> @return local_rank The number of the local rank
+  procedure, public :: get_local_rank
+!> Returns the total number of ranks
+!> @return total_ranks The total number of ranks
+  procedure, public :: get_total_ranks
 !> Returns the owner of a cell on the local partition
 !> @param[in] cell_number The local id of of the cell being queried
 !> @return cell_owner The owner of the given cell
@@ -739,20 +748,6 @@ end function partition_constructor
 
   end subroutine apply_stencil
 
-function get_cell_owner( self, cell_number ) result ( cell_owner )
-
-  implicit none
-
-  class(partition_type), intent(in) :: self
-
-  integer, intent(in) :: cell_number
-
-  integer :: cell_owner
-
-  cell_owner=self%cell_owner(cell_number)
-
-end function get_cell_owner
-
 
 function get_num_cells_in_layer( self ) result ( num_cells )
   implicit none
@@ -795,6 +790,18 @@ function get_num_cells_owned( self ) result ( owned_cells )
 end function get_num_cells_owned
 
 
+function get_halo_depth( self ) result ( halo_depth )
+  implicit none
+
+  class(partition_type), intent(in) :: self
+
+  integer :: halo_depth
+
+  halo_depth = self%halo_depth
+
+end function get_halo_depth
+
+
 function get_num_cells_halo( self, depth ) result ( halo_cells )
   implicit none
 
@@ -803,9 +810,52 @@ function get_num_cells_halo( self, depth ) result ( halo_cells )
   integer, intent(in) :: depth
   integer             :: halo_cells
 
-  halo_cells = self%num_halo(depth)
+  if( depth > self%halo_depth )then
+    halo_cells = 0
+  else
+    halo_cells = self%num_halo(depth)
+  end if
 
 end function get_num_cells_halo
+
+
+function get_local_rank( self ) result ( local_rank )
+  implicit none
+
+  class(partition_type), intent(in) :: self
+
+  integer             :: local_rank
+
+  local_rank = self%local_rank
+
+end function get_local_rank
+
+
+function get_total_ranks( self ) result ( total_ranks )
+  implicit none
+
+  class(partition_type), intent(in) :: self
+
+  integer             :: total_ranks
+
+  total_ranks = self%total_ranks
+
+end function get_total_ranks
+
+
+function get_cell_owner( self, cell_number ) result ( cell_owner )
+
+  implicit none
+
+  class(partition_type), intent(in) :: self
+
+  integer, intent(in) :: cell_number
+
+  integer :: cell_owner
+
+  cell_owner=self%cell_owner(cell_number)
+
+end function get_cell_owner
 
 
 function get_gid_from_lid( self, lid ) result ( gid )

@@ -34,24 +34,6 @@ module slush_mod
 
   real(kind=r_def)  :: f_lat            ! Latitude for f-plane tests
 
-  !> Total number of MPI ranks available
-  integer :: total_ranks
-  !> The local rank number
-  integer :: local_rank
-
-  !> Number of processors along x-direction
-  integer :: xproc
-  !> Number of processors along y-direction
-  integer :: yproc
-  
-  !> Number of cells that are wholly owned by the partition
-  !> (i.e. all dofs in these cells are wholly owned by the partition)
-  integer :: num_core
-  !> Number of cells that are owned by the partition, but may have dofs that
-  !> are also owned by halo cells
-  integer :: num_owned
-  !> Number of cells in the halo for this partition
-  integer :: num_halo
 
 end module slush_mod
 

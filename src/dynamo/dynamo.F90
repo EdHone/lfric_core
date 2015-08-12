@@ -36,7 +36,6 @@ program dynamo
   use assign_coordinate_field_mod, only : assign_coordinate_field
   use field_io_mod,            only : write_state_netcdf                      &
                                     , write_state_plain_text
-  use slush_mod,               only : total_ranks, local_rank
   
   use log_mod,                 only : log_event,         &
                                       log_set_level,     &
@@ -63,7 +62,8 @@ program dynamo
   integer                          :: n_fields
   type(ESMF_VM) :: vm
   integer :: rc
-  INTEGER :: petCount, localPET  
+  integer :: total_ranks, local_rank
+  integer :: petCount, localPET  
   integer( i_def )                 :: argument_index,  &
                                       argument_length, &
                                       argument_status
@@ -118,7 +118,7 @@ program dynamo
 
   end do cli_argument_loop 
 
-  call set_up(mesh)
+  call set_up(mesh, local_rank, total_ranks)
 
   do coord = 1,3
     chi(coord) = field_type                                                    &

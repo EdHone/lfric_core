@@ -32,12 +32,13 @@ contains
 !> @brief Generates a mesh and determines the basis functions and dofmaps
 !> @details This will be replaced with code that reads the information in
 !> @param[out] mesh Mesh object to run model on
-  subroutine set_up(mesh)
+!> @param[in] local_rank Number of the MPI rank of this process
+!> @param[in] total_ranks Total number of MPI ranks in this job
+  subroutine set_up(mesh, local_rank, total_ranks)
 
     use log_mod,         only : log_event, LOG_LEVEL_INFO
     use slush_mod,       only : element_order,                                &
                                 l_spherical, w_unique_dofs, w_dof_entity,     &
-                                xproc, yproc, local_rank, total_ranks,        &
                                 l_fplane, f_lat
 
     use mesh_mod,        only : mesh_type
@@ -56,10 +57,14 @@ contains
     type (partition_type)    :: partition
 
     type (mesh_type), intent(out) :: mesh
+    integer, intent(in)           :: local_rank
+    integer, intent(in)           :: total_ranks
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
 
-
+    ! Number of ranks the mesh is partitioned over in the x- and y-directions
+    ! (across a single face for a cubed-sphere mesh)
+    integer :: xproc, yproc
     real(r_def)    :: dz
     integer(i_def) :: nlayers
     !Get the processor decomposition
