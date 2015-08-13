@@ -267,8 +267,8 @@ Governing Equations
 Consider the full nonlinear 3D equations in a rotating frame
 \begin_inset Formula 
 \begin{eqnarray}
-\frac{D\mathbf{u}}{Dt}+2\bm{\Omega}\times\bm{u}+c_{pd}\theta\nabla\Pi+\nabla\Phi & = & 0,\label{eq:nonlinear_mom}\\
-\frac{D\rho}{Dt}-\rho\nabla.\mathbf{u} & = & 0,\label{eq:nonlinear_continuity}\\
+\frac{D\mathbf{u}}{Dt}+2\bm{\Omega}\times\mathbf{u}+c_{pd}\theta\nabla\Pi+\nabla\Phi & = & 0,\label{eq:nonlinear_mom}\\
+\frac{D\rho}{Dt}+\rho\nabla.\mathbf{u} & = & 0,\label{eq:nonlinear_continuity}\\
 \frac{D\theta}{Dt} & = & 0,\label{eq:nonlinear_thermo}
 \end{eqnarray}
 
@@ -327,15 +327,15 @@ where
 \end_inset
 
  a constant reference pressure; 
-\begin_inset Formula $R$
+\begin_inset Formula $R_{d}$
 \end_inset
 
- is the gas constant per unit mass, 
+ is the dry gas constant per unit mass, 
 \begin_inset Formula $c_{pd}$
 \end_inset
 
  is the specific heat at constant pressure, and 
-\begin_inset Formula $\kappa_{d}\equiv R/c_{pd}$
+\begin_inset Formula $\kappa_{d}\equiv R_{d}/c_{pd}$
 \end_inset
 
 ; 
@@ -354,7 +354,7 @@ where
  Rewriting these equations in the vector invariant form yields
 \begin_inset Formula 
 \begin{eqnarray}
-\frac{\partial\mathbf{u}}{\partial t}+\frac{\bm{\xi}}{\rho}\times\bm{F}+2\bm{\Omega}\times\mathbf{u}+\nabla\left(K+\Phi\right)+c_{pd}\theta\nabla\Pi & = & 0,\label{eq:nonlinear_mom-1}\\
+\frac{\partial\mathbf{u}}{\partial t}+\frac{\bm{\xi}}{\rho}\times\mathbf{F}+2\bm{\Omega}\times\mathbf{u}+\nabla\left(K+\Phi\right)+c_{pd}\theta\nabla\Pi & = & 0,\label{eq:nonlinear_mom-1}\\
 \frac{\partial\rho}{\partial t}+\nabla.\mathbf{F} & = & 0,\label{eq:nonlinear_continuity-1}\\
 \frac{\partial\theta}{\partial t}+\mathbf{u}.\nabla\theta & = & 0,\label{eq:nonlinear_thermo-1}\\
 \Pi^{\left(\frac{1-\kappa_{d}}{\kappa_{d}}\right)} & = & \frac{R_{d}}{p_{0}}\rho\theta,\label{eq:nonlinear_eos-1}
@@ -421,9 +421,9 @@ reference "eq:nonlinear_eos-1"
  gives 
 \begin_inset Formula 
 \begin{eqnarray}
-\frac{\partial\mathbf{u}'}{\partial t} & = & -c_{pd}\theta_{s}\nabla\Pi'+\frac{\theta'}{\theta_{s}}\mathbf{g}-2\bm{\Omega}\times\bm{u},\label{eq:linear_mom}\\
-\frac{\partial\rho'}{\partial t} & = & \frac{N^{2}\rho_{s}}{g}\mathbf{u}'.\bm{k}-\rho_{s}\nabla.\mathbf{u}',\label{eq:linear_continuity}\\
-\frac{\partial\theta'}{\partial t} & = & -N^{2}\frac{\theta_{s}}{g}\mathbf{u}'.\bm{k},\label{eq:linear_thermo}
+\frac{\partial\mathbf{u}'}{\partial t} & = & -c_{pd}\theta_{s}\nabla\Pi'+\frac{\theta'}{\theta_{s}}\mathbf{g}-2\bm{\Omega}\times\mathbf{u},\label{eq:linear_mom}\\
+\frac{\partial\rho'}{\partial t} & = & \frac{N^{2}\rho_{s}}{g}\mathbf{u}'.\mathbf{k}-\rho_{s}\nabla.\mathbf{u}',\label{eq:linear_continuity}\\
+\frac{\partial\theta'}{\partial t} & = & -N^{2}\frac{\theta_{s}}{g}\mathbf{u}'.\mathbf{k},\label{eq:linear_thermo}
 \end{eqnarray}
 
 \end_inset
@@ -437,7 +437,7 @@ where the linear equation of state is
 \end_inset
 
 and 
-\begin_inset Formula $\bm{k}$
+\begin_inset Formula $\mathbf{k}$
 \end_inset
 
  is a unit vector normal to the surface of the domain, i.e.
@@ -587,7 +587,7 @@ reference "sec:Reference-Element"
 
 \begin_layout Standard
 The associated test/trial functions for each function space are 
-\begin_inset Formula $\gamma,\,\bm{c},\,\bm{v}\,,\sigma$
+\begin_inset Formula $\gamma,\,\mathbf{c},\,\mathbf{v}\,,\sigma$
 \end_inset
 
  respectively, see Appendix 
@@ -609,7 +609,7 @@ reference "sec:Basis-Functions"
 \end_inset
 
 , vector functions corresponding to circulations; 
-\begin_inset Formula $\bm{u}\in\mathbb{W}_{2}$
+\begin_inset Formula $\mathbf{u}\in\mathbb{W}_{2}$
 \end_inset
 
 , vector functions corresponding to fluxes and 
@@ -687,6 +687,46 @@ Note: To obtain the desired properties of a Charney-Philips grid, where
 
 \end_layout
 
+\begin_layout Standard
+The weak form of a prototypical equation, 
+\begin_inset Formula $s=0,$
+\end_inset
+
+ for some variable 
+\begin_inset Formula $s$
+\end_inset
+
+, is given by multiplying the equation by a test function 
+\begin_inset Formula $t$
+\end_inset
+
+ and integrating over the domain 
+\begin_inset Formula 
+\begin{equation}
+\int_{\Omega}tsdV=0,\label{eq:fem_integral_form}
+\end{equation}
+
+\end_inset
+
+ this can be concisely written as 
+\begin_inset Formula 
+\begin{equation}
+\left\langle t,s\right\rangle =0\label{eq:fem_angle_brackets}
+\end{equation}
+
+\end_inset
+
+ where the ordering makes it clear that 
+\begin_inset Formula $t$
+\end_inset
+
+ is the test function and 
+\begin_inset Formula $s$
+\end_inset
+
+ is the trial function.
+\end_layout
+
 \begin_layout Subsection
 \begin_inset CommandInset label
 LatexCommand label
@@ -720,7 +760,7 @@ reference "eq:linear_eos"
  gives the weak form of the equations
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle \bm{v},\frac{\partial\mathbf{u}'}{\partial t}\right\rangle  & = & -\left\langle \bm{v},c_{pd}\theta_{s}\tilde{\nabla}\Pi-\frac{\theta'}{\theta_{s}}\mathbf{g}+2\bm{\Omega}\times\mathbf{u}\right\rangle ,\label{eq:linear_mom_vec_invariant-weak}\\
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}'}{\partial t}\right\rangle  & = & -\left\langle \mathbf{v},c_{pd}\theta_{s}\tilde{\nabla}\Pi-\frac{\theta'}{\theta_{s}}\mathbf{g}+2\bm{\Omega}\times\mathbf{u}\right\rangle ,\label{eq:linear_mom_vec_invariant-weak}\\
 \left\langle \sigma,\frac{\partial\rho'}{\partial t}\right\rangle  & = & \left\langle \sigma,\frac{N^{2}}{g}\rho_{s}\mathbf{k}.\mathbf{u}'-\rho_{s}\nabla.\mathbf{u}'\right\rangle ,\label{eq:linear_continuity-weak}\\
 \left\langle \gamma,\frac{\partial\theta'}{\partial t}\right\rangle  & = & -\left\langle \gamma,\frac{N^{2}}{g}\theta_{s}\mathbf{k}.\mathbf{u}'\right\rangle ,\label{eq:linear_thermo-weak}
 \end{eqnarray}
@@ -741,7 +781,7 @@ reference "eq:linear_mom_vec_invariant-weak"
  through integrating by parts gives
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle \bm{v},\frac{\partial\mathbf{u}'}{\partial t}\right\rangle  & = & c_{pd}\left\langle \nabla.\left(\bm{v}\theta_{s}\right),\Pi'\right\rangle +\left\langle \bm{v},\frac{\theta'}{\theta_{s}}\mathbf{g}\right\rangle -\left\langle \bm{v},2\bm{\Omega}\times\mathbf{u}\right\rangle .\label{eq:linear_mom_vec_invariant-weak-1}
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}'}{\partial t}\right\rangle  & = & c_{pd}\left\langle \nabla.\left(\mathbf{v}\theta_{s}\right),\Pi'\right\rangle +\left\langle \mathbf{v},\frac{\theta'}{\theta_{s}}\mathbf{g}\right\rangle -\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}\right\rangle .\label{eq:linear_mom_vec_invariant-weak-1}
 \end{eqnarray}
 
 \end_inset
@@ -763,14 +803,14 @@ Nonlinear Equations
 Multiplying 
 \begin_inset CommandInset ref
 LatexCommand eqref
-reference "eq:linear_mom"
+reference "eq:nonlinear_mom-1"
 
 \end_inset
 
 -
 \begin_inset CommandInset ref
 LatexCommand eqref
-reference "eq:linear_eos"
+reference "eq:nonlinear_eos-1"
 
 \end_inset
 
@@ -782,7 +822,7 @@ reference "eq:linear_eos"
  gives the weak form of the nonlinear equations
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle \bm{v},\frac{\partial\mathbf{u}}{\partial t}\right\rangle  & = & -\left\langle \bm{v},\frac{\bm{\xi}}{\rho}\times\bm{F}+2\bm{\Omega}\times\mathbf{u}+\tilde{\nabla}K+\nabla\Phi+c_{pd}\theta\tilde{\nabla}\Pi\right\rangle ,\label{eq:nonlinear_mom-1-1}\\
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}}{\partial t}\right\rangle  & = & -\left\langle \mathbf{v},\frac{\bm{\xi}}{\rho}\times\mathbf{F}+2\bm{\Omega}\times\mathbf{u}+\tilde{\nabla}K+\nabla\Phi+c_{pd}\theta\tilde{\nabla}\Pi\right\rangle ,\label{eq:nonlinear_mom-1-1}\\
 \left\langle \sigma,\frac{\partial\rho}{\partial t}\right\rangle  & = & -\left\langle \sigma,\nabla.\mathbf{F}\right\rangle ,\label{eq:nonlinear_continuity-1-1}\\
 \left\langle \gamma,\frac{\partial\theta}{\partial t}\right\rangle  & = & -\left\langle \gamma,\mathbf{u}.\nabla\theta\right\rangle .\label{eq:nonlinear_thermo-1-1}
 \end{eqnarray}
@@ -793,7 +833,7 @@ Again, replacing the weak operators in the momentum equation through integrating
  by parts yields
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle \bm{v},\frac{\partial\mathbf{u}}{\partial t}\right\rangle  & = & -\left\langle \bm{v},\frac{\bm{\xi}}{\rho}\times\bm{F}+2\bm{\Omega}\times\mathbf{u}+\nabla\Phi\right\rangle +\left\langle \nabla.\bm{v},K\right\rangle +c_{pd}\left\langle \nabla.\left(\theta\bm{v}\right),\Pi\right\rangle -\left\langle \bm{v},2\bm{\Omega}\times\mathbf{u}\right\rangle ,\label{eq:nonlinear_mom-1-1-1}
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}}{\partial t}\right\rangle  & = & -\left\langle \mathbf{v},\frac{\bm{\xi}}{\rho}\times\mathbf{F}+\nabla\Phi\right\rangle +\left\langle \nabla.\mathbf{v},K\right\rangle +c_{pd}\left\langle \nabla.\left(\theta\mathbf{v}\right),\Pi\right\rangle -\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}\right\rangle ,\label{eq:nonlinear_mom-1-1-1}
 \end{eqnarray}
 
 \end_inset
@@ -805,11 +845,11 @@ where the boundary integral terms have been neglected on the assumption
 
  is continuous.
  The chosen advection scheme will be needed to compute the mass flux 
-\begin_inset Formula $\bm{F}$
+\begin_inset Formula $\mathbf{F}$
 \end_inset
 
  the vorticity flux term 
-\begin_inset Formula $\frac{\bm{\xi}}{\rho}\times\bm{F}$
+\begin_inset Formula $\frac{\bm{\xi}}{\rho}\times\mathbf{F}$
 \end_inset
 
  and the potential temperature advection term 
@@ -822,8 +862,8 @@ where the boundary integral terms have been neglected on the assumption
  
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle \bm{v},\bm{F}\right\rangle  & = & \left\langle \bm{v},\rho\bm{u}\right\rangle ,\label{eq:mass_flux_projection}\\
-\left\langle \bm{c},\mbox{\bm{\xi}}\right\rangle  & = & \left\langle \bm{c},\tilde{\nabla}\times\bm{u}\right\rangle =-\left\langle \nabla\times\bm{c},\bm{u}\right\rangle ,\label{eq:voticity_projection}
+\left\langle \mathbf{v},\mathbf{F}\right\rangle  & = & \left\langle \mathbf{v},\rho\mathbf{u}\right\rangle ,\label{eq:mass_flux_projection}\\
+\left\langle \mathbf{c},\mbox{\bm{\xi}}\right\rangle  & = & \left\langle \mathbf{c},\tilde{\nabla}\times\mathbf{u}\right\rangle =-\left\langle \nabla\times\mathbf{c},\mathbf{u}\right\rangle ,\label{eq:voticity_projection}
 \end{eqnarray}
 
 \end_inset
@@ -936,7 +976,11 @@ Consider a mapping
 
  this means using 
 \family typewriter
-curl and div
+curl 
+\family default
+and
+\family typewriter
+ div
 \family default
  conforming mappings respectively, that is mappings that preserve the continuity
  of tangential and normal components respectively.
@@ -949,34 +993,18 @@ key "rognes09,brezzi91,monk03"
 \end_inset
 
  for a more thorough treatment of the Piola transform.
- For vector fields in 
-\begin_inset Formula $\mathbb{W}_{2}$
+ 
+\end_layout
+
+\begin_layout Standard
+For fields in 
+\begin_inset Formula $\mathbb{W}_{0}$
 \end_inset
 
- the contravariant Piola transform is used 
+, which represent pointwise scalars (0-forms), the transform is 
 \begin_inset Formula 
 \begin{equation}
-\mathbf{v\left(\bm{\chi}\right)\equiv}\mathbf{v}\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\frac{J\hat{\mathbf{v}}\left(\hat{\bm{\mathbf{\chi}}}\right)}{\det\left(J\right)},\label{eq:W2_contravariant_piola}
-\end{equation}
-
-\end_inset
-
-where the Jacobian 
-\begin_inset Formula $J\equiv\partial\bm{\mathbf{\phi}}\left(\hat{\bm{\chi}}\right)/\partial\hat{\bm{\mathbf{\chi}}},$
-\end_inset
-
- crucially this transformation satisfies 
-\begin_inset Formula 
-\begin{equation}
-\nabla.\mathbf{v}\left(\bm{\chi}\right)=\frac{1}{\det\left(J\right)}\hat{\nabla}.\left(\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right),\label{eq:piola_div}
-\end{equation}
-
-\end_inset
-
-and therefore 
-\begin_inset Formula 
-\begin{equation}
-\int_{\Omega}\gamma\nabla.\mathbf{v}d\chi=\int_{\hat{\Omega}}\hat{\gamma}\hat{\nabla}.\left(\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}\right)d\hat{\chi}.\label{eq:div_mapping}
+\gamma\left(\bm{\chi}\right)\equiv\gamma\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\hat{\gamma}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:W0_scaler_transform}
 \end{equation}
 
 \end_inset
@@ -985,7 +1013,8 @@ For vector fields in
 \begin_inset Formula $\mathbb{W}_{1}$
 \end_inset
 
- the covariant Piola transform is used 
+, which represent circulation vectors (1-forms), the covariant Piola transform
+ is used 
 \begin_inset Formula 
 \begin{equation}
 \mathbf{c}\left(\bm{\chi}\right)\equiv\mathbf{c}\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\left(\mathbf{g}^{-1}\right)^{T}J^{-T}\mathbf{g}^{{\rm ref}}\hat{\mathbf{c}}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:W1_covariant_piola}
@@ -1004,28 +1033,54 @@ which satisfies
 and therefore (this might be missing metric tensor terms)
 \begin_inset Formula 
 \begin{equation}
-\int_{\Omega}\mathbf{v}.\nabla\times\mathbf{c}d\chi=\int_{\hat{\Omega}}\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}.\hat{\nabla}\times\hat{\mathbf{c}}d\hat{\chi}.\label{eq:curl_mapping}
+\int_{\Omega}\mathbf{c}.\nabla\times\mathbf{c}d\chi=\int_{\hat{\Omega}}\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{c}}.\left(\hat{\nabla}\times\hat{\mathbf{c}}\right)d\hat{\chi},\label{eq:curl_mapping}
 \end{equation}
 
 \end_inset
 
-The transforms for scalar variables are: for space 
-\begin_inset Formula $\mathbb{W}_{0}$
+where the Jacobian 
+\begin_inset Formula $J\equiv\partial\bm{\mathbf{\phi}}\left(\hat{\bm{\chi}}\right)/\partial\hat{\bm{\mathbf{\chi}}},$
 \end_inset
 
- 
+
+\end_layout
+
+\begin_layout Standard
+For vector fields in 
+\begin_inset Formula $\mathbb{W}_{2}$
+\end_inset
+
+, which represent flux vectors (2-forms), the contravariant Piola transform
+ is used 
 \begin_inset Formula 
 \begin{equation}
-\gamma\left(\bm{\chi}\right)\equiv\gamma\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\hat{\gamma}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:W0_scaler_transform}
+\mathbf{v\left(\bm{\chi}\right)\equiv}\mathbf{v}\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\frac{J\hat{\mathbf{v}}\left(\hat{\bm{\mathbf{\chi}}}\right)}{\det\left(J\right)},\label{eq:W2_contravariant_piola}
 \end{equation}
 
 \end_inset
 
-and for 
+ crucially this transformation satisfies 
+\begin_inset Formula 
+\begin{equation}
+\nabla.\mathbf{v}\left(\bm{\chi}\right)=\frac{1}{\det\left(J\right)}\hat{\nabla}.\left(\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right),\label{eq:piola_div}
+\end{equation}
+
+\end_inset
+
+and therefore 
+\begin_inset Formula 
+\begin{equation}
+\int_{\Omega}\gamma\nabla.\mathbf{v}d\chi=\int_{\hat{\Omega}}\hat{\gamma}\hat{\nabla}.\left(\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}\right)d\hat{\chi}.\label{eq:div_mapping}
+\end{equation}
+
+\end_inset
+
+and for scalars in 
 \begin_inset Formula $\mathbb{W}_{3}$
 \end_inset
 
- 
+, which represent volume averaged quantities (3-forms), the transformation
+ is 
 \begin_inset Formula 
 \begin{equation}
 \sigma\left(\bm{\chi}\right)\equiv\sigma\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\frac{\hat{\sigma}\left(\hat{\bm{\mathbf{\chi}}}\right)}{\det\left(J\right)}.\label{eq:W3_scalar_transform}
@@ -1077,7 +1132,7 @@ reference "eq:W3_scalar_transform"
 
 \end_inset
 
-which now means that the div-curl relationships are not satisfied anymore,
+which now means that the div-curl relationships are not satisfied any more,
  i.e.
  
 \begin_inset Formula $\nabla.$
@@ -1185,6 +1240,301 @@ reference "eq:W3_scalar_transform-new"
 
 \end_layout
 
+\begin_layout Standard
+Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:Transformations-summary"
+
+\end_inset
+
+ summarises the spaces and transformations for functions in each space 
+\begin_inset Formula $\mathbb{W}_{0}$
+\end_inset
+
+ to 
+\begin_inset Formula $\mathbb{W}_{3}$
+\end_inset
+
+ in the absence of any metric terms.
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="3">
+<features rotate="0" tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Space
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Function 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Differential of Function
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbb{W}_{0}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\gamma=\hat{\gamma}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbb{W}_{1}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbf{c}=J^{-T}\hat{\mathbf{c}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\nabla\gamma=J^{-T}\hat{\nabla}\hat{\gamma}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbb{W}_{2}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbf{v}=J\hat{\mathbf{v}}/\det\left(J\right)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\nabla\times\mathbf{c}=J\hat{\nabla}\times\hat{\mathbf{c}}/\det\left(J\right)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathbb{W}_{3}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\sigma=\hat{\sigma}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\nabla.\mathbf{v}=\hat{\nabla}.\hat{\mathbf{v}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Transformations-summary"
+
+\end_inset
+
+Transformations between physical 
+\begin_inset Formula $\bm{\chi}$
+\end_inset
+
+ and computational space 
+\begin_inset Formula $\hat{\bm{\chi}}$
+\end_inset
+
+, using the mapping 
+\begin_inset Formula $\bm{\phi}\left(\hat{\bm{\chi}}\right)=\bm{\chi}$
+\end_inset
+
+ and 
+\begin_inset Formula $J\equiv\partial\bm{\mathbf{\phi}}\left(\hat{\bm{\chi}}\right)/\partial\hat{\bm{\mathbf{\chi}}}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Additionally when transforming the domain of integration from the physical
+ domain 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ to the computational domain 
+\begin_inset Formula $\hat{\Omega}$
+\end_inset
+
+ the volume element 
+\begin_inset Formula $dV$
+\end_inset
+
+ also picks up a transformation term and so 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:fem_integral_form"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:fem_angle_brackets"
+
+\end_inset
+
+ become 
+\begin_inset Formula 
+\begin{equation}
+\int_{\hat{\Omega}}ts\det\left(J\right)d\hat{V}\equiv\left\langle t,s\det\left(J\right)\right\rangle \label{eq:fem_computational_integral}
+\end{equation}
+
+\end_inset
+
+ where now the angle bracket notation denotes integration in the computational
+ domain.
+\end_layout
+
 \begin_layout Subsection
 Discrete equations in the reference domain
 \end_layout
@@ -1214,7 +1564,7 @@ reference "eq:linear_mom_vec_invariant-weak-1"
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle J\hat{\bm{v}},\frac{J}{\det\left(J\right)}\frac{\partial\hat{\mathbf{u}}'}{\partial t}\right\rangle  & = & c_{pd}\left\langle \theta_{s}\left(\nabla.\hat{\bm{v}}\right)+\frac{N^{2}}{g}\bm{k}.\hat{\bm{v}},\Pi'\right\rangle +\left\langle J\bm{v},\frac{\hat{\theta}'}{\theta_{s}}\mathbf{g}\right\rangle -\left\langle \frac{J\hat{\bm{v}}}{\det\left(J\right)},2\bm{\Omega}\times\left(J\hat{\mathbf{u}}\right)\right\rangle \equiv R_{u},\label{eq:linear_mom_vec_invariant-weak-pullback}\\
+\left\langle J\hat{\mathbf{v}},\frac{J}{\det\left(J\right)}\frac{\partial\hat{\mathbf{u}}'}{\partial t}\right\rangle  & = & c_{pd}\left\langle \theta_{s}\left(\nabla.\hat{\mathbf{v}}\right)+\frac{N^{2}}{g}\mathbf{k}.\hat{\mathbf{v}},\Pi'\right\rangle +\left\langle J\hat{\mathbf{v}},\frac{\hat{\theta}'}{\theta_{s}}\mathbf{g}\right\rangle -\left\langle \frac{J\hat{\bm{\mathbf{v}}}}{\det\left(J\right)},2\bm{\Omega}\times\left(J\hat{\mathbf{u}}\right)\right\rangle \equiv R_{u},\label{eq:linear_mom_vec_invariant-weak-pullback}\\
 \left\langle \hat{\sigma},\frac{\partial\hat{\rho}'}{\partial t}\det\left(J\right)\right\rangle  & = & \left\langle \hat{\sigma},\frac{N^{2}}{g}\rho_{s}\mathbf{k}.J\hat{\mathbf{u}}'-\rho_{s}\nabla.\hat{\mathbf{u}}'\right\rangle \equiv R_{\rho},\label{eq:linear_continuity-weak-pullback}\\
 \left\langle \hat{\gamma},\frac{\partial\hat{\theta}'}{\partial t}\det\left(J\right)\right\rangle  & = & -\left\langle \hat{\gamma},\frac{N^{2}}{g}\theta_{s}\mathbf{k}.J\hat{\mathbf{u}}'\right\rangle \equiv R_{\theta}.\label{eq:linear_thermo-weak-pullback}
 \end{eqnarray}
@@ -1249,12 +1599,12 @@ reference "eq:voticity_projection"
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle J\hat{\bm{v}},\frac{J}{\det\left(J\right)}\frac{\partial\hat{\mathbf{u}}}{\partial t}\right\rangle  & = & -\left\langle J\hat{\bm{v}},\frac{J^{-T}\hat{\bm{\xi}}}{\hat{\rho}\det\left(J\right)}\times J\hat{\bm{F}}\right\rangle -\left\langle \hat{\bm{v}},\nabla\Phi\right\rangle +\left\langle \nabla.\hat{\bm{v}},\frac{1}{2}\left(\frac{J\hat{\bm{u}}}{\det\left(J\right)}\right).\left(\frac{J\hat{\bm{u}}}{\det\left(J\right)}\right)\right\rangle \label{eq:nonlinear_mom-pullback}\\
- &  & -\left\langle \frac{J\hat{\bm{v}}}{\det\left(J\right)},2\bm{\Omega}\times\left(J\hat{\mathbf{u}}\right)\right\rangle +c_{pd}\left\langle \hat{\theta}\nabla.\hat{\bm{v}}+\hat{\bm{v}}.\nabla\hat{\theta},\Pi\right\rangle ,\nonumber \\
+\left\langle J\hat{\mathbf{v}},\frac{J}{\det\left(J\right)}\frac{\partial\hat{\mathbf{u}}}{\partial t}\right\rangle  & = & -\left\langle J\hat{\mathbf{v}},\frac{J^{-T}\hat{\bm{\xi}}}{\hat{\rho}\det\left(J\right)}\times J\hat{\mathbf{F}}\right\rangle -\left\langle \hat{\mathbf{v}},\nabla\Phi\right\rangle +\left\langle \nabla.\hat{\mathbf{v}},\frac{1}{2}\left(\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right).\left(\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right)\right\rangle \label{eq:nonlinear_mom-pullback}\\
+ &  & -\left\langle \frac{J\hat{\mathbf{v}}}{\det\left(J\right)},2\bm{\Omega}\times\left(J\hat{\mathbf{u}}\right)\right\rangle +c_{pd}\left\langle \hat{\theta}\nabla.\hat{\mathbf{v}}+\hat{\mathbf{v}}.\nabla\hat{\theta},\Pi\right\rangle ,\nonumber \\
 \left\langle \hat{\sigma},\frac{\partial\hat{\rho}'}{\partial t}\det\left(J\right)\right\rangle  & = & -\left\langle \hat{\sigma},\nabla.\hat{\mathbf{F}}\right\rangle ,\label{eq:nonlinear_continuity-pullback}\\
 \left\langle \hat{\gamma},\frac{\partial\hat{\theta}'}{\partial t}\det\left(J\right)\right\rangle  & = & -\left\langle \hat{\gamma},\hat{\mathbf{u}}.\nabla\hat{\theta}\right\rangle ,\label{eq:nonlinear_thermo-pullback}\\
-\left\langle J\hat{\bm{v}},\frac{J\hat{\mathbf{F}}}{\det\left(J\right)}\right\rangle  & = & \left\langle J\hat{\bm{v}},\hat{\rho}\frac{J\hat{\bm{u}}}{\det\left(J\right)}\right\rangle ,\label{eq:mass_flux_pullback}\\
-\left\langle J^{-T}\bm{c},J^{-T}\mbox{\bm{\xi}}\det\left(J\right)\right\rangle  & = & -\left\langle J\nabla\times\hat{\bm{c}},\frac{J\hat{\bm{u}}}{\det\left(J\right)}\right\rangle .\label{eq:vorticity_pullback}
+\left\langle J\hat{\mathbf{v}},\frac{J\hat{\mathbf{F}}}{\det\left(J\right)}\right\rangle  & = & \left\langle J\hat{\mathbf{v}},\hat{\rho}\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right\rangle ,\label{eq:mass_flux_pullback}\\
+\left\langle J^{-T}\hat{\mathbf{c}},J^{-T}\hat{\mbox{\bm{\xi}}}\det\left(J\right)\right\rangle  & = & -\left\langle J\nabla\times\hat{\mathbf{c}},\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right\rangle .\label{eq:vorticity_pullback}
 \end{eqnarray}
 
 \end_inset
@@ -1450,8 +1800,8 @@ where the weights
 \end_inset
 
 , e.g.
- for the strong stability preserving 3 stage 3rd order scheme this is given
- in Table 
+ for the strong stability preserving 3-stage third order scheme this is
+ given in Table 
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "tab:RKSSP3"
@@ -1791,7 +2141,7 @@ M_{1}=\left\langle J^{-T}\hat{\mathbf{c}},J^{-T}\hat{\mathbf{c}}\det\left(J\righ
 
 \begin_inset Formula 
 \begin{equation}
-M_{2}=\left\langle \frac{J\hat{\bm{v}}}{\det\left(J\right)},J\hat{\bm{v}}\right\rangle ,\label{eq:M2_mass_matrix}
+M_{2}=\left\langle \frac{J\hat{\mathbf{v}}}{\det\left(J\right)},J\hat{\mathbf{v}}\right\rangle ,\label{eq:M2_mass_matrix}
 \end{equation}
 
 \end_inset
@@ -1859,8 +2209,8 @@ The governing equations with some estimate
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\left\langle \bm{v},\mathbf{u}'\right\rangle  & =R_{\mathbf{u}}^{(k)}\equiv & -\left\langle \bm{v},\mathbf{u}^{(k)}-\mathbf{u}^{n}\right\rangle -\Delta t\left\langle \bm{v},\left(\frac{\bm{\xi}}{\rho}\right)^{n}\times\widetilde{\mathbf{F}}\right\rangle \label{eq:si_mom}\\
- &  & +\Delta t\left\{ -\overline{\left\langle \bm{v},\nabla\Phi\right\rangle }^{\alpha}+\overline{\left\langle \nabla.\bm{v},K\right\rangle }^{\alpha}+c_{pd}\overline{\left\langle \nabla.\left(\theta\bm{v}\right),\Pi\right\rangle }^{\alpha}-\overline{\left\langle \bm{v},2\bm{\Omega}\times\mathbf{u}\right\rangle }^{\alpha}\right\} ,\nonumber \\
+\left\langle \mathbf{v},\mathbf{u}'\right\rangle  & =R_{\mathbf{u}}^{(k)}\equiv & -\left\langle \mathbf{v},\mathbf{u}^{(k)}-\mathbf{u}^{n}\right\rangle -\Delta t\left\langle \mathbf{v},\left(\frac{\bm{\xi}}{\rho}\right)^{n}\times\widetilde{\mathbf{F}}\right\rangle \label{eq:si_mom}\\
+ &  & +\Delta t\left\{ -\overline{\left\langle \mathbf{v},\nabla\Phi\right\rangle }^{\alpha}+\overline{\left\langle \nabla.\mathbf{v},K\right\rangle }^{\alpha}+c_{pd}\overline{\left\langle \nabla.\left(\theta\mathbf{v}\right),\Pi\right\rangle }^{\alpha}-\overline{\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}\right\rangle }^{\alpha}\right\} ,\nonumber \\
 \left\langle \sigma,\rho'\right\rangle  & =R_{\rho}^{(k)}\equiv & -\left\langle \sigma,\rho^{(k)}-\rho^{n}\right\rangle -\Delta t\left\langle \sigma,\nabla.\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_continuity}\\
 \left\langle \gamma,\theta'\right\rangle  & =R_{\theta}^{(k)}\equiv & -\left\langle \gamma,\theta^{(k)}-\theta^{n}\right\rangle -\Delta t\left\langle \gamma,\frac{\widetilde{\mathbf{F}}}{\rho}.\nabla\theta^{n}\right\rangle ,\label{eq:si_thermo}
 \end{eqnarray}
@@ -1896,9 +2246,9 @@ M_{\theta}\theta' & = & R_{\theta}^{(k)}\equiv R_{\theta}^{n+1}+R_{\theta}^{n}+R
 where 
 \begin_inset Formula 
 \begin{eqnarray}
-R_{\mathbf{u}}^{n+1} & = & -\left\langle \bm{v},\mathbf{u}^{(k)}\right\rangle +\alpha\Delta t\left[-\left\langle \bm{v},\nabla\Phi\right\rangle +\left\langle \nabla.\bm{v},K^{(k)}\right\rangle +c_{pd}\left\langle \nabla.\left(\theta^{(k)}\bm{v}\right),\Pi^{(k)}\right\rangle -\left\langle \bm{v},2\bm{\Omega}\times\mathbf{u}^{(k)}\right\rangle \right],\label{eq:si_ru_np1}\\
-R_{\mathbf{u}}^{n} & = & \left\langle \bm{v},\mathbf{u}^{n}\right\rangle +\left(1-\alpha\right)\Delta t\left[-\left\langle \bm{v},\nabla\Phi\right\rangle +\left\langle \nabla.\bm{v},K^{n}\right\rangle +c_{pd}\left\langle \nabla.\left(\theta^{n}\bm{v}\right),\Pi^{n}\right\rangle -\left\langle \bm{v},2\bm{\Omega}\times\mathbf{u}^{n}\right\rangle \right],\label{eq:si_ru_n}\\
-R_{\mathbf{u}}^{adv} & = & -\Delta t\left\langle \bm{v},\left(\frac{\bm{\xi}}{\rho}\right)^{n}\times\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_ru_adv}\\
+R_{\mathbf{u}}^{n+1} & = & -\left\langle \mathbf{v},\mathbf{u}^{(k)}\right\rangle +\alpha\Delta t\left[-\left\langle \mathbf{v},\nabla\Phi\right\rangle +\left\langle \nabla.\mathbf{v},K^{(k)}\right\rangle +c_{pd}\left\langle \nabla.\left(\theta^{(k)}\mathbf{v}\right),\Pi^{(k)}\right\rangle -\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}^{(k)}\right\rangle \right],\label{eq:si_ru_np1}\\
+R_{\mathbf{u}}^{n} & = & \left\langle \mathbf{v},\mathbf{u}^{n}\right\rangle +\left(1-\alpha\right)\Delta t\left[-\left\langle \mathbf{v},\nabla\Phi\right\rangle +\left\langle \nabla.\mathbf{v},K^{n}\right\rangle +c_{pd}\left\langle \nabla.\left(\theta^{n}\mathbf{v}\right),\Pi^{n}\right\rangle -\left\langle \mathbf{v},2\mathbf{\Omega}\times\mathbf{u}^{n}\right\rangle \right],\label{eq:si_ru_n}\\
+R_{\mathbf{u}}^{adv} & = & -\Delta t\left\langle \mathbf{v},\left(\frac{\bm{\xi}}{\rho}\right)^{n}\times\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_ru_adv}\\
 R_{\rho}^{n+1} & = & -\left\langle \sigma,\rho^{(k)}\right\rangle ,\label{eq:si_rrho_np1}\\
 R_{\rho}^{n} & = & \left\langle \sigma,\rho^{n}\right\rangle ,\label{eq:si_rrho_n}\\
 R_{\rho}^{adv} & = & -\Delta t\left\langle \sigma,\nabla.\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_rrho_adv}\\
@@ -1978,6 +2328,96 @@ reference "eq:si_thermodynamic_operator"
 \end_layout
 
 \begin_layout Section
+Conservation
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Conservation"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The numerical conservation of a number of quantities that are conserved
+ by the continuous nonlinear equations 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:nonlinear_mom"
+
+\end_inset
+
+-
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:nonlinear_thermo"
+
+\end_inset
+
+ are computed and recorded.
+ The currently measured quantities are: dry mass, dry total energy, potential
+ vorticity and axial angular momentum,
+\begin_inset Formula 
+\begin{eqnarray}
+M & = & \int_{\Omega}\rho dV,\label{eq:total_mass}\\
+E & = & \int_{\Omega}\rho\left[\Phi+\frac{1}{2}\mathbb{\mathbf{u}}.\mathbf{u}+c_{v}T\right]dV,\label{total_energy}\\
+P & = & \int_{\Omega}\bm{\xi}.\nabla\theta dV\label{total_pv}\\
+A & = & \int_{\Omega}\rho\tilde{\mathbf{z}}.\left[\mathbf{r}\times\left(\mathbf{u}+\bm{\Omega}\times\mathbf{r}\right)\right]dV,\label{eq:total_aam}
+\end{eqnarray}
+
+\end_inset
+
+where 
+\begin_inset Formula $\tilde{\mathbf{z}}$
+\end_inset
+
+ is a unit vector in the direction of 
+\begin_inset Formula $\bm{\Omega}$
+\end_inset
+
+ and 
+\begin_inset Formula $c_{v}=c_{pd}-R_{d}$
+\end_inset
+
+ is the specific heat capacity at constant volume In the weak formulation
+ these are discretised as
+\begin_inset Formula 
+\begin{eqnarray}
+M & = & \sum_{cell}\left\langle \sigma,\rho\right\rangle ,\label{eq:discrete_total_mass}\\
+E & = & \sum_{cell}\left\langle \rho,\Phi+\frac{1}{2}\mathbb{\mathbf{u}}.\mathbf{u}+c_{v}\theta\Pi\right\rangle ,\label{eq:disctrete_total_energy}\\
+P & = & \sum_{cell}\left\langle \bm{\xi},\nabla\theta\right\rangle ,\label{eq:discrete_total_pv}\\
+A & = & \sum_{cell}\left\langle \rho\tilde{\mathbf{z}},\mathbf{r}\times\left(\mathbf{u}+\bm{\Omega}\times\mathbf{r}\right)\right\rangle ,\label{eq:discrete_total_aam}
+\end{eqnarray}
+
+\end_inset
+
+applying the transformations from Section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Coordinate-Transforms"
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{eqnarray}
+M & = & \sum_{cell}\left\langle \hat{\sigma},\hat{\rho}\det\left(J\right)\right\rangle ,\label{eq:discrete_total_mass-1}\\
+E & = & \sum_{cell}\left\langle \hat{\rho},\left[\Phi+\frac{1}{2}\left(\frac{J\hat{\mathbb{\mathbf{u}}}}{\det\left(J\right)}\right).\left(\frac{J\hat{\mathbb{\mathbf{u}}}}{\det\left(J\right)}\right)+c_{v}\hat{\theta}\hat{\Pi}\right]\det\left(J\right)\right\rangle ,\label{eq:disctrete_total_energy-1}\\
+P & = & \sum_{cell}\left\langle J^{-T}\hat{\bm{\xi}},J^{-T}\nabla\hat{\theta}\det\left(J\right)\right\rangle ,\label{eq:discrete_total_pv-1}\\
+A & = & \sum_{cell}\left\langle \hat{\rho}\tilde{\mathbf{z}},\mathbf{r}\times\left(\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}+\bm{\Omega}\times\mathbf{r}\right)\det\left(J\right)\right\rangle .\label{eq:discrete_total_aam-1}
+\end{eqnarray}
+
+\end_inset
+
+For output the total quantities are normalised by the square of the planet
+ radius and so the output quantities are: 
+\begin_inset Formula $M/a^{2},\, E/a^{2},\, P/a^{2},\, A/a^{2}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
 Results
 \begin_inset CommandInset label
 LatexCommand label
@@ -1990,7 +2430,52 @@ name "sec:Results"
 
 \begin_layout Standard
 This section gives some indicative results obtained using Dynamo.
- Unless otherwise noted all runs use the RKSSP3 timestepping method.
+ For spherical results the resolution is given in form 
+\begin_inset Formula $CxLyKz$
+\end_inset
+
+ where 
+\begin_inset Formula $x$
+\end_inset
+
+ is the number of cells along one edge of a cubed-sphere panel, 
+\begin_inset Formula $y$
+\end_inset
+
+ is the number of cells in the vertical and 
+\begin_inset Formula $z$
+\end_inset
+
+ is the polynomial order of the 
+\begin_inset Formula $\mathbb{W}_{3}$
+\end_inset
+
+ space, hence 
+\begin_inset Formula $C12L5K0$
+\end_inset
+
+ would give a cubed-sphere of 
+\begin_inset Formula $6\times12^{2}$
+\end_inset
+
+ cells in the horizontal and 
+\begin_inset Formula $5$
+\end_inset
+
+ cells in the vertical with lowest order elements.
+ The total number of degrees of freedom at a given resolution for a 
+\begin_inset Formula $\mathbb{W}_{3}$
+\end_inset
+
+ field (and hence a measure of the cost of the simulation) is given by 
+\begin_inset Formula $6x^{2}y\left(z+1\right)^{3}$
+\end_inset
+
+ which for the example above is 
+\begin_inset Formula $4320$
+\end_inset
+
+ dofs.
 \end_layout
 
 \begin_layout Subsection
@@ -2001,14 +2486,14 @@ Vertical Slice Tests
 \begin_inset Float figure
 wide false
 sideways false
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \align center
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -2066,7 +2551,7 @@ status collapsed
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -2334,7 +2819,7 @@ key "meldubwsz09"
 \begin_inset Float figure
 wide false
 sideways false
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \align center
@@ -2457,7 +2942,7 @@ status collapsed
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -2612,14 +3097,6 @@ Results for the 2D gravity wave test simulated using the linear equations
 
 \end_layout
 
-\begin_layout Standard
-
-\end_layout
-
-\begin_layout Section
-Results
-\end_layout
-
 \begin_layout Subsection
 Nonlinear Results
 \end_layout
@@ -2769,11 +3246,7 @@ Gravity wave test with (a) & (c) ENDGame, at
 \begin_inset Formula $46080$
 \end_inset
 
- cells) with 
-\begin_inset Formula $\Delta t=5\,{\rm s}$
-\end_inset
-
- and (b) & (d) Dynamo, on a 
+ cells) and (b) & (d) Dynamo, on a 
 \begin_inset Formula $C24$
 \end_inset
 
@@ -2781,11 +3254,7 @@ Gravity wave test with (a) & (c) ENDGame, at
 \begin_inset Formula $34560$
 \end_inset
 
- cells) with 
-\begin_inset Formula $\Delta t=1\,{\rm s}$
-\end_inset
-
-, both with 10 vertical levels.
+ cells).
 \end_layout
 
 \end_inset
@@ -2799,11 +3268,15 @@ Gravity wave test with (a) & (c) ENDGame, at
 \end_layout
 
 \begin_layout Standard
-The gravity wave test from the dynamical core model intercomparison project
- (DCMIP: see http://earthsystemcog.
- org/projects/dcmip-2012/ and http://earthsystemcog.org/site media/docs/DCMIP-Tes
-tCaseDocument v1.7.pdf for detailed descriptions of the test problems) is
- run with the modification that the constant advecting velocity is removed.
+The gravity wave test from the dynamical core model intercomparison project,
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "dcmip2012"
+
+\end_inset
+
+, is run with the modification that the constant advecting velocity is removed.
  To facilate a comparison of results the same test is repeated in ENDGame
  
 \begin_inset CommandInset citation
@@ -2825,8 +3298,200 @@ reference "fig:Spherical-Gravity-wave-test"
 \end_inset
 
 .
- This test is then repeated, but on rotating planet and the results are
- shown in Figure 
+ The conservation of mass, energy, pv and axial angular momentum as given
+ by 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:discrete_total_mass-1"
+
+\end_inset
+
+-
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:discrete_total_aam-1"
+
+\end_inset
+
+ are shown in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:conservation"
+
+\end_inset
+
+ for 
+\begin_inset Formula $C12L5K0$
+\end_inset
+
+ resolution, shows that as expected mass is conserved exactly, panel (a)
+ and energy is conserved to a very small error, panel (b).
+ The Potential Vorticity (PV) is not conserved, panel (c), as the conservation
+ law for PV is not enforced, (note the initial PV for this test is zero).
+ As expected axial-angular momentum, panel (d), is also not conserved, furthermo
+re it is not clear if this diagnostic has been correctly implemented and
+ what it even means in the absence of rotation, this should be revisited
+ when rotation is added to the nonlinear equations.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/Conservation_of_mass_GW_C12L5k0.eps
+	scale 50
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/Conservation_of_energy_GW_C12L5k0.eps
+	scale 50
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/Conservation_of_PV_GW_C12L5k0.eps
+	scale 50
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename figures/Conservation_of_AAM_GW_C12L5k0.eps
+	scale 50
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:conservation"
+
+\end_inset
+
+Conservation of (a) Mass, (b) Energy, (c) Potential vorticity and (d) Axial
+ Angular Momentum for the gravity wave test of Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Spherical-Gravity-wave-test"
+
+\end_inset
+
+ but for 
+\begin_inset Formula $C12L5K0$
+\end_inset
+
+ resolution.
+ Note this test is on an unrotating planet.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+The gravity wave test is then repeated, but on rotating planet and the results
+ are shown in Figure 
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "fig:Spherical-Rotating-Gravity-wave-test"
@@ -2847,7 +3512,7 @@ status open
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -2905,7 +3570,7 @@ status collapsed
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -2932,7 +3597,7 @@ status collapsed
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -2977,11 +3642,7 @@ Rotating gravity wave test with (a) & (c) ENDGame, at
 \begin_inset Formula $46080$
 \end_inset
 
- cells) with 
-\begin_inset Formula $\Delta t=5\,{\rm s}$
-\end_inset
-
-, and (b) & (d) Dynamo, on a 
+ cells) and (b) & (d) Dynamo, on a 
 \begin_inset Formula $C24$
 \end_inset
 
@@ -2989,11 +3650,7 @@ Rotating gravity wave test with (a) & (c) ENDGame, at
 \begin_inset Formula $34560$
 \end_inset
 
- cells) with 
-\begin_inset Formula $\Delta t=1\,{\rm s}$
-\end_inset
-
-, both with 10 vertical levels.
+ cells), both with 10 vertical levels.
 \end_layout
 
 \end_inset
