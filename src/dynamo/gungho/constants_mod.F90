@@ -136,6 +136,7 @@ module constants_mod
  !> @name Formulation switches
  logical, parameter :: L_NONLINEAR     = .true. !< Solve the full nonlinear equation set
  logical, parameter :: L_SEMI_IMPLICIT = .true. !< Use the iterative timestepping method or runge kutta method
+ logical, parameter :: L_ROTATING      = .true. !< Turn on/off Coriolis terms
  !> @}
 
  !> @}

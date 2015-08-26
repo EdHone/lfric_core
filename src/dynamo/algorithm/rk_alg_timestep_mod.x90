@@ -42,7 +42,7 @@ module rk_alg_timestep_mod
   use function_space_mod, &
                      only: function_space_type, W0, W1, W2, W3
   use solver_mod,    only: solver_algorithm
-  use constants_mod, only: r_def, SOLVER_OPTION, DT, NT
+  use constants_mod, only: r_def, SOLVER_OPTION, DT, NT, L_ROTATING
   use quadrature_mod, only : quadrature_type, QR3
   use galerkin_projection_algorithm_mod, &
                      only : galerkin_projection_algorithm
@@ -269,7 +269,8 @@ contains
         call invoke( rtheta_kernel_type( rt_prediction(stage), theta, mass_flux, rho, qr) )
         !PSY call invoke ( set_field_scalar(0.0_r_def, ru_prediction(stage)))
         call invoke_set_field_scalar(0.0_r_def, ru_prediction(stage))
-        call invoke( rotation_kernel_type                ( ru_prediction(stage), u, chi, qr ) )
+        if ( L_ROTATING ) &
+            call invoke( rotation_kernel_type( ru_prediction(stage), u, chi, qr ) )
         call invoke( pressure_gradient_kernel_type       ( ru_prediction(stage), rho, theta, qr ) )
         call invoke( kinetic_energy_gradient_kernel_type ( ru_prediction(stage), u, chi, qr ) )
         call invoke( geopotential_gradient_kernel_type   ( ru_prediction(stage), geopotential, qr ) )
