@@ -134,7 +134,7 @@
     [[design_documentation]]
         inherit = DOCUMENTATION, DOCUMENTATION_ENVIRONMENT, LOCAL
         command scripting = """
-                            make -C $SOURCE_DIRECTORY/documentation design
+                            make -C $SOURCE_DIRECTORY/documentation documents
                             """
 
 {#############################################################################}

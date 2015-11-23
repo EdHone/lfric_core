@@ -5,35 +5,35 @@
 # https://puma.nerc.ac.uk/trac/GungHo/wiki
 ##############################################################################
 
-DESIGN_DOCUMENTS = formulation/dynamo_formulation.lyx glossary/Glossary.lyx
-DESIGN_OUTPUTS = $(patsubst %.lyx,%.pdf,$(DESIGN_DOCUMENTS))
+DOXYGEN  ?= doxygen
 
-DOXYGEN ?= doxygen
-
-TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-$(info ** TEXINPUTS = $(TOP))
+DOCUMENT_DIRECTORIES = $(patsubst %/,%,$(dir $(wildcard */*.latex)))
 
 .PHONY: most
-most: api design
+most: documents api
 
 .PHONY: api
 api:
 	echo Building API documentation
 	$(DOXYGEN) Doxyfile
 
-.PHONY: design
-design: $(DESIGN_OUTPUTS)
+.PHONY: documents
+documents: $(DOCUMENT_DIRECTORIES)
 
-%.pdf: %.lyx
-	echo Building $@
-	env TEXINPUTS=$(TOP)/tex//: lyx -e pdf $<
+.PHONY: $(DOCUMENT_DIRECTORIES)
+$(DOCUMENT_DIRECTORIES):
+	$(MAKE) -f ../make/latex.mk -C $@
 
 .PHONY: gource
 gource:
 	$(MAKE) -C visualisation
 
-.PHONY: clean
-clean:
+clean: $(addprefix clean_,$(DOCUMENT_DIRECTORIES))
 	-rm -rf docs/api/*
-	-rm $(DESIGN_OUTPUTS)
+
+clean_%: ALWAYS
+	$(MAKE) -f ../make/latex.mk -C $* clean
+
+.PHONY: ALWAYS
+ALWAYS:
 

@@ -1,0 +1,1345 @@
+%% LyX 2.1.0 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass{article}
+\usepackage[UKenglish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage[authoryear]{natbib}
+\usepackage{lmodern}
+\renewcommand{\sfdefault}{lmss}
+\renewcommand{\ttdefault}{lmtt}
+\usepackage{calc}
+\usepackage{bm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{cancel}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Textclass specific LaTeX commands.
+\newenvironment{lyxlist}[1]
+{\begin{list}{}
+{\settowidth{\labelwidth}{#1}
+ \setlength{\leftmargin}{\labelwidth}
+ \addtolength{\leftmargin}{\labelsep}
+ \renewcommand{\makelabel}[1]{##1\hfil}}}
+{\end{list}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\input{paper_single_style}
+\parindent = 5 mm
+
+\@ifundefined{showcaptionsetup}{}{%
+ \PassOptionsToPackage{caption=false}{subfig}}
+\usepackage{subfig}
+\AtBeginDocument{
+  \def\labelitemi{\textcolor{red}{\(\bullet\)}}
+  \def\labelitemii{\textcolor{red}{\(\ast\)}}
+}
+
+\makeatother
+
+\begin{document}
+
+\title{Dynamo formulation V1.0%
+\thanks{\copyright\ Crown copyright, 2014%
+}}
+
+
+\author{Thomas Melvin$^{1}$%
+\thanks{\ Correspondence to:\protect \\
+\hspace*{7 mm}T. Melvin, Met Office, FitzRoy Road, Exeter EX1 3PB,
+U.K.\protect \\
+\hspace*{7 mm}email: Thomas.Melvin@metoffice.gov.uk%
+}\\
+$^{1}$ Met Office, Exeter, U.K.}
+\maketitle
+\begin{abstract}
+Abstract goes here
+\end{abstract}
+\vskip\baselineskip KEYWORDS keywords here,
+
+\newpage
+
+
+\section*{Changes to make:}
+
+These changes should be made once the relevant areas of the Dynamo
+code have also been changed
+\begin{enumerate}
+\item Modify reference edge numbering so that edges are labeled with the
+vertices they connect, e.g $e_{1}\rightarrow e_{12},\, e_{10}\rightarrow e_{85}$.
+\end{enumerate}
+
+\section{\label{sec:Introduction}Introduction}
+
+This document describes the model and discretisation for the Dynamo
+prototype dynamical core produced as part of the Gung-Ho project.
+
+
+\section{\label{sec:Governing-Equations}Governing Equations}
+
+Consider the full nonlinear 3D equations in a rotating frame
+\begin{eqnarray}
+\frac{D\mathbf{u}}{Dt}+2\bm{\Omega}\times\mathbf{u}+c_{pd}\theta\nabla\Pi+\nabla\Phi & = & 0,\label{eq:nonlinear_mom}\\
+\frac{D\rho}{Dt}+\rho\nabla.\mathbf{u} & = & 0,\label{eq:nonlinear_continuity}\\
+\frac{D\theta}{Dt} & = & 0,\label{eq:nonlinear_thermo}
+\end{eqnarray}
+along with the nonlinear equation of state
+\begin{equation}
+\Pi^{\left(\frac{1-\kappa_{d}}{\kappa_{d}}\right)}=\frac{R_{d}}{p_{0}}\rho\theta,\label{eq:nonlinear_eos}
+\end{equation}
+and
+\begin{equation}
+\frac{D}{Dt}\equiv\frac{\partial}{\partial t}+\mathbf{u}.\nabla,\label{eq:Lagrangian_Dt}
+\end{equation}
+where $\mathbf{u}=\left(u,v,w\right)$ is the velocity vector in the
+general orthogonal coordinate system $\bm{\chi}\equiv\left(\chi_{1},\chi_{2},\chi_{3}\right)$
+with unit vectors $\left(\mathbf{i},\mathbf{j},\mathbf{k}\right)$
+respectively; $\rho$ is the density; $\theta$ is the potential temperature,
+related to temperature through $T=\theta\Pi$; $\Pi=\left(p/p_{0}\right)^{\kappa_{d}}$
+is the Exner pressure with $p$ pressure and $p_{0}$ a constant reference
+pressure; $R_{d}$ is the dry gas constant per unit mass, $c_{pd}$
+is the specific heat at constant pressure, and $\kappa_{d}\equiv R_{d}/c_{pd}$;
+$\Phi$ is the geopotential such that $\nabla\Phi=-\mathbf{g}\equiv\left(0,0,g\right)$
+is the gravitational term and $\bm{\Omega}$ is the rotation vector.
+Rewriting these equations in the vector invariant form yields
+\begin{eqnarray}
+\frac{\partial\mathbf{u}}{\partial t}+\frac{\bm{\xi}}{\rho}\times\mathbf{F}+2\bm{\Omega}\times\mathbf{u}+\nabla\left(K+\Phi\right)+c_{pd}\theta\nabla\Pi & = & 0,\label{eq:nonlinear_mom-1}\\
+\frac{\partial\rho}{\partial t}+\nabla.\mathbf{F} & = & 0,\label{eq:nonlinear_continuity-1}\\
+\frac{\partial\theta}{\partial t}+\mathbf{u}.\nabla\theta & = & 0,\label{eq:nonlinear_thermo-1}\\
+\Pi^{\left(\frac{1-\kappa_{d}}{\kappa_{d}}\right)} & = & \frac{R_{d}}{p_{0}}\rho\theta,\label{eq:nonlinear_eos-1}
+\end{eqnarray}
+where $\bm{\xi}\equiv\nabla\times\mathbf{u}$ is the relative vorticity,
+$K\equiv\frac{1}{2}\mathbf{u}.\mathbf{u}$ is the kinetic energy per
+unit mass and $\mathbf{F}=\rho\mathbf{u}$ is the mass flux. To simplify
+the problem the nonlinear equations \eqref{eq:nonlinear_mom-1}-\eqref{eq:nonlinear_eos-1}
+are linearised about a hydrostatically balanced state $\left(\rho_{s},\theta_{s},\Pi_{s}\right)$
+that is a function of $\chi_{3}$ only, with a zero advecting wind
+$\mathbf{u}_{s}\equiv\bm{0}$. Using $N^{2}=\left(g/\theta_{s}\right)\partial\theta_{s}/\partial\chi_{3},$~$\partial\Pi_{s}/\partial\chi_{3}=-g/\left(c_{pd}\theta_{s}\right),$
+and $\left(1/\rho_{s}\right)\partial\rho_{s}/\partial\chi_{3}=-N^{2}/g$
+gives
+\begin{eqnarray}
+\frac{\partial\mathbf{u}'}{\partial t} & = & -c_{pd}\theta_{s}\nabla\Pi'+\frac{\theta'}{\theta_{s}}\mathbf{g}-2\bm{\Omega}\times\mathbf{u},\label{eq:linear_mom}\\
+\frac{\partial\rho'}{\partial t} & = & \frac{N^{2}\rho_{s}}{g}\mathbf{u}'.\mathbf{k}-\rho_{s}\nabla.\mathbf{u}',\label{eq:linear_continuity}\\
+\frac{\partial\theta'}{\partial t} & = & -N^{2}\frac{\theta_{s}}{g}\mathbf{u}'.\mathbf{k},\label{eq:linear_thermo}
+\end{eqnarray}
+where the linear equation of state is
+\begin{equation}
+\left(\frac{1-\kappa_{d}}{\kappa_{d}}\right)\frac{\Pi'}{\Pi_{s}}=\frac{\rho'}{\rho_{s}}+\frac{\theta'}{\theta_{s}},\label{eq:linear_eos}
+\end{equation}
+and $\mathbf{k}$ is a unit vector normal to the surface of the domain,
+i.e. aligned along the positive $z$ direction for a Cartesian domain
+and in the radial direction for a spherical domain.
+
+
+\section{\label{sec:FEM-Discretisation}Finite Element Discretisation}
+
+Equations \eqref{eq:nonlinear_mom}-\eqref{eq:nonlinear_eos} constitute
+a set of coupled nonlinear equations for the unknowns $\theta\,,\bm{\xi},\,\mathbf{u},\,\rho,\,\Pi.$
+Alternatively \eqref{eq:linear_mom}-\eqref{eq:linear_eos} constitute
+a set of coupled linear equations for the same unknowns (without the
+vorticity term $\bm{\xi}$) which represent small perturbations from
+the reference state $\left(\theta_{s},\,\rho_{s},\,\Pi_{s}\right).$
+The chosen set of equations are discretised using a mixed finite element
+method on quadrilateral elements, see Appendix \ref{sec:Reference-Element};
+this method implies a set of four function spaces denoted by $\mathbb{W}_{i},\, i=0..3$,
+related by the DeRahm complex:
+\begin{equation}
+\begin{array}{ccccccc}
+\mathbb{W}_{0} & \overset{\nabla}{\longrightarrow} & \mathbb{W}_{1} & \overset{\nabla\times}{\longrightarrow} & \mathbb{W}_{2} & \overset{\nabla.}{\longrightarrow} & \mathbb{W}_{3}\\
+ & \underset{\tilde{\nabla.}}{\dashleftarrow} &  & \underset{\tilde{\nabla}\times}{\dashleftarrow} &  & \underset{\tilde{\nabla}}{\dashleftarrow}
+\end{array}\label{eq:derham_complex}
+\end{equation}
+ where arrows pointing to the right denote strong operators and arrows
+to the left indicate weak operators. The function spaces correspond
+to:
+\begin{lyxlist}{00.00.0000}
+\item [{$\mathbb{W}_{0},$}] The space of scalar functions built from the
+tensor product of $P^{k+1}(\chi_{1})P^{k+1}(\chi_{2})P^{k+1}(\chi_{3})$
+polynomials with full continuity;
+\item [{$\mathbb{W}_{1},$}] The space of vector functions built from the
+tensor product of two $P^{k+1}$ polynomials and one $P^{k}$ polynomial
+with continuity in the tangential direction only;
+\item [{$\mathbb{W}_{2},$}] The space of vector functions built from the
+tensor product of one $P^{k+1}$ polynomial and two $P^{k}$ polynomials
+with continuity in the normal direction only;
+\item [{$\mathbb{W}_{3},$}] The space of scalar functions built from the
+tensor product of $P^{k}(\chi_{1})P^{k}(\chi_{2})P^{k}(\chi_{3})$
+polynomials with no continuity.
+\item [{$\mathbb{W}_{\theta},$}] The space of scalar functions based on
+the vertical part of $\mathbb{W}_{2}$ to obtain the desired properties
+of a Charney-Philips grid.
+\item [{$\mathbb{W}_{2V},$}] The space of vector functions based on the
+vertical part of $\mathbb{W}_{2}$ to be used as part of the multigrid
+solver.
+\item [{$\mathbb{W}_{2H},$}] The space of vector functions based on the
+horizontal part of $\mathbb{W}_{2}$ to be used in later developments.
+\end{lyxlist}
+The associated test/trial functions for each function space are $\gamma,\,\mathbf{c},\,\mathbf{v}\,,\sigma$
+respectively, see Appendix \ref{sec:Basis-Functions}. To obtain the
+finite element discretisation each variable has to be placed into
+a function space from which it will inherit a polynomial expansion.
+Consistent with the physical nature of each variable these are: $\theta\in\mathbb{W}_{0}$,
+pointwise scalar functions; $\bm{\xi}\in\mathbb{W}_{1}$, vector functions
+corresponding to circulations; $\mathbf{u}\in\mathbb{W}_{2}$, vector
+functions corresponding to fluxes and $\rho\in\mathbb{W}_{3}$, scalar
+functions corresponding to volume integrals. $\Pi$ will be computed
+from either \eqref{eq:nonlinear_eos} or \eqref{eq:linear_eos} as
+a pointwise value wherever it is needed and so it is not placed in
+any function space. Additionally the form of the reference state,
+rotation vector and geopotential is assumed to be know analytically
+and so will also be computed where needed.
+
+The weak form of a prototypical equation, $s=0,$ for some variable
+$s$, is given by multiplying the equation by a test function $t$
+and integrating over the domain
+\begin{equation}
+\int_{\Omega}tsdV=0,\label{eq:fem_integral_form}
+\end{equation}
+ this can be concisely written as
+\begin{equation}
+\left\langle t,s\right\rangle =0\label{eq:fem_angle_brackets}
+\end{equation}
+ where the ordering makes it clear that $t$ is the test function
+and $s$ is the trial function.
+
+
+\subsection{\label{sub:Linear-Equations-weak}Linear Equations}
+
+Multiplying \eqref{eq:linear_mom}-\eqref{eq:linear_eos} by test
+functions from the appropriate space and integrating over the domain
+$\Omega\in\mathbb{R}^{3}$ gives the weak form of the equations
+\begin{eqnarray}
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}'}{\partial t}\right\rangle  & = & -\left\langle \mathbf{v},c_{pd}\theta_{s}\tilde{\nabla}\Pi-\frac{\theta'}{\theta_{s}}\mathbf{g}+2\bm{\Omega}\times\mathbf{u}\right\rangle ,\label{eq:linear_mom_vec_invariant-weak}\\
+\left\langle \sigma,\frac{\partial\rho'}{\partial t}\right\rangle  & = & \left\langle \sigma,\frac{N^{2}}{g}\rho_{s}\mathbf{k}.\mathbf{u}'-\rho_{s}\nabla.\mathbf{u}'\right\rangle ,\label{eq:linear_continuity-weak}\\
+\left\langle \gamma,\frac{\partial\theta'}{\partial t}\right\rangle  & = & -\left\langle \gamma,\frac{N^{2}}{g}\theta_{s}\mathbf{k}.\mathbf{u}'\right\rangle ,\label{eq:linear_thermo-weak}
+\end{eqnarray}
+where the inner product takes its usual form $\left\langle f,g\right\rangle \equiv\int_{\Omega}f\left(\bm{\chi}\right)g\left(\bm{\chi}\right)d\bm{\chi}.$
+Replacing the weak operators in \eqref{eq:linear_mom_vec_invariant-weak}
+through integrating by parts gives
+\begin{eqnarray}
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}'}{\partial t}\right\rangle  & = & c_{pd}\left\langle \nabla.\left(\mathbf{v}\theta_{s}\right),\Pi'\right\rangle +\left\langle \mathbf{v},\frac{\theta'}{\theta_{s}}\mathbf{g}\right\rangle -\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}\right\rangle .\label{eq:linear_mom_vec_invariant-weak-1}
+\end{eqnarray}
+
+
+
+\subsection{\label{sub:Nonlinear-Equations-weak}Nonlinear Equations}
+
+Multiplying \eqref{eq:nonlinear_mom-1}-\eqref{eq:nonlinear_eos-1}
+by test functions from the appropriate space and integrating over
+the domain $\Omega\in\mathbb{R}^{3}$ gives the weak form of the nonlinear
+equations
+\begin{eqnarray}
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}}{\partial t}\right\rangle  & = & -\left\langle \mathbf{v},\frac{\bm{\xi}}{\rho}\times\mathbf{F}+2\bm{\Omega}\times\mathbf{u}+\tilde{\nabla}K+\nabla\Phi+c_{pd}\theta\tilde{\nabla}\Pi\right\rangle ,\label{eq:nonlinear_mom-1-1}\\
+\left\langle \sigma,\frac{\partial\rho}{\partial t}\right\rangle  & = & -\left\langle \sigma,\nabla.\mathbf{F}\right\rangle ,\label{eq:nonlinear_continuity-1-1}\\
+\left\langle \gamma,\frac{\partial\theta}{\partial t}\right\rangle  & = & -\left\langle \gamma,\mathbf{u}.\nabla\theta\right\rangle .\label{eq:nonlinear_thermo-1-1}
+\end{eqnarray}
+Again, replacing the weak operators in the momentum equation through
+integrating by parts yields
+\begin{eqnarray}
+\left\langle \mathbf{v},\frac{\partial\mathbf{u}}{\partial t}\right\rangle  & = & -\left\langle \mathbf{v},\frac{\bm{\xi}}{\rho}\times\mathbf{F}+\nabla\Phi\right\rangle +\left\langle \nabla.\mathbf{v},K\right\rangle +c_{pd}\left\langle \nabla.\left(\theta\mathbf{v}\right),\Pi\right\rangle -\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}\right\rangle ,\label{eq:nonlinear_mom-1-1-1}
+\end{eqnarray}
+where the boundary integral terms have been neglected on the assumption
+that $\theta$ is continuous. The chosen advection scheme will be
+needed to compute the mass flux $\mathbf{F}$ the vorticity flux term
+$\frac{\bm{\xi}}{\rho}\times\mathbf{F}$ and the potential temperature
+advection term $\mathbf{u}.\nabla\theta$. The simplest form of advection
+scheme is to compute the mass flux and vorticity as projections into
+the appropriate spaces, i.e.
+\begin{eqnarray}
+\left\langle \mathbf{v},\mathbf{F}\right\rangle  & = & \left\langle \mathbf{v},\rho\mathbf{u}\right\rangle ,\label{eq:mass_flux_projection}\\
+\left\langle \mathbf{c},\mbox{\ensuremath{\bm{\xi}}}\right\rangle  & = & \left\langle \mathbf{c},\tilde{\nabla}\times\mathbf{u}\right\rangle =-\left\langle \nabla\times\mathbf{c},\mathbf{u}\right\rangle ,\label{eq:voticity_projection}
+\end{eqnarray}
+and the potential temperature advection term is computed as in \eqref{eq:nonlinear_thermo-1-1}.
+
+Alternatively the vorticity advection term could be split onto advection
+of the horizontal and vertical parts
+\begin{equation}
+\frac{\bm{\xi}}{\rho}\times\mathbf{F}\equiv\frac{\bm{\xi}_{h}}{\rho}\times\mathbf{F}+\frac{\xi_{v}}{\rho}\mathbf{F}_{h}^{\perp}\label{eq:vorticity_split-1}
+\end{equation}
+where subscripts $h$ and $v$ indicate the horizontal and vertical
+parts of a vector, respectively, and $\mathbf{F}_{h}^{\perp}\equiv\mathbf{k}\times\mathbf{F}_{h}$.
+The last term in \eqref{eq:vorticity_split-1} is the vorticity flux
+term that appears in the shallow water equations. The mass flux term
+could be computed using any form of finite volume/discontinuous Galerkin
+method and the potential temperature equation could be computed in
+a semi-Lagrangian manner.
+
+
+\subsection{\label{sec:Coordinate-Transforms}Coordinate Transforms}
+
+Consider a mapping $\bm{\mathbf{\phi}}:\hat{\Omega}\rightarrow\Omega$
+between a reference domain $\hat{\Omega}$ with coordinates $\hat{\bm{\mathbf{\chi}}}=\left(\hat{\chi}_{1},\hat{\chi}_{2},\hat{\chi}_{3}\right)$
+and metric tensor $\mathbf{g}^{{\rm ref}}$, and a physical domain
+$\Omega$ with coordinates $\bm{\chi}=\left(\chi_{1},\chi_{2},\chi_{3}\right)$
+and metric tensor $\mathbf{g}$ respectively such that $\bm{\chi}=\bm{\mathbf{\phi}}\left(\bm{\hat{\bm{\mathbf{\chi}}}}\right).$
+Variables and operators in the reference space are denoted with a
+$\hat{\hphantom{a}}$ to differentiate them from the undressed variables
+and operators in the physical space. We now require a set of mappings
+for each function space that maintains the continuity from the reference
+to the physical domain. For the vector spaces $\mathbb{W}_{1}$ and
+$\mathbb{W}_{2}$ this means using \texttt{curl }and\texttt{ div}
+conforming mappings respectively, that is mappings that preserve the
+continuity of tangential and normal components respectively. These
+mappings are the covariant and contravariant Piola transforms respectively,
+see \citet{rognes09,brezzi91,monk03} for a more thorough treatment
+of the Piola transform.
+
+For fields in $\mathbb{W}_{0}$, which represent pointwise scalars
+(0-forms), the transform is
+\begin{equation}
+\gamma\left(\bm{\chi}\right)\equiv\gamma\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\hat{\gamma}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:W0_scaler_transform}
+\end{equation}
+For vector fields in $\mathbb{W}_{1}$, which represent circulation
+vectors (1-forms), the covariant Piola transform is used
+\begin{equation}
+\mathbf{c}\left(\bm{\chi}\right)\equiv\mathbf{c}\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\left(\mathbf{g}^{-1}\right)^{T}J^{-T}\mathbf{g}^{{\rm ref}}\hat{\mathbf{c}}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:W1_covariant_piola}
+\end{equation}
+which satisfies
+\begin{equation}
+\nabla\times\mathbf{c}\left(\bm{\chi}\right)=\frac{J}{\det\left(J\right)}\hat{\nabla}\times\hat{\mathbf{c}}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:piola_curl}
+\end{equation}
+and therefore (this might be missing metric tensor terms)
+\begin{equation}
+\int_{\Omega}\mathbf{c}.\nabla\times\mathbf{c}d\chi=\int_{\hat{\Omega}}\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{c}}.\left(\hat{\nabla}\times\hat{\mathbf{c}}\right)d\hat{\chi},\label{eq:curl_mapping}
+\end{equation}
+where the Jacobian $J\equiv\partial\bm{\mathbf{\phi}}\left(\hat{\bm{\chi}}\right)/\partial\hat{\bm{\mathbf{\chi}}},$
+
+For vector fields in $\mathbb{W}_{2}$, which represent flux vectors
+(2-forms), the contravariant Piola transform is used
+\begin{equation}
+\mathbf{v\left(\bm{\chi}\right)\equiv}\mathbf{v}\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\frac{J\hat{\mathbf{v}}\left(\hat{\bm{\mathbf{\chi}}}\right)}{\det\left(J\right)},\label{eq:W2_contravariant_piola}
+\end{equation}
+ crucially this transformation satisfies
+\begin{equation}
+\nabla.\mathbf{v}\left(\bm{\chi}\right)=\frac{1}{\det\left(J\right)}\hat{\nabla}.\left(\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right),\label{eq:piola_div}
+\end{equation}
+and therefore
+\begin{equation}
+\int_{\Omega}\gamma\nabla.\mathbf{v}d\chi=\int_{\hat{\Omega}}\hat{\gamma}\hat{\nabla}.\left(\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\mathbf{v}}\right)d\hat{\chi}.\label{eq:div_mapping}
+\end{equation}
+and for scalars in $\mathbb{W}_{3}$, which represent volume averaged
+quantities (3-forms), the transformation is
+\begin{equation}
+\sigma\left(\bm{\chi}\right)\equiv\sigma\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\frac{\hat{\sigma}\left(\hat{\bm{\mathbf{\chi}}}\right)}{\det\left(J\right)}.\label{eq:W3_scalar_transform}
+\end{equation}
+However, use of \eqref{eq:W3_scalar_transform} would result in the
+divergence mapping becoming
+\begin{equation}
+\int_{\Omega}\sigma\nabla.\mathbf{v}d\chi=\int_{\hat{\Omega}}\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\frac{\hat{\sigma}}{\det\left(J\right)}\hat{\nabla}.\hat{\mathbf{v}}d\hat{\chi}\label{eq:divergence_problem}
+\end{equation}
+which for non-flat elements (such as when mapping to the sphere) cannot
+be integrated exactly as $\det\left(J\right)$ is not constant (for
+flat elements $\det\left(J\right)=const$ and there is no problem).
+The solution proposed is to modify the $\mathbb{W}_{3}$ mapping \eqref{eq:W3_scalar_transform}
+so that it becomes
+\begin{equation}
+\sigma\left(\bm{\chi}\right)\equiv\sigma\left(\bm{\mathbf{\phi}}\left(\hat{\bm{\mathbf{\chi}}}\right)\right)=\frac{\sqrt{\det\left(\mathbf{g}^{{\rm ref}}\right)}}{\sqrt{\det\left(\mathbf{g}\right)}}\hat{\sigma}\left(\hat{\bm{\mathbf{\chi}}}\right),\label{eq:W3_scalar_transform-new}
+\end{equation}
+which now means that the div-curl relationships are not satisfied
+any more, i.e. $\nabla.$ does not map $\mathbb{W}_{2}$ to $\mathbb{W}_{3}.$
+The chosen solution to this, proposed by \citet{bochev_ridzal10},
+is to replace $\nabla.$ by $\mu\nabla.$ where $\mu$ is the finite
+element projection into $\mathbb{W}_{3}$ and so the correct div-curl
+relationship is regained as $\mathbb{W}_{2}\overset{\mu\nabla.}{\longrightarrow}\mathbb{W}_{3}.$
+
+\smallskip{}
+
+
+\fbox{\begin{minipage}[t]{1\columnwidth}%
+\textit{Aside: For the special case where both the reference and physical
+spaces are Euclidean spaces with Cartesian coordinate systems the
+metric terms reduce to
+\begin{equation}
+g_{i,j}=\delta_{i,j},\qquad g_{i',j'}^{{\rm ref}}=\delta_{i',j'},\label{eq:Euclidean_metrics}
+\end{equation}
+and the terms involving $\mathbf{g}$ and $\mathbf{g}^{{\rm ref}}$
+in \eqref{eq:W2_contravariant_piola}-\eqref{eq:W3_scalar_transform-new}
+drop out.}%
+\end{minipage}}
+
+Table \ref{tab:Transformations-summary} summarises the spaces and
+transformations for functions in each space $\mathbb{W}_{0}$ to $\mathbb{W}_{3}$
+in the absence of any metric terms.
+\begin{table}
+\begin{centering}
+\begin{tabular}{|c|c|c|}
+\hline
+Space & Function  & Differential of Function\tabularnewline
+\hline
+\hline
+$\mathbb{W}_{0}$ & $\gamma=\hat{\gamma}$ & \tabularnewline
+\hline
+$\mathbb{W}_{1}$ & $\mathbf{c}=J^{-T}\hat{\mathbf{c}}$ & $\nabla\gamma=J^{-T}\hat{\nabla}\hat{\gamma}$\tabularnewline
+\hline
+$\mathbb{W}_{2}$ & $\mathbf{v}=J\hat{\mathbf{v}}/\det\left(J\right)$ & $\nabla\times\mathbf{c}=J\hat{\nabla}\times\hat{\mathbf{c}}/\det\left(J\right)$\tabularnewline
+\hline
+$\mathbb{W}_{3}$ & $\sigma=\hat{\sigma}$ & $\nabla.\mathbf{v}=\hat{\nabla}.\hat{\mathbf{v}}$\tabularnewline
+\hline
+\end{tabular}
+\par\end{centering}
+
+\centering{}\protect\caption{\label{tab:Transformations-summary}Transformations between physical
+$\bm{\chi}$ and computational space $\hat{\bm{\chi}}$, using the
+mapping $\bm{\phi}\left(\hat{\bm{\chi}}\right)=\bm{\chi}$ and $J\equiv\partial\bm{\mathbf{\phi}}\left(\hat{\bm{\chi}}\right)/\partial\hat{\bm{\mathbf{\chi}}}$.}
+\end{table}
+
+
+Additionally when transforming the domain of integration from the
+physical domain $\Omega$ to the computational domain $\hat{\Omega}$
+the volume element $dV$ also picks up a transformation term and so
+\eqref{eq:fem_integral_form} and \eqref{eq:fem_angle_brackets} become
+\begin{equation}
+\int_{\hat{\Omega}}ts\det\left(J\right)d\hat{V}\equiv\left\langle t,s\det\left(J\right)\right\rangle \label{eq:fem_computational_integral}
+\end{equation}
+ where now the angle bracket notation denotes integration in the computational
+domain.
+
+
+\subsection{Discrete equations in the reference domain}
+
+
+\subsubsection{Linear equations}
+
+Applying these transformations to the linear equations \eqref{eq:linear_mom_vec_invariant-weak}-\eqref{eq:linear_mom_vec_invariant-weak-1}
+gives
+
+\begin{eqnarray}
+\left\langle J\hat{\mathbf{v}},\frac{J}{\det\left(J\right)}\frac{\partial\hat{\mathbf{u}}'}{\partial t}\right\rangle  & = & c_{pd}\left\langle \theta_{s}\left(\nabla.\hat{\mathbf{v}}\right)+\frac{N^{2}}{g}\mathbf{k}.\hat{\mathbf{v}},\Pi'\right\rangle +\left\langle J\hat{\mathbf{v}},\frac{\hat{\theta}'}{\theta_{s}}\mathbf{g}\right\rangle -\left\langle \frac{J\hat{\bm{\mathbf{v}}}}{\det\left(J\right)},2\bm{\Omega}\times\left(J\hat{\mathbf{u}}\right)\right\rangle \equiv R_{u},\label{eq:linear_mom_vec_invariant-weak-pullback}\\
+\left\langle \hat{\sigma},\frac{\partial\hat{\rho}'}{\partial t}\det\left(J\right)\right\rangle  & = & \left\langle \hat{\sigma},\frac{N^{2}}{g}\rho_{s}\mathbf{k}.J\hat{\mathbf{u}}'-\rho_{s}\nabla.\hat{\mathbf{u}}'\right\rangle \equiv R_{\rho},\label{eq:linear_continuity-weak-pullback}\\
+\left\langle \hat{\gamma},\frac{\partial\hat{\theta}'}{\partial t}\det\left(J\right)\right\rangle  & = & -\left\langle \hat{\gamma},\frac{N^{2}}{g}\theta_{s}\mathbf{k}.J\hat{\mathbf{u}}'\right\rangle \equiv R_{\theta}.\label{eq:linear_thermo-weak-pullback}
+\end{eqnarray}
+
+
+
+\subsubsection{Nonlinear equations}
+
+Applying these coordinate transformations to the nonlinear equations
+\eqref{eq:nonlinear_mom-1-1}-\eqref{eq:voticity_projection} yields
+
+\begin{eqnarray}
+\left\langle J\hat{\mathbf{v}},\frac{J}{\det\left(J\right)}\frac{\partial\hat{\mathbf{u}}}{\partial t}\right\rangle  & = & -\left\langle J\hat{\mathbf{v}},\frac{J^{-T}\hat{\bm{\xi}}}{\hat{\rho}\det\left(J\right)}\times J\hat{\mathbf{F}}\right\rangle -\left\langle \hat{\mathbf{v}},\nabla\Phi\right\rangle +\left\langle \nabla.\hat{\mathbf{v}},\frac{1}{2}\left(\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right).\left(\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right)\right\rangle \label{eq:nonlinear_mom-pullback}\\
+ &  & -\left\langle \frac{J\hat{\mathbf{v}}}{\det\left(J\right)},2\bm{\Omega}\times\left(J\hat{\mathbf{u}}\right)\right\rangle +c_{pd}\left\langle \hat{\theta}\nabla.\hat{\mathbf{v}}+\hat{\mathbf{v}}.\nabla\hat{\theta},\Pi\right\rangle ,\nonumber \\
+\left\langle \hat{\sigma},\frac{\partial\hat{\rho}'}{\partial t}\det\left(J\right)\right\rangle  & = & -\left\langle \hat{\sigma},\nabla.\hat{\mathbf{F}}\right\rangle ,\label{eq:nonlinear_continuity-pullback}\\
+\left\langle \hat{\gamma},\frac{\partial\hat{\theta}'}{\partial t}\det\left(J\right)\right\rangle  & = & -\left\langle \hat{\gamma},\hat{\mathbf{u}}.\nabla\hat{\theta}\right\rangle ,\label{eq:nonlinear_thermo-pullback}\\
+\left\langle J\hat{\mathbf{v}},\frac{J\hat{\mathbf{F}}}{\det\left(J\right)}\right\rangle  & = & \left\langle J\hat{\mathbf{v}},\hat{\rho}\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right\rangle ,\label{eq:mass_flux_pullback}\\
+\left\langle J^{-T}\hat{\mathbf{c}},J^{-T}\hat{\mbox{\ensuremath{\bm{\xi}}}}\det\left(J\right)\right\rangle  & = & -\left\langle J\nabla\times\hat{\mathbf{c}},\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}\right\rangle .\label{eq:vorticity_pullback}
+\end{eqnarray}
+
+
+
+\subsection{Computation of the Jacobian}
+
+For various computations the Jacobian of the coordinate transformation
+from the reference space to the physical space, along with its determinant
+is required. By setting $\bm{\phi}\left(\hat{\bm{\chi}}\right)=\left(\phi_{1}\left(\hat{\bm{\chi}}\right),\phi_{2}\left(\hat{\bm{\chi}}\right),\phi_{3}\left(\hat{\bm{\chi}}\right)\right)$
+and requiring that $\phi_{i}\in\mathbb{W}_{0}$ for $i=1,2,3$ then
+the Jacobian can be calculated. In practice this means that each element
+is parameterised by a polynomial function and therefore in general
+$\det\left(J\right)$ will be a polynomial and so terms with factors
+$\det\left(J\right)^{-1}$ will not be able to be integrated exactly.
+Instead a suitably high order quadrature will be used such that the
+error in the integration is small, Appendix \ref{sec:Quadrature}.
+
+
+\section{\label{sec:Timestepping}Timestepping Schemes}
+
+Equations \eqref{eq:linear_mom_vec_invariant-weak-pullback}-\eqref{eq:linear_thermo-weak-pullback}
+constitute three prognostic equations for the velocity vector $\hat{\mathbf{u}}$,
+the density $\hat{\rho}$ and the potential temperature $\hat{\theta}$
+along with a diagnostic equation the equation of state relating Exner
+pressure $\Pi$ to the density and potential temperature. These equations
+are continuous in time and discrete in space. The temporal discretisation
+is achieved either through a fully explicit Runge-Kutta method or
+a semi-implicit method.
+
+
+\subsection{Runge-Kutta Timestepping}
+
+A generic $m$-stage Runge-Kutta timestepping scheme for the prototypical
+ode $\frac{dy}{dt}=f(y,t)$ can be written as
+\begin{equation}
+y^{\left(j\right)}=y^{n}+\Delta t\sum_{k=1}^{j-1}a_{j,k}f\left(y^{\left(k\right)},t+c_{k}\Delta t\right),\label{eq:RK-1}
+\end{equation}
+\begin{equation}
+y^{n+1}=y^{n}+\Delta t\sum_{j=1}^{m}\omega_{j}f\left(y^{\left(j\right)},t+c_{j}\Delta t\right),\label{eq:RK-2}
+\end{equation}
+where the weights $a_{i,j}$ are the entries of a matrix $A$. All
+the weights are given by a Butcher tableau %
+\begin{tabular}{c|c}
+$c$ & $A$\tabularnewline
+\hline
+ & $\omega$\tabularnewline
+\end{tabular}, e.g. for the strong stability preserving 3-stage third order scheme
+this is given in Table \ref{tab:RKSSP3}.
+\begin{table}
+\begin{centering}
+\begin{tabular}{c|ccc}
+$1$ & $0$ &  & \tabularnewline
+$1/2$ & $1$ & $0$ & \tabularnewline
+$1/2$ & $1/4$ & $1/4$ & $0$\tabularnewline
+\hline
+ & $1/6$ & $1/6$ & $4/6$\tabularnewline
+\end{tabular}\protect\caption{\label{tab:RKSSP3}RKSSP3 Butcher tableau.}
+
+\par\end{centering}
+
+\end{table}
+ Equations \eqref{eq:linear_mom_vec_invariant-weak-pullback}-\eqref{eq:linear_thermo-weak-pullback}
+(or alternatively \eqref{eq:nonlinear_mom-pullback}-\eqref{eq:nonlinear_thermo-pullback})
+can be reformulated into a form appropriate for applying \eqref{eq:RK-1}
+and \eqref{eq:RK-2}
+\begin{equation}
+M_{2}\frac{d\tilde{u}}{dt}=R_{u},\label{eq:u_RK}
+\end{equation}
+\begin{equation}
+M_{3}\frac{d\tilde{\rho}}{dt}=R_{\rho},\label{eq:P_RK}
+\end{equation}
+
+
+\begin{equation}
+M_{0}\frac{d\tilde{\theta}}{dt}=R_{\theta},\label{eq:theta_RK}
+\end{equation}
+where now the unknowns $\tilde{u},\,\tilde{\rho},\,\tilde{\theta}$
+correspond to vectors of degrees of freedom (dofs), that is the temporally
+varying expansion coefficients of the finite element expansion, and
+$M_{i}$ is the mass matrix for function space $\mathbb{W}_{i}$ given
+by
+\begin{equation}
+M_{0}=\left\langle \hat{\gamma},\hat{\gamma}\det\left(J\right)\right\rangle ,\label{eq:M0_mass_matrix}
+\end{equation}
+\begin{equation}
+M_{1}=\left\langle J^{-T}\hat{\mathbf{c}},J^{-T}\hat{\mathbf{c}}\det\left(J\right)\right\rangle ,\label{eq:M1_mass_matrix}
+\end{equation}
+\begin{equation}
+M_{2}=\left\langle \frac{J\hat{\mathbf{v}}}{\det\left(J\right)},J\hat{\mathbf{v}}\right\rangle ,\label{eq:M2_mass_matrix}
+\end{equation}
+\begin{equation}
+M_{3}=\left\langle \hat{\sigma},\hat{\sigma}\det\left(J\right)\right\rangle ,\label{eq:M3_mass_matrix}
+\end{equation}
+and the right hand sides are given by equations \eqref{eq:linear_mom_vec_invariant-weak-pullback}-\eqref{eq:linear_thermo-weak-pullback}.
+The same method can be applied to the nonlinear equations \eqref{eq:nonlinear_mom-pullback}-\eqref{eq:vorticity_pullback}.
+
+
+\subsection{Semi-Implicit Timestepping}
+
+The governing equations with some estimate $y^{(k)}$ for variable
+$y$ at time level $n+1$ are:
+
+\begin{eqnarray}
+\left\langle \mathbf{v},\mathbf{u}'\right\rangle  & =R_{\mathbf{u}}^{(k)}\equiv & -\left\langle \mathbf{v},\mathbf{u}^{(k)}-\mathbf{u}^{n}\right\rangle -\Delta t\left\langle \mathbf{v},\left(\frac{\bm{\xi}}{\rho}\right)^{n}\times\widetilde{\mathbf{F}}\right\rangle \label{eq:si_mom}\\
+ &  & +\Delta t\left\{ -\overline{\left\langle \mathbf{v},\nabla\Phi\right\rangle }^{\alpha}+\overline{\left\langle \nabla.\mathbf{v},K\right\rangle }^{\alpha}+c_{pd}\overline{\left\langle \nabla.\left(\theta\mathbf{v}\right),\Pi\right\rangle }^{\alpha}-\overline{\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}\right\rangle }^{\alpha}\right\} ,\nonumber \\
+\left\langle \sigma,\rho'\right\rangle  & =R_{\rho}^{(k)}\equiv & -\left\langle \sigma,\rho^{(k)}-\rho^{n}\right\rangle -\Delta t\left\langle \sigma,\nabla.\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_continuity}\\
+\left\langle \gamma,\theta'\right\rangle  & =R_{\theta}^{(k)}\equiv & -\left\langle \gamma,\theta^{(k)}-\theta^{n}\right\rangle -\Delta t\left\langle \gamma,\frac{\widetilde{\mathbf{F}}}{\rho}.\nabla\theta^{n}\right\rangle ,\label{eq:si_thermo}
+\end{eqnarray}
+where $y'\equiv y^{(k+1)}-y^{(k)},$ are the increments to the latest
+estimate for timelevel $n+1$ fields and $\overline{y}^{\alpha}\equiv\alpha y^{(k)}+\left(1-\alpha\right)y^{n}$
+is the possibly off-centred time averaging. These can be rewritten
+as
+
+\begin{eqnarray}
+M_{1}\mathbf{u}' & = & R_{\mathbf{u}}^{(k)}\equiv R_{\mathbf{u}}^{n+1}+R_{\mathbf{u}}^{n}+R_{\mathbf{u}}^{adv},\label{eq:si_momentum_operator}\\
+M_{2}\rho' & = & R_{\rho}^{(k)}\equiv R_{\rho}^{n+1}+R_{\rho}^{n}+R_{\rho}^{adv},\label{eq:si_continuity_operator}\\
+M_{\theta}\theta' & = & R_{\theta}^{(k)}\equiv R_{\theta}^{n+1}+R_{\theta}^{n}+R_{\theta}^{adv},\label{eq:si_thermodynamic_operator}
+\end{eqnarray}
+where
+\begin{eqnarray}
+R_{\mathbf{u}}^{n+1} & = & -\left\langle \mathbf{v},\mathbf{u}^{(k)}\right\rangle +\alpha\Delta t\left[-\left\langle \mathbf{v},\nabla\Phi\right\rangle +\left\langle \nabla.\mathbf{v},K^{(k)}\right\rangle +c_{pd}\left\langle \nabla.\left(\theta^{(k)}\mathbf{v}\right),\Pi^{(k)}\right\rangle -\left\langle \mathbf{v},2\bm{\Omega}\times\mathbf{u}^{(k)}\right\rangle \right],\label{eq:si_ru_np1}\\
+R_{\mathbf{u}}^{n} & = & \left\langle \mathbf{v},\mathbf{u}^{n}\right\rangle +\left(1-\alpha\right)\Delta t\left[-\left\langle \mathbf{v},\nabla\Phi\right\rangle +\left\langle \nabla.\mathbf{v},K^{n}\right\rangle +c_{pd}\left\langle \nabla.\left(\theta^{n}\mathbf{v}\right),\Pi^{n}\right\rangle -\left\langle \mathbf{v},2\mathbf{\Omega}\times\mathbf{u}^{n}\right\rangle \right],\label{eq:si_ru_n}\\
+R_{\mathbf{u}}^{adv} & = & -\Delta t\left\langle \mathbf{v},\left(\frac{\bm{\xi}}{\rho}\right)^{n}\times\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_ru_adv}\\
+R_{\rho}^{n+1} & = & -\left\langle \sigma,\rho^{(k)}\right\rangle ,\label{eq:si_rrho_np1}\\
+R_{\rho}^{n} & = & \left\langle \sigma,\rho^{n}\right\rangle ,\label{eq:si_rrho_n}\\
+R_{\rho}^{adv} & = & -\Delta t\left\langle \sigma,\nabla.\widetilde{\mathbf{F}}\right\rangle ,\label{eq:si_rrho_adv}\\
+R_{\theta}^{n+1} & = & -\left\langle \gamma,\theta^{(k)}\right\rangle ,\label{eq:si_rtheta_np1}\\
+R_{\theta}^{n} & = & \left\langle \gamma,\theta^{n}\right\rangle ,\label{eq:si_rtheta_n}\\
+R_{\theta}^{adv} & = & -\Delta t\left\langle \gamma,\frac{\widetilde{\mathbf{F}}}{\widetilde{\rho}}.\nabla\theta^{n}\right\rangle .\label{eq:si_rtheta_adv}
+\end{eqnarray}
+The $R^{n}$ terms are computed at the start of the timestep, $R^{adv}$
+terms are computed in the outer (advection) loop which computes the
+advective mass flux $\widetilde{F}$ and advective density $\widetilde{\rho}$.
+Finally $R^{n+1}$ terms are computed in the inner (nonlinear) loop
+using the latest $k^{th}$ estimate to the timelevel $n+1$ fields.
+To create the full semi-implicit equations it is only necessary to
+add the desired terms to the lhs of \eqref{eq:si_momentum_operator}-\eqref{eq:si_thermodynamic_operator}.
+It should be noted that at convergence of the iterative process $\left(y^{(k+1)}\equiv y^{(k)}\right)$
+that both the left and right hand sides of \eqref{eq:si_momentum_operator}-\eqref{eq:si_thermodynamic_operator}
+are zero and the scheme corresponds to the standard Crank-Nicolson
+method
+
+
+\subsection{\label{sub:Advection}Advection}
+
+The Eulerian advection scheme need to compute 3 terms:
+\begin{equation}
+\widetilde{\mathbf{F}}=\rho\mathbf{\overline{u}},\label{eq:adv_mass_flux_def}
+\end{equation}
+for the continuity equation
+\begin{eqnarray}
+\bm{\xi} & = & \nabla\times\mathbf{u}\label{eq:adv_vorticity_def}\\
+\left(\frac{\bm{\xi}}{\rho}\right)\times\widetilde{\mathbf{F}}\label{eq:adv_momentum_advection}
+\end{eqnarray}
+ for the momentum equation, and
+\begin{equation}
+\frac{\widetilde{\mathbf{F}}}{\rho}.\nabla\theta\label{eq:adv_p_temperature_advection}
+\end{equation}
+ for the potential temperature equation. All for a given advecting
+wind field $\overline{\mathbf{u}}$.
+
+
+\subsubsection{Finite-Element Advection\label{sub:Finite-Element-Advection}}
+
+The finite element advection scheme simply uses the finite element
+machinery to project the deisred terms in to the correct spaces. This
+means that is inherently limited by the order of the finite element
+spaces so that for the lowest order spaces the advection terms would
+only be formally $1^{{\rm st}}$ order. The mass flux $\widetilde{\mathbf{F}}$
+is defined as being the projection of $\rho\overline{\mathbf{u}}$
+into the mass flux space
+\begin{equation}
+\left\langle \mathbf{v},\widetilde{\mathbf{F}}\right\rangle =\left\langle \mathbf{v},\rho\overline{\mathbf{u}}\right\rangle .\label{eq:fem_mass_flux}
+\end{equation}
+ The vortcity is defined as the projection of the weak curl of the
+velocity into the $\mathbb{W}_{1}$ space.
+\begin{equation}
+\left\langle \mathbf{c},\bm{\xi}\right\rangle =-\left\langle \nabla\times\mathbf{c},\overline{\mathbf{u}}\right\rangle ,\label{eq:fem_vorticity}
+\end{equation}
+ and the vorticity advection terms is defined as the projection into
+$\mathbb{W}_{2}$ of the cross product of the vorticity and the mass
+flux
+\begin{equation}
+\left\langle \mathbf{v},\left(\frac{\bm{\xi}}{\rho}\right)\times\widetilde{\mathbf{F}}\right\rangle .\label{eq:fem_momentum_adv}
+\end{equation}
+ Finally the potential temperature advection term defined as the is
+the projection into the potential temperature space, which for $\theta\in\mathbb{W}_{0}$
+is
+\begin{equation}
+\left\langle \gamma,\frac{\widetilde{\mathbf{F}}}{\rho}.\nabla\theta\right\rangle .\label{eq:fem_p_temperature_advection}
+\end{equation}
+ In all cases the mass flux is used as the advecting field for consistency.
+Where this is normalised by the density, the same density as in the
+mass flux computation \eqref{eq:fem_mass_flux} is used. If $\theta$
+is continuous then this method can lead to a noisy advection scheme.
+A common method to combat this is to use the Streamline-Upwind-Petrov-Galerkin
+method, where the test function for the space is modified to include
+an upwinding, i.e
+\begin{equation}
+\gamma\longrightarrow\gamma^{*}\equiv\gamma+\frac{\mu}{\Delta}\frac{\widetilde{\mathbf{F}}}{\left|\widetilde{\mathbf{F}}\right|}.\nabla\gamma\label{eq:supg}
+\end{equation}
+where $\mu$ is a user defined parameter and $\Delta$ is some measure
+of the average grid spacing. Applying \eqref{eq:supg} to \eqref{eq:nonlinear_thermo-1-1}
+and rearranging gives
+\begin{equation}
+\left\langle \gamma,\frac{\partial\theta}{\partial t}\right\rangle =-\left\langle \gamma,\mathbf{u}.\nabla\theta\right\rangle -R_{\theta}^{supg}.\label{eq:theta_supg}
+\end{equation}
+with
+\begin{equation}
+R_{\theta}^{supg}=\frac{\mu}{\Delta}\left\langle \frac{\widetilde{\mathbf{F}}}{\left|\widetilde{\mathbf{F}}\right|}.\nabla\gamma,\frac{\partial\theta}{\partial t}+\mathbf{u}.\nabla\theta\right\rangle \label{eq:Rtheta_supg}
+\end{equation}
+which is the residual error in the $\theta$ equation tested by the
+upwind component of the test function.
+
+
+\section{Conservation\label{sec:Conservation}}
+
+The numerical conservation of a number of quantities that are conserved
+by the continuous nonlinear equations \ref{eq:nonlinear_mom}-\ref{eq:nonlinear_thermo}
+are computed and recorded. The currently measured quantities are:
+dry mass, dry total energy, potential vorticity and axial angular
+momentum,
+\begin{eqnarray}
+M & = & \int_{\Omega}\rho dV,\label{eq:total_mass}\\
+E & = & \int_{\Omega}\rho\left[\Phi+\frac{1}{2}\mathbb{\mathbf{u}}.\mathbf{u}+c_{v}T\right]dV,\label{total_energy}\\
+P & = & \int_{\Omega}\bm{\xi}.\nabla\theta dV\label{total_pv}\\
+A & = & \int_{\Omega}\rho\tilde{\mathbf{z}}.\left[\mathbf{r}\times\left(\mathbf{u}+\bm{\Omega}\times\mathbf{r}\right)\right]dV,\label{eq:total_aam}
+\end{eqnarray}
+where $\tilde{\mathbf{z}}$ is a unit vector in the direction of $\bm{\Omega}$
+and $c_{v}=c_{pd}-R_{d}$ is the specific heat capacity at constant
+volume In the weak formulation these are discretised as
+\begin{eqnarray}
+M & = & \sum_{cell}\left\langle \sigma,\rho\right\rangle ,\label{eq:discrete_total_mass}\\
+E & = & \sum_{cell}\left\langle \rho,\Phi+\frac{1}{2}\mathbb{\mathbf{u}}.\mathbf{u}+c_{v}\theta\Pi\right\rangle ,\label{eq:disctrete_total_energy}\\
+P & = & \sum_{cell}\left\langle \bm{\xi},\nabla\theta\right\rangle ,\label{eq:discrete_total_pv}\\
+A & = & \sum_{cell}\left\langle \rho\tilde{\mathbf{z}},\mathbf{r}\times\left(\mathbf{u}+\bm{\Omega}\times\mathbf{r}\right)\right\rangle ,\label{eq:discrete_total_aam}
+\end{eqnarray}
+applying the transformations from Section \ref{sec:Coordinate-Transforms}
+\begin{eqnarray}
+M & = & \sum_{cell}\left\langle \hat{\sigma},\hat{\rho}\det\left(J\right)\right\rangle ,\label{eq:discrete_total_mass-1}\\
+E & = & \sum_{cell}\left\langle \hat{\rho},\left[\Phi+\frac{1}{2}\left(\frac{J\hat{\mathbb{\mathbf{u}}}}{\det\left(J\right)}\right).\left(\frac{J\hat{\mathbb{\mathbf{u}}}}{\det\left(J\right)}\right)+c_{v}\hat{\theta}\hat{\Pi}\right]\det\left(J\right)\right\rangle ,\label{eq:disctrete_total_energy-1}\\
+P & = & \sum_{cell}\left\langle J^{-T}\hat{\bm{\xi}},J^{-T}\nabla\hat{\theta}\det\left(J\right)\right\rangle ,\label{eq:discrete_total_pv-1}\\
+A & = & \sum_{cell}\left\langle \hat{\rho}\tilde{\mathbf{z}},\mathbf{r}\times\left(\frac{J\hat{\mathbf{u}}}{\det\left(J\right)}+\bm{\Omega}\times\mathbf{r}\right)\det\left(J\right)\right\rangle .\label{eq:discrete_total_aam-1}
+\end{eqnarray}
+For output the total quantities are normalised by the square of the
+planet radius and so the output quantities are: $M/a^{2},\, E/a^{2},\, P/a^{2},\, A/a^{2}$.
+
+
+\section{Results\label{sec:Results}}
+
+This section gives some indicative results obtained using Dynamo.
+For spherical results the resolution is given in form $CxLyKz$ where
+$x$ is the number of cells along one edge of a cubed-sphere panel,
+$y$ is the number of cells in the vertical and $z$ is the polynomial
+order of the $\mathbb{W}_{3}$ space, hence $C12L5K0$ would give
+a cubed-sphere of $6\times12^{2}$ cells in the horizontal and $5$
+cells in the vertical with lowest order elements. The total number
+of degrees of freedom at a given resolution for a $\mathbb{W}_{3}$
+field (and hence a measure of the cost of the simulation) is given
+by $6x^{2}y\left(z+1\right)^{3}$ which for the example above is $4320$
+dofs.
+
+
+\subsection{linear Results}
+
+
+\subsubsection{Vertical Slice Tests}
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{GW_k0_Dx6Dz2_theta}}\subfloat[]{\includegraphics[scale=0.5]{GW_k0_Dx3Dz1_theta}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{GW_k0_Dx6Dz2_u}}\subfloat[]{\includegraphics[scale=0.5]{GW_k0_Dx3Dz1_u}}
+\par\end{centering}
+
+\centering{}\subfloat[]{\includegraphics[scale=0.5]{GW_k0_Dx6Dz2_w}}\subfloat[]{\includegraphics[scale=0.5]{GW_k0_Dx3Dz1_w}}\protect\caption{\label{fig:Gravity_wave_k0_results}Results for the 2D gravity wave
+test simulated using the linear equations with $\Delta x=6\,{\rm km},$
+and  $\Delta z=2\,{\rm km}$ (left panels) and $\Delta x=3\,{\rm km},$
+and  $\Delta z=1\,{\rm km}$ (right panels) all for $3000$ s with
+$\Delta t=1$ s using lowest order $k=0$ quadrilateral elements.
+(a) and (b) $\theta'$, contour intervals $5\times10^{-4}$ K ranging
+from $-10^{-3}$ K to $2.5\times10^{-3}$ K, (c) and (d) $u'$, contour
+intervals $10^{-3}\,{\rm ms}^{-1}$ ranging from $-10^{-2}\,{\rm ms}^{-1}$
+to $10^{-2}\,{\rm ms}^{-1}$ , (e) and (f) $w'$, contour intervals
+$4\times10^{-4}\,{\rm ms}^{-1}$ ranging from $-2\times10^{-3}\,{\rm ms}^{-1}$
+to $2\times10^{-3}\,{\rm ms}^{-1}$. }
+\end{figure}
+
+
+To simulate a Cartesian vertical slice model Dynamo is run on a biperiodic
+domain and all fields are initiated so that there is no variation
+in the $y$ direction and so the results remain 2-dimensional (for
+various technical reasons Dynamo cannot be run in a true 2D mode,
+each horizontal direction requires an even number of cells > 2, i.e.
+the minimum sized permissible domain is 4x4x1 cells). Results for
+the non-hydrostatic gravity wave test \citep{skamarock94} are shown
+in Figure \ref{fig:Gravity_wave_k0_results} for lowest order ($k=0$)
+elements on a domain of size 300x10 km and Figure \ref{fig:Gravity_wave_k1_results}
+for order $k=1$ elements with a domain size of 480x10 km; the horizontal
+domain size has been increased to stop interference from the spuriously
+fast gravity waves wrapping around the domain and interfering with
+the results. For comparison the results using the full nonlinear ENDGame
+vertical slice model can be found in \citet{meldubwsz09} (their Figure
+2).
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{GW_k1_Dx6Dz2_theta}}\subfloat[]{\includegraphics[scale=0.5]{GW_k1_Dx3Dz1_theta}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{GW_k1_Dx6Dz2_u}}\subfloat[]{\includegraphics[scale=0.5]{GW_k1_Dx3Dz1_u}}
+\par\end{centering}
+
+\centering{}\subfloat[]{\includegraphics[scale=0.5]{GW_k1_Dx6Dz2_w}}\subfloat[]{\includegraphics[scale=0.5]{GW_k1_Dx3Dz1_w}}\protect\caption{\label{fig:Gravity_wave_k1_results}Results for the 2D gravity wave
+test simulated using the linear equations with $\Delta x=6\,{\rm km},$
+$\Delta z=2\,{\rm km}$ and  $\Delta t=1$ s (left panels) and $\Delta x=3\,{\rm km},$
+$\Delta z=1\,{\rm km}$ and $\Delta t=2/5$ s (right panels) all for
+$3000$ s using order $k=1$ quadrilateral elements. (a) and (b) $\theta'$,
+contour intervals $5\times10^{-4}$ K ranging from $-10^{-3}$ K to
+$2.5\times10^{-3}$ K, (c) and (d) $u'$, contour intervals $10^{-3}\,{\rm ms}^{-1}$
+ranging from $-10^{-2}\,{\rm ms}^{-1}$ to $10^{-2}\,{\rm ms}^{-1}$,
+(e) and (f) $w'$, contour intervals $4\times10^{-4}\,{\rm ms}^{-1}$
+ranging from $-2\times10^{-3}\,{\rm ms}^{-1}$ to $2\times10^{-3}\,{\rm ms}^{-1}.$}
+\end{figure}
+
+
+
+\subsection{Nonlinear Results}
+
+
+\subsubsection{Vertical Slice Tests}
+
+Figure \eqref{fig:Density-current-test} shows the results after $900$s
+for the Density current test \citet{straka93} at $200$m resolution
+for both dynamo and ENDGame \citet{meldubwsz09}. Compared to the
+standard test set up detailed in \citet{straka93} the viscosity terms
+are ignored. The dynamo results use the SUPG stabilsation of the $\theta$
+advection with $\mu=5$ and $\Delta=1$.
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{
+
+\includegraphics[scale=0.5]{DC_EG_dx200}
+
+}\subfloat[]{\includegraphics[scale=0.5]{DC_dynamo_dx200_supg}}
+\par\end{centering}
+
+\protect\caption{\label{fig:Density-current-test}Density current test, showing $\theta$
+perturbation after $900$s for (a) ENDGame and (b) dynamo with lowest
+order elements and explicit-iterative timestepping. Both models use
+$\Delta t=1/8$s.}
+
+
+\end{figure}
+
+
+
+\subsubsection{Spherical Tests}
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{GW_375DegL10_theta_t1_xy}}\subfloat[]{\includegraphics[scale=0.5]{GW_C24L10K0_theta_t1}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{GW_375DegL10_theta_t1_xz}}\subfloat[]{\includegraphics[scale=0.5]{GW_C24L10K0_theta_t1_xz}}
+\par\end{centering}
+
+\centering{}\protect\caption{\label{fig:Spherical-Gravity-wave-test}Gravity wave test with (a)
+\& (c) ENDGame, at $3.75^{o}$ resolution ($46080$ cells) and (b)
+\& (d) Dynamo, on a $C24$ grid with lowest order elements ($34560$
+cells).}
+\end{figure}
+
+
+The gravity wave test from the dynamical core model intercomparison
+project, \citet{dcmip2012}, is run with the modification that the
+constant advecting velocity is removed. To facilate a comparison of
+results the same test is repeated in ENDGame \citet{wood_etal_13_eg}
+at similar resolution. Cross sections of the $\theta$ perturbation
+(difference from backgroud state) are shown in Figure \ref{fig:Spherical-Gravity-wave-test}.
+The conservation of mass, energy, pv and axial angular momentum as
+given by \eqref{eq:discrete_total_mass-1}-\eqref{eq:discrete_total_aam-1}
+are shown in Figure \ref{fig:conservation} for $C12L5K0$ resolution,
+shows that as expected mass is conserved exactly, panel (a) and energy
+is conserved to a very small error, panel (b). The Potential Vorticity
+(PV) is not conserved, panel (c), as the conservation law for PV is
+not enforced, (note the initial PV for this test is zero). As expected
+axial-angular momentum, panel (d), is also not conserved, furthermore
+it is not clear if this diagnostic has been correctly implemented
+and what it even means in the absence of rotation, this should be
+revisited when rotation is added to the nonlinear equations.
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{Conservation_of_mass_GW_C12L5k0}}\subfloat[]{\includegraphics[scale=0.5]{Conservation_of_energy_GW_C12L5k0}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{Conservation_of_PV_GW_C12L5k0}}\subfloat[]{\includegraphics[scale=0.5]{Conservation_of_AAM_GW_C12L5k0}}
+\par\end{centering}
+
+\protect\caption{\label{fig:conservation}Conservation of (a) Mass, (b) Energy, (c)
+Potential vorticity and (d) Axial Angular Momentum for the gravity
+wave test of Figure \ref{fig:Spherical-Gravity-wave-test} but for
+$C12L5K0$ resolution. Note this test is on an unrotating planet.}
+\end{figure}
+The gravity wave test is then repeated, but on rotating planet and
+the results are shown in Figure \ref{fig:Spherical-Rotating-Gravity-wave-test}.
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{EG_DCMIP301_rotation_xy}}\subfloat[]{\includegraphics[scale=0.5]{GW_C24L10K0_theta_t1_rotating}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{EG_DCMIP301_rotation_xz}}\subfloat[]{\includegraphics[scale=0.5]{GW_C24L10K0_theta_t1_xz_rotating}}
+\par\end{centering}
+
+\centering{}\protect\caption{\label{fig:Spherical-Rotating-Gravity-wave-test}Rotating gravity
+wave test with (a) \& (c) ENDGame, at $3.75^{o}$ resolution ($46080$
+cells) and (b) \& (d) Dynamo, on a $C24$ grid with lowest order elements
+($34560$ cells), both with 10 vertical levels.}
+\end{figure}
+
+\newpage\resetcounters
+
+\appendix
+
+\section{Reference Element\label{sec:Reference-Element}}
+
+\begin{figure}
+
+
+\begin{centering}
+\subfloat[Vertices.]{\includegraphics[scale=0.5]{ref_cube_vertices}
+
+}\subfloat[Edges.]{\includegraphics[scale=0.5]{ref_cube_edges}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[Faces.]{\includegraphics[scale=0.5]{ref_cube_faces}}\protect\caption{\label{fig:Reference-cube-topology}Reference cube topology. Dashed
+arrows indicate hidden faces.}
+
+\par\end{centering}
+
+\end{figure}
+
+
+For many computations some assumptions about the element are made,
+such as ordering of faces, directions of tangent vectors etc. The
+choice made here is to define a reference element with the following
+orderings imposed upon it
+\begin{enumerate}
+\item Numbering of vertices as depicted in Figure \ref{fig:Reference-cube-topology}
+(a),
+\item Numbering of edges as depicted in Figure \ref{fig:Reference-cube-topology}
+(b),
+\item Numbering of vertices as depicted in Figure \ref{fig:Reference-cube-topology}
+(c),
+\item Normals to faces point in the positive $\hat{\chi}_{i}$ direction,
+Figure \ref{fig:Reference-cube-directions} (a),
+\item Tangents to edges point in the positive $\hat{\chi}_{i}$ direction,
+Figure \ref{fig:Reference-cube-directions} (b).
+\end{enumerate}
+\begin{figure}
+
+
+\begin{centering}
+\subfloat[]{\includegraphics[scale=0.5]{ref_cube_face_normal}
+
+}\subfloat[]{\includegraphics[scale=0.5]{ref_cube_edge_tangent}}\protect\caption{\label{fig:Reference-cube-directions}Reference cube (a) face normal
+directions and (b) edge tangent directions.}
+
+\par\end{centering}
+
+\end{figure}
+
+
+
+\section{Basis Functions\label{sec:Basis-Functions}}
+
+
+\subsection{Quadrilateral Elements}
+
+For quadrilateral elements each basis function can be decomposed into
+the tensor product of three orthogonal polynomials, multiplied by
+a unit vector for the basis functions in the vector spaces $\mathbb{W}_{1}$
+and $\mathbb{W}_{2}$. Two orders of polynomial functions are required
+in order to fully specify the basis functions; if the functions in
+$\mathbb{W}_{0}$ are order $k+1$ the two sets of polynomials can
+be denoted by
+\begin{equation}
+F_{i}\left(\xi\right)\equiv\Pi_{j\neq i}^{k+2}\frac{\xi_{i}-\xi}{\xi_{i}-\xi_{j}},\label{eq:F_basis}
+\end{equation}
+\begin{equation}
+G_{i}\left(\xi\right)\equiv\Pi_{j\neq i}^{k+1}\frac{\xi_{i}-\xi}{\xi_{i}-\xi_{j}},\label{eq:G_basis}
+\end{equation}
+for a generic coordinate $\xi$ where the index $i$ picks out one
+individual basis function from the set of functions. The location
+of the basis nodal points $\xi_{j}$ usually depends upon the choice
+of quadrature rule, e.g. Gauss-Legendre or Gauss-Legendre-Lobatto.
+Using \eqref{eq:F_basis} and \eqref{eq:G_basis} then the basis functions,
+in the reference coordinates $\bm{\chi}\equiv\left(\chi_{1},\chi_{2},\chi_{3}\right),$
+for space $\mathbb{W}_{0}$ are given by
+\begin{equation}
+\gamma\left(\bm{\hat{\chi}}\right)\equiv F\left(\hat{\chi}_{1}\right)F\left(\hat{\chi}_{2}\right)F\left(\hat{\chi}_{3}\right),\label{eq:gamma_def}
+\end{equation}
+those in $\mathbb{W}_{1}$ are given by
+\begin{equation}
+\mathbf{c}\left(\bm{\hat{\chi}}\right)\equiv\begin{cases}
+G\left(\hat{\chi}_{1}\right)F\left(\hat{\chi}_{2}\right)F\left(\hat{\chi}_{3}\right)\mathbf{i},\\
+F\left(\hat{\chi}_{1}\right)G\left(\hat{\chi}_{2}\right)F\left(\hat{\chi}_{3}\right)\mathbf{j},\\
+F\left(\hat{\chi}_{1}\right)F\left(\hat{\chi}_{2}\right)G\left(\hat{\chi}_{3}\right)\mathbf{k},
+\end{cases}\label{eq:c_def}
+\end{equation}
+those in $\mathbb{W}_{2}$ are given by
+\begin{equation}
+\mathbf{v}\left(\bm{\hat{\chi}}\right)\equiv\begin{cases}
+F\left(\hat{\chi}_{1}\right)G\left(\hat{\chi}_{2}\right)G\left(\hat{\chi}_{3}\right)\mathbf{i},\\
+G\left(\hat{\chi}_{1}\right)F\left(\hat{\chi}_{2}\right)G\left(\hat{\chi}_{3}\right)\mathbf{j},\\
+G\left(\hat{\chi}_{1}\right)G\left(\hat{\chi}_{2}\right)F\left(\hat{\chi}_{3}\right)\mathbf{k},
+\end{cases}\label{eq:nu_def}
+\end{equation}
+those in $\mathbb{W}_{\theta}$ are given by
+\begin{equation}
+w\left(\bm{\hat{\chi}}\right)\equiv G\left(\hat{\chi}_{1}\right)G\left(\hat{\chi}_{2}\right)F\left(\hat{\chi}_{3}\right)\label{eq:w_def}
+\end{equation}
+and finally those in $\mathbb{W}_{3}$ are given by
+\begin{equation}
+\sigma\left(\bm{\hat{\chi}}\right)\equiv G\left(\hat{\chi}_{1}\right)G\left(\hat{\chi}_{2}\right)G\left(\hat{\chi}_{3}\right).\label{eq:sigma_def}
+\end{equation}
+
+
+
+\subsection{Triangular elements}
+
+For triangular elements the basis functions can be decomposed into
+the tensor product of a horizontal basis function defined on a triangular
+element along with a one-dimensional vertical component that will
+be the same as in the previous section.
+
+\begin{figure}
+\centering{}\includegraphics[scale=0.5]{RT0_tri}\protect\caption{\label{fig:Triangular geometry}Triangular element with vertices $\nu_{i}$,
+edges opposite vertices $e_{i}$ of length $l_{i}$. Tangent and (outward)
+normal vectors to edge $e_{i}$ are denoted $\mathbf{t}_{i},\mathbf{n}_{i}$
+respectively.}
+\end{figure}
+
+
+Consider the two-dimensional triangular element as shown in Fig. \ref{fig:Triangular geometry}
+with vertices $\nu_{i}$ located at $\left(\chi_{1}^{i},\chi_{2}^{i}\right)$.
+The barycentric coordinates \citep{coxeter89} of a point $\mathbf{\bm{\chi}}=\left(\chi_{1},\chi_{2}\right)$
+can be expressed as $\bm{\lambda}=\left(\lambda_{1},\lambda_{2},\lambda_{3}\right)$
+with
+\begin{eqnarray}
+\lambda_{1} & = & \frac{\left(\chi_{2}^{2}-\chi_{2}^{3}\right)\left(\chi_{1}-\chi_{1}^{3}\right)+\left(\chi_{1}^{3}-\chi_{1}^{2}\right)\left(\chi_{2}-\chi_{2}^{3}\right)}{\left(\chi_{2}^{2}-\chi_{2}^{3}\right)\left(\chi_{1}^{1}-\chi_{1}^{3}\right)+\left(\chi_{1}^{3}-\chi_{1}^{2}\right)\left(\chi_{2}^{1}-\chi_{2}^{3}\right)},\label{eq:barycentric1}\\
+\lambda_{2} & = & \frac{\left(\chi_{2}^{3}-\chi_{2}^{1}\right)\left(\chi_{1}-\chi_{1}^{3}\right)+\left(\chi_{1}^{1}-\chi_{1}^{3}\right)\left(\chi_{2}-\chi_{2}^{3}\right)}{\left(\chi_{2}^{2}-\chi_{2}^{3}\right)\left(\chi_{1}^{1}-\chi_{1}^{3}\right)+\left(\chi_{1}^{3}-\chi_{1}^{2}\right)\left(\chi_{2}^{1}-\chi_{2}^{3}\right)},\label{eq:barycentric2}\\
+\lambda_{3} & = & 1-\lambda_{1}-\lambda_{2},\label{eq:barycentric3}
+\end{eqnarray}
+where $\lambda_{j}=1$ at vertex $i=j$ and $\lambda_{j}=0$ at vertex
+$i\neq j$. In two-dimensions the lowest order space on triangles
+at which the correct 2:1 ratio of velocity to pressure degrees of
+freedom is obtained is the $BDFM_{1}-P_{1}^{DG}$, pair \citet{cotter12},
+with the layout of the dofs in 2D shown in Figure \ref{fig:BDFM_dofs}.
+
+\begin{figure}
+\begin{centering}
+\subfloat[]{\includegraphics[bb=0bp 0bp 300bp 250bp,clip,scale=0.5]{BDFM1_V0}
+
+}\subfloat[]{\includegraphics[bb=0bp 0bp 300bp 250bp,clip,scale=0.5]{BDFM1_V1}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[]{\includegraphics[bb=0bp 0bp 300bp 250bp,clip,scale=0.5]{BDFM1_V2}}\subfloat[]{\includegraphics[bb=0bp 0bp 300bp 250bp,clip,scale=0.5]{BDFM1_N}}\protect\caption{\label{fig:BDFM_dofs}Location of degrees of freedom for the two-dimensional
+$P_{1}^{+}-BDFM_{1}-P_{1}^{DG}$ element complex in spaces (a)$\mathbb{W}_{0}:$$P_{2}^{+}$,~(b)$\mathbb{W}_{1}:$$BDFM_{1}$,~
+(c)$\mathbb{W}_{2}:$$P_{1}^{DG}$ and (d) Rotation of $BDFM_{1}$
+space so that normal components are discontinuous and tangential components
+are continuous (this is the equivalent of the Nedelec space on quadrilaterals).}
+
+\par\end{centering}
+
+\end{figure}
+
+
+The 2D basis functions are, for $\mathbb{W}_{0}$
+\begin{equation}
+\gamma_{h}\left(\bm{\hat{\chi}}_{h}\right)\equiv\begin{cases}
+A_{i,j}\lambda_{i}\lambda_{j},\\
+6\lambda_{1}\lambda_{2}\lambda_{3},
+\end{cases}\label{eq:gamma_def_horiz_tri}
+\end{equation}
+with $A_{i,j}=1$ for $i=j$ and $A=4$
+for $i\neq j$; the second function in \ref{eq:gamma_def_horiz_tri}
+is for the cubic bubble function that is added to the $P_{2}$ space
+to give $P_{2}^{+}$. The functions in $\mathbb{W}_{1}$ are
+\begin{equation}
+\mathbf{v}_{h}\left(\bm{\hat{\chi}}_{h}\right)\equiv\begin{cases}
+\lambda_{j}\mathbf{t}_{k},\\
+4\lambda_{j}\lambda_{k}\mathbf{t}_{i},
+\end{cases}\label{eq:nu_def_horiz_tri}
+\end{equation}
+for degrees of freedom normal to edge $i$ at vertex $j$ and for
+degrees of freedom tangent to edge $i$ respectively, with $i,j,k$
+cyclic permutations of the indices $1,2,3$. The functions in $\mathbb{W}_{2}$
+are
+\begin{equation}
+\sigma_{h}\left(\hat{\bm{\chi}}_{h}\right)\equiv\lambda_{i},\label{eq:sigma_def_horiz_tri}
+\end{equation}
+where index $i$ indicates the vertex the basis function is associated
+with. In addition, although not needed for a purely horizontal discretisation,
+the 2D projection of the 3D functions in $\mathbb{W}_{1}$ are needed
+to build the 3D basis functions. These are
+\begin{equation}
+\mathbf{c}_{h}\left(\bm{\hat{\chi}}_{h}\right)\equiv\begin{cases}
+\lambda_{j}\mathbf{n}_{k}\\
+4\lambda_{j}\lambda_{k}\mathbf{n}_{i}
+\end{cases}.\label{eq:c_def_horiz_tri}
+\end{equation}
+
+
+The basis functions for the 3D extrusion of this element for space
+$\mathbb{W}_{0}$ are given by
+\begin{equation}
+\gamma\left(\bm{\hat{\chi}}\right)\equiv\begin{cases}
+\gamma_{h}\left(\bm{\hat{\chi}}_{h}\right)F\left(\hat{\chi}_{3}\right),\\
+\gamma_{h}\left(\bm{\hat{\chi}}_{h}\right)F\left(\hat{\chi}_{3}\right).
+\end{cases}\label{eq:gamma_def_tri}
+\end{equation}
+ The basis functions in $\mathbb{W}_{1}$ are given by
+\begin{equation}
+\mathbf{c}\left(\bm{\hat{\chi}}\right)\equiv\begin{cases}
+\mathbf{c}_{h}\left(\bm{\hat{\chi}}_{h}\right)F\left(\hat{\chi}_{3}\right),\\
+\gamma_{h}\left(\bm{\hat{\chi}}_{h}\right)G\left(\hat{\chi}_{3}\right)\mathbf{k},
+\end{cases}\label{eq:c_def_tri}
+\end{equation}
+those in $\mathbb{W}_{2}$ are given by
+\begin{equation}
+\mathbf{v}\left(\bm{\hat{\chi}}\right)\equiv\begin{cases}
+\mathbf{v}_{h}\left(\bm{\hat{\chi}}_{h}\right)G\left(\hat{\chi}_{3}\right),\\
+\sigma_{h}\left(\hat{\bm{\chi}}_{h}\right)F\left(\hat{\chi}_{3}\right)\mathbf{k},
+\end{cases}\label{eq:nu_def_tri}
+\end{equation}
+those in $\mathbb{W}_{\theta}$ are given by
+\begin{equation}
+w\left(\bm{\hat{\chi}}\right)\equiv G\left(\hat{\chi}_{1}\right)G\left(\hat{\chi}_{2}\right)F\left(\hat{\chi}_{3}\right)\label{eq:w_def-1}
+\end{equation}
+and finally those in $\mathbb{W}_{3}$ are given by
+\begin{equation}
+\sigma\left(\bm{\hat{\chi}}\right)\equiv\sigma_{h}\left(\hat{\bm{\chi}}_{h}\right)G\left(\hat{\chi}_{3}\right).\label{eq:sigma_def-1}
+\end{equation}
+
+
+
+\subsection{Compound elements}
+
+To be populated.
+
+
+\section{Computation of dofs\label{sec:Computation-of-dofs}}
+
+The number of dofs per element in each function space is the same
+as the number of unique basis functions in that space. A dof can be
+associated with any mesh entity (volume, face, edge, vertex) and will
+inherit the connectivity of its associated mesh entity. The number
+of dofs associated with each entity depends upon the order of the
+function spaces chosen. For the lowest order spaces $k=0$ the number
+of dofs in each space associated with each entity is shown in Table
+\ref{tab:num_dofs} (a) and for general order elements in (b).
+
+\begin{table}
+\begin{centering}
+\subfloat[]{%
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+ & vertex & edge & face & volume\tabularnewline
+\hline
+\hline
+$\mathbb{W}_{0}$ & $1$ & $0$ & $0$ & $0$\tabularnewline
+\hline
+$\mathbb{W}_{1}$ & $0$ & $1$ & $0$ & $0$\tabularnewline
+\hline
+$\mathbb{W}_{2}$ & $0$ & $0$ & $1$ & $0$\tabularnewline
+\hline
+$\mathbb{W}_{3}$ & $0$ & $0$ & $0$ & $1$\tabularnewline
+\hline
+$\mathbb{W}_{\theta}$ & $0$ & $0$ & $1^{\dagger}$ & $0$\tabularnewline
+\hline
+$\mathbb{W}_{2V}$ & $0$ & $0$ & $1^{\dagger}$ & $0$\tabularnewline
+\hline
+$\mathbb{W}_{2H}$ & $0$ & $0$ & $1^{\dagger}$ & $0$\tabularnewline
+\hline
+\end{tabular}
+
+}
+\par\end{centering}
+
+\centering{}\subfloat[]{%
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+ & vertex & edge & face & volume\tabularnewline
+\hline
+\hline
+$\mathbb{W}_{0}$ & 1 & $k$ & $k^{2}$ & $k^{3}$\tabularnewline
+\hline
+$\mathbb{W}_{1}$ & $0$ & $\left(k+1\right)$ & $2k\left(k+1\right)$ & $3k^{2}\left(k+1\right)$\tabularnewline
+\hline
+$\mathbb{W}_{2}$ & $0$ & $0$ & $\left(k+1\right)^{2}$ & $3k\left(k+1\right)^{2}$\tabularnewline
+\hline
+$\mathbb{W}_{3}$ & $0$ & $0$ & $0$ & $\left(k+1\right)^{3}$\tabularnewline
+\hline
+$\mathbb{W}_{\theta}$ & $0$ & $0$ & $\left(k+1\right)^{2\dagger}$ & $k\left(k+1\right)^{2}$\tabularnewline
+\hline
+$\mathbb{W}_{2V}$ & $0$ & $0$ & $\left(k+1\right)^{2\dagger}$ & $k\left(k+1\right)^{2}$\tabularnewline
+\hline
+$\mathbb{W}_{2H}$ & $0$ & $0$ & $\left(k+1\right)^{2\dagger}$ & $2k\left(k+1\right)^{2}$\tabularnewline
+\hline
+\end{tabular}}\protect\caption{\label{tab:num_dofs}Numbers of dofs per mesh entity for the (a) lowest
+order elements$\left(k=0\right)$ and (b) general order elements.
+\dag For $\mathbb{W}_{\theta}$, $\mathbb{W}_{2V}$ and $\mathbb{W}_{2H}$
+some faces do not include degrees of freedom. There are no degrees
+of freedom on i) vertical faces for $\mathbb{W}_{\theta}$ and $\mathbb{W}_{2V}$
+and ii) top and bottom faces for $\mathbb{W}_{2H}$.}
+\end{table}
+
+
+
+\section{Location of dofs\label{sec:Location-of-dofs}}
+
+The locations of each dof within an element can be deduced from its
+associated mesh entity and the order of approximation. Examples are
+given in Figure \ref{fig:dof_locations} for the two lowest orders
+$k=0$ and $k=1$ for quadrilateral elements
+
+\begin{figure}
+\begin{centering}
+\subfloat[$\mathbb{W}_{0},\, k=0$]{\includegraphics[scale=0.4]{k0_W0_dofs}}\subfloat[$\mathbb{W}_{0},\, k=1$]{\includegraphics[scale=0.4]{k1_W0_dofs}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[$\mathbb{W}_{1},\, k=0$]{\includegraphics[scale=0.4]{k0_W1_dofs}}\subfloat[$\mathbb{W}_{1},\, k=1$]{\includegraphics[scale=0.4]{k1_W1_dofs}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[$\mathbb{W}_{2},\, k=0$]{\includegraphics[scale=0.4]{k0_W2_dofs}}\subfloat[$\mathbb{W}_{2},\, k=1$]{\includegraphics[scale=0.4]{k1_W2_dofs}}
+\par\end{centering}
+
+\begin{centering}
+\subfloat[$\mathbb{W}_{3},\, k=0$]{\includegraphics[scale=0.4]{k0_W3_dofs}}\subfloat[$\mathbb{W}_{3},\, k=1$]{\includegraphics[scale=0.4]{k1_W3_dofs}}\protect\caption{\label{fig:dof_locations}Locations of dofs for spaces $\mathbb{W}_{0},..,\mathbb{W}_{3}$
+for (left column) $k=0$ and (right column) $k=1.$}
+
+\par\end{centering}
+
+\end{figure}
+
+
+The corresponding diagrams for $\mathbb{W}_{\theta}$ are given in
+Figure \ref{fig:dof_locations-Wtheta}. Also need a similar figure
+for $\mathbb{W}_{2V}$ and for $\mathbb{W}_{2H}$.
+
+\begin{figure}
+\begin{centering}
+\subfloat[$\mathbb{W}_{\theta},\, k=0$]{\includegraphics[scale=0.4]{k0_Wtheta_dofs}}\subfloat[$\mathbb{W}_{\theta},\, k=1$]{\includegraphics[scale=0.4]{k1_Wtheta_dofs}}
+\par\end{centering}
+
+\centering{}\protect\caption{\label{fig:dof_locations-Wtheta}Locations of dofs for the $\mathbb{W}_{\theta}$
+space for (a) $k=0$ and (b) $k=1.$}
+\end{figure}
+
+
+
+\section{Computation of dofmaps\label{sec:Computation-of-dofmaps}}
+
+The cell dofmaps for each space contain the indices in a global array
+of all the dofs that have none zero support for a given cell, i.e.
+\texttt{dofmap\_w1(:,i)} will return the indices of all the dofs in
+cell \texttt{i }for space $\mathbb{W}_{1}$. The dofmaps for other
+mesh entities (faces, edges, vertices) could in principle be computed,
+but these are not in general needed. The ordering of the dofs within
+the cell dofmap is of importance as we need to know which basis function
+to associate that dof. The assumption made about the ordering of the
+dofs within the cell dofmap is that they are in the the order
+
+\begin{minipage}[t]{1\columnwidth}%
+\begin{center}
+\texttt{dofmap\_w2(:,i)={[}dofs\_in\_volume,dofs\_on\_faces,dofs\_on\_edges,dofs\_on\_vertices{]};}
+\par\end{center}
+
+\smallskip{}
+%
+\end{minipage}
+
+with this ordering a further assumption is made about the ordering
+of faces, edges and vertices. The choice made here is that the ordering
+follows that of the reference element detailed in Appendix \ref{sec:Reference-Element},
+e.g. for $k=0$ and space $\mathbb{W}_{2}$ the cell dofmap applied
+to a velocity field for cell \texttt{i} will return
+
+\begin{minipage}[t]{1\columnwidth}%
+\begin{center}
+\texttt{dofmap\_w2(:,i)={[}u\_face1,u\_face2,u\_face3,u\_face4,u\_face5,u\_face6{]}.}
+\par\end{center}
+
+\smallskip{}
+%
+\end{minipage}
+
+For comparison, the same operator for a C-grid finite difference model
+(such as ENDGame) would return, for a cell located at $\left(i-\frac{1}{2},k-\frac{1}{2},k-\frac{1}{2}\right)$,
+
+\begin{minipage}[t]{1\columnwidth}%
+\begin{center}
+\texttt{dofmap\_endgame(:,i,j,k)={[}$u_{i-1,j-\frac{1}{2},k-\frac{1}{2}},u_{i,j-\frac{1}{2},k-\frac{1}{2}},v_{i-\frac{1}{2},j-1,k-\frac{1}{2}},v_{i-\frac{1}{2},j,k-\frac{1}{2}},w_{i-\frac{1}{2},j-\frac{1}{2},k-1},w_{i-\frac{1}{2}.j-\frac{1}{2},k}${]}.}
+\par\end{center}
+
+\smallskip{}
+%
+\end{minipage}
+
+With higher order elements there is potentially more than one dof
+per mesh entity and a further ordering of the dofs is required. The
+choice made here is to use lexicographical ordering along the dimensions
+of the associated mesh entity, i.e. for $k=2$ along edge 1 the dofmap
+ordering for a field $q$ would be $\left[q\left(\chi_{1}^{1},0,0\right),q\left(\chi_{1}^{2},0,0\right)\right]$
+where $\chi_{1}^{i}$ are the dof nodal points along the edge. For
+face 6 the corresponding ordering would be $\left[q\left(\chi_{1}^{1},\chi_{2}^{1},1\right),q\left(\chi_{1}^{2},\chi_{2}^{1},1\right),q\left(\chi_{1}^{1},\chi_{2}^{2},1\right),q\left(\chi_{1}^{2},\chi_{2}^{2},1\right)\right]$
+where now $\chi_{1}^{i}\chi_{2}^{i}$ are the dof nodal points on
+the face.
+
+
+\section{Quadrature\label{sec:Quadrature}}
+
+A quadrature rule seeks to approximate the integral of a function
+$y$ by a weighted sum of the function evaluated at certain quadrature
+points
+\begin{equation}
+\int_{-1}^{+1}y(x)dx\approx\sum_{i=1}^{n}y\left(x_{i}\right)w_{i}.\label{eq:guass1}
+\end{equation}
+The number and location of the quadrature points is determined by
+the type of rule use. For Gauss-Legendre quadrature, the quadrature
+points $x_{i}$ are the zeros of the associates Legendre polynomials
+and for $n$ points, for the integral is exact for polynomials $y$
+up to order $2n-1$. The quadrature points $x_{i}$ and weights $w_{i}$
+for orders up to $n=5$ (exact for $9^{{\rm th}}$ order polynomials)
+are given in Table \ref{tab:GL_quad}. Gauss-Legendre-Lobatto quadrature
+arranges for the end points of the domain to be included in the set
+$x_{i},$ however it is only accurate up to order $2n-3$ polynomials,
+Table \ref{tab:GLL_quad}.
+\begin{table}
+\centering{}%
+\begin{tabular}{|c|c|c|}
+\hline
+$n$ & $x_{i}$ & $w_{i}$\tabularnewline
+\hline
+\hline
+2 & $\pm\frac{1}{\sqrt{3}}$ & $1$\tabularnewline
+\hline
+3 & $0,\,\pm\frac{\sqrt{15}}{5}$ & $\frac{8}{9},\,\frac{5}{9},\,\frac{5}{9}$\tabularnewline
+\hline
+4 & $\pm\frac{1}{35}\sqrt{525-70\sqrt{30}}$ & $\frac{1}{36}\left(18+\sqrt{30}\right)$\tabularnewline
+ & $\pm\frac{1}{35}\sqrt{525+70\sqrt{30}}$ & $\frac{1}{36}\left(18-\sqrt{30}\right)$\tabularnewline
+\hline
+5 & $\pm\frac{1}{3}\sqrt{5+2\sqrt{\frac{10}{7}}}$ & $\frac{322-13\sqrt{70}}{900}$\tabularnewline
+ & $\pm\frac{1}{3}\sqrt{5-2\sqrt{\frac{10}{7}}}$ & $\frac{322+13\sqrt{70}}{900}$\tabularnewline
+ & 0 & $\frac{128}{225}$\tabularnewline
+\hline
+\end{tabular}\protect\caption{\label{tab:GL_quad}Quadrature points $x_{i}$ and weights $w_{i}$
+for Gauss-Legendre quadrature.}
+\end{table}
+\begin{table}
+\centering{}%
+\begin{tabular}{|c|c|c|}
+\hline
+$n$ & $x_{i}$ & $w_{i}$\tabularnewline
+\hline
+\hline
+2 & $\pm1$ & $1$\tabularnewline
+\hline
+3 & $0,\,\pm1$ & $\frac{4}{3},\,\frac{1}{3},\,\frac{1}{3}$\tabularnewline
+\hline
+4 & $\pm1$ & $\frac{1}{6}$\tabularnewline
+ & $\pm\frac{1}{\sqrt{5}}$ & $\frac{5}{6}$\tabularnewline
+\hline
+5 & $\pm1$ & $\frac{1}{10}$\tabularnewline
+ & $\pm\sqrt{\frac{3}{7}}$ & $\frac{49}{90}$\tabularnewline
+ & 0 & $\frac{32}{45}$\tabularnewline
+\hline
+\end{tabular}\protect\caption{\label{tab:GLL_quad}Quadrature points $x_{i}$ and weights $w_{i}$
+for Gauss-Legendre-Lobatto quadrature.}
+\end{table}
+
+
+Integration over the element can be transformed to the interval $\left(-1,1\right)$
+through
+\begin{equation}
+\int_{x^{m}}^{x^{m+1}}y(x)dx=\frac{h}{2}\int_{-1}^{+1}y\left(\frac{h}{2}z+x^{m+\frac{1}{2}}\right)dz.\label{eq:gauss2}
+\end{equation}
+where $h\equiv x^{m+1}-x^{m}$ and $x^{m+\frac{1}{2}}\equiv\frac{1}{2}\left(x^{m+1}+x^{m}\right).$
+For Dynamo the order of the Gaussian quadrature rule is chosen such
+that it will be exact for all linear terms under the assumption of
+constant determinant of the Jacobian; this gives for Gauss-Legendre
+quadrature the order $n=k+2$ where $k$ is the order of the $\mathbb{W}_{3}$
+space.
+
+\bibliographystyle{wileyqj}
+\bibliography{master}
+
+\end{document}
