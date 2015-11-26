@@ -14,7 +14,7 @@ module lhs_alg_mod
                                                invoke_copy_field_data
 
   use rtheta_kernel_mod,                 only: rtheta_kernel_type
-  use ru_kernel_mod,                     only: ru_kernel_type
+  use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
   use rrho_kernel_mod,                   only: rrho_kernel_type
   use pert_pressure_gradient_kernel_mod, only: pert_pressure_gradient_kernel_type
   use matrix_vector_mm_mod,              only: matrix_vector_kernel_mm_type
@@ -98,7 +98,7 @@ contains
   call invoke( pert_pressure_gradient_kernel_type( lhs_tmp(1), rho, rho_ref, &
                                                    theta, theta_ref, qr ), &
                matrix_vector_kernel_mm_type( lhs(1), u, mm_w2) )
-  call invoke( ru_kernel_type( lhs_tmp(1) ) )
+  call invoke( enforce_bc_kernel_type( lhs_tmp(1) ) )
   call invoke_axpy( alpha_dt, lhs_tmp(1), lhs(1), lhs(1) ) 
  
   ! Compute lhs_theta

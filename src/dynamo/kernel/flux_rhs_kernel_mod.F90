@@ -97,7 +97,7 @@ subroutine flux_rhs_code(nlayers,ndf_u, undf_u, map_u, basis_u,              &
                          )
                            
   use coordinate_jacobian_mod,  only: coordinate_jacobian
-  use enforce_bc_mod,           only: enforce_bc_w2
+  use enforce_bc_kernel_mod,    only: enforce_bc_code
   
   !Arguments
   integer, intent(in) :: nlayers
@@ -171,7 +171,7 @@ subroutine flux_rhs_code(nlayers,ndf_u, undf_u, map_u, basis_u,              &
     end do 
   end do 
   
-  call enforce_bc_w2(nlayers, ndf_u, undf_u, map_u, boundary_value, rhs)
+  call enforce_bc_code(nlayers, rhs, ndf_u, undf_u, map_u, boundary_value)
 end subroutine flux_rhs_code
 
 end module flux_rhs_kernel_mod

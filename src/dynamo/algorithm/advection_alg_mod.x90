@@ -13,7 +13,7 @@ module advection_alg_mod
                                                invoke_multiply_field
  
   use rtheta_kernel_mod,                 only: rtheta_kernel_type
-  use ru_kernel_mod,                     only: ru_kernel_type
+  use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
   use rrho_kernel_mod,                   only: rrho_kernel_type
   use vorticity_advection_kernel_mod,    only: vorticity_advection_kernel_type
   use vorticity_rhs_kernel_mod,          only: vorticity_rhs_kernel_type
@@ -111,7 +111,7 @@ contains
   call solver_algorithm( xi, r_xi, mesh, chi, solver_option, mm=mm_w1 ) 
   call invoke_set_field_scalar( 0.0_r_def, advection(1) ) 
   call invoke( vorticity_advection_kernel_type( advection(1), mass_flux, rho, xi, chi, qr ) )
-  call invoke( ru_kernel_type( advection(1) ) )
+  call invoke( enforce_bc_kernel_type( advection(1) ) )
 
   ! 3) theta_advection dt*( F/rho . grad(theta) )
   call invoke_set_field_scalar( 0.0_r_def, advection(2) )

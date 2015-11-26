@@ -6,8 +6,8 @@
 ##############################################################################
 
 export IGNORE_DEPENDENCIES = netcdf MPI ESMF
-export EXTERNAL_DYNAMIC_LIBRARIES = netcdff esmf
-export EXTERNAL_STATIC_LIBRARIES =
+export EXTERNAL_DYNAMIC_LIBRARIES = esmf netcdff netcdf
+export EXTERNAL_STATIC_LIBRARIES  =
 
 export ROOT = ../..
 export PSYCLONE_DIR = $(ROOT)/src/psyclone
@@ -21,10 +21,21 @@ include make/fortran/$(FORTRAN_COMPILER).mk
 OBJ_DIR = $(BUILD_DIR)/dynamo
 
 LDFLAGS += $(FFLAGS_COMPILER)
+
 ifdef CRAY_ENVIRONMENT
-  LDFLAGS += -dynamic
+    $(info Building in Cray environment)
+    # Cray's do not like linking dynamically so we make everything static.
+    #
+    override LINK := STATIC
 endif
+
 FFLAGS += $(FFLAGS_COMPILER) $(FFLAGS_WARNINGS)
+
+ifeq ($(LINK),STATIC)
+    export EXTERNAL_STATIC_LIBRARIES  := $(EXTERNAL_STATIC_LIBRARIES) \
+                                         $(EXTERNAL_DYNAMIC_LIBRARIES)
+    export EXTERNAL_DYNAMIC_LIBRARIES  = 
+endif
 
 ifeq ($(OPTIMISATION),NONE)
   FFLAGS += $(FFLAGS_NO_OPTIMISATION)
@@ -42,7 +53,7 @@ ifeq ($(CHECKS),YES)
   FFLAGS += $(FFLAGS_INIT) $(FFLAGS_RUNTIME)
 endif
 
-export OBJ_DIR TOOL_DIR F_MOD_DESTINATION_ARG FFLAGS MPI_LD LDFLAGS
+export OBJ_DIR TOOL_DIR F_MOD_DESTINATION_ARG FFLAGS MPI_LD LDFLAGS DEPRULE_FLAGS
 
 .PHONY: all
 all: modules

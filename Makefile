@@ -5,6 +5,10 @@
 # https://puma.nerc.ac.uk/trac/GungHo/wiki
 ##############################################################################
 
+# By default we link dynamically
+#
+LINK ?= DYNAMIC
+
 # A trio of targets are offered for various levels of debugging support and
 # speed of execution.
 #
@@ -26,7 +30,7 @@ production: build
 
 .PHONY: build
 build: tools
-	$(MAKE) -C src/dynamo OPTIMISATION=$(OPTIMISATION) \
+	$(MAKE) -C src/dynamo LINK=$(LINK) OPTIMISATION=$(OPTIMISATION) \
 	                      SYMBOLS=$(SYMBOLS) CHECKS=$(CHECKS)
 	$(MAKE) -C src/test
 

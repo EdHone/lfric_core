@@ -112,7 +112,7 @@ subroutine linear_ru_code(nlayers,                                             &
 
   use coordinate_jacobian_mod,  only: coordinate_jacobian
   use reference_profile_mod,    only: reference_profile 
-  use enforce_bc_mod,           only: enforce_bc_w2
+  use enforce_bc_kernel_mod,    only: enforce_bc_code
   use calc_exner_pointwise_mod, only: linear_calc_exner_pointwise
   use coord_transform_mod,      only: xyz2llr, sphere2cart_vector
   use slush_mod,                only: l_spherical, f_lat
@@ -243,7 +243,7 @@ subroutine linear_ru_code(nlayers,                                             &
     end do 
   end do 
 
-  call enforce_bc_w2(nlayers,ndf_w2,undf_w2,map_w2,boundary_value,r_u)
+  call enforce_bc_code(nlayers,r_u, ndf_w2,undf_w2,map_w2,boundary_value)
 end subroutine linear_ru_code
 
 end module linear_ru_kernel_mod

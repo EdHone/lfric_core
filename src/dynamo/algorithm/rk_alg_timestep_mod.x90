@@ -27,7 +27,7 @@ module rk_alg_timestep_mod
   use compute_mass_matrix_kernel_w2_mod, only: compute_mass_matrix_kernel_w2_type
   use compute_geopotential_kernel_mod,   only: compute_geopotential_kernel_type
   use rtheta_kernel_mod,                 only: rtheta_kernel_type
-  use ru_kernel_mod,                     only: ru_kernel_type
+  use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
   use rrho_kernel_mod,                   only: rrho_kernel_type
   use initial_rho_kernel_mod,            only: initial_rho_kernel_type
   use vorticity_rhs_kernel_mod,          only: vorticity_rhs_kernel_type
@@ -242,8 +242,7 @@ contains
         call invoke( kinetic_energy_gradient_kernel_type ( ru_prediction(stage), u, chi, qr ) )
         call invoke( geopotential_gradient_kernel_type   ( ru_prediction(stage), geopotential, qr ) )
         call invoke( vorticity_advection_kernel_type     ( ru_prediction(stage), mass_flux, rho, xi, chi, qr ) )
-        ! Ru kernel only being used for boundary dof's
-        call invoke( ru_kernel_type( ru_prediction(stage) ) ) 
+        call invoke( enforce_bc_kernel_type( ru_prediction(stage) ) ) 
 
         !PSY call invoke ( set_field_scalar(0.0_r_def, r_theta))
         call invoke_set_field_scalar(0.0_r_def, r_theta)
