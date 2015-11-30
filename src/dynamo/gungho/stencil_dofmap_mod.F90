@@ -33,7 +33,7 @@ private
 type, public :: stencil_dofmap_type
   private 
   integer :: dofmap_shape
-  integer :: dofmap_size
+  integer :: dofmap_extent
   integer :: dofmap_id
   integer, allocatable :: dofmap(:,:,:) 
 contains
@@ -57,31 +57,36 @@ contains
 !-----------------------------------------------------------------------------
 !> Function to construct a stencil dofmap
 !> @param[in] st_shape The shape of the required stencil
-!> @param[in] st_size The number of cells in the stencil
+!> @param[in] st_extent The number of cells in the stencil
 !> @param[in] master_dofmap The cell dofmap to create the stencil from
 !> @return The dofmap object
-function stencil_dofmap_constructor( st_shape, st_size, ndf, mesh, master_dofmap) result(self)
+function stencil_dofmap_constructor( st_shape, st_extent, ndf, mesh, master_dofmap) result(self)
 
     use log_mod,  only: log_event,         &
                         log_scratch_space, &
                         LOG_LEVEL_ERROR
     use mesh_mod, only: mesh_type
 
-    integer,                  intent(in) :: st_shape, st_size, ndf
+    integer,                  intent(in) :: st_shape, st_extent, ndf
     type(mesh_type),          intent(in) :: mesh
     type(master_dofmap_type), intent(in) :: master_dofmap
     type(stencil_dofmap_type), target    :: self
 
     integer :: cell, ncells
     integer, pointer :: map(:) => null()
+    integer :: cell_in_stencil
+    integer :: cell_west,  next_cell_west,  &
+               cell_south, next_cell_south, &
+               cell_east,  next_cell_east,  &
+               cell_north, next_cell_north
 
     self%dofmap_shape = st_shape
-    self%dofmap_size  = st_size
-    self%dofmap_id    = st_shape*100 + st_size
+    self%dofmap_extent  = st_extent
+    self%dofmap_id    = st_shape*100 + st_extent
 
     ncells = mesh%get_ncells_2d()
     ! Allocate the dofmap array
-    allocate( self%dofmap( ndf, st_size, ncells ) )
+    allocate( self%dofmap( ndf, st_extent, ncells ) )
     ! Compute the dofmap
     select case ( st_shape ) 
       case ( STENCIL_POINT )
@@ -89,6 +94,102 @@ function stencil_dofmap_constructor( st_shape, st_size, ndf, mesh, master_dofmap
           map => master_dofmap%get_master_dofmap(cell)
           self%dofmap(:,1,cell) = map(:)
         end do
+      case ( STENCIL_1DX )
+        do cell = 1,ncells
+          map => master_dofmap%get_master_dofmap(cell)
+          self%dofmap(:,1,cell) = map
+          cell_in_stencil = 1
+          cell_west = cell
+          cell_east = cell
+          do while ( cell_in_stencil <= st_extent )
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_west = mesh%get_cell_next(1,cell_west)
+              map => master_dofmap%get_master_dofmap(next_cell_west)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_west = next_cell_west
+            end if
+
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_east = mesh%get_cell_next(3,cell_east)
+              map => master_dofmap%get_master_dofmap(next_cell_east)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_east = next_cell_east
+            end if
+          end do
+        end do   
+           
+      case ( STENCIL_1DY )
+        do cell = 1,ncells
+          map => master_dofmap%get_master_dofmap(cell)
+          self%dofmap(:,1,cell) = map
+          cell_in_stencil = 1
+          cell_south = cell
+          cell_north = cell
+          do while ( cell_in_stencil <= st_extent )
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_south = mesh%get_cell_next(2,cell_south)
+              map => master_dofmap%get_master_dofmap(next_cell_south)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_south = next_cell_south
+            end if
+    
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_north = mesh%get_cell_next(4,cell_north)
+              map => master_dofmap%get_master_dofmap(next_cell_north)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_north = next_cell_north
+            end if
+          end do
+        end do   
+
+      case ( STENCIL_CROSS )
+        do cell = 1,ncells
+          map => master_dofmap%get_master_dofmap(cell)
+          self%dofmap(:,1,cell) = map(:)
+          cell_in_stencil = 1
+          cell_west  = cell
+          cell_south = cell
+          cell_east  = cell
+          cell_north = cell         
+          do while ( cell_in_stencil <= st_extent )
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_west = mesh%get_cell_next(1,cell_west)
+              map => master_dofmap%get_master_dofmap(next_cell_west)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_west = next_cell_west
+            end if
+
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_south = mesh%get_cell_next(2,cell_south)
+              map => master_dofmap%get_master_dofmap(next_cell_south)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_south = next_cell_south
+            end if
+
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_east = mesh%get_cell_next(3,cell_east)
+              map => master_dofmap%get_master_dofmap(next_cell_east)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_east = next_cell_east
+            end if
+
+            cell_in_stencil = cell_in_stencil + 1
+            if (  cell_in_stencil <= st_extent ) then
+              next_cell_north = mesh%get_cell_next(4,cell_north)
+              map => master_dofmap%get_master_dofmap(next_cell_north)
+              self%dofmap(:,cell_in_stencil,cell) = map
+              cell_north = next_cell_north
+            end if
+          end do
+        end do
+ 
       case default
         write( log_scratch_space, '( A, I4 )' ) &
            "Invalid stencil type: ", st_shape
