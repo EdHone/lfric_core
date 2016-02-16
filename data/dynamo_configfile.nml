@@ -75,3 +75,15 @@ write_nodal_output = .true.
 
 
 
+
+! Subgrid rho namelist guide: approximation options are
+!   CONSTANT_SUBGRID           = 101
+!   LINEAR_CENTERED_DIFF       = 201
+!   SUPERBEE                   = 202
+!   MINMOD                     = 203
+!   PPM_NO_LIMITER             = 301
+!   PPM_POSITIVE_ONLY          = 302
+!   PPM_POSITIVE_MONOTONE      = 303
+&SUBGRIDRHO_NML
+subgridrho_option = 301
+/

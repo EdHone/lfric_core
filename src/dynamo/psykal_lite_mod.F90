@@ -1018,4 +1018,79 @@ subroutine invoke_write_fields(nodal_coordinates, level, nodal_output, fspace_di
   
 end subroutine invoke_write_fields
 
+!-------------------------------------------------------------------------------  
+!> invoke_subgrid_coeffs: Invoke the calculation of subgrid rho coefficients
+subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_length)
+
+    use subgrid_coeffs_kernel_mod,  only: subgrid_coeffs_code
+    use configuration_mod,          only: subgridrho_option, &
+                                          x_direction,          &
+                                          y_direction
+
+    use stencil_dofmap_mod,         only: stencil_dofmap_type, &
+                                          STENCIL_1DX, &
+                                          STENCIL_1DY
+
+    implicit none
+
+    type( field_type ), intent( inout ) :: a0
+    type( field_type ), intent( inout ) :: a1
+    type( field_type ), intent( inout ) :: a2
+    type( field_type ), intent( in )    :: rho
+    integer, intent(in)                 :: direction
+    integer, intent(in)                 :: rho_stencil_length
+
+    type( field_proxy_type )            :: rho_proxy
+    type( field_proxy_type )            :: a0_proxy
+    type( field_proxy_type )            :: a1_proxy
+    type( field_proxy_type )            :: a2_proxy
+
+    type(stencil_dofmap_type), pointer  :: map => null()
+    integer, pointer                    :: stencil_map(:,:) => null()
+    integer                 :: cell
+    integer                 :: nlayers
+    integer                 :: ndf_w3
+    integer                 :: undf_w3
+
+    a0_proxy   = a0%get_proxy()
+    a1_proxy   = a1%get_proxy()
+    a2_proxy   = a2%get_proxy()
+    rho_proxy  = rho%get_proxy()
+
+    undf_w3 = rho_proxy%vspace%get_undf()
+    ndf_w3  = rho_proxy%vspace%get_ndf()
+    nlayers = rho_proxy%vspace%get_nlayers()
+
+    ! Note stencil grid types are of the form:
+    !                                   |5|
+    !                                   |3|
+    ! 1DX --> |4|2|1|3|5|  OR  1DY -->  |1|
+    !                                   |2|
+    !                                   |4|
+    if (direction .EQ. x_direction) then
+      map => rho_proxy%vspace%ll_get_instance(STENCIL_1DX,rho_stencil_length)
+    elseif (direction .EQ. y_direction) then
+      map => rho_proxy%vspace%ll_get_instance(STENCIL_1DY,rho_stencil_length)
+    end if
+
+    do cell = 1, rho_proxy%vspace%get_ncell()
+
+      stencil_map => map%get_dofmap(cell)
+
+      call subgrid_coeffs_code( nlayers,                                  &
+                                subgridrho_option,                        &
+                                undf_w3,                                  &
+                                rho_proxy%data,                           &
+                                ndf_w3,                                   &
+                                rho_stencil_length,                       &
+                                stencil_map,                              &
+                                a0_proxy%data,                            &
+                                a1_proxy%data,                            &
+                                a2_proxy%data                             &
+                                )
+
+    end do
+
+  end subroutine invoke_subgrid_coeffs
+
 end module psykal_lite_mod

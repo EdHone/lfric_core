@@ -1,0 +1,188 @@
+!-------------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown, 
+! Met Office and NERC 2014. 
+! However, it has been created with the help of the GungHo Consortium, 
+! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-------------------------------------------------------------------------------
+
+!> @brief Calculates the coefficients, a0,a1,a2, for 1D subgrid
+!>        representation of rho, rho(x) = a0 + a1*x+a2*x**2 with 0<x<1,
+!>        here x simply represents a local coordinate within a cell in either
+!>        the chi1, chi2, or chi3 directions.
+
+!> @detail The kernel computes the coefficients a0,a1,a2 where rho is represented in 1D
+!>         by the approximation rho(x) = a0+a1*x+a2*x**2
+!>         Various cases for calculating a0,a1 and a2 are available, including 
+!>         constant,linear and quadratic subgrid representations of rho.
+!>         For linear representation there are several options. If no slope limiter is
+!>         required then centered difference is used to estimate the slope.
+!>         Slope limiters which are currently available are minmod and superbee.
+!>         These slope limiters are extensively covered in the literature on slope limiters
+!>         and have good performance.
+!>         For quadratic representation of rho PPM is used and the options of
+!>         positivity and monotonicity are available
+!>
+!>         Note that this kernel only works when rho is a W3 field at lowest order
+!>         since it is assumed that ndf_w3 = 1 with stencil_map(1,:) containing
+!>         the relevant dofmaps.
+module subgrid_coeffs_kernel_mod
+use kernel_mod,              only : kernel_type
+use constants_mod,           only : r_def
+use configuration_mod,       only : CONSTANT_SUBGRID, &
+                                    CONSTANT_POSITIVE, &
+                                    LINEAR_CENTERED_DIFF, &
+                                    SUPERBEE, &
+                                    MINMOD, &
+                                    PPM_NO_LIMITER, &
+                                    PPM_POSITIVE_ONLY, &
+                                    PPM_POSITIVE_MONOTONE, &
+                                    rho_stencil_length
+
+use argument_mod,            only : arg_type, func_type,           &
+                                    GH_FIELD, GH_INC, GH_WRITE,    &
+                                    W3,                            &
+                                    GH_BASIS,                      &
+                                    CELLS
+
+implicit none
+
+!-------------------------------------------------------------------------------
+! Public types
+!-------------------------------------------------------------------------------
+!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+type, public, extends(kernel_type) :: subgrid_coeffs_kernel_type
+  private
+  type(arg_type) :: meta_args(1) = (/                                  &
+       arg_type(GH_FIELD, GH_WRITE, W3)                                &
+       /)
+  type(func_type) :: meta_funcs(1) = (/                                &
+       func_type(W3, GH_BASIS)                                         &
+       /)
+  integer :: iterates_over = CELLS
+
+contains
+  procedure, public, nopass :: subgrid_coeffs_code
+end type
+
+!-------------------------------------------------------------------------------
+! Constructors
+!-------------------------------------------------------------------------------
+
+! overload the default structure constructor for function space
+interface subgrid_coeffs_kernel_type
+   module procedure subgrid_coeffs_kernel_constructor
+end interface
+
+!-------------------------------------------------------------------------------
+! Contained functions/subroutines
+!-------------------------------------------------------------------------------
+contains
+
+type(subgrid_coeffs_kernel_type) function subgrid_coeffs_kernel_constructor() result(self)
+  return
+end function subgrid_coeffs_kernel_constructor
+
+!> @brief The subroutine which is called directly by the Psy layer
+!! @param[in] nlayers Integer the number of layers
+!! @param[in] subgridrho_option Integer Option for which approximation to use
+!! @param[in] undf_w3 Integer The number unique of degrees of freedom for W3
+!! @param[in] rho Real array The density
+!! @param[in] stencil_length Integer The local length of a stencil (5 for PPM)
+!! @param[in] local_dofmap Integer array Local array containg dofmaps of the local stencil
+!! @param[out] coeffs Real array Array containing the three coefficients, a0,a1,a2
+subroutine subgrid_coeffs_code(                                               &
+                                nlayers,                                      &
+                                subgridrho_option,                            &
+                                undf_w3,                                      &
+                                rho,                                          &
+                                ndf_w3,                                       &
+                                stencil_length,                               &
+                                stencil_map,                                  &
+                                a0,                                           &
+                                a1,                                           &
+                                a2                                            &
+                                )
+
+  use subgrid_rho_mod, only: return_ppm_output, minmod_function, maxmod_function
+
+  !Arguments
+  integer, intent(in)               :: nlayers
+  integer, intent(in)               :: subgridrho_option
+  integer, intent(in)               :: undf_w3
+  real(kind=r_def), intent(in)      :: rho(undf_w3)
+  integer, intent(in)               :: ndf_w3
+  integer, intent(in)               :: stencil_length
+  integer, intent(in)               :: stencil_map(1:ndf_w3,1:stencil_length)
+  real(kind=r_def), intent(inout)   :: a0(undf_w3)
+  real(kind=r_def), intent(inout)   :: a1(undf_w3)
+  real(kind=r_def), intent(inout)   :: a2(undf_w3)
+
+  real(kind=r_def)               :: sigma1,sigma2
+  real(kind=r_def)               :: coeffs(1:3)
+
+  integer :: k
+
+  logical :: positive,monotone
+
+  do k=0,nlayers-1
+
+    select case(subgridrho_option)
+      case (CONSTANT_SUBGRID)
+        a0(stencil_map(1,1)) = rho(stencil_map(1,1))
+        a1(stencil_map(1,1)) = 0.0_r_def
+        a2(stencil_map(1,1)) = 0.0_r_def
+
+      case (CONSTANT_POSITIVE)
+        a0(stencil_map(1,1)) = max(rho(stencil_map(1,1)),0.0_r_def)
+        a1(stencil_map(1,1)) = 0.0_r_def
+        a2(stencil_map(1,1)) = 0.0_r_def
+
+      case (LINEAR_CENTERED_DIFF)
+        a1(stencil_map(1,1)) = (rho(stencil_map(1,3))-rho(stencil_map(1,2)))/2.0_r_def
+        a0(stencil_map(1,1)) = rho(stencil_map(1,1))-a1(stencil_map(1,1))*0.5_r_def
+        a2(stencil_map(1,1)) = 0.0_r_def
+
+      case (SUPERBEE)
+        sigma1 = minmod_function(                                             &
+                      rho(stencil_map(1,3))-rho(stencil_map(1,1)),            &
+                      2.0_r_def*(rho(stencil_map(1,1))-rho(stencil_map(1,2))) &
+                                )
+        sigma2 = minmod_function(                                             &
+                      2.0_r_def*(rho(stencil_map(1,3))-rho(stencil_map(1,1))),&
+                      rho(stencil_map(1,1))-rho(stencil_map(1,2)) )
+
+        a1(stencil_map(1,1)) = maxmod_function( sigma1, sigma2)
+        a0(stencil_map(1,1)) = rho(stencil_map(1,1))-a1(stencil_map(1,1))*0.5_r_def
+        a2(stencil_map(1,1)) = 0.0_r_def
+
+      case (MINMOD)
+        a1(stencil_map(1,1)) = minmod_function(                               &
+                                rho(stencil_map(1,1))-rho(stencil_map(1,2)) , &
+                                rho(stencil_map(1,3))-rho(stencil_map(1,1)) )
+        a0(stencil_map(1,1)) = rho(stencil_map(1,1))-a1(stencil_map(1,1))*0.5_r_def
+        a2(stencil_map(1,1)) = 0.0_r_def
+
+      case (PPM_NO_LIMITER)
+        positive=.false.
+        monotone=.false.
+        call return_ppm_output(rho(stencil_map(1,1:5)),coeffs,positive,monotone)
+        a0(stencil_map(1,1)) = coeffs(1)
+        a1(stencil_map(1,1)) = coeffs(2)
+        a2(stencil_map(1,1)) = coeffs(3)
+
+      case (PPM_POSITIVE_ONLY,PPM_POSITIVE_MONOTONE)
+        positive=.true.
+        monotone=.false.
+        if ( subgridrho_option == PPM_POSITIVE_MONOTONE) monotone=.true.
+        call return_ppm_output(rho(stencil_map(1,1:5)),coeffs,positive,monotone)
+        a0(stencil_map(1,1)) = coeffs(1)
+        a1(stencil_map(1,1)) = coeffs(2)
+        a2(stencil_map(1,1)) = coeffs(3)
+
+    end select
+
+  end do
+
+end subroutine subgrid_coeffs_code
+
+end module subgrid_coeffs_kernel_mod

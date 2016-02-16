@@ -143,6 +143,33 @@ module configuration_mod
   logical :: write_nodal_output        = .false.
   !> @}
 
+
+
+  !=========================== Subgrid rho approximation ==================================!
+  !> @name Enumeration of the available choices for the subgrid approximation of rho
+  !> @{
+  integer (kind=i_def), parameter :: CONSTANT_SUBGRID           = 101  !< Constant subgrid approximation
+  integer (kind=i_def), parameter :: CONSTANT_POSITIVE          = 102  !< Constant subgrid approximation
+  integer (kind=i_def), parameter :: LINEAR_CENTERED_DIFF       = 201  !< Linear subgrid approximation
+  integer (kind=i_def), parameter :: SUPERBEE                   = 202  !< Linear subgrid approximation
+  integer (kind=i_def), parameter :: MINMOD                     = 203  !< Linear subgrid approximation
+  integer (kind=i_def), parameter :: PPM_NO_LIMITER             = 301  !< PPM with no modification
+  integer (kind=i_def), parameter :: PPM_POSITIVE_ONLY          = 302  !< PPM with positivity imposed
+  integer (kind=i_def), parameter :: PPM_POSITIVE_MONOTONE      = 303  !< PPM with positivity and monotonicity imposed
+  !> @}
+
+  !> @name Direction of 1D subgrid approximation and local stencil length
+  !> @{
+  integer (kind=i_def), parameter :: x_direction                = 888  !< Subgrid approximation in x direction
+  integer (kind=i_def), parameter :: y_direction                = 999  !< Subgrid approximation in y direction
+  integer (kind=i_def), parameter :: rho_stencil_length         = 5    !< Length of stencil required for PPM
+  !> @}
+
+  !> @name Choice of subgrid approximation
+  !> @{
+  integer (kind=i_def) :: subgridrho_option = CONSTANT_SUBGRID    !< Choice of solver from the list of options.
+  !> @}
+
 contains
 
 !> @brief Subroutine which configures Dynamo.
@@ -179,6 +206,7 @@ subroutine configure_dynamo( restart, local_rank, total_ranks )
   namelist /solver_nml/ solver_option
   namelist /timestepping_nml/ itimestep_option, dt, restart_filename, n_outer_iter, n_inner_iter
   namelist /output_nml/ write_interpolated_output, write_nodal_output
+  namelist /subgridrho_nml/ subgridrho_option
 
   !============ Configuration file  ===========================================!
   ! Name of configuration file
@@ -252,6 +280,15 @@ subroutine configure_dynamo( restart, local_rank, total_ranks )
   read(funit, nml = output_nml, iostat = ierr, iomsg = ioerrmsg)
   if (ierr /= 0) then
     write(log_scratch_space,'(A,A)') "Problems reading output_nml in ", &
+          trim(config_fname)
+    call log_event(log_scratch_space,LOG_LEVEL_INFO)
+    call log_event(ioerrmsg,LOG_LEVEL_ERROR)
+  end if
+
+
+  read(funit, nml = subgridrho_nml, iostat = ierr, iomsg = ioerrmsg)
+  if (ierr /= 0) then
+    write(log_scratch_space,'(A,A)') "Problems reading subgridrho_nml in ", &
           trim(config_fname)
     call log_event(log_scratch_space,LOG_LEVEL_INFO)
     call log_event(ioerrmsg,LOG_LEVEL_ERROR)
