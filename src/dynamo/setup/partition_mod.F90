@@ -598,7 +598,7 @@ end function partition_constructor
   integer :: i, j         ! loop counters
   integer :: cells(4)     ! The cells around the vertex being queried
   integer :: oth1, oth2   ! When querying a cell around a vertex, these are
-                          ! the indeces of the other two cells
+                          ! the indices of the other two cells
   integer, allocatable :: sw_corner_cells(:)
                           ! List of cells at the SW corner of the panels
   integer :: panel        ! panel number
