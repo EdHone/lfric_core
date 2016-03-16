@@ -14,7 +14,7 @@
 
 module field_mod
 
-  use constants_mod,      only: r_def, i_def, l_def
+  use constants_mod,      only: r_def, r_double, i_def, l_def
   use function_space_mod, only: function_space_type
   use mesh_mod,           only: mesh_type
 
@@ -52,7 +52,7 @@ module field_mod
     !! field_type.
     procedure, public :: get_proxy
 
-    !> Sends the field contents to the log
+    procedure, public :: write_checksum
     procedure, public :: log_field
     procedure, public :: log_dofs
     procedure, public :: log_minmax
@@ -391,7 +391,47 @@ contains
     return
   end function get_mesh
 
-  !> Sends the field contents to the log
+  !> Writes a checksum of this field to a file.
+  !>
+  !> \param[in] stream I/O unit number for output.
+  !> \param[in] label Title to identify the field added to output.
+  !>
+  subroutine write_checksum( self, stream, label )
+
+    implicit none
+
+    class(field_type), intent(in) :: self
+    integer,           intent(in) :: stream
+    character(*),      intent(in) :: label
+
+    integer(i_def)          :: cell
+    integer(i_def)          :: layer
+    integer(i_def)          :: df
+    integer(i_def), pointer :: map( : )
+    real(r_double)          :: fraction_checksum
+    integer(i_def)          :: exponent_checksum
+
+    fraction_checksum = 0.0_r_double
+    exponent_checksum = 0_i_def
+
+    do cell=1,self%vspace%get_ncell()
+      map => self%vspace%get_cell_dofmap( cell )
+      do df=1,self%vspace%get_ndf()
+        do layer=0,self%vspace%get_nlayers()-1
+          fraction_checksum = modulo( fraction_checksum + fraction( self%data( map( df ) + layer ) ), 1.0 )
+          exponent_checksum = exponent_checksum + exponent( self%data( map( df ) + layer ) )
+        end do
+      end do
+    end do
+
+    write( stream, '("Fraction checksum ", A, " = ", F18.16)' ) &
+        trim(label), fraction_checksum
+    write( stream, '("Exponent checksum ", A, " = ", I0)' ) &
+        trim(label), exponent_checksum
+
+  end subroutine write_checksum
+
+  !> Sends field contents to the log.
   !!
   !! @param[in] dump_level The level to use when sending the dump to the log.
   !! @param[in] checksum_level The level to use when sending the checksum to

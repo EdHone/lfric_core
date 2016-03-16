@@ -46,6 +46,8 @@ if __name__ == '__main__':
     parser.add_argument( '-objectdir', metavar='object-directory', \
                          help='Object files are here. ' \
                               + 'Defaults to the output directory.' )
+    parser.add_argument( '-moduleobjects', action='store_true', \
+                 help='The compiler puts module information in object files.' )
     parser.add_argument( 'output', metavar='output-file', \
                          help='Dependency details are put here' )
     args = parser.parse_args()
@@ -77,12 +79,16 @@ if __name__ == '__main__':
 
     try:
         with open( args.output, 'w' ) as listFile:
-            print( '# Source dependendencies', file=listFile )
+            print( '# Object dependendencies', file=listFile )
 
             for filename, prerequisites in fileStore.getDependencies():
-                modulename = replaceExtension( filename, 'mod' )
+                if args.moduleobjects:
+                    modulename = ''
+                else:
+                    modulename = replaceExtension( filename, 'mod' )
+
                 print( '{} {} : {}'.format( filename, modulename, \
-                                         ' '.join( prerequisites ) ), \
+                                        ' '.join( prerequisites ) ), \
                     file=listFile )
     except:
         os.unlink( args.output )

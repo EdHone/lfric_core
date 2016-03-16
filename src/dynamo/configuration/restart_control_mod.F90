@@ -131,7 +131,7 @@ contains
     open(funit,file=trim(fname),iostat=ierr,status='old',iomsg=ioerrmsg)
     if(ierr/=0) then
        write( log_scratch_space,'(A,A)') "Problems opening namelist file:", &
-                                        fname
+                                        trim(fname)
        call log_event(log_scratch_space,LOG_LEVEL_INFO)
        call log_event(ioerrmsg,LOG_LEVEL_ERROR)
     end if

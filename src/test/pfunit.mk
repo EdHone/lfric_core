@@ -31,8 +31,14 @@ else ifeq '$(FORTRAN_COMPILER)' 'nagfor'
   PFUNIT_COMPILER_ID = NAG
 else ifeq '$(FORTRAN_COMPILER)' 'xlf'
   PFUNIT_COMPILER_ID = XL
+else ifeq '$(FORTRAN_COMPILER)' 'crayftn'
+  PFUNIT_COMPILER_ID = CRAY
 else
-  $(error Unrecognised compiler "$(COMPILER_NAME)")
+  $(error Unrecognised compiler "$(FORTRAN_COMPILER)")
+endif
+
+ifdef CRAY_ENVIRONMENT
+  CMAKE_FLAGS = -DCMAKE_TOOLCHAIN_FILE=$(ROOT)/src/test/cmake/cray.$(FORTRAN_COMPILER).cmake
 endif
 
 DRIVER_DIR = $(dir $(DRIVER_OBJ))
@@ -42,6 +48,7 @@ $(DRIVER_OBJ): $(PFUNIT_INSTALL_DIR)/include/driver.F90 \
 	@echo -e $(VT_BOLD)Compiling$(VT_RESET) $@
 	$(Q)$(FC) $(FFLAGS) -c -I$(PFUNIT_INSTALL_DIR)/mod -I$(DRIVER_DIR) \
 	          -DBUILD_ROBUST \
+	          -DMPI=YES \
 	          -DPFUNIT_EXTRA_USAGE=$(PFUNIT_EXTRA_USAGE) \
 	          -DPFUNIT_EXTRA_INITIALIZE=$(PFUNIT_EXTRA_INITIALIZE) \
 	          -DPFUNIT_EXTRA_FINALIZE=$(PFUNIT_EXTRA_FINALIZE) -o $@ $<
@@ -53,8 +60,11 @@ $(PFUNIT_INSTALL_DIR)/include/driver.F90: $(PFUNIT_BUILD_DIR)/Makefile
 
 $(PFUNIT_BUILD_DIR)/Makefile: | $(PFUNIT_BUILD_DIR)
 	@echo -e $(VT_BOLD)Configuring$(VT_RESET) pFUnit
-	$(Q)cd $(PFUNIT_BUILD_DIR); $(CMAKE) -DINSTALL_PATH=$(PFUNIT_INSTALL_DIR) \
-	                                     $(PFUNIT_SOURCE_DIR)
+	$(Q)cd $(PFUNIT_BUILD_DIR); $(CMAKE) $(CMAKE_FLAGS) \
+                                          -DMPI=YES \
+                                          $(MPI_RUN_SCRIPT) $(MPI_RUN_SCRIPT_COMPILER) \
+                                          -DINSTALL_PATH=$(PFUNIT_INSTALL_DIR) \
+	                                  $(PFUNIT_SOURCE_DIR)
 
 $(PFUNIT_BUILD_DIR) $(dir $(DRIVER_OBJ)):
 	@echo -e $(VT_BOLD)Creating$(VT_RESET) $@

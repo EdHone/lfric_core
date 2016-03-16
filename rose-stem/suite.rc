@@ -1,66 +1,83 @@
 #!jinja2
-{% set targets = ['fast-debug'] %}
-{% set module_setup_script = "/data/users/lfric/modules/setup" %}
+{%- set builds = ['fast-debug'] %}
 
-{% set environment_commands = "source " + module_setup_script + "; module load base-environment/dynamo" %}
-{% set display_environment = "module list 2>&1" %}
+{%- set compiler_setup = {} -%}
+{%- for compiler, setup in TARGET_COMPILER_SETUP|batch(2) -%}
+{%-     do compiler_setup.update({compiler : [setup]}) -%}
+{%-     if compiler == TARGET_SCIENCE_COMPILER -%}
+{%-         set default_science_setup = setup -%}
+{%-     endif -%}
+{%- endfor -%}
 
-{% set default_compiler, default_version = DEFAULT_ENVIRONMENT %}
+{%- macro command_list() %}
+{%-     set list = [] %}
+{%-     for thing in varargs %}
+{%-         if thing is string %}
+{%-             do list.append(thing) %}
+{%-         else %}
+{%-             do list.extend(thing) %}
+{%-         endif %}
+{%-    endfor -%}
+"""{{ list | join('\n') }}"""
+{%- endmacro %}
+
 [cylc]
-    UTC mode = True 
+    UTC mode = True
     [[event hooks]]
         timeout handler = "rose suite-hook --mail --shutdown"
         timeout = 180 # 3 hours
 
-{%- macro prepare_pipeline_schedule( id ) -%}
-{#- The schedule for the initial "purge" and "extract" stages of a pipeline. -#}
-  {%- set label = id | lower -%}
-                purge_for_{{label}} => export_for_{{label}}
-{%- endmacro -%}
-
-{% macro pipeline_schedule( compiler, target ) %}
-{#   The schedule for an "extract, compile, unit test, run, check" pipeline #}
-{%   set label = compiler | lower + '_' + target | lower %}
-{{ prepare_pipeline_schedule( label ) }}
-                export_for_{{label}} => compile_with_{{label}}
-                compile_with_{{label}} => unit_test_with_{{label}}
-                unit_test_with_{{label}} => generate_{{label}}_cubedsphere
-                generate_{{label}}_cubedsphere => check_{{label}}_cubedsphere_metadata
-                generate_{{label}}_cubedsphere => check_{{label}}_cubedsphere_data
-                unit_test_with_{{label}} => generate_{{label}}_biperiodic
-                generate_{{label}}_biperiodic => check_{{label}}_biperiodic_metadata
-                generate_{{label}}_biperiodic => check_{{label}}_biperiodic_data
-                unit_test_with_{{label}} => run_{{label}}_dynamo
-                run_{{label}}_dynamo => check_{{label}}_dynamo
-{% endmacro %}
-
 [scheduling]
     [[queues]]
         [[[host_throttle]]]
-            limit = 4
-            members = REMOTE
+            limit = {{ TARGET_THROTTLE }}
+            members = root
     [[dependencies]]
         graph = """
-{{ prepare_pipeline_schedule( 'cleanliness' ) }}
-                export_for_cleanliness => check_for_unused_source
+{%- if TECHNICAL_DEVELOPER_TESTS %}
+            purge_for_technical => export_for_technical
+{%-   if 'cleanliness' in TECHNICAL_DEVELOPER_TESTS %}
+            export_for_technical => check_for_unused_source
+{%-   endif %}
 
-{{ prepare_pipeline_schedule( 'godliness' ) }}
-                export_for_godliness => api_godliness
-                export_for_godliness => design_godliness
-{% for compiler, version in COMPILER_ENVIRONMENTS | batch(2) -%}
-{%   for target in targets -%}
-{{     pipeline_schedule( compiler, target ) }}
+{%-   if 'documentation' in TECHNICAL_DEVELOPER_TESTS %}
+            export_for_technical => api_documentation
+            export_for_technical => design_documentation
+{%-   endif %}
+{%- endif %}
+
+{% for compiler, script in TARGET_COMPILER_SETUP | batch(2) -%}
+{%   for build in builds -%}
+{%     set label = compiler | lower + '_' + build | lower -%}
+            local_purge_for_{{label}}      => target_purge_for_{{label}}
+            target_purge_for_{{label}}     => export_for_{{label}}
+            export_for_{{label}}           => copy_{{label}}_to_target
+            copy_{{label}}_to_target       => compile_with_{{label}}
+{%-    if TARGET_SKIP_UNIT_TESTS %}
+            compile_with_{{label}}         => generate_{{label}}_cubedsphere
+            compile_with_{{label}}         => generate_{{label}}_biperiodic
+            compile_with_{{label}}         => run_{{label}}_dynamo
+{%-    else %}
+            compile_with_{{label}}         => unit_test_with_{{label}}
+            unit_test_with_{{label}}       => generate_{{label}}_cubedsphere
+            unit_test_with_{{label}}       => generate_{{label}}_biperiodic
+            unit_test_with_{{label}}       => run_{{label}}_dynamo
+{%-    endif %}
+            generate_{{label}}_cubedsphere => check_{{label}}_cubedsphere_metadata
+            generate_{{label}}_cubedsphere => check_{{label}}_cubedsphere_data
+            generate_{{label}}_biperiodic  => check_{{label}}_biperiodic_metadata
+            generate_{{label}}_biperiodic  => check_{{label}}_biperiodic_data
+            run_{{label}}_dynamo           => check_{{label}}_dynamo
 {%   endfor -%}
 {% endfor -%}
                 """
-
 [runtime]
     [[root]]
-        initial scripting     = """
-                                export CYLC_VERSION={{CYLC_VERSION}}
-                                export ROSE_VERSION={{ROSE_VERSION}}
-                                """
-        command scripting     = "rose task-run"
+        initial scripting = """
+                            export CYLC_VERSION={{CYLC_VERSION}}
+                            export ROSE_VERSION={{ROSE_VERSION}}
+                            """
+        script     = "rose task-run"
         [[[event hooks]]]
             succeeded handler          = "rose suite-hook"
             failed handler             = "rose suite-hook"
@@ -70,186 +87,202 @@
             submission timeout handler = "rose suite-hook --mail"
             execution timeout          =  180 # 3 hours
             execution timeout handler  = "rose suite-hook --mail"
+        [[[environment]]]
+            SOURCE_ROOT = $CYLC_SUITE_SHARE_DIR/source
+            OUTPUT_ROOT = $CYLC_SUITE_SHARE_DIR/output
+
+    [[ LOCAL ]]
+        [[[remote]]]
+            host = {{ ROSE_ORIG_HOST }}
         [[[job submission]]]
             method = at
 
-    [[ LOCATIONS ]]
-        [[[environment]]]
-            SOURCE_ROOT     = $CYLC_SUITE_SHARE_DIR/src
-            OUTPUT_ROOT     = $CYLC_SUITE_SHARE_DIR/output
-
-    [[LOCAL]]
+    [[TARGET]]
         [[[remote]]]
-            host = {{ ROSE_ORIG_HOST }}
-
-    [[REMOTE]]
-        [[[remote]]]
-            host = $(rose host-select {{ LINUX_HOSTS }})
+            host = {{TARGET_HOST}}
+        [[[job submission]]]
+            method = {{TARGET_BATCHER}}
 
 {#############################################################################}
-{% macro prepare_pipeline( id ) %}
-{#   The "purge" and "extract" stages common to many pipelines. #}
-{#   Also sets up the pipeline family.                          #}
-{%   set family = id | upper %}
-{%   set label = id | lower %}
-    [[{{family}}]]
-        # This empty group is here only to make the graph display work as
-        # desired.
+{# Godliness, it is, afterall, next to cleanliness                           #}
 
-    [[{{family}}_ENVIRONMENT]]
-        inherit = LOCATIONS
-        pre-command scripting = """
-                                {{ environment_commands }}
-                                {{ display_environment }}
-                                """
+    [[TECHNICAL]]
+        inherit = None, LOCAL
         [[[environment]]]
-            SOURCE_DIRECTORY      = $SOURCE_ROOT/{{label}}
-            DESTINATION_DIRECTORY = $OUTPUT_ROOT/{{label}}
+            DYNAMO_SOURCE_DIRECTORY      = $SOURCE_ROOT/technical
+            DYNAMO_DESTINATION_DIRECTORY = $OUTPUT_ROOT/technical
+            DYNAMO_DEPENDENCY_DB = {{TARGET_DEPENDENCY_DB_ROOT}}/technical.db
+        [[[directives]]]
+{%- for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%- endfor %}
 
-    [[purge_for_{{label}}]]
-        inherit = {{ family }}, {{family}}_ENVIRONMENT, LOCAL
-        command scripting = """
-                            rm -rf $SOURCE_DIRECTORY
-                            rm -rf $DESTINATION_DIRECTORY
-                            """
+    [[purge_for_technical]]
+        {#- This task is done locally since it's just file handling. #}
+        inherit = TECHNICAL
+        script = "rm -rf $DYNAMO_SOURCE_DIRECTORY $DYNAMO_DESTINATION_DIRECTORY"
 
-    [[export_for_{{label}}]]
-        inherit = {{ family }}, {{family}}_ENVIRONMENT, LOCAL
-        command scripting = """
-                            mkdir -p $SOURCE_ROOT
-                            svn export {{ SOURCE_DYNAMO }} $SOURCE_DIRECTORY
-                            """
-{% endmacro %}
-{#############################################################################}
-{# Godliness, it is, afterall, next to cleanliness                             #}
-
-{{ prepare_pipeline( 'godliness' ) }}
-
-    [[api_godliness]]
-        inherit = GODLINESS, GODLINESS_ENVIRONMENT, LOCAL
-        command scripting = """
-                            make -C $SOURCE_DIRECTORY/documentation api
-                            """
-
-    [[design_godliness]]
-        inherit = GODLINESS, GODLINESS_ENVIRONMENT, LOCAL
-        command scripting = """
-                            make -C $SOURCE_DIRECTORY/documentation documents
-                            """
-
-{#############################################################################}
-
-{{ prepare_pipeline( 'cleanliness' ) }}
-
-    [[CLEANLINESS_COMPILER]]
-        inherit = CLEANLINESS_ENVIRONMENT
-        pre-command scripting = """
-                                {{ environment_commands }}
-                                module load environment/dynamo/{{default_compiler}}/{{default_version}}
-                                {{ display_environment }}
-                                """
+    [[export_for_technical]]
+        {#- This task has to be done locally as the working copy may be   #}
+        {#- on a local disc.                                              #}
+        inherit = TECHNICAL
+        script = """
+                 mkdir -p `dirname $DYNAMO_SOURCE_DIRECTORY`
+                 svn export {{ SOURCE_DYNAMO }} $DYNAMO_SOURCE_DIRECTORY
+                 """
 
     [[check_for_unused_source]]
-        inherit = CLEANLINESS, CLEANLINESS_COMPILER
-        command scripting = """
-                            make -C $SOURCE_DIRECTORY/src/dynamo unused-check
-                            """
-{#############################################################################}
+        inherit = TECHNICAL
+        pre-script = {{command_list(LOCAL_BASE_SETUP, LOCAL_TECHNICAL_SETUP, LOCAL_REVEAL_SETUP, 'mkdir -p `dirname $DYNAMO_DEPENDENCY_DB`')}}
+        script = "make -C $DYNAMO_SOURCE_DIRECTORY/src/dynamo unused-check"
+        post-script = "rm $DYNAMO_DEPENDENCY_DB"
 
-    [[FULL-DEBUG]]
-        [[[environment]]]
-            OPTIMISATION = NONE
-            SYMBOLS      = YES
-            CHECKS       = YES
+    [[api_documentation]]
+        inherit = TECHNICAL
+        script = "make -C $DYNAMO_SOURCE_DIRECTORY/documentation api-documents"
 
-    [[FAST-DEBUG]]
-        [[[environment]]]
-            OPTIMISATION = SAFE
-            SYMBOLS      = YES
-            CHECKS       = NO
+    [[design_documentation]]
+        inherit = TECHNICAL
+        script = "make -C $DYNAMO_SOURCE_DIRECTORY/documentation design-documents"
 
 {#############################################################################}
-{% macro pipeline_tasks( compiler, version, target ) %}
+{% macro pipeline_tasks( label, compiler, build ) %}
 {#   A set of tasks for an "extract, compile, unit test, run, check" pipeline #}
-{%   set family = compiler | upper + '_' + target | upper %}
-{%   set label = compiler | lower + '_' + target | lower %}
+{%   set family = label | upper %}
+{%   set label = label | lower %}
 
-{{ prepare_pipeline( label ) }}
-
-    [[{{family}}_COMPILER]]
-        inherit = {{family}}_ENVIRONMENT, {{ target | upper }}
-        pre-command scripting = """
-                                {{ environment_commands }}
-                                module load environment/dynamo/{{compiler}}/{{version}}
-                                {{ display_environment }}
-                                """
+    [[{{family}}]]
         [[[environment]]]
-            COMPILER              = {{compiler}}
+            DYNAMO_SOURCE_DIRECTORY      = $SOURCE_ROOT/{{label}}
+            DYNAMO_DESTINATION_DIRECTORY = $OUTPUT_ROOT/{{label}}
+            DYNAMO_COMPILER = {{compiler}}
+            DYNAMO_TARGET   = {{TARGET_OPT}}
 
-    {% set database_directory = '/var/tmp/$USER/dynamo/$CYLC_SUITE_NAME' %}
+    [[{{family}}_BUILD_ENVIRONMENT]]
+        inherit = TARGET
+        [[[directives]]]
+{%-    for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%-    endfor %}
+
+    [[{{family}}_RUN_ENVIRONMENT]]
+        inherit = TARGET
+        [[[directives]]]
+{%-    for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%-    endfor %}
+
+    [[{{family}}_TECHNICAL_ENVIRONMENT]]
+        inherit = TARGET
+        [[[directives]]]
+{%- for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%- endfor %}
+
+    [[local_purge_for_{{label}}]]
+        inherit = {{family}}, LOCAL
+        script = "rm -rf $DYNAMO_SOURCE_DIRECTORY $DYNAMO_DESTINATION_DIRECTORY"
+
+    [[target_purge_for_{{label}}]]
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        script = "rm -rf $DYNAMO_SOURCE_DIRECTORY $DYNAMO_DESTINATION_DIRECTORY"
+
+    [[export_for_{{label}}]]
+        {#- This task has to be done locally as the working copy may be   #}
+        {#- on a local disc.                                              #}
+        inherit = {{family}}, LOCAL
+        script = """
+                 mkdir -p `dirname $DYNAMO_SOURCE_DIRECTORY`
+                 svn export {{ SOURCE_DYNAMO }} $DYNAMO_SOURCE_DIRECTORY
+                 """
+
+    [[copy_{{label}}_to_target]]
+        inherit = {{family}}, LOCAL
+        script = """
+            HOST={{TARGET_HOST}}
+            DYNAMO_RELATIVE_SOURCE_DIRECTORY=`echo $DYNAMO_SOURCE_DIRECTORY | sed "s|$HOME/||"`
+            ssh $HOST mkdir -p $DYNAMO_RELATIVE_SOURCE_DIRECTORY
+            rsync -avz $DYNAMO_SOURCE_DIRECTORY/ $HOST:$DYNAMO_RELATIVE_SOURCE_DIRECTORY/
+                  """
+
     [[compile_with_{{label}}]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = """
-                            (
-                            mkdir -p {{database_directory}}
-                            make -C $SOURCE_DIRECTORY build
-                            RC=$?
-                            rm -rf $DYNAMO_DEPENDENCY_DB
-                            exit $RC
-                            )
-                            """
+        inherit    = {{family}}, {{family}}_BUILD_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, TARGET_BUILD_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script     = "rose task-run --app-key=compile --command-key={{build}}"
         [[[environment]]]
-            DYNAMO_DEPENDENCY_DB = {{database_directory}}/{{label}}.db
+            DYNAMO_DEPENDENCY_DB   = {{TARGET_DEPENDENCY_DB_ROOT}}/{{label}}.db
+            DYNAMO_LOCAL_DIRECTORY = `dirname $DYNAMO_DEPENDENCY_DB`
 
     [[unit_test_with_{{label}}]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "make -C $SOURCE_DIRECTORY test"
+        inherit = {{family}}, {{family}}_BUILD_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, TARGET_BUILD_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = "make -C $DYNAMO_SOURCE_DIRECTORY test"
 
     [[run_{{label}}_dynamo]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "rose task-run --verbose --debug --app-key=dynamo"
+        inherit = {{family}}, {{family}}_RUN_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = "rose task-run --verbose --debug --app-key=dynamo --command-key={{TARGET_RUN_METHOD}}"
+        post-script = "cp dynamo-checksums.txt $DYNAMO_DESTINATION_DIRECTORY/dynamo.out.txt"
 
     [[check_{{label}}_dynamo]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "rose task-run --verbose --debug --app-key=check_dynamo"
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        script = "rose task-run --app-key=check_dynamo"
 
     [[generate_{{label}}_cubedsphere]]
-        # generate_cubedsphere writes ugrid to $DESTINATION_DIRECTORY
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = """
-                            mkdir -p $DESTINATION_DIRECTORY
-                            mkdir -p data
-                            $SOURCE_DIRECTORY/bin/generate_cubedsphere -ndivs 4 -o $DESTINATION_DIRECTORY/ugrid_quads_2d.nc
-                            """
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, TARGET_BUILD_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = """
+            mkdir -p $DYNAMO_DESTINATION_DIRECTORY
+            $DYNAMO_SOURCE_DIRECTORY/bin/generate_cubedsphere -ndivs 4 \
+                             -o $DYNAMO_DESTINATION_DIRECTORY/ugrid_quads_2d.nc
+                 """
 
     [[check_{{label}}_cubedsphere_metadata]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "rose task-run --app-key=check_cubedsphere --command-key=check_cubedsphere_metadata"
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = """
+            rose task-run --app-key=check_cubedsphere \
+                          --command-key=check_cubedsphere_metadata
+                 """
 
     [[check_{{label}}_cubedsphere_data]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "rose task-run --app-key=check_cubedsphere --command-key=check_cubedsphere_data"
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = """
+            rose task-run --app-key=check_cubedsphere \
+                          --command-key=check_cubedsphere_data
+                 """
 
     [[generate_{{label}}_biperiodic]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = """
-                            mkdir -p $DESTINATION_DIRECTORY
-                            mkdir -p data
-                            $SOURCE_DIRECTORY/bin/generate_biperiodic -nx 16 -ny 8 -dx 100 -dy 50 -o $DESTINATION_DIRECTORY/biperiodic.nc
-                            """
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, TARGET_BUILD_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = """
+            mkdir -p $DYNAMO_DESTINATION_DIRECTORY
+            mkdir -p data
+            $DYNAMO_SOURCE_DIRECTORY/bin/generate_biperiodic -nx 16 -ny 8 \
+                  -dx 100 -dy 50 -o $DYNAMO_DESTINATION_DIRECTORY/biperiodic.nc
+                 """
 
     [[check_{{label}}_biperiodic_metadata]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "rose task-run --app-key=check_biperiodic --command-key=check_biperiodic_metadata"
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = """
+            rose task-run --app-key=check_biperiodic \
+                          --command-key=check_biperiodic_metadata
+                 """
 
     [[check_{{label}}_biperiodic_data]]
-        inherit = {{family}}, {{family}}_COMPILER, REMOTE
-        command scripting = "rose task-run --app-key=check_biperiodic --command-key=check_biperiodic_data"
+        inherit = {{family}}, {{family}}_TECHNICAL_ENVIRONMENT
+        pre-script = {{command_list(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
+        script = """
+            rose task-run --app-key=check_biperiodic \
+                          --command-key=check_biperiodic_data
+                 """
 {% endmacro %}
 {#############################################################################}
 
-{% for compiler, version in COMPILER_ENVIRONMENTS | batch(2) -%}
-{%   for target in targets -%}
-{{     pipeline_tasks( compiler, version, target ) }}
+{% for compiler, module in TARGET_COMPILER_SETUP | batch(2) -%}
+{%   for build in builds -%}
+{{     pipeline_tasks( compiler + '_' + build, compiler, build ) }}
 {%   endfor -%}
 {% endfor -%}

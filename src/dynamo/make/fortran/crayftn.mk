@@ -8,9 +8,12 @@
 #
 $(info ** Chosen Cray Fortran compiler)
 
-FFLAGS_COMPILER           = -em -h omp
+FFLAGS_COMPILER           = -h omp -N 1023
 FFLAGS_NO_OPTIMISATION    = -O0
 FFLAGS_SAFE_OPTIMISATION  = -O2
 FFLAGS_RISKY_OPTIMISATION = -O3
-FFLAGS_DEBUG              = -g
+FFLAGS_DEBUG              = -Gfast
 FFLAGS_WARNINGS           = -m 0
+
+DEPRULE_FLAGS = -moduleobjects
+

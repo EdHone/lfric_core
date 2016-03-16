@@ -49,7 +49,20 @@ tools:
 #
 .PHONY: test
 test: build
+ifndef NOTEST
 	$(MAKE) -C src/test
+endif
+
+.PHONY:test-suite
+test-suite:
+	@if [ -z "$(DYNAMO_TEST_SUITE_TARGETS)" ] ; then \
+	    echo *** Please set the DYNAMO_TEST_SUITE_TARGETS environment variable. ; \
+	    exit 1 ; \
+	fi
+	@for target in $(DYNAMO_TEST_SUITE_TARGETS) ; do \
+	    echo Launching test suite against $$target ; \
+	    rose stem --name=$$ROSE_SUITE_NAME_$$target --opt-conf-key=$$target ; \
+	done
 
 # Build the projects documentation. This includes both API and design documents.
 .PHONY: doc docs

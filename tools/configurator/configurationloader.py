@@ -93,7 +93,7 @@ contains
                  "Unrecognised namelist """,           &
                  trim(buffer),                         &
                  """ found in file ",                  &
-                 filename
+                 trim(filename)
             call log_event( log_scratch_space, LOG_LEVEL_ERROR )
         end select
       end if

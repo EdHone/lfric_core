@@ -149,6 +149,16 @@ program dynamo
   call theta%log_field( LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, 'theta' )
   call u%log_field(     LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, 'u' )
 
+  open( 9, file="dynamo-checksums.txt", status="replace", iostat=rc)
+  if (rc /= 0) then
+    write( log_scratch_space, '("Unable to open checksum file")' )
+    call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+  end if
+  call rho%write_checksum( 9, 'rho' )
+  call theta%write_checksum( 9, 'theta' )
+  call u%write_checksum( 9, 'u' )
+  close( 9 )
+
   if( restart%write_file() ) then 
      n_fields = 1
      allocate(state(4))

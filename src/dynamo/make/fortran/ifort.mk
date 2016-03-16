@@ -16,3 +16,9 @@ FFLAGS_DEBUG              = -g -traceback
 FFLAGS_WARNINGS           = -warn all -warn errors
 FFLAGS_INIT               = -ftrapuv
 FFLAGS_RUNTIME            = -check all -fpe0
+
+LDFLAGS_COMPILER = -openmp
+
+ifdef CRAY_ENVIRONMENT
+LD_COMPILER_LIBRARIES = stdc++
+endif

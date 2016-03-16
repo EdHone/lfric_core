@@ -14,5 +14,5 @@ import os.path
 
 ###############################################################################
 def replaceExtension( filename, extension ):
-    root, scrap = os.path.splitext( filename )
-    return root + '.' + extension
+    (base, rubbish) = os.path.splitext( filename )
+    return '{}.{}'.format( base, extension)

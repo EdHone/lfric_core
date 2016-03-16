@@ -55,7 +55,9 @@ contains
 
     integer :: rc
 
-    call ESMF_Finalize( rc=rc )
+    ! MPI must be kept open so that subsequent finalisation can close it.
+    !
+    call ESMF_Finalize( endflag=ESMF_END_KEEPMPI, rc=rc )
 
   end subroutine tear_down_suite
 

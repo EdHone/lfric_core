@@ -13,7 +13,7 @@
 ROOT = ../..
 include $(ROOT)/make/include.mk
 
-OBJ_SUBDIRS = $(patsubst %,$(OBJ_DIR)/%,$(shell find * -type d))
+OBJ_SUBDIRS = $(patsubst ./%,$(OBJ_DIR)/%,$(shell find . -type d))
 
 MANUAL_SRC = $(shell find . -name "*.[Ff]90" -not -path "*/.*")
 MANUAL_TOUCH_FILES = $(patsubst ./%.F90,$(OBJ_DIR)/%.t,$(MANUAL_SRC))
@@ -34,7 +34,8 @@ $(OBJ_DIR)/programs.mk: $(OBJ_DIR)/dependencies.mk | $(OBJ_DIR)
 
 $(OBJ_DIR)/dependencies.mk: $(MANUAL_TOUCH_FILES) $(AUTO_TOUCH_FILES) | $(OBJ_DIR)
 	@echo -e $(VT_BOLD)Building$(VT_RESET) $@
-	$(Q)$(TOOL_DIR)/DependencyRules -database $(DYNAMO_DEPENDENCY_DB) $@
+	$(Q)$(TOOL_DIR)/DependencyRules -database $(DYNAMO_DEPENDENCY_DB) \
+	                                $(DEPRULE_FLAGS) $@
 
 .PHONY: unused-check
 unused-check: $(OBJ_DIR)/dependencies.mk | $(OBJ_DIR)
@@ -44,22 +45,22 @@ unused-check: $(OBJ_DIR)/dependencies.mk | $(OBJ_DIR)
 
 .SECONDEXPANSION:
 
-$(OBJ_DIR)/%.t: %.F90 | $$(dir $$@)
+$(OBJ_DIR)/%.t: %.F90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
 	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
 
-$(OBJ_DIR)/%.t: %.f90 | $$(dir $$@)
+$(OBJ_DIR)/%.t: %.f90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
 	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
 
-$(OBJ_DIR)/%.t: $(OBJ_DIR)/%.F90 | $$(dir $$@)
+$(OBJ_DIR)/%.t: $(OBJ_DIR)/%.F90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
 	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
 
-$(OBJ_DIR)/%.t: $(OBJ_DIR)/%.f90 | $$(dir $$@)
+$(OBJ_DIR)/%.t: $(OBJ_DIR)/%.f90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
 	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@

@@ -8,15 +8,15 @@ running quickly and easily.
 
 .. note::
    The canonical version of this document is held as reStructured text in
-   the repository. Any changes in a branch which render this document
-   inaccurate should also include updates to the version of this
-   document on that branch. The version displayed on the wiki
-   is generated from the head of trunk.
+   the repository at ``Dynamo/trunk/documentation/quickstart.rst``. Any changes
+   in a branch which render this document inaccurate should also include
+   updates to the version of this document on that branch. The version
+   displayed on the wiki is generated from the head of trunk.
 
 Build Environment
 -----------------
 
-Within the Met Office we make use of the 
+Within the Met Office (and on certain external machines) we make use of the 
 `Environment Modules system <http://modules.sourceforge.net/>`_ to manage our
 development environment. If you do not have access to this skip to the
 `Outwith the Met Office`_ section for more details.
@@ -27,25 +27,30 @@ Met Office Dynamo Environment
 In a terminal window you need to source the module setup script and load the
 Dynamo environment to set up libraries and compiler:
 
- 1. Source the setup script::
+ 1. Source the setup script
  
-      . /data/users/lfric/modules/setup
+      +--------------------+----------------------------------------------+
+      | Met Office Desktop | ``. /data/users/lfric/modules/setup``        |
+      +--------------------+----------------------------------------------+
+      | Met Office XC-40   | ``. /data/d03/lfric/modules/setup``          |
+      +--------------------+----------------------------------------------+
 
- #. Load the modules::
+ #. Load the modules
 
-      module load environment/dynamo/gnu
+      +--------------------+----------------------------------------------------------+
+      | Met Office Desktop | ``module load environment/dynamo/compiler/intelfortran`` |
+      |                    +----------------------------------------------------------+
+      |                    | ``module load environment/dynamo/compiler/gnufortran``   |
+      +--------------------+----------------------------------------------------------+
+      | Met Office XC-40   | ``module load meto-environment/dynamo/cce``              |
+      |                    +----------------------------------------------------------+
+      |                    | ``module load meto-environment/dynamo/intel``            |
+      +--------------------+----------------------------------------------------------+
 
-    or::
+Render your own video using the "gource" documentation target is only available
+on the Met Office desktop. You will need to do the following::
 
-      module load environment/dynamo/intel
-
-Note that this process will replace the familiar modules provided by TIS.
-This will be the case for the lifetime of the terminal.
-
-If you want to render your own video using the "gource" documentation target
-you will need to do the following::
-
-  module load environment/visualisation # optional
+  module load environment/visualisation
 
 Outwith the Met Office
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -243,6 +248,27 @@ The unit tests can be built and run by from the  top level directory ('trunk')
 with the following::
 
   make test
+
+Running the Test Suite
+----------------------
+
+The test suite requires `Cylc <https://github.com/cylc/cylc>`_ and `Rose
+<https://github.com/metomi/rose>`_ to run. It makes use of the "Rose Stem"
+test launch tool.
+
+Once they are installed and working, set the environment variable
+`DYNAMO_TEST_SUITE_TARGETS` to a space separated list of target platforms taken
+from `rose-stem/opt/rose-suite-<target>.conf`.
+
+The `test-suite` target may then be used thus::
+
+  export DYNAMO_TEST_SUITE_TARGETS=place-machine
+  make test-suite
+
+The Met Office environment module sets up this variable for local platforms.
+
+Using the command {{{rose stem}}} will launch the suite against the Met Office
+SPICE server farm. This is useful during development.
 
 Building The Documentation
 --------------------------

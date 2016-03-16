@@ -6,7 +6,7 @@
 ##############################################################################
 
 IGNORE_DEPENDENCIES = netcdf ESMF
-EXTERNAL_LIBRARIES = netcdff esmf
+EXTERNAL_LIBRARIES = esmf netcdff netcdf hdf5_fortran
 
 export ROOT = ../..
 
@@ -17,13 +17,20 @@ include $(MAKE_DIR)/mpi_link.mk
 
 FFLAGS += -O0 -g
 
+UNIT_TEST_LAUNCH_TIME = 2
+UNIT_TEST_RUN_TIME    = 2
+
+ifdef CRAY_ENVIRONMENT
+LD_COMPILER_LIBRARIES = stdc++
+endif
+
 PFUNIT_INSTALL_DIR      = $(BUILD_DIR)/pfunit-install
 PFUNIT_EXTRA_USAGE      = suite_fixture_mod
 PFUNIT_EXTRA_INITIALIZE = set_up_suite
 PFUNIT_EXTRA_FINALIZE   = tear_down_suite
 
 OBJ_DIR = $(BUILD_DIR)/tests
-OBJ_SUBDIRS = $(patsubst %,$(OBJ_DIR)/%,$(filter-out data,$(shell find * -type d)))
+OBJ_SUBDIRS = $(patsubst %,$(OBJ_DIR)/%,$(filter-out data,$(shell find . -type d -not -path '*/.*' )))
 
 DRIVER_OBJ=$(OBJ_DIR)/driver.o
 
@@ -42,10 +49,10 @@ export PFUNIT_INSTALL_DIR \
        PFUNIT_EXTRA_USAGE PFUNIT_EXTRA_INITIALIZE PFUNIT_EXTRA_FINALIZE
 
 .PHONY: test
-test: $(OBJ_DIR)/test
+test: $(OBJ_DIR)/test | $(OBJ_DIR)/data
 	$(Q)$(OBJ_DIR)/test -robust \
-	                    -max-timeout-duration 1.0 \
-	                    -max-launch-duration  2.0
+	                    -max-timeout-duration $(UNIT_TEST_RUN_TIME) \
+	                    -max-launch-duration  $(UNIT_TEST_LAUNCH_TIME)
 
 .PRECIOUS: $(OBJ_DIR)/%.F90
 $(OBJ_DIR)/%.F90: %.pf | $(OBJ_DIR) $(OBJ_SUBDIRS) $(DRIVER_OBJ) \
@@ -60,16 +67,18 @@ $(OBJ_DIR)/%.o: $(OBJ_DIR)/%.F90 $(SUPPORT_OBJECTS)
 	          $(SUBJECT_MODINC) $(SUPPORT_MODINC) \
 	          -I$(PFUNIT_INSTALL_DIR)/mod -c -o $@ $<
 
-$(OBJ_DIR)/test: $(SUPPORT_OBJECTS) $(DRIVER_OBJ) $(TEST_OBJECTS) $(SUBJECT_DIR)/modules.a
+.SECONDARY: $(OBJ_DIR)/test
+$(OBJ_DIR)/test: $(SUPPORT_OBJECTS) $(TEST_OBJECTS) $(DRIVER_OBJ) \
+                 $(SUBJECT_DIR)/modules.a
 	@echo -e $(VT_BOLD)Linking$(VT_RESET) $@
-	$(Q)$(LDMPI) $(LDFLAGS) $(LDFLAGS_FORTRAN) -o $@ \
-	              $^ \
-	              $(SUBJECT_DIR)/modules.a \
-	              $(PFUNIT_INSTALL_DIR)/lib/libpfunit.a \
-	              $(patsubst %,-l%,$(EXTERNAL_LIBRARIES))
+	$(Q)$(LDMPI) $(LDFLAGS) $(LDFLAGS_FORTRAN) \
+	             -L$(PFUNIT_INSTALL_DIR)/lib \
+	             -o $@ $^ \
+	             -lpfunit $(patsubst %,-l%,$(EXTERNAL_LIBRARIES)) \
+	             $(patsubst %,-l%,$(LD_COMPILER_LIBRARIES))
 
 # Replace OBJ_SUBDIR with mangling of % ?
-$(OBJ_DIR)/%.o: %.F90 | $(OBJ_DIR)/data $(OBJ_SUBDIRS)
+$(OBJ_DIR)/%.o: %.F90 | $(OBJ_SUBDIRS)
 	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
 	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
 	          $(SUBJECT_MODINC) $(SUPPORT_MODINC) -c -o $@ $<
@@ -82,10 +91,10 @@ $(OBJ_DIR)/%.o: %.f90 | $(OBJ_DIR)/data $(OBJ_SUBDIRS)
 $(DRIVER_OBJ): | $(dir $(DRIVER_OBJ))
 	$(MAKE) -f pfunit.mk DRIVER_OBJ=$@
 
-$(OBJ_DIR)/data: data
+$(OBJ_DIR)/data: data | $(OBJ_DIR)
 	@echo Copying data directory
-	$(Q)mkdir -p $@
-	$(Q)cp -r $< $@
+	# We use rsync so we can ignore hidden objects.
+	$(Q)rsync -a --exclude='.*' $</ $@/
 
 $(OBJ_DIR) $(OBJ_SUBDIRS) $(dir $(DRIVER_OBJ)):
 	@echo -e $(VT_BOLD)Creating$(VT_RESET) $@

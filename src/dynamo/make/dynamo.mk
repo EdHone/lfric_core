@@ -11,6 +11,7 @@ ROOT     = ../..
 BIN_DIR  = $(ROOT)/bin
 
 include $(ROOT)/make/include.mk
+include $(MAKE_DIR)/mpi_link.mk
 include $(OBJ_DIR)/programs.mk $(OBJ_DIR)/dependencies.mk
 
 # Extract the program names from the program objects:
@@ -40,10 +41,7 @@ $(BIN_DIR)/%: $(OBJ_DIR)/%.x | $(BIN_DIR)
 # Find all the subdirectories within the source directory:
 SUBDIRS = $(shell find * -type d -prune -not -name make)
 
-# Mirror the source directory tree in the object directory:
-OBJ_SUBDIRS = $(patsubst %,$(OBJ_DIR)/%/,$(SUBDIRS))
-
-$(BIN_DIR) $(OBJ_DIR) $(OBJ_SUBDIRS):
+$(BIN_DIR) $(OBJ_DIR):
 	@echo -e $(VT_BOLD)Creating$(VT_RESET) $@
 	$(Q)mkdir -p $@
 
@@ -60,7 +58,7 @@ $(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: %.F90 | $(OBJ_DIR) $(dir $@)
 
 $(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: %.f90 | $(OBJ_DIR) $(dir $@)
 	@echo -e \$(VT_BOLD)Compile$(VT_RESET) $<
-	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
+	$(Q)$(FC) $(FFLAGS) \
 	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
 	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
 

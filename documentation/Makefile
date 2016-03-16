@@ -8,9 +8,16 @@
 DOXYGEN  ?= doxygen
 
 DOCUMENT_DIRECTORIES = $(patsubst %/,%,$(dir $(wildcard */*.latex)))
+API_COLLECTIONS = $(patsubst Doxyfile.%,api/%,$(wildcard Doxyfile.*))
 
 .PHONY: most
-most: documents api/infrastructure api/gungho
+most: design-documents api-documents
+
+.PHONY: design-documents
+documents: $(DOCUMENT_DIRECTORIES)
+
+.PHONY: api-documents
+api-documents: $(API_COLLECTIONS)
 
 .PHONY: api/%
 api/%: Doxyfile.% | api
@@ -20,9 +27,6 @@ api/%: Doxyfile.% | api
 api:
 	echo Creating directory "$@"
 	mkdir $@
-
-.PHONY: documents
-documents: $(DOCUMENT_DIRECTORIES)
 
 .PHONY: $(DOCUMENT_DIRECTORIES)
 $(DOCUMENT_DIRECTORIES):

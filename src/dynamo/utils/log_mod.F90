@@ -19,6 +19,7 @@
 
 module log_mod
 
+  use constants_mod, only : str_long, str_max_filename
   use ESMF
   use, intrinsic :: iso_fortran_env, only : output_unit, error_unit
 
@@ -47,7 +48,7 @@ module log_mod
   !> that should 160 characters be found to be insufficient it need only be
   !> changed in one place.
   !>
-  character( 160 ), public :: log_scratch_space
+  character( str_long + str_max_filename ), public :: log_scratch_space
 
   integer, private, parameter :: EXIT_CODE_ON_ERROR = 1
 

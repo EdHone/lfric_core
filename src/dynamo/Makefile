@@ -17,12 +17,11 @@ export PSYCLONE_DIR = $(ROOT)/src/psyclone
 include $(ROOT)/make/include.mk
 include $(MAKE_DIR)/compiler.mk
 include $(MAKE_DIR)/fortran/$(FORTRAN_COMPILER).mk
-include $(MAKE_DIR)/mpi_link.mk
 include make/fortran/$(FORTRAN_COMPILER).mk
 
 OBJ_DIR = $(BUILD_DIR)/dynamo
 
-LDFLAGS += $(FFLAGS_COMPILER)
+EXTERNAL_DYNAMIC_LIBRARIES +=  $(LD_COMPILER_LIBRARIES)
 
 ifdef CRAY_ENVIRONMENT
     $(info Building in Cray environment)
@@ -55,7 +54,9 @@ ifeq ($(CHECKS),YES)
   FFLAGS += $(FFLAGS_INIT) $(FFLAGS_RUNTIME)
 endif
 
-export OBJ_DIR TOOL_DIR F_MOD_DESTINATION_ARG FFLAGS MPI_LD LDFLAGS DEPRULE_FLAGS
+LDFLAGS += $(LDFLAGS_COMPILER)
+
+export OBJ_DIR TOOL_DIR F_MOD_DESTINATION_ARG FFLAGS LDFLAGS DEPRULE_FLAGS
 
 .PHONY: all
 all: modules
@@ -72,9 +73,10 @@ applications:
 unused-check: | $(OBJ_DIR)
 	$(MAKE) -f make/examine.mk unused-check
 
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
 .PHONY: clean
 clean:
-	$(MAKE) -f make/dynamo.mk clean
-
-$(OBJ_DIR):
-	$(Q)mkdir -p $@
+	-rm -rf $(OBJ_DIR)
+	-rm -f bin/*

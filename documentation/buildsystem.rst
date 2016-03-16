@@ -65,6 +65,15 @@ If you are attempting to build with MPI support do *not* set ``FC`` to
 Instead define the variable ``LDMPI`` with the command to link against the MPI
 libraries.
 
+Linking
+^^^^^^^
+
+By default the build system will link dynamically. If you want a statically
+linked binary then you should pass the ``LINK`` variable: ``make LINK=STATIC``.
+
+Static linking is the default on Cray systems as they do not seem to play well
+with dynamic linking.
+
 Cleaning
 ^^^^^^^^
 
@@ -76,6 +85,31 @@ out their project build.
 
 When you want to rebuild your code with a different compiler, use
 ``make clean-all``. This will clean pFUnit as well.
+
+Testing
+^^^^^^^
+
+Unit tests will be built and run as part of a normal build, so there is no
+need to worry about that. The test suite, on the other hand, must be
+manually invoked.
+
+When ``make test-suite`` is used a number of instances of Rose Stem will be
+launched. The environment variable ``DYNAMO_TEST_SUITE_TARGETS`` holds a space
+separated list of the different test suite configurations to use.
+
+Note that each suite is named after the test suite configuration and
+not the branch. Therefore, you cannot run ``make test-suite`` on two
+branches at the same time.
+
+Configurations are held in ``rose-stem/opt``. Each filename has the form
+``rose-suite-<name>.conf`` and it is these names which should be used in the
+list.
+
+For those using a Met Office module collection the core dynamo module will set
+this up for you. e.g. On the desktop do
+``module load base-environment/dynamo/base``.
+
+For further information an testing see `DynamoTesting`:trac:.
 
 Problems with NFS
 ~~~~~~~~~~~~~~~~~
@@ -117,6 +151,9 @@ Variable                   Purpose
 src/dynamo/make/fortran/<compiler>.mk
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Sometimes it is necessary to pass additional arguments to the dependency
+generator script. This is achieved using the ``DEPRULE_FLAGS`` variable.
+
 The various arguments have been split into groups to aid clarity but are all
 brought together in ``FFLAGS`` in the end.
 
@@ -133,6 +170,18 @@ Argument Group                 Purpose
 ``FFLAGS_RUNTIME``             Turn on any run-time checking the compiler may support. Array bound checking for instance.
 =============================  ===========================================================================================================
 
+The same is done with ``LDFLAGS``.
+
+====================  =======================================================================================================
+Argument Group        Purpose
+====================  =======================================================================================================
+``LDFLAGS_COMPILER``  Some linkers need to be told to link an OpenMP executable. This is where to specify things of that ilk.
+====================  =======================================================================================================
+
+Sometimes the link stage needs special libraries. To specify these use
+``LD_COMPILER_LIBRARIES``. It should hold a space separated list of additional
+libraries. These should be library names, not filenames. i.e. drop the "lib"
+from the front.
 
 Automatic Dependency Analysis
 -----------------------------
@@ -142,7 +191,7 @@ affected by a change to be recompiled. Maintaining such a dependency list by
 hand is tedious and error prone. This is why the build system will generate
 and maintain dependency information automatically.
 
-The dependency analyser scans Fortran source looking for "{{{use}}}" statements
+The dependency analyser scans Fortran source looking for "use" statements
 to determine the prerequisites of a source file. It relies on source files
 having the same name as the module they contain, which implies that they contain
 only one module.
