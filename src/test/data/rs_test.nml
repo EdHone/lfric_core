@@ -4,5 +4,5 @@ timestep_start = 4
 timestep_end = 6
 checkpoint_write = .T
 restart_stem_name="hswarez_100day"
-diagnostic_frequency = 3
+checkpoint_frequency = 3
 /

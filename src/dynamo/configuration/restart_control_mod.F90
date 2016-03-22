@@ -8,7 +8,7 @@
 !>
 !>  @details Reads a namelist with the data for controlling whether prognostic
 !!           fields are read and/or written, how many timesteps the model is run 
-!!           for and what is the diagnostic frequency (to be replaced by the 
+!!           for and what is the checkpoint dump frequency (to be replaced by the 
 !!           configuration object). 
 !!           restart_type data attributes are all private so it is used
 !!           by calling procedures contained within.
@@ -24,7 +24,7 @@ module restart_control_mod
   !> @brief Holds information for restart/checkpoint functionality.
   !> @details Objects in this type provide accessor functions (getters) to 
   !!          information needed for restarting the model from a known state,
-  !!          creating model checkpoints and diagnostic outputs. The relevant 
+  !!          creating model checkpoints. The relevant 
   !!          information (e.g. start and end timesteps, names of I/O files 
   !!          etc.) is also contained here.
   type, public :: restart_type
@@ -41,8 +41,8 @@ module restart_control_mod
      !> A string of characters that will form the beginning of all
      !! checkpoint/restart files
      character(len=str_max_filename) :: restart_stem_name 
-     !> The frequency of diagnostic measurement
-     integer :: diagnostic_frequency
+     !> The frequency of checkpoints
+     integer :: checkpoint_frequency = 999
      !> A string of characters that will be appended to the name
      !! of checkpoint/restart files to describe which rank wrote
      !! the file. This will be an empty string for serial runs,
@@ -65,7 +65,7 @@ module restart_control_mod
      !> @brief Gets filename for field data at given timestep.
      !> @param[in] field_name Name of the field.
      !> @param[in] ts Timestep.
-     !> @return Filename for diagnostic output of the field data at given 
+     !> @return Filename for checkpoint output of the field data at given 
      !>         timestep (ts).
      procedure :: ts_fname
 
@@ -77,9 +77,9 @@ module restart_control_mod
      !> @return Timestep at which the run ends, read from a namelist.
      procedure :: ts_end
 
-     !> @brief Gets the diagnostic frequency.
-     !> @return The frequency of diagnostic measurement, read from a namelist.
-     procedure :: diag_freq
+     !> @brief Gets the checkpoint frequency.
+     !> @return The frequency of checkpoints, read from a namelist.
+     procedure :: get_checkpoint_frequency
 
      !> @brief Decides whether to read from a checkpoint.
      !> @return User-defined variable to decide whether the model state is read  
@@ -118,14 +118,14 @@ contains
     integer, parameter :: timestep_limit  = 1000000
     integer            :: timestep_start
     integer            :: timestep_end   
-    integer            :: diagnostic_frequency
+    integer            :: checkpoint_frequency
     integer            :: ierr
     character(len=str_long)         :: ioerrmsg=''
     character(len=str_max_filename) :: restart_stem_name
 
     namelist /restart_nml/ checkpoint_read, timestep_start, & 
                            timestep_end, checkpoint_write,  &
-                           restart_stem_name, diagnostic_frequency
+                           restart_stem_name, checkpoint_frequency
 
     ! Open restart file
     open(funit,file=trim(fname),iostat=ierr,status='old',iomsg=ioerrmsg)
@@ -158,7 +158,7 @@ contains
     self%timestep_end = timestep_end
     self%checkpoint_write = checkpoint_write
     self%restart_stem_name = restart_stem_name
-    self%diagnostic_frequency = diagnostic_frequency
+    self%checkpoint_frequency = checkpoint_frequency
 
     ! Do some sanity checks 
     if(self%timestep_start > self%timestep_end) then
@@ -185,10 +185,10 @@ contains
             self%checkpoint_read, self%timestep_start
        call log_event(log_scratch_space, LOG_LEVEL_ERROR)
     end if
-    if(self%diagnostic_frequency<=0) then
+    if(self%checkpoint_frequency <= 0) then
        write(log_scratch_space, '(A,I6,",",I6)') &
-            "restart_control: diagnostic_frequency cannot be negative or zero:",  &
-            self%diagnostic_frequency
+            "restart_control: checkpoint_frequency cannot be negative or zero:",  &
+            self%checkpoint_frequency
        call log_event(log_scratch_space,LOG_LEVEL_ERROR)
     end if
     if(self%timestep_start>=timestep_limit) then
@@ -283,14 +283,14 @@ contains
 
   end function ts_end
 
-  ! Gets the diagnostic frequency for outputs of field data.
-  function diag_freq(self)
+  ! Gets the checkpoint frequency for outputs of field data.
+  function get_checkpoint_frequency(self)
 
     class(restart_type), intent(in) :: self
-    integer                         :: diag_freq
-    diag_freq = self%diagnostic_frequency
+    integer                         :: get_checkpoint_frequency
+    get_checkpoint_frequency = self%checkpoint_frequency
 
-  end function diag_freq
+  end function get_checkpoint_frequency
 
   ! Decides whether to read model state from a checkpoint.
   function read_file(self) 

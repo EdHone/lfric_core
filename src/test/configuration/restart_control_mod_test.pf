@@ -97,7 +97,7 @@ contains
 
     @assertEqual(restart%ts_start(),ts_start)
     @assertEqual(restart%ts_end(),ts_end)
-    @assertEqual(restart%diag_freq(),df)
+    @assertEqual(restart%get_checkpoint_frequency(),df)
     @assertTrue(restart%read_file().eqv.ck_r)
     @assertTrue(restart%write_file().eqv.ck_w)
 
