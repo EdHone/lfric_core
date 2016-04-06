@@ -31,9 +31,8 @@ def encaptor( target, outputName ):
     @param target (str) Either a repository URL or working copy path.
     @param outputName (str) Filename for the captions file.
     '''
-    standardPattern = re.compile( r'#\d+ for [^:.-]+.\s*([^.?!\n]+)(.?).*$', \
+    standardPattern = re.compile( r'#\d+ for .+?[:.,]\s+([^.?!\n]+)(.?).*$', \
                                   flags=re.MULTILINE|re.IGNORECASE )
-    simplePattern   = re.compile( r'([^.?!]+)(.?).*$', flags=re.MULTILINE )
 
     with open(outputName, 'w') as output:
         events = doctools.subversive.subversionLog( target )
@@ -41,21 +40,17 @@ def encaptor( target, outputName ):
             logText = events[ timestamp ]
 
             match = standardPattern.match( logText )
-            if not match :
-                match = simplePattern.match( logText )
 
-            if not match :
-                reason = 'Unable to extract a message from "{}"'
-                raise UserException( reason.format( logText ) )
-
-            message = match.group( 1 )
-            if match.group( 2 ) :
-                terminator = match.group( 2 )
-            else :
-                terminator = '.'
-            message = message[ 0:1 ].upper() + message[ 1: ]
-            print( '{}|{}{}'.format( str( timestamp ), message, terminator ), \
-                    file=output)
+            if match :
+                message = match.group( 1 )
+                if match.group( 2 ) :
+                    terminator = match.group( 2 )
+                else :
+                    terminator = '.'
+                message = message[ 0:1 ].upper() + message[ 1: ]
+                print( '{}|{}{}'.format( str( timestamp ), \
+                                         message, terminator ), \
+                       file=output)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help = False, \

@@ -5,35 +5,52 @@
 # https://puma.nerc.ac.uk/trac/GungHo/wiki
 ##############################################################################
 
-REPOSITORY_URL = https://puma.nerc.ac.uk/svn/GungHo_svn/Dynamo
+INITIAL_dynamo_VERSION   = v1.0
+INITIAL_psyclone_VERSION = vn1.2.1
 
-.PHONY: gource
-gource: gource/head.txt dynamo-gource.avi
+dynamo_REPOSITORY_URL   = https://puma.nerc.ac.uk/svn/GungHo_svn/Dynamo
+psyclone_REPOSITORY_URL = https://puma.nerc.ac.uk/svn/GungHo_svn/PSyclone
 
-dynamo-gource.avi: gource/log.xml gource/captions.txt
-	$(info *** The 'gource' visualisation tool takes frames straight from rendered output.)
-	$(info *** If you obscure the window during rendering frames will be incomplete.)
-	gource -1280x720 -r 30 --multi-sampling --title Dynamo \
-	    --user-image-dir avatars --caption-file gource/captions.txt \
+Q ?= @
+
+REPOSITORY_URL = $($*_REPOSITORY_URL)
+INITIAL_VERSION        = $(INITIAL_$*_VERSION)
+
+gource-$(INITIAL_dynamo_VERSION).mp4: gource/combined.txt gource/dynamo-captions.txt
+	$(warning The 'gource' visualisation tool takes frames straight from rendered output.)
+	$(warning If you obscure the window during rendering frames will be incomplete.)
+	gource -1280x720 -r 25 --multi-sampling --title LFric \
+	    --user-image-dir avatars \
+	    --key -caption-file gource/dynamo-captions.txt \
 	    --hide mouse,progress,usernames,filenames,dirnames \
-	    --file-idle-time 30 -o - \
-	    gource/log.xml \
-	| ffmpeg -y -r 30 -f image2pipe -vcodec ppm -i - \
-	    -s 1280x720 -r 30 -pix_fmt yuv420p -g 15 -b:v 2000k \
-	    -maxrate 4000k -minrate 1000k -bufsize 5000k -packetsize 4k \
-	    -muxrate 5000k $@
+	    --auto-skip-seconds 2 --seconds-per-day 1 --file-idle-time 30 -o - \
+	    $< \
+	| ffmpeg -y -r 25 -f image2pipe -vcodec ppm -i - \
+	         -vcodec mpeg4 -qscale 2 $@
 
-gource/log.xml: gource/head.txt
-	svn log -r 1:HEAD --xml --verbose --quiet $(REPOSITORY_URL) > $@
+gource/combined.txt: gource/dynamo-log.txt gource/psyclone-log.txt
+	$(info Combining Dynamo and PSyclone logs)
+	$(Q)cat $^ | sort -n > $@
 
-gource/captions.txt: gource/head.txt
-	tools/encaptor $(REPOSITORY_URL)/trunk $@
+gource/%-log.txt: gource/%-log.xml
+	$(info Converting $* log)
+	$(Q)gource --output-custom-log $@ $<
 
-gource/head.txt: FORCE
-	$(info Determining most recent revision.)
-	tools/headaliser $(REPOSITORY_URL) gource/head.txt
+gource/%-captions.txt: gource/%-head.txt
+	$(info Extraction $* captions)
+	$(Q)tools/encaptor $(REPOSITORY_URL)/trunk $@
 
-FORCE:
+.PRECIOUS: gource/%-log.xml
+gource/%-log.xml: gource/%-head.txt
+	$(info Obtaining $* log)
+	$(Q)svn log -r $(shell cat $<) --xml --verbose --quiet $(REPOSITORY_URL) > $@
+
+.PRECIOUS: gource/%-head.txt
+gource/%-head.txt: ALWAYS
+	$(info Determining revision of $*)
+	$(Q)tools/headaliser -release $(INITIAL_VERSION): $(REPOSITORY_URL) $@
+
+ALWAYS:
 
 .PHONY: clean
 clean:

@@ -44,6 +44,23 @@ def subversionInfo(repoURL):
              'latest-revision-time' : infoHandler.timestamp }
     return info
 
+def subversionTagOrigin( repoURL, tag ):
+    '''!
+    Gets the trunk revision from which a tag was cut.
+
+    @param repoURL (str) URL of the repository.
+
+    @return (tuple) Corresponding trunk revision and time tag was cut.
+    '''
+    tagHandler = _SubversionTagHandler()
+    process = subprocess.Popen( ['svn', 'log', \
+                                 '--xml', '--stop-on-copy', '--verbose', \
+                                 repoURL + '/tags/' + tag], \
+                                stdout=subprocess.PIPE )
+    xml.sax.parse( process.stdout, tagHandler )
+    
+    return tagHandler.revision, tagHandler.timestamp
+
 def subversionLog(location):
     '''!
     Get the change log for a particular directory.
@@ -147,6 +164,37 @@ class _SubversionInfoHandler( _XMLHandler ):
                 timestamp = datetime.datetime.strptime(self._content, \
                                                     '%Y-%m-%dT%H:%M:%S.%fZ')
                 self.timestamp = calendar.timegm(timestamp.utctimetuple())
+
+class _SubversionTagHandler( _XMLHandler ):
+    '''!
+    Handles SAX events coming from parsing the output of "svn log" for tags.
+
+    Upon completion the object will have a public member "revision" which is
+    the trunk revision corresponding to the tag. Also 'timestamp' which is the
+    time at which the tag was cut.
+    '''
+    def __init__( self ):
+        super( _SubversionTagHandler, self).__init__()
+
+    def documentTag( self ):
+        return 'log'
+
+    def startElement( self, name, attrs ):
+        super( _SubversionTagHandler, self).startElement( name, attrs )
+
+        if name == 'path':
+          if not attrs['copyfrom-path'].endswith( 'trunk' ):
+              message = 'Tag copied from {}, not trunk'
+              raise SubversionException(message.format(attrs['copyfrom-path']))
+
+          self.revision  = attrs['copyfrom-rev']
+    def endElement( self, name ):
+        super( _SubversionTagHandler, self ).endElement( name )
+
+        if name == 'date':
+            timestamp = datetime.datetime.strptime( self._content, \
+                                                    '%Y-%m-%dT%H:%M:%S.%fZ' )
+            self.timestamp = calendar.timegm( timestamp.utctimetuple() )
 
 class _SubversionLogHandler( _XMLHandler ):
     '''!
