@@ -100,3 +100,7 @@
 &transport
   scheme             = 'rk'
 /
+
+&partitioning
+  auto        = .true.
+/

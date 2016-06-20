@@ -18,7 +18,7 @@ module set_up_mod
   use base_mesh_config_mod,      only : filename, &
                                         geometry, &
                                         base_mesh_geometry_spherical
-  use constants_mod,             only : i_def, r_def, str_def, PI
+  use constants_mod,             only : i_def, r_def, str_def, l_def, PI
   use extrusion_config_mod,      only : number_of_layers,           &
                                         domain_top,                 &
                                         method,                     &
@@ -29,11 +29,13 @@ module set_up_mod
   use finite_element_config_mod, only : shape,                         &
                                         finite_element_shape_triangle, &
                                         finite_element_shape_quadrilateral
+  use partitioning_config_mod,   only : auto, panel_xproc, panel_yproc
   use global_mesh_mod,           only : global_mesh_type
   use reference_element_mod,     only : reference_cube, reference_element, &
                                         nfaces, nedges, nverts
   use mesh_mod,                  only : mesh_type
   use log_mod,                   only : log_event,      &
+                                        log_scratch_space, &
                                         LOG_LEVEL_INFO, &
                                         LOG_LEVEL_ERROR
   use partition_mod,             only : partition_type,                   &
@@ -59,6 +61,8 @@ contains
     integer(i_def), intent(in)  :: total_ranks
     integer(i_def), intent(out) :: primal_mesh_id
 
+    integer(i_def), parameter :: max_factor_iters = 10000
+
     type (global_mesh_type)    :: global_mesh
     type (partition_type)      :: partition
     type (mesh_type), pointer  :: mesh => null()
@@ -79,13 +83,12 @@ contains
     ! (across a single face for a cubed-sphere mesh)
     integer(i_def) :: xproc, yproc
 
+    integer(i_def) :: ranks_per_panel
+    integer(i_def) :: start_factor
+    integer(i_def) :: fact_count
+    logical(l_def) :: found_factors
+    character(str_def) :: domain_desc, partition_desc
 
-    ! Until we have configuration, set up xproc and yproc for square decomposition
-    xproc=max(1,int(sqrt(real(total_ranks/6.0))))
-    yproc=max(1,int(sqrt(real(total_ranks/6.0))))
-!> @todo Eventually xproc and yproc will be inputted into Dynamo (and not hard-coded).
-!>       When this happens their values will need to be checked to make sure they are
-!>       sensible
 
     call log_event( "set_up: Generating/reading the mesh", LOG_LEVEL_INFO )
 
@@ -104,8 +107,17 @@ contains
     global_mesh = global_mesh_type( filename )
     if ( geometry == base_mesh_geometry_spherical ) then
 
+      if(total_ranks == 1 .or. mod(total_ranks,6) == 0)then
+        ranks_per_panel = total_ranks/6
+        domain_desc="6x"
+      else
+        call log_event( "set_up: Total number of processors must be a"// &
+                        " multiple of 6 for a cubed-sphere domain.", &
+                      LOG_LEVEL_ERROR )
+      end if
 
       if(total_ranks == 1) then
+        ranks_per_panel = 1
         partitioner_ptr => partitioner_cubedsphere_serial
         call log_event( "set_up: Setting up serial cubed sphere partitioner", &
                        LOG_LEVEL_INFO )
@@ -115,9 +127,55 @@ contains
                         LOG_LEVEL_INFO )
       end if
     else
+      ranks_per_panel=total_ranks
+      domain_desc=""
+
       partitioner_ptr => partitioner_biperiodic
       call log_event( "set_up: Setting up biperiodic plane partitioner ", &
                       LOG_LEVEL_INFO )
+    end if
+
+    if(auto)then
+    ! For automatic partitioning, try to partition into the squarest possible
+    ! partitions by finding the two factors of ranks_per_panel that are
+    ! closest to sqrt(ranks_per_panel). If two factors can't be found after
+    ! max_factor_iters attempts, they would provide partitions that are
+    ! too un-square, so an error is produced.
+      start_factor=int(sqrt(float(ranks_per_panel)))
+      found_factors=.false.
+      do fact_count=start_factor, max(1,(start_factor-max_factor_iters)), -1
+        if(mod(ranks_per_panel,fact_count)==0)then
+          found_factors=.true.
+          exit
+        end if
+      end do
+      if(found_factors)then
+        xproc = fact_count
+        yproc = ranks_per_panel/fact_count
+      else
+        call log_event( "set_up: Could not automatically partition domain.", &
+                      LOG_LEVEL_ERROR )
+      end if
+    else
+    ! Not automatic partitioning - use the values provided from the
+    ! partitioning namelist
+      if(panel_xproc*panel_yproc == ranks_per_panel)then
+        xproc = panel_xproc
+        yproc = panel_yproc
+      else
+        call log_event( "set_up: The values of panel_xproc and panel_yproc"// &
+          " are inconsistent with the total number of processors available.", &
+                      LOG_LEVEL_ERROR )
+      end if
+    end if
+
+    if(total_ranks == 1) then
+      call log_event( 'set_up: Using 1 partition', LOG_LEVEL_INFO )
+    else
+      write(partition_desc,"(i0,'x',i0)")xproc,yproc
+      write( log_scratch_space, "('set_up: Using ',a,a,' partitions.')" ) &
+                 trim(domain_desc), trim(partition_desc)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
     end if
 
     ! Generate the partition object
