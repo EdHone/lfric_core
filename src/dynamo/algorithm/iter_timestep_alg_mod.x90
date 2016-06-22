@@ -38,7 +38,8 @@ module iter_timestep_alg_mod
                                                bundle_axpby, &
                                                add_bundle, &
                                                copy_bundle, &
-                                               set_bundle_scalar
+                                               set_bundle_scalar, &
+                                               bundle_ax 
 
   ! PsyKAl PSYClone kernels
   use held_suarez_kernel_mod,            only: held_suarez_kernel_type
@@ -199,6 +200,7 @@ contains
       ! Set advecting velocity & terms
       call bundle_axpby(alpha, state, beta, state_n, state_adv, bundle_size)
       call advection_alg(rhs_adv, state_adv, state, state_n, xi)
+      call bundle_ax(dt, rhs_adv, rhs_adv, bundle_size) 
       !=== Section 3.2: Inner (nonlinear, coriolis loop) ===================!
       do inner = 1,inner_iterations
         call rhs_alg(rhs_np1, -alpha*dt, state, .false., .true.)
