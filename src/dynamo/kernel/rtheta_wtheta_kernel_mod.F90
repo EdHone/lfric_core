@@ -36,8 +36,8 @@ type, public, extends(kernel_type) :: rtheta_wtheta_kernel_type
        arg_type(GH_FIELD,   GH_READ, W2)                              &
        /)
   type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2, GH_BASIS, GH_DIFF_BASIS),                                        &
-       func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS)                      &
+       func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS),                     &
+       func_type(W2, GH_BASIS, GH_DIFF_BASIS)                         &
        /)
   integer :: iterates_over = CELLS
 contains
@@ -84,9 +84,9 @@ end function rtheta_wtheta_kernel_constructor
 !! @param[in] wqp_v the weights of the vertical quadrature points
 
 subroutine rtheta_wtheta_code(nlayers,                                                        &
-                       r_theta, theta, u,                                             &
-                       ndf_w2, undf_w2, map_w2, w2_basis, w2_diff_basis,                      &
+                       r_theta, theta, u,                                                     &
                        ndf_wtheta, undf_wtheta, map_wtheta, wtheta_basis, wtheta_diff_basis,  &
+                       ndf_w2, undf_w2, map_w2, w2_basis, w2_diff_basis,                      &
                        nqp_h, nqp_v, wqp_h, wqp_v )
 
 
