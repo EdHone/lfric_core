@@ -76,6 +76,8 @@
   tolerance          = 1.0e-4
   preconditioner     = 'diagonal'
   gcrk               = 32
+  helmholtz_solve    = .false.
+  use_operators      = .false.
 /
 
 &subgrid

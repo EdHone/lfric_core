@@ -1225,47 +1225,6 @@ contains
   end subroutine invoke_multiply_field
 
 !-------------------------------------------------------------------------------   
-!> invoke_field_delta: Compute delta, a small perturbation to a field
-  subroutine invoke_compute_delta(delta, norm, x)
-    implicit none
-    type( field_type ), intent(in)    :: x
-    real(kind=r_def),   intent(in)    :: norm
-    real(kind=r_def),   intent(out)   :: delta
-    type( field_proxy_type)           :: x_proxy
-    integer(kind=i_def)               :: i,undf
-    real(kind=r_def)                  :: r_undf_global, tmp
-    real(kind=r_def), parameter       :: delta0 = 1.0e-6_r_def
-    real(kind=r_def)                  :: delta_l_tmp
-    type( scalar_type )               :: delta_l
-    type( scalar_type )               :: r_undf
-
-    x_proxy = x%get_proxy()
-
-    ! Calculate local delta
-    undf = x_proxy%vspace%get_last_dof_owned()
-    delta_l_tmp = 0.0_r_def
-    !$omp parallel do default(none), schedule(static) &
-    !$omp&            shared(x_proxy, undf) &
-    !$omp&            private(i), reduction(+:delta_l_tmp)
-    do i = 1,undf
-      delta_l_tmp = delta_l_tmp + delta0*abs(x_proxy%data(i)) + delta0
-    end do
-    !$omp end parallel do
-
-    delta_l = scalar_type( delta_l_tmp )
-
-    ! Get global delta and global number of unique dofs
-    delta = delta_l%get_sum()
-
-    tmp=real(undf)  !Intel Fortran produces an internal compiler error if real(undf) is passed directly to the scalar constructor - so create a tmp
-    r_undf = scalar_type( tmp )
-    r_undf_global = r_undf%get_sum()
-
-    delta = delta/(r_undf_global*norm)
-
-  end subroutine invoke_compute_delta
-
-!-------------------------------------------------------------------------------
 !> Non pointwise Kernels
 
 
@@ -2032,6 +1991,308 @@ subroutine invoke_calc_deppts(u_n,u_np1,dep_pts,direction,dep_pt_method)
   end do
 
 end subroutine invoke_calc_deppts
+
+!-------------------------------------------------------------------------------   
+!> invoke_inc_axpy: x = a * x + y ; a-scalar, x,y-vector     
+  subroutine invoke_inc_axpy(scalar, field1, field2)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type
+    implicit none
+    type( field_type ), intent(inout)  :: field1
+    type( field_type ), intent(in)     :: field2
+    real(kind=r_def),   intent(in)     :: scalar
+    type( field_proxy_type)            :: field1_proxy,field2_proxy
+    integer(kind=i_def)                :: i,undf
+    integer(kind=i_def)                :: depth, dplp
+    type(mesh_type)                    :: mesh
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf /= field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:inc_axpy:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    !$omp parallel do schedule(static), default(none), shared(field1_proxy, field2_proxy, undf, scalar),  private(i)
+    do i = 1,undf
+      field1_proxy%data(i) = scalar * field1_proxy%data(i) + field2_proxy%data(i)
+    end do
+    !$omp end parallel do
+
+    mesh = field1%get_mesh()
+    depth = mesh%get_halo_depth()
+
+    do dplp = 1, depth
+      if( field1_proxy%is_dirty(depth=dplp) .or. &
+          field2_proxy%is_dirty(depth=dplp) ) then
+        call field1_proxy%set_dirty()
+      else
+        call field1_proxy%set_clean(dplp)
+      end if
+    end do
+  end subroutine invoke_inc_axpy
+  
+!-------------------------------------------------------------------------------   
+!> invoke_increment_field: y = y + x ; x,y-vector     
+  subroutine invoke_increment_field(x, y)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type
+    implicit none
+    type( field_type ), intent(inout)  :: y
+    type( field_type ), intent(in)     :: x
+    type( field_proxy_type)            :: x_proxy, y_proxy
+    integer(kind=i_def)                :: i,undf
+    integer(kind=i_def)                :: depth, dplp
+    type(mesh_type)                    :: mesh
+
+    x_proxy = x%get_proxy()
+    y_proxy = y%get_proxy()
+
+    !sanity check
+    undf = x_proxy%vspace%get_undf()
+    if(undf /= y_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:increment_field:field1 and field2 live on different spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    !$omp parallel do schedule(static), default(none), shared(y_proxy, x_proxy, undf),  private(i)
+    do i = 1,undf
+      y_proxy%data(i) = y_proxy%data(i) + x_proxy%data(i)
+    end do
+    !$omp end parallel do
+
+    mesh = y%get_mesh()
+    depth = mesh%get_halo_depth()
+
+    do dplp = 1, depth
+      if( y_proxy%is_dirty(depth=dplp) .or. &
+          x_proxy%is_dirty(depth=dplp) ) then
+        call y_proxy%set_dirty()
+      else
+        call y_proxy%set_clean(dplp)
+      end if
+    end do
+  end subroutine invoke_increment_field
+  
+!-------------------------------------------------------------------------------   
+
+!> invoke_divide_field: Divide the values of field1 by field2
+!> c = a/b
+  subroutine invoke_divide_field_data(field1, field2)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type
+    implicit none
+    type( field_type ), intent(inout)   ::field1
+    type( field_type ), intent(in)     :: field2
+    type( field_proxy_type)            :: field1_proxy,field2_proxy
+    integer(kind=i_def)                :: i,undf
+    integer(kind=i_def)                :: depth, dplp
+    type(mesh_type)                    :: mesh
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf /= field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:divide_field:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    !$omp parallel do schedule(static), default(none), shared(field1_proxy, field2_proxy, undf),  private(i)
+    do i = 1,undf
+      field1_proxy%data(i) = field1_proxy%data(i)/field2_proxy%data(i)
+    end do
+    !$omp end parallel do
+
+    mesh = field1%get_mesh()
+    depth = mesh%get_halo_depth()
+
+    do dplp = 1, depth
+      if( field1_proxy%is_dirty(depth=dplp) .or. &
+          field2_proxy%is_dirty(depth=dplp) ) then
+        call field1_proxy%set_dirty()
+      else
+        call field1_proxy%set_clean(dplp)
+      end if
+    end do
+  end subroutine invoke_divide_field_data
+
+!-------------------------------------------------------------------------------   
+!> invoke_multiply_field_data:  z =  x * y     
+  subroutine invoke_multiply_field_data(field1,field2,field_res)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type
+    implicit none
+    type( field_type ), intent(in )    :: field1,field2
+    type( field_type ), intent(inout ) :: field_res
+    type( field_proxy_type)            :: field1_proxy,field2_proxy,     &
+                                          field_res_proxy
+    integer(kind=i_def)                :: i,undf
+    integer(kind=i_def)                :: depth, dplp
+    type(mesh_type)                    :: mesh
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+    field_res_proxy = field_res%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf /= field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:multiply_field_data:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    if(undf /= field_res_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:multiply_field_data:field1 and result_field live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+
+    !$omp parallel do schedule(static), default(none), shared(field1_proxy, field2_proxy, field_res_proxy, undf),  private(i)
+    do i = 1,undf
+      field_res_proxy%data(i) = field1_proxy%data(i) * field2_proxy%data(i)
+    end do
+    !$omp end parallel do
+
+    mesh = field_res%get_mesh()
+    depth = mesh%get_halo_depth()
+
+    do dplp = 1, depth
+      if( field1_proxy%is_dirty(depth=dplp) .or. &
+          field2_proxy%is_dirty(depth=dplp) ) then
+        call field_res_proxy%set_dirty()
+      else
+        call field_res_proxy%set_clean(dplp)
+      end if
+    end do
+  end subroutine invoke_multiply_field_data
+!-------------------------------------------------------------------------------   
+!> invoke_inc_axpby: x = a * x + b * y ; a,b-scalar, x,y-vector     
+  subroutine invoke_inc_axpby(scalar1, field1, scalar2, field2)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type
+    implicit none
+    type( field_type ), intent(inout)  :: field1
+    type( field_type ), intent(in)     :: field2
+    real(kind=r_def),   intent(in)     :: scalar1, scalar2
+    type( field_proxy_type)            :: field1_proxy,field2_proxy
+    integer(kind=i_def)                :: i,undf
+    integer(kind=i_def)                :: depth, dplp
+    type(mesh_type)                    :: mesh
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf /= field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:inc_axpby:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    !$omp parallel do schedule(static), default(none), shared(field1_proxy, field2_proxy, scalar1, scalar2, undf),  private(i)
+    do i = 1,undf
+      field1_proxy%data(i) = scalar1 * field1_proxy%data(i) &
+                           + scalar2 * field2_proxy%data(i)
+    end do
+    !$omp end parallel do
+
+    mesh = field1%get_mesh()
+    depth = mesh%get_halo_depth()
+
+    do dplp = 1, depth
+      if( field1_proxy%is_dirty(depth=dplp) .or. &
+          field2_proxy%is_dirty(depth=dplp) ) then
+        call field1_proxy%set_dirty()
+      else
+        call field1_proxy%set_clean(dplp)
+      end if
+    end do
+  end subroutine invoke_inc_axpby
+  
+!-------------------------------------------------------------------------------   
+!> invoke_inc_xpby: x = x + b * y ; b-scalar, x,y-vector     
+  subroutine invoke_inc_xpby(field1, scalar2, field2)
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type
+    implicit none
+    type( field_type ), intent(inout)  :: field1
+    type( field_type ), intent(in)     :: field2
+    real(kind=r_def),   intent(in)     :: scalar2
+    type( field_proxy_type)            :: field1_proxy,field2_proxy
+    integer(kind=i_def)                :: i,undf
+    integer(kind=i_def)                :: depth, dplp
+    type(mesh_type)                    :: mesh
+
+    field1_proxy = field1%get_proxy()
+    field2_proxy = field2%get_proxy()
+
+    !sanity check
+    undf = field1_proxy%vspace%get_undf()
+    if(undf /= field2_proxy%vspace%get_undf() ) then
+      ! they are not on the same function space
+      call log_event("Psy:inc_axpby:field1 and field2 live on different w-spaces" &
+                    , LOG_LEVEL_ERROR)
+      !abort
+      stop
+    endif
+    !$omp parallel do schedule(static), default(none), shared(field1_proxy, field2_proxy, scalar2, undf),  private(i)
+    do i = 1,undf
+      field1_proxy%data(i) = field1_proxy%data(i) &
+                           + scalar2*field2_proxy%data(i)
+    end do
+    !$omp end parallel do
+
+    mesh = field1%get_mesh()
+    depth = mesh%get_halo_depth()
+
+    do dplp = 1, depth
+      if( field1_proxy%is_dirty(depth=dplp) .or. &
+          field2_proxy%is_dirty(depth=dplp) ) then
+        call field1_proxy%set_dirty()
+      else
+        call field1_proxy%set_clean(dplp)
+      end if
+    end do
+  end subroutine invoke_inc_xpby
+  
+!-------------------------------------------------------------------------------   
+!> invoke_scale_field_data: scale data from one field ( a = scalar*a )
+  subroutine invoke_scale_field_data(scalar,field)
+    implicit none
+    real( kind=r_def ), intent(in)     :: scalar
+    type( field_type ), intent(in )    :: field
+    type( field_proxy_type)            :: field_proxy
+    integer(kind=i_def)                :: i,undf
+
+    field_proxy = field%get_proxy()
+
+    !$omp parallel do schedule(static), default(none), shared(field_proxy, undf, scalar),  private(i)
+    do i = 1,undf
+       field_proxy%data(i) = scalar*field_proxy%data(i)
+    end do
+    !$omp end parallel do
+   
+  end subroutine invoke_scale_field_data
+
+
+!-------------------------------------------------------------------------------   
 
 !-------------------------------------------------------------------------------
 subroutine invoke_set_boundary_kernel(field, bc)

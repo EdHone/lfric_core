@@ -61,7 +61,7 @@ U.K.\protect \\
 $^{1}$ Met Office, Exeter, U.K.}
 \maketitle
 \begin{abstract}
-Abstract goes here
+Dynamo is the prototype GungHo dynamical core being build at the Met Office. It implements a fully 3D mixed finite element method of arbritrary order on quadrilateral elements.
 \end{abstract}
 \vskip\baselineskip KEYWORDS keywords here,
 
@@ -75,6 +75,8 @@ code have also been changed
 \begin{enumerate}
 \item Modify reference edge numbering so that edges are labeled with the
 vertices they connect, e.g $e_{1}\rightarrow e_{12},\, e_{10}\rightarrow e_{85}$.
+\item Add results for $p=1$ elements
+\item update density current results
 \end{enumerate}
 
 \section{\label{sec:Introduction}Introduction}
@@ -677,6 +679,124 @@ algorithm}
 \par\end{centering}
 
 \end{table}
+
+\subsubsection{Forming a Helmholtz Equation\label{sub:Helmholtz}}
+The continuous in space equations that we wish to solve (motivated by the form used in the ENDGame incremental formulation) are
+\begin{eqnarray}
+\mathbf{u}' + \tau_{u}\Delta t c_{pd} \left(\theta'\nabla\Pi^{*} + \theta^{*}\nabla\Pi'\right) & = & R_{\mathbf{u}},\label{eq:si_u_continuous}\\
+\theta' + \tau_{\theta}\Delta t\mathbf{u}'.\nabla\theta^{*} & = & R_{\theta},\label{eq:si_theta_continuous}\\
+\rho' + \tau_{\rho}\Delta t\nabla.\left(\rho^{*}\mathbf{u}'\right) & = & R_{\rho},\label{eq:si_rho_continuous}\\
+\frac{1-\kappa}{\kappa}\frac{\Pi'}{\Pi^{*}} - \frac{\rho'}{\rho^{*}} - \frac{\theta'}{\theta^{*}} & = & R_{\Pi}.\label{eq:si_exner_continuous}
+\end{eqnarray}
+And we seek to create a single equation for the pressure increment $\Pi'$ from \eqref{eq:si_u_continuous}-\eqref{eq:si_exner_continuous} via eliminating the other prognostic increments $\mathbf{u}',\rho',\theta'$. First the finite element discretisation is applied to  \eqref{eq:si_u_continuous}-\eqref{eq:si_exner_continuous} and they are rewritten in operator format
+\begin{eqnarray}
+M_{2}u' - \tau_{u}\Delta t c_{pd} \left[P_{2\theta}^{\Pi^{*}}\theta' + \left(D^{\theta^{*}}\right)^{T}\Pi'\right] & = & R_{\mathbf{u}},\label{eq:si_u_discrete}\\
+M_{\theta}\theta' + \tau_{\theta}\Delta tP_{\theta2}^{\theta^{*}}u' & = & R_{\theta},\label{eq:si_theta_discrete}\\
+M_{3}\rho' + \tau_{\rho}\Delta tD\left(\rho^{*}u'\right) & = & R_{\rho},\label{eq:si_rho_discrete}\\
+\frac{1-\kappa}{\kappa}M_{3}^{\Pi^{*}}\Pi' - M_{3}^{\rho^{*}}\rho' - P_{3\theta}^{*}\theta' & = & R_{\Pi}.\label{eq:si_exner_discrete}
+\end{eqnarray}
+where now the primed variables correspond to the degree of freedom vectors and the right hand side arrays are the integrated residual terms  \eqref{eq:Ru_combined}-\eqref{eq:Rrho_combined} with 
+\begin{equation}
+R_{\Pi} = 1 - \frac{p_{0}\left(\Pi^{\left(k\right)}\right)^{\frac{1-\kappa}{\kappa}}}{R_{d}\rho^{\left(k\right)}\theta^{\left(k\right)}},\label{eq:r_exner}
+\end{equation} 
+since $\Pi^{\left(k\right)}$ is obtained diagnostically from the equation of state using $\rho^{\left(k\right)}$ and $\theta^{\left(k\right)}$ then $R_{\Pi} \equiv 0$.
+The mass matrices are given by \eqref{eq:M0_mass_matrix} - \eqref{eq:M3_mass_matrix} with $M_{\theta}$ being the mass matrix for whichever space $\theta$ is in (currently $M_{\theta}\equiv M_{0}$). The other operators are
+\begin{eqnarray}
+D & = & \left<\sigma,\nabla.\mathbf{v}\right>,\label{eq:divergence_operator}\\
+D^{\theta^{*}} & = & \left<\sigma,\nabla.\left(\theta^{*}\mathbf{v}\right)\right> \equiv \left<\sigma,\theta^{*}\nabla.\mathbf{v} + \nabla\theta^{*}.\mathbf{v} \right>,\label{eq:div_theta_star_operator}\\
+P_{2\theta}^{\Pi^{*}} & = & \left<\Pi^{*},\nabla.\left(\gamma\mathbf{v}\right)\right> \equiv \left<\nabla.\mathbf{v},\Pi^{*}\gamma\right> + \left<\mathbf{v},\Pi^{*}\nabla\gamma \right>,\label{eq:Ptheta2_star_operator}\\
+M_{3}^{\rho^{*}} & = & \left<\sigma,\frac{\sigma}{\rho^{*}}\det\left(J\right)\right>,\label{eq:M3_rho_star_operator}\\
+M_{3}^{\Pi^{*}} & = & \left<\sigma,\frac{\sigma}{\Pi^{*}}\det\left(J\right)\right>,\label{eq:M3_p_star_operator}\\
+P_{\theta2}^{\theta^{*}} & = & \left<\gamma,\left(\nabla\theta^{*}\right)\mathbf{v} \right>,\label{eq:P2theta_operator}\\
+P_{3\theta}^{*} & = & \left<\sigma,\frac{\gamma}{\theta^{*}}\det\left(J\right)\right>,\label{eq:Ptheta3_operator}
+\end{eqnarray}
+and all integrals and functions are evaluated in the computational domain. Where subscripted an operator $P_{ij}$ maps from $\mathbb{W}_j$ to $\mathbb{W}_i$ and a single subscript denotes a mass matrix $M_{i}$ that maps from $\mathbb{W}_{i}$ to itself, finally the $D$ operators are divergence mappings that map from $\mathbb{W}_{2}$ to $\mathbb{W}_{3}$. Whenever it is needed $\Pi^{*}$ is computed from the equation of state using $\rho^{*}$ and $\theta^{*}$.
+\smallskip{}
+
+
+\fbox{\begin{minipage}[t]{1\columnwidth}%
+\textit{Aside: As an alternative to solving the equation of state in the weak form \eqref{eq:si_exner_discrete} it has been suggested that it be solved pointwise on some suitable set of nodes, the most natural of which are the $\mathbb{W}_3$ nodes. In which case  \eqref{eq:si_exner_discrete} would be replaced by
+\begin{equation}
+\frac{1-\kappa}{\kappa}\frac{\Pi'_{i}}{\Pi^{*}_{i}} - \frac{\rho'_{i}}{\rho^{*}_{i}} - E_{i}\frac{\theta'}{\theta^{*}} = \left(R_{\Pi}\right)_{i},\label{eq:si_eos_discrete_pointwise}
+\end{equation}
+where $i$ is the index of the degree of freedom and $E_i$ is some averaging operator that takes degrees of freedom in the $\theta$ space ($\mathbb{W}_0$ or $\mathbb{W}_{\theta}$) to the nodal points of $\mathbb{W}_3$, for example a linear interpolation. The advantage of this approach is that there are less operators to compute: $E_i$ instead of $M_{3}^{\Pi^{*}}$,  $M_{3}^{\rho^{*}}$ and $P_{3\theta}^{*}$
+}%
+\end{minipage}}
+
+The elimination procedure is as follows: first eliminate $\theta'$ from \eqref{eq:si_u_discrete} using \eqref{eq:si_theta_discrete}
+\begin{equation}
+H_{B}u' - \tau_{u}\Delta tc_{pd}\left(D^{\theta{*}}\right)^T\Pi' = \mathfrak{R}_u \equiv R_u + \tau_{u}\Delta tc_{pd}P_{2\theta}^{\Pi^*}M_{\theta}^{-1}R_{\theta},\label{eq:si_u_discrete_theta_elim}
+\end{equation}
+and define
+\begin{equation}
+H_{B} \equiv M_{2} + \tau_{u}\tau_{\theta}\Delta t^{2}c_{pd}P_{2\theta}^{\Pi^{*}}M_{\theta}^{-1}P_{\theta2}^{\Pi^{*}}.\label{eq:H_B}
+\end{equation}
+Now eliminate $\theta'$ from \eqref{eq:si_exner_discrete} using \eqref{eq:si_theta_discrete}
+\begin{equation}
+\frac{1-\kappa}{\kappa}M_{3}^{\Pi^{*}}\Pi' - M_{3}^{\rho^{*}}\rho' + \tau_{\theta}\Delta tP_{3\theta}^{*}M_{\theta}^{-1}P_{\theta2}^{\theta^{*}}u' = R_{\Pi} + P_{3\theta}^{*}M_{\theta}^{-1}R_{\theta},\label{eq:si_exner_theta_elim}
+\end{equation}
+and eliminate $\rho'$ from \eqref{eq:si_exner_theta_elim} using \eqref{eq:si_rho_discrete}
+\begin{equation}
+\frac{1-\kappa}{\kappa}M_{3}^{\Pi^{*}}\Pi' + \tau_{\rho}\Delta t M_{3}^{\rho^{*}}M_{3}^{-1}D\left(\rho^{*}u'\right) + \tau_{\theta}\Delta tP_{3\theta}^{*}M_{\theta}^{-1}P_{\theta2}^{\theta^{*}}u' = \mathfrak{R}_{\Pi} \equiv R_{\Pi} + P_{3\theta}^{*}M_{\theta}^{-1}R_{\theta} + M_{3}^{\rho^{*}}M_{3}^{-1}R_{\rho},\label{eq:si_exner_theta_rho_elim}
+\end{equation}
+finally, eliminate $u'$ from \eqref{eq:si_exner_theta_rho_elim} using \eqref{eq:si_u_discrete_theta_elim} to obtain an equation for the pressure increment
+\begin{equation}
+\frac{1-\kappa}{\kappa}M_{3}^{\Pi^{*}}\Pi' + c_{pd}\tau_{u}\Delta t^{2}\left\{\tau_{\rho}D^{*}\left[\rho^{*}H_{B}^{-1}\left(D^{\theta^{*}}\right)^{T}\Pi'\right] + \tau_{\theta}P_{3\theta}^{*}M_{\theta}^{-1}P_{\theta2}^{\theta^{*}}H_{B}^{-1}\left(D^{\theta^{*}}\right)^{T}\Pi'\right\} = \mathfrak{R},\label{eq:helmholtz_lhs}
+\end{equation} 
+with
+\begin{equation}
+\mathfrak{R} \equiv \mathfrak{R}_{\Pi} -\tau_{\rho}\Delta t\left[D^{*}\left(\rho^{*}H_{B}^{-1}\mathfrak{R}_{u}\right) + P_{3\theta}^{*}M_{\theta}^{-1}P_{\theta2}^{\theta^{*}}H_{B}^{-1}\mathfrak{R}_u\right].\label{eq:helmholtz_rhs}
+\end{equation}
+where the compound operator 
+\begin{equation}
+D^{*}\equiv M_{3}^{\rho^{*}}M_{3}^{-1}D.\label{eq:compoundD_star}
+\end{equation}
+By defining the function 
+\begin{equation}
+H\left(X\right) \equiv \tau_{\rho}D^{*}\left(\rho^{*}X\right) + \tau_{\theta}P_{3\theta}^{*}M_{\theta}^{-1}P_{\theta2}^{\theta^{*}}X,\label{eq:H_x}
+\end{equation}
+the Helmholtz equation can be simplified somewhat to
+\begin{equation}
+\frac{1-\kappa}{\kappa}M_{3}^{\Pi^{*}}\Pi' + c_{pd}\tau_{u}\Delta t^{2}H\left[H_{B}^{-1}\left(D^{\theta^{*}}\right)^{T}\Pi'\right] = \mathfrak{R},\label{helmholtz_lhs_simplified}
+\end{equation}
+and the right hand side becomes
+\begin{equation}
+\mathfrak{R} \equiv \mathfrak{R}_{\Pi} - \Delta t H\left(H_{B}^{-1}\mathfrak{R}_{u}\right).\label{helmholtz_rhs_simplified}
+\end{equation}
+In order to construct \eqref{eq:helmholtz_lhs} and \eqref{eq:helmholtz_rhs} and a number of operator invereses are needed: $M_{3}^{-1}, M_{\theta}^{-1}$ and $H_{B}^{-1}$. The inverse of the $\mathbb{W}_3$ mass matrix is simple to compute since it is in a discontinuous space and so the element inverse can be cheaply computed and stored. The mass matrix for the $\theta$ space is either a global matrix (if $\theta\in\mathbb{W}_{0}$) or is a column matrix (if $\theta\in\mathbb{W}_{\theta}$) and it is therefore unlikely to be feasible to compute and store the exact inverse and instead it must be approximated such as using the diagonal $M_{\theta}^{-1} \approx 1/\mathrm{diag}\left(M_{\theta}\right)$. Lastly the inverse of the $H_{B}$ operator is needed. It is unlikely the diagonal of this will be accurate enough as this would lose the orographic terms (contained in the off-diagonal elements of $M_{2}$), the proposal here is to use a small number of  iterations of a cheap iterative method, such as conjugate gradient or Jacobi to invert $H_{B}$, i.e. obtain $y$ such that $H_{B}y = x$. To solve the Helmholtz equation \eqref{eq:helmholtz_lhs} a Krylov method can be used, such as bicgstab or GMRes which only requires the application of the left hand side of \eqref{eq:helmholtz_lhs}. Once the pressure increment is obtained the other prognostic variables can be obtained by a back substituion process, $u'$ is obtained from
+\begin{equation}
+u' =  H_{B}^{-1}\left[\mathfrak{R}_u + \tau_{u}\Delta tc_{pd}\left(D^{\theta^{*}}\right)^T\Pi'\right] ,\label{eq:si_u_backsub}
+\end{equation}
+which requires one more inversion of $H_{B}$. $\theta'$ is obtained from \eqref{eq:si_theta_discrete}
+\begin{equation}
+\theta' =  M_{\theta}^{-1}\left(R_{\theta} - \tau_{\theta}\Delta tP_{\theta2}^{\theta^{*}}u'\right),\label{eq:si_theta_backsub}\\
+\end{equation}
+where a more accurate inversion of $M_{\theta}$ can be used if it proves beneficial, $\rho'$ can be obtained from \eqref{eq:si_rho_discrete}
+\begin{equation}
+\rho' = M_{3}^{-1}\left[R_{\rho} - \tau_{\rho}\Delta tD\left(\rho^{*}u'\right)\right].\label{eq:si_rho_backsub}
+\end{equation}
+The increments can then be added on to the full prognostic fields
+\begin{eqnarray}
+u^{\left(k+1\right)} & = & u^{\left(k\right)} + u',\label{eq:u_inc}\\
+\theta^{\left(k+1\right)} & = & \theta^{\left(k\right)} + \theta',\label{eq:theta_inc}\\
+\rho^{\left(k+1\right)} & = & \rho^{\left(k\right)} + \rho',\label{eq:rho_inc}
+\end{eqnarray}
+and $\Pi^{\left(k+1\right)}$ will be diagnosed from the equation of state using $\rho^{\left(k+1\right)}$ and $\theta^{\left(k+1\right)}$.
+
+\smallskip{}
+\fbox{\begin{minipage}[t]{1\columnwidth}%
+\textit{Aside: In addition to solving either the mixed set of equations \eqref{eq:L} and/or the Helmholtz equation \eqref{eq:helmholtz_lhs} it is expected that for any non-trivial runs that a preconditioner will be needed which solves the vertical coupling either, exactly or to some high precision, this process will need detailing here.
+}%
+\end{minipage}}
+
+
+\smallskip{}
+\fbox{\begin{minipage}[t]{1\columnwidth}%
+\textit{Aside: The two options presented here involve using an iterative solver to invert a large system of equations \eqref{eq:L} with little approximation to the operators, or inverting a much smaller system of equations \eqref{eq:helmholtz_lhs} but using a number of approximated inverse operators (for $H_B^{-1}$ and $M_{\theta}^{-1}$) It is not obvious which approach will be quicker. The cost in \eqref{eq:L} is likely to come from carrying a system of 3-4 fields ($u',\theta',\rho'$ and optionally $\Pi'$) and the memory cost associated with this. The cost in \eqref{eq:helmholtz_lhs} is likely to come from having to accurately invert $H_{B}$ using an iterative apporach and possibly an increase in iteration cost due to solving a more approximated system, that is the increment from the Helmholtz equation only approximately solves the full linear system \eqref{eq:helmholtz_lhs}. It has been proposed that the best approach may be a mix of solving \eqref{eq:L} in a outer loop and solving  \eqref{eq:helmholtz_lhs} in a inner loop with a diagonal inversion of $H_B$.
+}%
+\end{minipage}}
+
+
 
 
 \subsection{\label{sub:Advection}Advection}

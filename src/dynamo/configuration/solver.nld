@@ -8,5 +8,6 @@ namelist solver
                                 ! In other words, it is the number of potential
                                 ! residual vectors to calculate at each
                                 ! iteration of the solver.
-
+  helmholtz_solve   : logical   ! Use Helmholtz (Schur complement solve)
+  use_operators     : logical   ! Use locally assembled operators (or compute on the fly)
 end namelist solver

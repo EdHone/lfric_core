@@ -14,7 +14,6 @@ module rhs_alg_mod
   use function_space_collection_mod,     only: function_space_collection
   use runtime_constants_mod,             only: get_geopotential, &
                                                get_coordinates, &
-                                               get_div, &
                                                get_mass_matrix, &
                                                get_mass_matrix_diagonal
   use field_bundle_mod,                  only: clone_bundle
@@ -31,11 +30,10 @@ module rhs_alg_mod
   use psykal_lite_mod,                   only: invoke_axpy,               &
                                                invoke_multiply_field,     &
                                                invoke_sample_flux_kernel, &
-                                               invoke_set_field_scalar
+                                               invoke_set_field_scalar,   &
+                                               invoke_copy_field_data
   use quadrature_mod,                    only: quadrature_type, GAUSSIAN
   use rotation_kernel_mod,               only: rotation_kernel_type
-  use rrho_kernel_mod,                   only: rrho_kernel_type
-  use rtheta_kernel_mod,                 only: rtheta_kernel_type
   use solver_config_mod,                 only: method
   use solver_mod,                        only: solver_algorithm
   use derived_config_mod,                only: bundle_size
@@ -62,9 +60,8 @@ contains
 !> @param[inout] rhs The state vector to compute
 !> @param[in]    alpha_dt The offcentering parameter times the timestep
 !> @param[in]    state The current model prognostic state
-!> @param[in]    from_solver flag set to true if computing the lhs from the si solver
-!> @param[in]    from_solver flag set to true if computing the terms in the inner loop
-  subroutine rhs_alg(rhs, alpha_dt, state, from_solver, from_inner_loop)
+!> @param[in]    from_inner_loop flag set to true if computing the terms in the inner loop
+  subroutine rhs_alg(rhs, alpha_dt, state, from_inner_loop)
   
   implicit none
 
@@ -72,19 +69,14 @@ contains
   ! Form of state and rhs is [u,theta,rho,exner] 
   type(field_type), target,     intent(in)    :: state(bundle_size)
   type(field_type),             intent(inout) :: rhs(bundle_size)
-  logical,                      intent(in)    :: from_solver
   logical,                      intent(in)    :: from_inner_loop
 
   type(field_type), pointer :: chi(:), geopotential => null()
-  type(operator_type), pointer :: mm_w2, mm_w0, mm_w3_inv, div => null()
+  type(operator_type), pointer :: mm_w2, mm_w0, mm_w3_inv => null()
 
   type( quadrature_type )   :: qr 
   type(field_type), pointer :: u ,theta, rho => null()
   type(field_type)          :: rhs_tmp(bundle_size)
-  type(field_type)          :: f_star, ones, w2_multiplicity
-
-  type(function_space_type), pointer :: u_fs   => null()
-  type(function_space_type), pointer :: rho_fs => null()
   integer(i_def) :: mesh_id
 
   geopotential => get_geopotential()
@@ -100,36 +92,14 @@ contains
  
   call clone_bundle(rhs, rhs_tmp, bundle_size)
 
-  if ( from_solver ) then
-    qr = quadrature_type(element_order+3, GAUSSIAN)
-  else
-    qr = quadrature_type(element_order+2, GAUSSIAN)
-  end if
-
-
-  if ( from_solver ) then
-
-    ! Need to create u*rho^ref \in W2 for rhs_tmp(3) kernel -> sampled mass flux
-    u_fs => function_space_collection%get_fs(mesh_id , &
-                                              element_order, &
-                                              u%which_function_space() )
-
-    w2_multiplicity = field_type( vector_space = u_fs )
-    call invoke_set_field_scalar( 0.0_r_def, w2_multiplicity )
-    call invoke ( multiplicity_kernel_type( w2_multiplicity ) )
-
-    f_star = field_type( vector_space = u_fs )
-    call invoke_set_field_scalar( 0.0_r_def, f_star )
-    call invoke_sample_flux_kernel( f_star, u, w2_multiplicity, rho )
-  end if
+  qr = quadrature_type(element_order+2, GAUSSIAN)
 
   ! Compute rhs_u
   call invoke_set_field_scalar( 0.0_r_def, rhs_tmp(1) )
   call invoke( pressure_gradient_kernel_type( rhs_tmp(1), rho, theta, qr ) )
   call invoke( kinetic_energy_gradient_kernel_type( rhs_tmp(1), u, chi, qr ) )
-  if ( .not. from_solver ) &
-    call invoke( geopotential_gradient_kernel_type( rhs_tmp(1), &
-                                                    geopotential, qr ) )
+  call invoke( geopotential_gradient_kernel_type( rhs_tmp(1), &
+                                                  geopotential, qr ) )
   if ( rotating ) &
     call invoke( rotation_kernel_type( rhs_tmp(1), u, chi, qr ) )
   call invoke(enforce_bc_kernel_type(rhs_tmp(1)) )
@@ -139,32 +109,12 @@ contains
  
   ! Compute rhs_theta
   call invoke_set_field_scalar( 0.0_r_def, rhs_tmp(2) )
-  if ( from_solver ) then
-    qr = quadrature_type(element_order+1, GAUSSIAN)
-
-    rho_fs => function_space_collection%get_fs( mesh_id, &
-                                                element_order, &
-                                                rho%which_function_space() )
-    ones = field_type( vector_space = rho_fs )
-    call invoke_set_field_scalar( 1.0_r_def, ones )
-    call invoke( rtheta_kernel_type( rhs_tmp(2), theta, u, ones, qr) )
-  end if
   call invoke_set_field_scalar( 0.0_r_def, rhs(2) )
   call invoke( matrix_vector_kernel_type( rhs(2), theta, mm_w0) )
   call invoke_axpy( alpha_dt, rhs_tmp(2), rhs(2), rhs(2) ) 
 
   ! Compute rhs_rho
-  if ( from_solver ) then
-    div => get_div()
-    call invoke_set_field_scalar( 0.0_r_def, rhs_tmp(3) )
-    call invoke( matrix_vector_kernel_type( rhs_tmp(3), f_star, div) )
-    call invoke_multiply_field(-1.0_r_def, rhs_tmp(3), rhs_tmp(3)) 
-    call invoke_set_field_scalar( 0.0_r_def, rhs_tmp(3) )
-    call invoke( matrix_vector_kernel_type( rhs_tmp(3), rhs_tmp(3), mm_w3_inv) )
-  else
-    call invoke_set_field_scalar( 0.0_r_def, rhs_tmp(3) )
-  end if
-  call invoke_axpy( alpha_dt, rhs_tmp(3), rho, rhs(3) )
+  call invoke_copy_field_data( rho, rhs(3) )
 
   end subroutine rhs_alg
 

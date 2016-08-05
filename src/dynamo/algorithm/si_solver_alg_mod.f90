@@ -36,6 +36,7 @@ module si_solver_alg_mod
                                      solver_preconditioner_none, &
                                      solver_preconditioner_diagonal, &
                                      gcrk
+
   use timestepping_config_mod, only: dt
   use derived_config_mod,      only: si_bundle_size, bundle_size
 
@@ -73,7 +74,7 @@ contains
     integer(kind=i_def)                      :: i
 
     ! Set up tau_dt: to be used here and in subsequent algorithms
-    tau_dt = -0.5_r_def*dt
+    tau_dt = 0.5_r_def*dt
 
 
     if ( eliminate_p ) then
@@ -235,7 +236,6 @@ contains
         call bundle_preconditioner(w, v(:,j), postcon, mm_diagonal, si_bundle_size)
 
         call lhs_alg(s, w, x_ref, tau_dt)
-
         call bundle_preconditioner(w, s, precon, mm_diagonal, si_bundle_size )
         do k = 1, j
           h(k,j) =  bundle_inner_product( v(:,k), w, si_bundle_size )
@@ -288,14 +288,14 @@ contains
       err = beta/sc_err
       write( log_scratch_space, '(A,I2,A, E15.8)' ) "solver_algorithm[", iter, &
                                                     "]: residual = ", err
-      call log_event(log_scratch_space, LOG_LEVEL_DEBUG)
+      call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
       if( err <  tolerance ) then
         write( log_scratch_space, '(A, I2, A, E12.4, A, E15.8)' ) &
              "GMRES solver_algorithm:converged in ", iter,        &
              " iters, init=", init_err,                           &
              " final=", err
-        call log_event( log_scratch_space, LOG_LEVEL_INFO )
+        call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
         exit
       end if
 
