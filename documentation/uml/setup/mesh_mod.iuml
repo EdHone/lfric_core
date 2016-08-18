@@ -6,7 +6,7 @@ class mesh_mod::mesh_type {
   -domain_top: real
   -eta:real[] <<allocatable>>
   -dz: real[] <<allocatable>>
-  -vertex_coords: real(::) <<allocatable>>
+  -vertex_coords: real[::] <<allocatable>>
   -nverts_2d: integer
   -nedges_2d: integer
   -ncells_2d: integer
@@ -89,5 +89,3 @@ class mesh_mod::mesh_type {
   -set_vertical_coordinate( <<in>>vgrid_option: integer )
 }
 
-mesh_mod::mesh_type o-> partition_mod::partition_type
-global_mesh_mod::global_mesh_type - mesh_mod::mesh_type

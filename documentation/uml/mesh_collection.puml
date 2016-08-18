@@ -1,0 +1,14 @@
+@startuml
+
+!include look.iuml
+!include setup/mesh_collection_mod.iuml
+!include setup/global_mesh_collection_mod.iuml
+class mesh_mod::mesh_type {
+}
+class global_mesh_mod::global_mesh_type {
+}
+
+global_mesh_collection_mod::global_mesh_collection_type "1" o-> "n" global_mesh_mod::global_mesh_type
+mesh_collection_mod::mesh_collection_type o-> "n" mesh_mod::mesh_type
+
+@enduml

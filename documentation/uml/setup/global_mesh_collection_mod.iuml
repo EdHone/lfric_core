@@ -12,5 +12,4 @@ class global_mesh_collection_mod::global_mesh_collection_type {
   +get_mesh( <<in>>global_mesh_id: integer ): global_mesh_type<<pointer>>
 }
 
-global_mesh_collection_mod::global_mesh_collection_type "1" o-> "n" global_mesh_mod::global_mesh_type
-linked_list_data_mod::linked_list_data_type <|-- global_mesh_mod::global_mesh_type
+

@@ -2,11 +2,14 @@
 
 !include look.iuml
 !include setup/mesh_mod.iuml
-!include setup/partition_mod.iuml
-!include setup/global_mesh_collection_mod.iuml
 !include setup/global_mesh_mod.iuml
-!include setup/mesh_collection_mod.iuml
+!include setup/partition_mod.iuml
 
+mesh_mod::mesh_type o-> partition_mod::partition_type
+global_mesh_mod::global_mesh_type - mesh_mod::mesh_type
+global_mesh_mod::global_mesh_type - partition_mod::partition_type
+linked_list_data_mod::linked_list_data_type <|-- global_mesh_mod::global_mesh_type
 linked_list_data_mod::linked_list_data_type <|-- mesh_mod::mesh_type
+
 
 @enduml

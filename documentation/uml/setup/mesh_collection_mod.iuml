@@ -11,4 +11,4 @@ class mesh_collection_mod::mesh_collection_type {
   +get_mesh( <<in>>mesh_id: integer ) : mesh_type <<pointer>>
 }
 
-mesh_collection_mod::mesh_collection_type o-> "*" mesh_mod::mesh_type
+

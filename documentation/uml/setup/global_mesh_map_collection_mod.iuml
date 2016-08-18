@@ -1,0 +1,9 @@
+class global_mesh_map_collection_mod::global_mesh_map_collection_type {
+  -global_mesh_map_list: linked_list_type
+
+  <<create>>  +global_mesh_map_collection_constructor() : global_mesh_map_collection_type
+  <<destroy>> +global_mesh_map_collection_destructor()
+  +clear()
+}
+
+

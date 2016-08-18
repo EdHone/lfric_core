@@ -33,3 +33,5 @@ class global_mesh_mod::global_mesh_type {
   +get_vert_coords( <<in>>vert_gid: integer, <<out>>vert_coords: real[] )
   +get_vert_on_cell( <<in>>cell_gid: integer, <<out>>verts: integer[] )
 }
+
+

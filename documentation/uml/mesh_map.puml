@@ -1,0 +1,17 @@
+@startuml
+
+!include look.iuml
+!include setup/global_mesh_map_collection_mod.iuml
+!include setup/global_mesh_map_mod.iuml
+class global_mesh_collection_mod::global_mesh_collection_type {
+}
+class global_mesh_mod::global_mesh_type {
+}
+
+
+global_mesh_mod::global_mesh_type "1" o-> "1" global_mesh_map_collection_mod::global_mesh_map_collection_type
+global_mesh_collection_mod::global_mesh_collection_type "1" o-> "n" global_mesh_mod::global_mesh_type
+global_mesh_map_collection_mod::global_mesh_map_collection_type "1" o-> "n" global_mesh_map_mod::global_mesh_map_type
+
+
+@enduml

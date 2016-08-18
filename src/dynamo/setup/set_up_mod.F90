@@ -32,6 +32,7 @@ module set_up_mod
   use partitioning_config_mod,    only : auto, panel_xproc, panel_yproc
   use global_mesh_mod,            only : global_mesh_type
   use global_mesh_collection_mod, only : global_mesh_collection
+  use global_mesh_map_mod,        only : global_mesh_map_type
   use mesh_collection_mod,        only : mesh_collection
   use reference_element_mod,      only : reference_cube, reference_element, &
                                          nfaces, nedges, nverts
