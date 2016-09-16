@@ -33,9 +33,10 @@
 {%-   if events|length > 0 %}
       <div class='sourcefile'>
         <div class='filename'>{{filename}}</div>
+{%-     set rowStyle = cycler( 'odd', 'even' ) %}
 {%-     for lineNumber, eventList in events|sort(attribute='lineNumber')|groupby('lineNumber') %}
 {%-       for event in eventList|sort(attribute='highlightRange') %}
-        <div class='event {{loop.cycle('odd', 'even')}}'>
+        <div class='event {{rowStyle.next()}}'>
           <div class='nature'>
             <span class='line'>{{event.lineNumber}}</span>
             <span class='level {{event.level}}'>{{event.level}}</span>
