@@ -209,6 +209,20 @@ there were no errors and the suite exits with "Okay".
 In light of all this we have chosen to forgoe robust mode until it can be made
 to work properly and in parallel.
 
+Use of pFUnit VERBOSE option
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pFUnit does not always provide clear details on where it had issues, i.e. a 
+traceback of routines and line numbers. pFUnit does provide the "-v" option
+which sends a message to stdout when it starts and ends individual tests. This
+should at least provide a starting point as to where to looking for problems,
+especially when the issue is testing order dependant (which can differ on
+different platforms).
+
+The VERBOSE option is set to true by default for pFUnit tests on rose
+test-suites. If you are running pFUnit tests from your desktop use
+``make test VERBOSE=1``.
+
 Functional Testing
 ^^^^^^^^^^^^^^^^^^
 

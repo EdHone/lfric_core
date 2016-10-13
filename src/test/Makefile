@@ -49,9 +49,14 @@ SUBJECT_SUBDIRS = $(shell find $(SUBJECT_DIR) -type d)
 SUBJECT_MODINC  = $(patsubst %,-I%,$(SUBJECT_SUBDIRS))
 
 .PHONY: test
+
 test: $(OBJ_DIR)/test | $(OBJ_DIR)/data
 	@echo -e $(VT_BOLD)Running$(VT_RESET) $@
+ifdef VERBOSE
+	$(Q)$(OBJ_DIR)/test -v
+else
 	$(Q)$(OBJ_DIR)/test
+endif
 
 .PRECIOUS: $(OBJ_DIR)/%.F90
 $(OBJ_DIR)/%.F90: %.pf | $(OBJ_DIR) $(OBJ_SUBDIRS) $(DRIVER_OBJ) \
