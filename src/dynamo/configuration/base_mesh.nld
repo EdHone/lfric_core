@@ -8,5 +8,4 @@ namelist base_mesh
   f_lat_deg   : real
   PI          : constant
   f_lat       : real[ 'f_lat_deg * PI / 180.0_r_def' ]
-
 end namelist base_mesh

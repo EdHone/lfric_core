@@ -76,7 +76,7 @@ contains
     call feign_base_mesh_config( 'foo',                             &
                                  base_mesh_geometry_spherical,      &
                                  base_mesh_partitioner_cubedsphere, &
-                                 .false., 0.0_r_def )
+                                 .false., 0.0_r_def)
     call feign_extrusion_config( extrusion_method_uniform, domain_top, nlayers )
     call feign_planet_config( gravity, radius, omega, rd, cp, p_zero, scaling )
 

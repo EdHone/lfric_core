@@ -31,7 +31,8 @@ contains
 
     use base_mesh_config_mod, only : base_mesh_geometry_planar, &
                                      base_mesh_partitioner_planar
-    use feign_config_mod,     only : feign_base_mesh_config
+    use feign_config_mod,     only : feign_base_mesh_config, &
+                                     feign_domain_size_config
 
     implicit none
 
@@ -40,7 +41,10 @@ contains
     call feign_base_mesh_config( 'foo',                        &
                                  base_mesh_geometry_planar,    &
                                  base_mesh_partitioner_planar, &
-                                 .false., 0.0_r_def )
+                                 .false., 0.0_r_def)          
+ 
+    call feign_domain_size_config(0.0_r_def, 2.0_r_def,         &
+                                  0.0_r_def, 2.0_r_def )
 
   end subroutine setUp
 
@@ -82,7 +86,8 @@ contains
     nodal_coord(:,1) = (/ 0.5_r_def, 0.5_r_def, 0.5_r_def /)
 
     call assign_coordinate(nlayers,ndf,nverts,undf,map,dz,x,y,z, &
-                           vertices_phys,nodal_coord,vertices_comp)
+                           vertices_phys,nodal_coord,vertices_comp, &
+                           2.0_r_def, 0.0_r_def)
 
     @assertEqual( one, x(1), tol )
     @assertEqual( one, y(1), tol )

@@ -116,7 +116,7 @@ contains
     call feign_base_mesh_config( 'foo',                             &
                                  base_mesh_geometry_spherical,      &
                                  base_mesh_partitioner_cubedsphere, &
-                                 .false., 0.0_r_def )
+                                 .false., 0.0_r_def)
 
     reference_element = finite_element_shape_quadrilateral
     call reference_cube()

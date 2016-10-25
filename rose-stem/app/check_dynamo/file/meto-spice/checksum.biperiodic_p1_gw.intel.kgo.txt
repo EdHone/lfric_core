@@ -1,0 +1,6 @@
+Fraction checksum rho = 0.0872960403701020
+Exponent checksum rho = 0
+Fraction checksum theta = 0.2126515177404134
+Exponent checksum theta = 145800
+Fraction checksum u = 0.5916428747221594
+Exponent checksum u = 306612

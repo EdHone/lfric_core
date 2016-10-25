@@ -64,7 +64,7 @@ contains
                                           base_mesh_partitioner_planar
     use finite_element_config_mod, only : finite_element_shape_quadrilateral
     use feign_config_mod,           only : feign_base_mesh_config, &
-                                          feign_planet_config
+                                           feign_planet_config
     use function_space_mod,        only : function_space_type
     use mesh_mod,                  only : PLANE_BI_PERIODIC
     use reference_element_mod,     only : reference_cube,   &
@@ -92,7 +92,7 @@ contains
     call feign_base_mesh_config( 'foo',                        &
                                  base_mesh_geometry_planar,    &
                                  base_mesh_partitioner_planar, &
-                                 .false., 0.0_r_def )
+                                 .false., 0.0_r_def)
     call feign_planet_config( gravity, radius, omega, rd, cp, p_zero, scaling )
 
     reference_element = finite_element_shape_quadrilateral

@@ -32,7 +32,8 @@ contains
     use field_mod,             only: field_type, field_proxy_type
     use reference_element_mod, only: nverts, x_vert
     use mesh_mod,              only: mesh_type
-
+    use mesh_constructor_helper_functions_mod, &
+                               only: domain_size_type
     implicit none
 
     type( field_type ), intent( inout ) :: chi(3)
@@ -47,7 +48,7 @@ contains
     integer     :: alloc_error
     integer, pointer :: map(:) => null()
     type( mesh_type), pointer :: mesh => null()
-
+    type( domain_size_type )  :: domain_size 
 
     ! Break encapsulation and get the proxy.
     chi_proxy(1) = chi(1)%get_proxy()
@@ -68,6 +69,8 @@ contains
     allocate( vert_coords(3,nverts,nlayers ) )
     dof_coords => chi_proxy(1)%vspace%get_nodes( )
 
+    domain_size =  mesh%get_domain_size()
+
     do cell = 1,chi_proxy(1)%vspace%get_ncell()
        map => chi_proxy(1)%vspace%get_cell_dofmap( cell )
 
@@ -84,7 +87,9 @@ contains
                                chi_proxy(3)%data, & 
                                vert_coords, &  
                                dof_coords, &
-                               x_vert &
+                               x_vert, &
+                               domain_size%maximum%x, &
+                               domain_size%minimum%y &
                                         )
     end do
     ! Loop over all the cells
@@ -107,7 +112,10 @@ contains
 !! @param[in]  chi_hat_node  real array: (3,ndf)
 !! @param[in]  chi_hat_vert  real array: (nverts,3)
   subroutine assign_coordinate(nlayers,ndf,nverts,undf,map,dz, & 
-             chi_1,chi_2,chi_3,vertex_coords,chi_hat_node,chi_hat_vert)
+             chi_1,chi_2,chi_3,vertex_coords,chi_hat_node,chi_hat_vert, &
+             domain_x, domain_y)
+
+  use reference_element_mod, only: SWB, SEB, NEB, NWB, SWT, SET, NET, NWT
 
     ! Arguments
     integer, intent(in) :: nlayers, ndf, nverts, undf
@@ -116,17 +124,37 @@ contains
     real(kind=r_def), intent(out) :: chi_1(undf), chi_2(undf), chi_3(undf)
     real(kind=r_def), intent(in)  :: vertex_coords(3,nverts,nlayers)
     real(kind=r_def), intent(in)  :: chi_hat_node(3,ndf), chi_hat_vert(nverts,3)
+    real(kind=r_def), intent(in)  :: domain_x, domain_y
 
 
     ! Internal variables
     integer          :: k, df, dfk, vert
 
     real(kind=r_def) :: interp_weight, x, y, z, radius_correction
-
+    real(kind=r_def) :: vertex_local_coords(3,nverts)
     radius_correction = 1.0_r_def
 
     ! Compute the representation of the coordinate field
     do k = 0, nlayers-1
+       vertex_local_coords(:,:) = vertex_coords(:,:,k+1)
+       if (  geometry /= base_mesh_geometry_spherical ) then
+         ! Check if point cell is on right or bottom boundary,
+         ! assumes a monotonic coordinate field
+         if ( vertex_coords(1,SEB,k+1) < vertex_coords(1,SWB,k+1)) then 
+         ! On x boundary
+           vertex_local_coords(1,SEB) = domain_x
+           vertex_local_coords(1,NEB) = domain_x
+           vertex_local_coords(1,SET) = domain_x
+           vertex_local_coords(1,NET) = domain_x
+         end if
+         if ( vertex_coords(2,SWB,k+1) > vertex_coords(2,NWB,k+1)) then
+         ! On y boundary
+           vertex_local_coords(2,SWB) = domain_y
+           vertex_local_coords(2,SEB) = domain_y
+           vertex_local_coords(2,SWT) = domain_y
+           vertex_local_coords(2,SET) = domain_y
+         end if
+       end if
        do df = 1, ndf
           ! Compute interpolation weights
           x = 0.0_r_def
@@ -138,9 +166,9 @@ contains
                   *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
                   *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
 
-             x = x + interp_weight*vertex_coords(1,vert,k+1)
-             y = y + interp_weight*vertex_coords(2,vert,k+1)
-             z = z + interp_weight*vertex_coords(3,vert,k+1)
+             x = x + interp_weight*vertex_local_coords(1,vert)
+             y = y + interp_weight*vertex_local_coords(2,vert)
+             z = z + interp_weight*vertex_local_coords(3,vert)
           end do
           ! For spherical domains we need to project x,y,z back onto 
           ! spherical shells

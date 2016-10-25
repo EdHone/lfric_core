@@ -64,7 +64,7 @@ contains
     use base_mesh_config_mod,      only : base_mesh_geometry_planar, &
                                           base_mesh_partitioner_planar
     use finite_element_config_mod, only : finite_element_shape_quadrilateral
-    use feign_config_mod,           only : feign_base_mesh_config,           &
+    use feign_config_mod,          only : feign_base_mesh_config,           &
                                           feign_initial_temperature_config, &
                                           feign_planet_config
     use mesh_mod,                  only : PLANE_BI_PERIODIC
@@ -85,7 +85,7 @@ contains
     call feign_base_mesh_config( 'foo',                        &
                                  base_mesh_geometry_planar,    &
                                  base_mesh_partitioner_planar, &
-                                 .false., 0.0_r_def )
+                                 .false., 0.0_r_def)
     call feign_initial_temperature_config( bvf_square )
     call feign_planet_config( radius, gravity, omega, rd, cp, p_zero, scaling )
 

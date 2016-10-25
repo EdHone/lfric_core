@@ -36,7 +36,7 @@ contains
 
     character(*), parameter :: filename = 'dynamo_configuration.nml'
     character(*), parameter :: &
-                            required_configuration(12) = ['finite_element   ', &
+                            required_configuration(13) = ['finite_element   ', &
                                                           'formulation      ', &
                                                           'base_mesh        ', &
                                                           'initial_wind     ', &
@@ -47,7 +47,8 @@ contains
                                                           'timestepping     ', &
                                                           'biperiodic_deppt ', &
                                                           'extrusion        ', &
-                                                          'transport        ']
+                                                          'transport        ', &
+                                                          'domain_size      ']
 
     logical              :: okay
     logical, allocatable :: success_map(:)

@@ -12,11 +12,15 @@
 
 module mesh_constructor_helper_functions_mod
 
-use base_mesh_config_mod, only : geometry, &
-                                 base_mesh_geometry_spherical
-use constants_mod,        only : i_def, i_native, r_def, pi
-use log_mod,              only : log_event, log_scratch_space, &
-                                 LOG_LEVEL_DEBUG
+use base_mesh_config_mod,   only : geometry, &
+                                   base_mesh_geometry_spherical
+use domain_size_config_mod, only : planar_domain_min_x, &
+                                   planar_domain_max_x, &
+                                   planar_domain_min_y, &
+                                   planar_domain_max_y
+use constants_mod,          only : i_def, i_native, r_def, pi
+use log_mod,                only : log_event, log_scratch_space, &
+                                   LOG_LEVEL_DEBUG
 
 
 
@@ -477,10 +481,10 @@ contains
       domain_size%minimum%z =  0.0_r_def
       domain_size%maximum%z =  domain_top
     else
-      domain_size%minimum%x =  minval( vertex_coords(1,:))
-      domain_size%maximum%x =  maxval( vertex_coords(1,:))
-      domain_size%minimum%y =  minval( vertex_coords(2,:))
-      domain_size%maximum%y =  maxval( vertex_coords(2,:))
+      domain_size%minimum%x =  planar_domain_min_x
+      domain_size%maximum%x =  planar_domain_max_x
+      domain_size%minimum%y =  planar_domain_min_y
+      domain_size%maximum%y =  planar_domain_max_y
       domain_size%minimum%z =  minval( vertex_coords(3,:))
       domain_size%maximum%z =  maxval( vertex_coords(3,:))
     end if

@@ -52,7 +52,7 @@ contains
     call feign_base_mesh_config( 'foo',                        &
                                  base_mesh_geometry_planar,    &
                                  base_mesh_partitioner_planar, &
-                                 .false., 0.0_r_def )
+                                 .false., 0.0_r_def)
 
     qr = quadrature_type(3, GAUSSIAN)
 
