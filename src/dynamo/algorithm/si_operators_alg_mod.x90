@@ -139,7 +139,7 @@ subroutine compute_si_operators(ref_state)
   type(function_space_type),   pointer :: u_fs, theta_fs, rho_fs => null()
   type(evaluator_xyz_type)             :: evaluator
 
-
+  call log_event( "Dynamo: computing si_operators", LOG_LEVEL_INFO )
 
   qr = quadrature_type(element_order+3, GAUSSIAN)
   theta  => ref_state(2)

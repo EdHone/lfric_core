@@ -1,10 +1,11 @@
 namelist idealised
   test : enumeration[none,
-                     gravity_wave,     ! Gravity wave test (planar or spherical)
-                     cold_bubble,      ! Straka density cold current test (planar domain only)
-                     warm_bubble,      ! Warm bubble test (planar domain only)
-                     gaussian_hill,    ! Pair of Gaussian hills (planer or spherical)
-                     cosine_hill,      ! Pair of cosine hills (planer or spherical)
-                     slotted_cylinder, ! Pair of slotted cylinders (planer or spherical)
-                     held_suarez]      ! Held-Suarez idealised forcing test
+                     gravity_wave,        ! Gravity wave test (planar or spherical)
+                     cold_bubble,         ! Straka density cold current test (planar domain only)
+                     warm_bubble,         ! Warm bubble test (planar domain only)
+                     gaussian_hill,       ! Pair of Gaussian hills (planer or spherical)
+                     cosine_hill,         ! Pair of cosine hills (planer or spherical)
+                     slotted_cylinder,    ! Pair of slotted cylinders (planer or spherical)
+                     held_suarez,         ! Held-Suarez idealised forcing test
+                     solid_body_rotation] ! Solid body rotation test
 end namelist idealised

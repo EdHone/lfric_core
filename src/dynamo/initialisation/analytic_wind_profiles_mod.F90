@@ -15,7 +15,9 @@ use initial_wind_config_mod, only : &
                                initial_wind_profile_none,                &
                                initial_wind_profile_solid_body_rotation, &
                                initial_wind_profile_constant_uv,         &
-                               initial_wind_profile_constant_shear_uv
+                               initial_wind_profile_constant_shear_uv,   &
+                               initial_wind_profile_dcmip301
+use planet_config_mod,  only : scaled_radius
 use log_mod,            only : log_event,                &
                                log_scratch_space,        &
                                LOG_LEVEL_ERROR
@@ -38,6 +40,7 @@ function analytic_wind(chi, choice, num_options, option) result(u)
   integer,          intent(in) :: choice, num_options
   real(kind=r_def), optional   :: option(num_options)
   real(kind=r_def)             :: u(3)
+  real(kind=r_def)             :: s
 
   if ( .not. present(option) ) option(:) = 0.0_r_def
 
@@ -45,10 +48,14 @@ function analytic_wind(chi, choice, num_options, option) result(u)
 
     case ( initial_wind_profile_none )
       u(:) = 0.0_r_def
-    case ( initial_wind_profile_solid_body_rotation )
-      u(1) = option(1) * ( cos(chi(2))*cos(option(2)*pi) &
-                       + sin(chi(1))*sin(chi(2))*sin(option(2)*pi) )
-      u(2) = option(1) * cos(chi(1))*sin(option(2)*pi)
+    case ( initial_wind_profile_solid_body_rotation, & 
+           initial_wind_profile_dcmip301)      
+      s = 0.5_r_def*(chi(3)/scaled_radius + 1.0_r_def)
+      ! Turn off the height variation for the dcmip test
+      if ( choice == initial_wind_profile_dcmip301) s = 1.0_r_def 
+      u(1) = s * option(1) * ( cos(chi(2))*cos(option(2)*pi) &
+                           + sin(chi(1))*sin(chi(2))*sin(option(2)*pi) )
+      u(2) = s * option(1) * cos(chi(1))*sin(option(2)*pi)
       u(3) = 0.0_r_def
     case ( initial_wind_profile_constant_uv )
       u(1) = option(1)

@@ -265,7 +265,7 @@ contains
                                preconditioner_choice=preconditioner )
       end if
       call solver_algorithm( inc(1), rhs(1), &
-                             mesh_id,, chi, method, mm=mm_w2, &
+                             mesh_id, chi, method, mm=mm_w2, &
                              mmd=mm_diagonal_w2, & 
                              preconditioner_choice=preconditioner )
       call invoke_copy_field_data(rhs(3),inc(3))

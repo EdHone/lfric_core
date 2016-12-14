@@ -21,14 +21,17 @@ use idealised_config_mod,         only : idealised_test_cold_bubble,   &
                                          idealised_test_cosine_hill,   &
                                          idealised_test_slotted_cylinder, &
                                          idealised_test_gravity_wave, &
-                                         idealised_test_warm_bubble
+                                         idealised_test_warm_bubble, &
+                                         idealised_test_solid_body_rotation
 use initial_density_config_mod,    only : r1, x1, y1, r2, x2, y2,     &
                                           tracer_max, tracer_background
 use base_mesh_config_mod,          only : geometry, &
                                           base_mesh_geometry_spherical
-use planet_config_mod,             only : p_zero, Rd, kappa, scaled_radius
+use planet_config_mod,             only : p_zero, Rd, kappa, scaled_radius, &
+                                          scaled_omega, gravity, cp
 use reference_profile_mod,         only : reference_profile_wtheta
 use generate_global_gw_fields_mod, only : generate_global_gw_pert
+use initial_wind_config_mod,       only : u0, rotation_angle
 
 implicit none
 
@@ -60,6 +63,7 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
   real(kind=r_def)             :: l1, l2
   real(kind=r_def)             :: h1, h2
   real(kind=r_def)             :: pressure, density
+  real(kind=r_def)             :: s, u00, f_sb, t0
           
   if ( geometry == base_mesh_geometry_spherical ) then
     call xyz2llr(chi(1),chi(2),chi(3),long,lat,radius)
@@ -155,9 +159,17 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
     else
       h2 = tracer_background
     end if
-    temperature = h1 + h2 
-  case default
-    temperature = 0.0_r_def
+    temperature = h1 + h2
+
+  case ( idealised_test_solid_body_rotation ) 
+    t0 = 280_r_def
+    s = (radius/scaled_radius) &
+        *cos(lat)*cos(rotation_angle*pi) &
+        + sin(long)*sin(lat)*sin(rotation_angle*pi)
+    u00 = u0*(u0 + 2.0_r_def*scaled_omega*scaled_radius)/(t0*Rd)
+    f_sb = 0.5*u00*s**2
+    temperature = t0 * exp( gravity*(radius-scaled_radius)/( cp * t0 ) ) &
+                * exp(-kappa*f_sb)  
   end select
 
 end function analytic_temperature

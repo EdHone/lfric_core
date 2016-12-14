@@ -252,11 +252,11 @@ contains
     type(evaluator_xyz_type)  :: evaluator_theta
     integer(i_def)            :: mesh 
     type(function_space_type), pointer :: theta_fs  => null()
-    type(operator_type)                :: mm_wtheta
+    type(operator_type),       pointer :: mm_wtheta => null()
 
     type(field_type), pointer :: chi(:) => null()
     type(field_type)          :: mr_inc, mr_adv, mr_n
-    type(field_type)          :: mm_diagonal_wtheta
+    type(field_type), pointer :: mm_diagonal_wtheta => null()
 
     type( field_type ) :: ones
     type( field_type ) :: mt_lumped
@@ -268,8 +268,8 @@ contains
                                                   element_order, &
                                                   mr(1)%which_function_space() )
     evaluator_theta = evaluator_xyz_type( theta_fs%get_ndf( ), theta_fs%get_nodes( ) )
-    mm_wtheta = get_mass_matrix(5)
-    mm_diagonal_wtheta = get_mass_matrix_diagonal(4)
+    mm_wtheta          => get_mass_matrix(5)
+    mm_diagonal_wtheta => get_mass_matrix_diagonal(4)
 
     ones  = field_type( vector_space = theta_fs )
     mt_lumped  = field_type( vector_space = theta_fs )

@@ -20,13 +20,15 @@ use idealised_config_mod,       only : idealised_test_cold_bubble,   &
                                        idealised_test_gaussian_hill, &
                                        idealised_test_cosine_hill,   &
                                        idealised_test_slotted_cylinder, &
-                                       idealised_test_gravity_wave
+                                       idealised_test_gravity_wave, &
+                                       idealised_test_solid_body_rotation
 use initial_density_config_mod, only : r1, x1, y1, r2, x2, y2,     &
                                        tracer_max, tracer_background
 use base_mesh_config_mod,       only : geometry, &
                                        base_mesh_geometry_spherical
-use planet_config_mod,          only : p_zero, Rd, kappa
+use planet_config_mod,          only : p_zero, Rd, kappa, scaled_radius
 use reference_profile_mod,      only : reference_profile
+use analytic_temperature_profiles_mod, only: analytic_temperature
 
 implicit none
 
@@ -52,6 +54,9 @@ function analytic_density(chi, choice) result(density)
   real(kind=r_def)             :: l1, l2
   real(kind=r_def)             :: h1, h2
   real(kind=r_def)             :: pressure, temperature
+  real(kind=r_def)             :: t0
+  real(kind=r_def)             :: chi_surf(3)
+
           
   if ( geometry == base_mesh_geometry_spherical ) then
     call xyz2llr(chi(1),chi(2),chi(3),long,lat,radius)
@@ -62,12 +67,11 @@ function analytic_density(chi, choice) result(density)
     lat  = chi(2)
     l1 = sqrt((long-x1)**2 + (lat-y1)**2)
     l2 = sqrt((long-x2)**2 + (lat-y2)**2)
-  end if
-
+  end if 
 
   select case( choice ) 
   
-  case ( idealised_test_gravity_wave ) 
+  case ( idealised_test_gravity_wave) 
     call reference_profile(pressure, density, temperature, chi, choice)
  
   case ( idealised_test_cold_bubble ) 
@@ -127,7 +131,15 @@ function analytic_density(chi, choice) result(density)
     else
       h2 = tracer_background
     end if
-    density = h1 + h2 
+    density = h1 + h2
+  
+  case( idealised_test_solid_body_rotation )
+    t0 = 280.0_r_def
+    chi_surf = (/chi(1),chi(2),scaled_radius/)
+    temperature = analytic_temperature(chi, choice, chi_surf)
+    pressure = t0/temperature
+    density = p_zero/(Rd*temperature) * pressure**( (1.0_r_def - kappa )/ kappa )
+ 
   case default
     write( log_scratch_space, '(A)' )  'Invalid density profile choice, stopping'
     call log_event( log_scratch_space, LOG_LEVEL_ERROR )
