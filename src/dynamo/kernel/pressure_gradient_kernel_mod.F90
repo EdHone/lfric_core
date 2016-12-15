@@ -27,7 +27,7 @@ module pressure_gradient_kernel_mod
 use argument_mod,      only : arg_type, func_type,                 &
                               GH_FIELD, GH_READ, GH_INC,           &
                               W0, W2, W3, GH_BASIS, GH_DIFF_BASIS, &
-                              CELLS
+                              CELLS, QUADRATURE_XYoZ
 use constants_mod,     only : r_def
 use kernel_mod,        only : kernel_type
 use planet_config_mod, only : cp
@@ -51,6 +51,7 @@ type, public, extends(kernel_type) :: pressure_gradient_kernel_type
        func_type(W0, GH_BASIS, GH_DIFF_BASIS)                          &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::pressure_gradient_code
 end type

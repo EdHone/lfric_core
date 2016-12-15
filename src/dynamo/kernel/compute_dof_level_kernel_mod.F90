@@ -14,7 +14,7 @@ use kernel_mod,              only : kernel_type
 use argument_mod,            only : arg_type, func_type,                     &
                                     GH_FIELD, GH_WRITE,                      &
                                     ANY_SPACE_1, GH_BASIS,                   &
-                                    CELLS
+                                    CELLS, EVALUATOR_XYZ
 use constants_mod,           only : r_def
 
 implicit none
@@ -27,9 +27,6 @@ type, public, extends(kernel_type) :: compute_dof_level_kernel_type
   private
   type(arg_type) :: meta_args(1) = (/                                  &
        arg_type(GH_FIELD,    GH_WRITE, ANY_SPACE_1)                    &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(ANY_SPACE_1, GH_BASIS)                                &
        /)
   integer :: iterates_over = CELLS
 contains

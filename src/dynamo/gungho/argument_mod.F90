@@ -77,6 +77,14 @@ module argument_mod
   integer, public, parameter :: CELLS     = 401
   integer, public, parameter :: ALL_DOFS  = 402
 
+! Evaluator metadata
+  integer, public, parameter :: EVALUATOR_XYZ    = 501
+  integer, public, parameter :: EVALUATOR_XYoZ   = 502
+  integer, public, parameter :: EVALUATOR_XoYoZ  = 503
+  integer, public, parameter :: QUADRATURE_XYZ   = 504
+  integer, public, parameter :: QUADRATURE_XYoZ  = 505
+  integer, public, parameter :: QUADRATURE_XoYoZ = 506
+
   type, public :: arg_type
      integer :: arg_type         ! {GH_FIELD, GH_OPERATOR, GH_COLUMNWISE_OPERATOR,&
                                  !  GH_REAL, GH_INTEGER}

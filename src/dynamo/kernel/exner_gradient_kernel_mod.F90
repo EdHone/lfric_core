@@ -19,7 +19,8 @@ module exner_gradient_kernel_mod
 use argument_mod,      only : arg_type, func_type,                 &
                               GH_FIELD, GH_READ, GH_INC,           &
                               ANY_SPACE_9, W2, W3,                 &
-                              GH_BASIS, GH_DIFF_BASIS, CELLS
+                              GH_BASIS, GH_DIFF_BASIS, CELLS,      &
+                              QUADRATURE_XYoZ
 use constants_mod,     only : r_def, i_def
 use kernel_mod,        only : kernel_type
 use planet_config_mod, only : cp
@@ -43,6 +44,7 @@ type, public, extends(kernel_type) :: exner_gradient_kernel_type
        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::exner_gradient_code
 end type

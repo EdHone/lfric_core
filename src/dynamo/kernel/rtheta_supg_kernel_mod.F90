@@ -16,7 +16,7 @@ use argument_mod,            only : arg_type, func_type,                     &
                                     GH_FIELD, GH_READ, GH_INC,               &
                                     W0, W2, W3, ANY_SPACE_9,                 &
                                     GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS
+                                    CELLS, QUADRATURE_XYoZ
 use constants_mod,           only : r_def, EPS
 use coordinate_jacobian_mod, only : coordinate_jacobian
 use kernel_mod,              only : kernel_type
@@ -47,6 +47,7 @@ type, public, extends(kernel_type) :: rtheta_supg_kernel_type
        func_type(ANY_SPACE_9, GH_DIFF_BASIS)                          &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::rtheta_supg_code
 end type

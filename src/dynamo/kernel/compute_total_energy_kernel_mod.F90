@@ -18,7 +18,7 @@ use argument_mod,      only : arg_type, func_type,                  &
                               GH_FIELD, GH_WRITE, GH_READ,          &
                               W0, W2, W3, ANY_SPACE_1, ANY_SPACE_9, &
                               GH_BASIS, GH_DIFF_BASIS,              &
-                              CELLS
+                              CELLS, QUADRATURE_XYoZ
 use constants_mod,     only : r_def
 use kernel_mod,        only : kernel_type
 use planet_config_mod, only : scaled_radius, cv
@@ -47,6 +47,7 @@ type, public, extends(kernel_type) :: compute_total_energy_kernel_type
        func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::compute_total_energy_code
 end type

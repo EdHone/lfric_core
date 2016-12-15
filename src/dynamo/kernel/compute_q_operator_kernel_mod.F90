@@ -14,7 +14,7 @@ use argument_mod,              only: arg_type, func_type,            &
                                      GH_READ, GH_WRITE,              &
                                      W2, Wtheta, W0,                 &
                                      GH_BASIS,GH_DIFF_BASIS,         &
-                                     CELLS
+                                     CELLS, QUADRATURE_XYoZ
 use constants_mod,             only: r_def, i_def
 use kernel_mod,                only: kernel_type
 
@@ -39,7 +39,7 @@ type, public, extends(kernel_type) :: compute_q_operator_type
        func_type(W0    , GH_DIFF_BASIS)                                &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass :: compute_q_operator_code
 end type

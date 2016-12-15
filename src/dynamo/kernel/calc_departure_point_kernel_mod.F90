@@ -19,7 +19,7 @@ use argument_mod,            only : arg_type, func_type,                     &
                                     GH_FIELD, GH_READ, GH_WRITE,             &
                                     W0, W2, W3,                              &
                                     GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS 
+                                    CELLS, EVALUATOR_XYZ
 use constants_mod,           only : r_def
 use biperiodic_deppt_config_mod, only : n_dep_pt_iterations
 use timestepping_config_mod, only : dt
@@ -35,10 +35,6 @@ type, public, extends(kernel_type) :: calc_departure_point_kernel_type
   type(arg_type) :: meta_args(2) = (/                                  &
        arg_type(GH_FIELD,   GH_WRITE, W3),                             &
        arg_type(GH_FIELD,   GH_READ,  W2)                              &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(W2, GH_DIFF_BASIS)                                    &
        /)
   integer :: iterates_over = CELLS
 contains

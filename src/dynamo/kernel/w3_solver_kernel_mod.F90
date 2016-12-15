@@ -14,8 +14,9 @@ use kernel_mod,              only : kernel_type
 use constants_mod,           only : r_def
 use argument_mod,            only : arg_type, func_type,             &
                                     GH_FIELD, GH_READ, GH_WRITE,     &
-                                    ANY_SPACE_9, W3, GH_BASIS, GH_DIFF_BASIS, &
-                                    CELLS 
+                                    ANY_SPACE_9, W3,                 & 
+                                    GH_BASIS, GH_DIFF_BASIS,         &
+                                    CELLS, QUADRATURE_XYoZ
 
 implicit none
 
@@ -28,13 +29,14 @@ type, public, extends(kernel_type) :: w3_solver_kernel_type
   type(arg_type) :: meta_args(3) = (/                                  &
        arg_type(GH_FIELD,   GH_WRITE, W3),                             &
        arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                              &
+       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
        /)
   type(func_type) :: meta_funcs(2) = (/                                &
        func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                                    &
+       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::solver_w3_code
 end type

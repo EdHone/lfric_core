@@ -14,9 +14,9 @@
 module compute_total_aam_kernel_mod
 use argument_mod,      only : arg_type, func_type,         &
                               GH_FIELD, GH_READ, GH_WRITE, &
-                              ANY_SPACE_9, W2, W3,                  &
+                              ANY_SPACE_9, W2, W3,         &
                               GH_BASIS, GH_DIFF_BASIS,     &
-                              CELLS
+                              CELLS, QUADRATURE_XYoZ
 use constants_mod,     only : r_def
 use kernel_mod,        only : kernel_type
 use planet_config_mod, only : scaled_omega, scaled_radius
@@ -33,14 +33,15 @@ type, public, extends(kernel_type) :: compute_total_aam_kernel_type
        arg_type(GH_FIELD,   GH_WRITE, W3),                             &
        arg_type(GH_FIELD,   GH_READ,  W2),                             &
        arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                              &
+       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
        /)
   type(func_type) :: meta_funcs(3) = (/                                &
        func_type(W2, GH_BASIS),                                        &
        func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                          &
+       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::compute_total_aam_code
 end type

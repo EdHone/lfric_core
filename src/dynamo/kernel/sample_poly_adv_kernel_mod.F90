@@ -21,7 +21,8 @@ module sample_poly_adv_kernel_mod
 
 use argument_mod,  only : arg_type, func_type,                  &
                           GH_FIELD, GH_WRITE, GH_READ,          &
-                          W2, Wtheta, GH_BASIS, CELLS
+                          W2, Wtheta, GH_BASIS, CELLS,          &
+                          EVALUATOR_XYZ
 use constants_mod, only : r_def, i_def
 use kernel_mod,    only : kernel_type
 use reference_element_mod, only: W, E, N, S
@@ -55,6 +56,7 @@ type, public, extends(kernel_type) :: sample_poly_adv_kernel_type
        func_type(W2, GH_BASIS)                                         &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = EVALUATOR_XYZ
 contains
   procedure, nopass ::sample_poly_adv_code
 end type

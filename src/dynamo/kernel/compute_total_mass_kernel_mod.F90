@@ -13,8 +13,9 @@ module compute_total_mass_kernel_mod
 
 use argument_mod,      only : arg_type, func_type,             &
                               GH_FIELD, GH_WRITE, GH_READ,     &
-                              ANY_SPACE_9, W3, GH_BASIS, GH_DIFF_BASIS, &
-                              CELLS
+                              ANY_SPACE_9, W3,                 &
+                              GH_BASIS, GH_DIFF_BASIS,         &
+                              CELLS, QUADRATURE_XYoZ
 use constants_mod,     only : r_def
 use kernel_mod,        only : kernel_type
 use planet_config_mod, only : scaled_radius
@@ -34,9 +35,10 @@ type, public, extends(kernel_type) :: compute_total_mass_kernel_type
        /)
   type(func_type) :: meta_funcs(2) = (/                                &
        func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                                    &
+       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::compute_total_mass_code
 end type

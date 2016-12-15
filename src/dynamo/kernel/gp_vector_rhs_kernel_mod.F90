@@ -14,7 +14,7 @@ use argument_mod,            only : arg_type, func_type,           &
                                     W0, W2, ANY_SPACE_1,           &
                                     ANY_SPACE_2, ANY_SPACE_9,      &
                                     GH_BASIS, GH_DIFF_BASIS,       &
-                                    CELLS
+                                    CELLS, QUADRATURE_XYoZ
 use base_mesh_config_mod,    only : geometry, &
                                     base_mesh_geometry_spherical
 use constants_mod,           only : r_def
@@ -43,7 +43,7 @@ type, public, extends(kernel_type) :: gp_vector_rhs_kernel_type
        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, public, nopass :: gp_vector_rhs_code
 end type

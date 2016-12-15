@@ -20,7 +20,7 @@ use kernel_mod,              only: kernel_type
 use argument_mod,            only: arg_type, func_type,                      &
                                    GH_OPERATOR, GH_FIELD, GH_READ, GH_WRITE, &
                                    W0, ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS, &
-                                   CELLS
+                                   CELLS, QUADRATURE_XYoZ
 use coordinate_jacobian_mod, only: coordinate_jacobian
 
 implicit none
@@ -39,7 +39,7 @@ type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w0_type
        func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass :: compute_mass_matrix_w0_code
 end type compute_mass_matrix_kernel_w0_type

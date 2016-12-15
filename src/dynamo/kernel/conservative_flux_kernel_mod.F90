@@ -13,7 +13,8 @@ module conservative_flux_kernel_mod
 
 use argument_mod,  only : arg_type, func_type,                  &
                           GH_FIELD, GH_WRITE, GH_READ,          &
-                          W0, W2, W3, GH_BASIS, CELLS
+                          W0, W2, W3, GH_BASIS, CELLS,          &
+                          EVALUATOR_XYZ
 use constants_mod, only : r_def
 use kernel_mod,    only : kernel_type
 
@@ -29,11 +30,6 @@ type, public, extends(kernel_type) :: conservative_flux_kernel_type
        arg_type(GH_FIELD,   GH_WRITE, W2),                             &
        arg_type(GH_FIELD,   GH_READ,  W2),                             &
        arg_type(GH_FIELD,   GH_READ,  W3)                              &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W3, GH_BASIS)                                         &
        /)
   integer :: iterates_over = CELLS
 contains

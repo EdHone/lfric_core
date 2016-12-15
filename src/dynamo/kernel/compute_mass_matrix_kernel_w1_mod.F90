@@ -18,9 +18,9 @@ use kernel_mod,              only: kernel_type
 use argument_mod,            only: arg_type, func_type,            &
                                    GH_OPERATOR, GH_FIELD,          &
                                    GH_READ, GH_WRITE,              &
-                                   ANY_SPACE_9, W1, GH_BASIS,               &
+                                   ANY_SPACE_9, W1, GH_BASIS,      &
                                    GH_DIFF_BASIS,                  &
-                                   CELLS
+                                   CELLS, QUADRATURE_XYoZ
 use coordinate_jacobian_mod, only: coordinate_jacobian, &
                                    coordinate_jacobian_inverse
 implicit none
@@ -33,14 +33,14 @@ type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w1_type
   private
   type(arg_type) :: meta_args(2) = (/                                  &
        arg_type(GH_OPERATOR, GH_WRITE, W1, W1),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                             &
+       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
        /)
   type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                                   &
+       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                          &
        func_type(W1, GH_BASIS)                                         &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass :: compute_mass_matrix_w1_code
 end type

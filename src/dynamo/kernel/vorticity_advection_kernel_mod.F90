@@ -24,9 +24,9 @@ module vorticity_advection_kernel_mod
 use kernel_mod,              only : kernel_type
 use argument_mod,            only : arg_type, func_type,                 &
                                     GH_FIELD, GH_READ, GH_INC,           &
-                                    ANY_SPACE_9, W1, W2, W3,                      &
+                                    ANY_SPACE_9, W1, W2, W3,             &
                                     GH_BASIS, GH_DIFF_BASIS,             &
-                                    CELLS 
+                                    CELLS, QUADRATURE_XYoZ
 use constants_mod,           only : r_def
 use cross_product_mod,       only : cross_product
 
@@ -43,15 +43,16 @@ type, public, extends(kernel_type) :: vorticity_advection_kernel_type
        arg_type(GH_FIELD,   GH_READ, W2),                              &
        arg_type(GH_FIELD,   GH_READ, W3),                              &
        arg_type(GH_FIELD,   GH_READ, W1),                              &
-       arg_type(GH_FIELD*3, GH_READ, any_space_9)                               &
+       arg_type(GH_FIELD*3, GH_READ, any_space_9)                      &
        /)
   type(func_type) :: meta_funcs(4) = (/                                &
        func_type(W2, GH_BASIS),                                        &
        func_type(W3, GH_BASIS),                                        &
        func_type(W1, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                                    &
+       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::vorticity_advection_code
 end type

@@ -31,7 +31,8 @@ use argument_mod,       only : arg_type, func_type,        &
                                GH_FIELD, GH_INC, GH_WRITE, &
                                W3,                         &
                                GH_BASIS,                   &
-                               CELLS
+                               CELLS,                      &
+                               EVALUATOR_XYZ
 use constants_mod,      only : r_def
 use subgrid_config_mod, only : subgrid_rho_approximation_constant_subgrid,     &
                                subgrid_rho_approximation_constant_positive,    &
@@ -54,11 +55,7 @@ type, public, extends(kernel_type) :: subgrid_coeffs_kernel_type
   type(arg_type) :: meta_args(1) = (/                                  &
        arg_type(GH_FIELD, GH_WRITE, W3)                                &
        /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(W3, GH_BASIS)                                         &
-       /)
   integer :: iterates_over = CELLS
-
 contains
   procedure, public, nopass :: subgrid_coeffs_code
 end type

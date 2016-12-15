@@ -23,7 +23,7 @@ use argument_mod,            only: arg_type, func_type,            &
                                    GH_READ, GH_WRITE,              &
                                    ANY_SPACE_9, W2, W3,            &
                                    GH_BASIS,GH_DIFF_BASIS,         &
-                                   CELLS
+                                   CELLS, QUADRATURE_XYoZ
 implicit none
 
 !-------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ type, public, extends(kernel_type) :: weighted_proj_2theta_kernel_type
        func_type(W3, GH_BASIS)                                         &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass :: weighted_proj_2theta_code
 end type

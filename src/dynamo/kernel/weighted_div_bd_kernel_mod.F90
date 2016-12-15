@@ -20,9 +20,9 @@ module weighted_div_bd_kernel_mod
                                       GH_OPERATOR, GH_FIELD,               &
                                       GH_READ, GH_WRITE,                   &
                                       W2, W3, Wtheta, GH_BASIS,            &
-                                      CELLS
+                                      CELLS, QUADRATURE_XYoZ
   use constants_mod,           only : r_def, i_def
-  use reference_element_mod,    only: nfaces_h, out_face_normal
+  use reference_element_mod,   only : nfaces_h, out_face_normal
 
 
   implicit none
@@ -40,9 +40,10 @@ module weighted_div_bd_kernel_mod
     type(func_type) :: meta_funcs(3) = (/                             &
        func_type(W3, GH_BASIS),                                       &
        func_type(W2, GH_BASIS),                                       &
-       func_type(Wtheta, GH_BASIS)                               &
+       func_type(Wtheta, GH_BASIS)                                    &
       /)
     integer :: iterates_over = CELLS
+    integer :: evaluator_shape = QUADRATURE_XYoZ
   contains
     procedure, nopass :: weighted_div_bd_code
   end type

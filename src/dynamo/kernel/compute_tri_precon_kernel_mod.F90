@@ -18,9 +18,9 @@ use constants_mod,           only: r_def, i_def
 use kernel_mod,              only: kernel_type
 use argument_mod,            only: arg_type, func_type,                      &
                                    GH_OPERATOR, GH_FIELD, GH_READ, GH_WRITE, &
-                                   ANY_SPACE_9, W3, ANY_SPACE_1,                      &
+                                   ANY_SPACE_9, W3, ANY_SPACE_1,             &
                                    GH_BASIS, GH_DIFF_BASIS,                  &
-                                   CELLS
+                                   CELLS, EVALUATOR_XYZ
 use planet_config_mod,       only : kappa, cp
 use timestepping_config_mod, only : dt, alpha
 
@@ -33,7 +33,7 @@ type, public, extends(kernel_type) :: compute_tri_precon_kernel_type
   private
   type(arg_type) :: meta_args(4) = (/                                  &
        arg_type(GH_FIELD*3,  GH_WRITE, W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),                            &
+       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),                   &
        arg_type(GH_FIELD,    GH_READ,  W3),                            &
        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)                    &
        /)
@@ -41,7 +41,7 @@ type, public, extends(kernel_type) :: compute_tri_precon_kernel_type
        func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = EVALUATOR_XYZ
 contains
   procedure, nopass :: compute_tri_precon_code
 end type compute_tri_precon_kernel_type

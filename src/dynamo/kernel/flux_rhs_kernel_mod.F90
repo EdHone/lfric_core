@@ -15,9 +15,9 @@ module flux_rhs_kernel_mod
 use kernel_mod,              only : kernel_type
 use argument_mod,            only : arg_type, func_type,                     &
                                     GH_FIELD, GH_READ, GH_INC,               &
-                                    ANY_SPACE_9, W2, ANY_SPACE_1,                     &
+                                    ANY_SPACE_9, W2, ANY_SPACE_1,            &
                                     GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS
+                                    CELLS, QUADRATURE_XYoZ
 use constants_mod,           only : r_def
 
 implicit none
@@ -40,6 +40,7 @@ type, public, extends(kernel_type) :: flux_rhs_kernel_type
        func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::flux_rhs_code
 end type

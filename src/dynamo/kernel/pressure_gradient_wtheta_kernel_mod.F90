@@ -27,8 +27,9 @@ module pressure_gradient_wtheta_kernel_mod
 use kernel_mod,              only : kernel_type
 use argument_mod,            only : arg_type, func_type,                 &
                                     GH_FIELD, GH_READ, GH_INC,           &
-                                    Wtheta, W2, W3, GH_BASIS, GH_DIFF_BASIS, &
-                                    CELLS
+                                    Wtheta, W2, W3,                      &
+                                    GH_BASIS, GH_DIFF_BASIS,             &
+                                    CELLS, QUADRATURE_XYoZ
 use constants_mod,           only : r_def, i_def
 use planet_config_mod,       only : cp
 
@@ -43,14 +44,15 @@ type, public, extends(kernel_type) :: pressure_gradient_wtheta_kernel_type
   type(arg_type) :: meta_args(3) = (/                                  &
        arg_type(GH_FIELD,   GH_INC,  W2),                              &
        arg_type(GH_FIELD,   GH_READ, W3),                              &
-       arg_type(GH_FIELD,   GH_READ, Wtheta)                      &
+       arg_type(GH_FIELD,   GH_READ, Wtheta)                           &
        /)
   type(func_type) :: meta_funcs(3) = (/                                &
        func_type(W2, GH_BASIS, GH_DIFF_BASIS),                         &
        func_type(W3, GH_BASIS),                                        &
-       func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS)                 &
+       func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS)                      &
        /)
   integer :: iterates_over = CELLS
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass ::pressure_gradient_wtheta_code
 end type

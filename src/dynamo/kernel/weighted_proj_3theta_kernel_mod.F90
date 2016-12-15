@@ -21,7 +21,7 @@ use argument_mod,            only: arg_type, func_type,                      &
                                    GH_OPERATOR, GH_FIELD, GH_READ, GH_WRITE, &
                                    ANY_SPACE_9, W3, ANY_SPACE_1,             &
                                    GH_BASIS, GH_DIFF_BASIS,                  &
-                                   CELLS
+                                   CELLS, QUADRATURE_XYoZ
 use coordinate_jacobian_mod, only: coordinate_jacobian
 
 implicit none
@@ -42,7 +42,7 @@ type, public, extends(kernel_type) :: weighted_proj_3theta_kernel_type
        func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
-
+  integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass :: weighted_proj_3theta_code
 end type weighted_proj_3theta_kernel_type
