@@ -75,18 +75,20 @@ class FortranAnalyserTest(unittest.TestCase):
         shutil.rmtree( self._scratchDirectory )
 
     ##########################################################################
+    # Includes disparate case to ensure case insensitivity.
+    #
     def testAnalyseProgram( self ):
         testFilename = os.path.join( self._scratchDirectory, 'test.f90' )
         with open(testFilename, 'w') as fortranFile:
             print( '''
-program foo
+program fOo
 
-  use constants_mod, only : i_def
-  use trumpton_mod, only : hew, pew, barney, mcgrey, cuthbirt, dibble, grub
+  use constAnts_mod, only : i_def
+  use trumpton_Mod, only : hew, pew, barney, mcgrey, cuthbirt, dibble, grub
 
   implicit none
 
-end program foo
+end program fOo
                    '''.strip(), file=fortranFile )
 
         uut = dependerator.analyser.FortranAnalyser( self._logger, \
@@ -104,6 +106,8 @@ end program foo
         self.assertEqual( [], dependencies )
 
     ##########################################################################
+    # Includes disparate case to ensure case insensitivity.
+    #
     def testAnalyseModule( self ):
         uut = dependerator.analyser.FortranAnalyser( self._logger, \
                                                      [],           \
@@ -112,10 +116,10 @@ end program foo
         testFilename = os.path.join( self._scratchDirectory, 'test.f90' )
         with open(testFilename, 'w') as fortranFile:
             print( '''
-module foo
+module foO
 
-  use constants_mod, only : i_def
-  use trumpton_mod, only : hew, pew, barney, mcgrey, cuthbirt, dibble, grub
+  use consTants_mod, only : i_def
+  use trumPton_mod, only : hew, pew, barney, mcgrey, cuthbirt, dibble, grub
 
   implicit none
 
@@ -123,20 +127,20 @@ module foo
 
 contains
 
-end module foo
+end module foO
 
-module trumpton_mod
+module truMpton_mod
 
-end module trumpton_mod
+end module truMpton_mod
                    '''.strip(), file=fortranFile )
         uut.analyse( testFilename )
 
         otherFilename = os.path.join( self._scratchDirectory, 'other.f90' )
         with open(otherFilename, 'w') as otherFile:
             print( '''
-module constants_mod
+module coNstants_mod
 
-end module constants_mod
+end module coNstants_mod
                    '''.strip(), file=otherFile )
         uut.analyse( otherFilename )
 
@@ -157,6 +161,9 @@ end module constants_mod
                             u'trumpton_mod', testFilename)], dependencies )
 
     ##########################################################################
+    # This test also includes disperate case to ensure case insensitivity is
+    # enforced.
+    #
     def testAnalyseSubModule( self ):
         uut = dependerator.analyser.FortranAnalyser( self._logger, \
                                                      [],           \
@@ -166,7 +173,7 @@ end module constants_mod
                                                'parent.f90' ), "utf-8")
         with open(parentFilename, 'w') as parentFile:
             print( '''
-module parent
+module Parent
 
   implicit none
 
@@ -195,9 +202,9 @@ module parent
     end function baz
   end interface
 
-end module parent
+end module Parent
 
-submodule (parent) child3
+submodule (pArent) chIld3
 
   implicit none
 
@@ -207,7 +214,7 @@ contains
     class(test_type), intent(in) :: this
   end function baz
 
-end submodule child3
+end submodule chIld3
                    '''.strip(), file=parentFile )
         uut.analyse( parentFilename )
 
@@ -215,7 +222,7 @@ end submodule child3
                                                'child1.f90' ), 'utf-8')
         with open(child1Filename, 'w') as child1File:
             print( '''
-submodule (parent) child1
+submodule (paRent) Child1
 
   implicit none
 
@@ -249,7 +256,7 @@ contains
 
   end subroutine foo
 
-end submodule child1
+end submodule Child1
                    '''.strip(), file=child1File )
         uut.analyse( child1Filename )
 
@@ -257,7 +264,7 @@ end submodule child1
                                  'child2.f90' ), 'utf-8')
         with open(child2Filename, 'w') as child2File:
             print( '''
-submodule (parent) child2
+submodule (parent) cHild2
 
   implicit none
 
@@ -271,7 +278,7 @@ contains
 
   end procedure bar
 
-end submodule child2
+end submodule cHild2
                    '''.strip(), file=child2File )
         uut.analyse( child2Filename )
 
@@ -279,7 +286,7 @@ end submodule child2
                                  'child3.f90' ), 'utf-8')
         with open(child3Filename, 'w') as child3File:
             print( '''
-submodule (parent:child1) grandchild
+submodule (parEnt:chilD1) grandChild
 
   implicit none
 
@@ -296,7 +303,7 @@ contains
 
   end subroutine baz
 
-end submodule grandchild
+end submodule grandChild
                    '''.strip(), file=child3File )
         uut.analyse( child3Filename )
 

@@ -157,7 +157,7 @@ class FortranAnalyser(Analyser):
             match = re.match( r'^\s*PROGRAM\s+(\S+)', line, \
                                 flags=re.IGNORECASE)
             if match is not None:
-                programUnit = match.group( 1 )
+                programUnit = match.group(1).lower()
                 self._logger.logEvent( '    Contains program: ' + programUnit )
                 self._database.addProgram( programUnit, sourceFilename )
 
@@ -165,7 +165,7 @@ class FortranAnalyser(Analyser):
                      r'^\s*MODULE\s+(?!(?:PROCEDURE|SUBROUTINE|FUNCTION)\s+)(\S+)', \
                               line, flags=re.IGNORECASE)
             if match is not None:
-                programUnit = match.group( 1 )
+                programUnit = match.group( 1 ).lower()
                 self._logger.logEvent( '    Contains module ' + programUnit )
                 modules.append( programUnit )
                 self._database.addModule( programUnit, sourceFilename )
@@ -174,8 +174,10 @@ class FortranAnalyser(Analyser):
                               flags=re.IGNORECASE )
             if match is not None:
                 ancestorUnit = match.group(1)
-                parentUnit  = match.group(2)
-                programUnit = match.group(3)
+                if ancestorUnit:
+                  ancestorUnit = ancestorUnit.lower()
+                parentUnit  = match.group(2).lower()
+                programUnit = match.group(3).lower()
 
                 message = '{}Contains submodule {} of {}'.format(            \
                                                                 ' ' * 4,     \
@@ -193,6 +195,6 @@ class FortranAnalyser(Analyser):
             match = re.match( r'^\s*USE\s+([^,\s]+)', line, \
                                 flags=re.IGNORECASE)
             if match is not None:
-                moduleName = match.group( 1 )
+                moduleName = match.group( 1 ).lower()
                 self._logger.logEvent( '    Depends on module ' + moduleName )
                 addDependency( programUnit, moduleName )
