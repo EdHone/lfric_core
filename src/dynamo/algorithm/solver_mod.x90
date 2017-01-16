@@ -18,7 +18,7 @@ module solver_mod
   use function_space_collection_mod, only : function_space_collection
   use field_mod,                     only : field_type
   use finite_element_config_mod,     only : element_order
-  use fs_continuity_mod,             only : W3
+  use fs_continuity_mod,             only : W3, fs_name
   use function_space_mod,            only : function_space_type
   use log_mod,                   only : log_event,         &
                                         log_scratch_space, &
@@ -122,7 +122,7 @@ contains
        ! mass matrix
 
        if(fs_l == W3) then
-         ! mm is inverse mass matrix 
+         ! mm is inverse mass matrix
          call invoke( matrix_vector_kernel_type(rhs,lhs,mm) )
        else
        select case ( solver_type )
@@ -217,11 +217,11 @@ contains
     err = sqrt(err)/sc_err
     init_err=err
     if (err < tolerance) then
-      write( log_scratch_space, '(I4, A, I2,A,E12.4,A,E15.8)') &
-           rhs_fs%which(),                                     &
-           "-space solver_algorithm:converged in ", 0,         &
-           " iters, init=", init_err,                          &
-           " final=", err
+      write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)') &
+          trim(fs_name(rhs_fs%which()))//                 &
+          "-space solver_algorithm:converged in ", 0,     &
+          " iters, init=", init_err,                      &
+          " final=", err
       call log_event( log_scratch_space, LOG_LEVEL_INFO )
       return
    end if
@@ -239,7 +239,7 @@ contains
       call precondition( y, p, precond_option, diagonal=mmd )
       call invoke_set_field_scalar(0.0_r_def, v)
       call invoke( matrix_vector_kernel_type(v,y,mm) )
-      
+
       call invoke_inner_prod(rhs,v,norm)
       alpha = rho/norm
       call invoke_axpy(-alpha,v,res,s)
@@ -267,11 +267,11 @@ contains
       call log_event(log_scratch_space, LOG_LEVEL_TRACE)
 
       if (err < tolerance) then
-        write( log_scratch_space, '(I4, A, I2, A, E12.4, A, E15.8)' ) &
-             rhs_fs%which(),                                          &
-             "-space solver_algorithm:converged in ", iter,           &
-             " iters, init=", init_err,                               &
-             " final=", err
+        write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)' ) &
+            trim(fs_name(rhs_fs%which()))//                  &
+            "-space solver_algorithm:converged in ", iter,   &
+            " iters, init=", init_err,                       &
+            " final=", err
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
         exit
       end if
@@ -377,11 +377,11 @@ contains
            "cg solver_algorithm[", iter, "]: res = ", err
       call log_event( log_scratch_space, LOG_LEVEL_TRACE )
       if (err < tolerance) then
-        write( log_scratch_space, '(I4, A, I2, A, E12.4, A, E15.8)' ) &
-             rhs_fs%which(),                                          &
-             "-space cg solver_algorithm:converged in ", iter,        &
-             " iters, init=", init_err,                               &
-             " final=", err
+        write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)' )  &
+            trim(fs_name(rhs_fs%which()))//                   &
+            "-space cg solver_algorithm:converged in ", iter, &
+            " iters, init=", init_err,                        &
+            " final=", err
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
         exit
       end if
@@ -713,12 +713,12 @@ contains
 
       call invoke_inner_prod( r, r, err )
       err = sqrt( err )/sc_err
-      if( err <  tolerance ) then
-       write( log_scratch_space, '(I4, A, I2, A, E12.4, A, E15.8)' ) &
-             rhs_fs%which(),                                         &
-             "-space GCR solver_algorithm:converged in ", iter,      &
-             " iters, init=", init_err,                              &
-             " final=", err
+      if ( err <  tolerance ) then
+        write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)' )   &
+            trim(fs_name(rhs_fs%which()))//                    &
+            "-space GCR solver_algorithm:converged in ", iter, &
+            " iters, init=", init_err,                         &
+            " final=", err
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
         exit
       end if
