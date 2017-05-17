@@ -316,8 +316,10 @@ Developers and reviewers should remember not to allow changes to this default
 on to trunk.
 
 Most of the time it is more convenient to leave the default as it is and just
-specify the desired target on the command line. i.e.
+specify the desired target on the command line. e.g.
 ``rose stem --config <project>/rose-stem --opt-conf-key=meto-xc40``
+
+Other target configurations available can be found in ``<project>/rose-stem/opts/``
 
 Test Suite on MONSooN
 ~~~~~~~~~~~~~~~~~~~~~
