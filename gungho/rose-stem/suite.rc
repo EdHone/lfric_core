@@ -7,7 +7,7 @@
                                  'sbr', 'sbr_spinupwinds', 'sbr_spinupalpha',
                                  'straka_x', 'straka_y', 'straka_200m',
                                  'baroclinic'%}
-{%- set miniapp_configurations = 'gravity_wave', %}
+{%- set miniapp_configurations = ['gravity_wave'] %}
 {%- set groups = {'developer': ['science(semi-implicit)',
                                 'science(runge-kutta)',
                                 'science(transport-rk)',
