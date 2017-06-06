@@ -73,7 +73,7 @@ contains
   !> @brief  Gets the cells that are incident on a particular vertex
   !> @param[in] vertex_number The number of the vertex being queried
   !> @param[out] cells The cells around the given vertex
-  procedure, public :: get_cell_on_vert 
+  procedure, public :: get_cell_on_vert
 
   !> @brief  Gets the cells that are incident on a particular edge
   !> @param[in] edge_number The number of the edge being queried
@@ -101,12 +101,12 @@ contains
   procedure, public :: get_max_cells_per_vertex
 
   !> @brief  Gets the edges that are incident with a particular cell
-  !> @param[in]  cell_gid The global id of the cell being queried 
+  !> @param[in]  cell_gid The global id of the cell being queried
   !> @param[out] The edges around the given cell
   procedure, public :: get_edge_on_cell
 
   !> @brief  Gets the vertices that are incident with a particular cell
-  !> @param[in]  cell_gid The global id of the cell being queried 
+  !> @param[in]  cell_gid The global id of the cell being queried
   !> @param[out] The vertices around the given cell
   procedure, public :: get_vert_on_cell
 
@@ -126,9 +126,9 @@ contains
 
   !> @brief  Returns vertex coordinates
   !> @param [in]  vert_gid   The global id of the requested vertex
-  !> @return A three-element array containing the coordinates of a 
+  !> @return A three-element array containing the coordinates of a
   !>         single vertex on the global mesh. Currently, these are in
-  !>         spherical coords [long,lat,radius] 
+  !>         spherical coords [long,lat,radius]
   procedure, public :: get_vert_coords
 
   !> Gets the cell that a vertex has been allocated to
@@ -147,7 +147,7 @@ contains
   !>             Target global mesh object to map to.
   !> @param [in] map
   !>             Global id map from source to target mesh with array
-  !>             dimensions [ncells target cells per source cell, 
+  !>             dimensions [ncells target cells per source cell,
   !>             ncells in source mesh].
   procedure, public :: add_global_mesh_map
 
@@ -181,7 +181,7 @@ end interface
 ! Module parameters
 ! -------------------------------------------------------------------------
 
-!> Counter variable to keep track of the next mesh id number to uniquely 
+!> Counter variable to keep track of the next mesh id number to uniquely
 !> identify each different mesh
 integer(i_def), save :: global_mesh_id_counter = 0
 
@@ -195,9 +195,13 @@ contains
 !-------------------------------------------------------------------------------
 !>  @brief   Constructs a global mesh object
 !>  @details Constructs a global mesh object to hold the connectivities
-!!           that fully describe the 2D topology of the mesh
+!>           that fully describe the 2D topology of the mesh
+!>  @param [in] filename         Filename for global 2D mesh(es) ugrid file
+!>  @param [in] global_mesh_name Name of ugrid mesh topology to create
+!>              global mesh object from.
+!>  @return global_mesh_type object
 !-------------------------------------------------------------------------------
-function global_mesh_constructor( filename ) result(self)
+function global_mesh_constructor( filename, global_mesh_name ) result(self)
 
 use constants_mod,  only: str_def
 use ugrid_2d_mod,   only: ugrid_2d_type
@@ -207,6 +211,7 @@ use ncdf_quad_mod,  only: ncdf_quad_type
 implicit none
 
 character(len=*), intent(in) :: filename
+character(len=*), intent(in) :: global_mesh_name
 
 type(global_mesh_type) :: self
 
@@ -229,15 +234,16 @@ integer(i_def) :: ientity
 
 allocate( ncdf_quad_type :: file_handler )
 call ugrid_2d%set_file_handler( file_handler )
-call ugrid_2d%read_from_file( trim(filename) )
+call ugrid_2d%set_from_file_read( trim(global_mesh_name), trim(filename) )
+call ugrid_2d%get_dimensions                            &
+         ( num_nodes              = nvert_in,           &
+           num_edges              = nedge_in,           &
+           num_faces              = nface_in,           &
+           num_nodes_per_face     = num_nodes_per_face, &
+           num_edges_per_face     = num_edges_per_face, &
+           num_nodes_per_edge     = num_nodes_per_edge, &
+           max_num_faces_per_node = max_num_faces_per_node )
 
-call ugrid_2d%get_dimensions( num_nodes              = nvert_in, &
-                              num_edges              = nedge_in, &
-                              num_faces              = nface_in, &
-                              num_nodes_per_face     = num_nodes_per_face, &
-                              num_edges_per_face     = num_edges_per_face, &
-                              num_nodes_per_edge     = num_nodes_per_edge, &
-                              max_num_faces_per_node = max_num_faces_per_node )
 
 global_mesh_id_counter = global_mesh_id_counter + 1
 
@@ -271,21 +277,21 @@ call calc_cell_on_vertex( self%vert_on_cell_2d, &
 
 ! Populate cells either side of each edge
 ! There can only ever be 2 cells incident on an edge (whatever the topography!)
-allocate( self%cell_on_edge_2d(2,nedge_in) )  
+allocate( self%cell_on_edge_2d(2,nedge_in) )
 call calc_cell_on_edge( self%edge_on_cell_2d, &
                         num_edges_per_face, &
                         nface_in, &
                         self%cell_on_edge_2d, &
                         nedge_in )
 
-! Allocate each vertex to the cell with the highest global cell index 
+! Allocate each vertex to the cell with the highest global cell index
 ! of the cells neighbouring the vertex
 allocate( self%vert_cell_owner(nvert_in) )
 do ientity=1,nvert_in
   self%vert_cell_owner(ientity)=maxval( self%cell_on_vert_2d(:,ientity) )
 end do
 
-! Allocate each edge to the cell with the highest global cell index 
+! Allocate each edge to the cell with the highest global cell index
 ! of the cells neighbouring the edge
 allocate( self%edge_cell_owner(nedge_in) )
 do ientity=1,nedge_in
@@ -303,7 +309,7 @@ end function global_mesh_constructor
 ! Returns the cells on vertices. PRIVATE subroutine.
 !-------------------------------------------------------------------------------
 ! Details: Calculates the cells that are incident on a vertex by looping through
-!          the vertices on all cells (which we store) and filling an array based 
+!          the vertices on all cells (which we store) and filling an array based
 !          on vertex number with the cells around it.
 ! Input:   vert_on_cell    Array with indices of vertices on cells
 !          verts_per_cell  Number of vertices per cell
@@ -353,7 +359,7 @@ end subroutine calc_cell_on_vertex
 ! Returns the cells on edges. PRIVATE subroutine.
 !-------------------------------------------------------------------------------
 ! Details: Calculates the cells that are either side of an edge by looping
-!          through the edges on all cells (which we store) and filling an array 
+!          through the edges on all cells (which we store) and filling an array
 !          based on edge number with the cells around it
 ! Input:   edge_on_cell    Array with indices of edges on cells
 !          edges_per_cell  Number of edges per cell
@@ -707,7 +713,7 @@ end function get_global_mesh_map
 ! The following routines are only available when setting data for unit testing.
 !==============================================================================
 !> @brief   Stucture-Constructor (for unit testing)
-!> @return  A 2D global mesh object based on a 9-cell global mesh. 
+!> @return  A 2D global mesh object based on a 9-cell global mesh.
 !>          3x3 cell arrangement of quadralateral cells
 !============================================================================
 function global_mesh_constructor_unit_test_data() result (self)

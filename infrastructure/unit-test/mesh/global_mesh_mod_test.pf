@@ -9,7 +9,7 @@
 module global_mesh_mod_test
 
   use pFUnit_Mod
-  use constants_mod,              only: r_def, i_def, str_max_filename
+  use constants_mod,              only: r_def, i_def, str_max_filename, str_def
   use global_mesh_mod,            only: global_mesh_type
   use constants_mod,              only: str_max_filename
   use reference_element_mod,      only: reference_cube,                &
@@ -37,6 +37,7 @@ module global_mesh_mod_test
     procedure :: test_global_mesh_map_retrival
   end type global_mesh_test_type
 
+  character(str_def),          parameter :: mesh_name = 'Mesh2'
   character(str_max_filename), parameter ::          &
       MultiGridFiles(2) =                            &
                   [ 'data/CubedSphere96Cell.nc  ',   &! 4x4   panel
@@ -108,7 +109,7 @@ contains
     !-------------------------------------
 
     filename = 'data/ugrid_quads_2d_biperiodic_8x8.nc' 
-    global_mesh = global_mesh_type( filename )
+    global_mesh = global_mesh_type( filename, mesh_name )
   
     ! Check the global mesh id
     global_mesh_id1 = global_mesh%get_id()
@@ -183,7 +184,7 @@ contains
     ! Test construction of a cubed-sphere mesh
     !---------------------------------------
     filename = 'data/ugrid_quads_2d_cubedsphere_6x4x4.nc' 
-    global_mesh = global_mesh_type( filename )
+    global_mesh = global_mesh_type( filename, mesh_name )
 
     ! Check the global mesh id
     global_mesh_id2 = global_mesh%get_id()
@@ -248,10 +249,13 @@ contains
     integer(i_def) :: target_global_mesh_id
     integer(i_def) :: global_mesh_map_id
 
-    source_global_mesh_id = global_mesh_collection %                           &
-                            add_new_global_mesh( MultiGridFiles(1), npanels )
-    target_global_mesh_id = global_mesh_collection %                           &
-                            add_new_global_mesh( MultiGridFiles(2), npanels )
+    source_global_mesh_id = global_mesh_collection %                    &
+                                add_new_global_mesh( MultiGridFiles(1), &
+                                                     mesh_name, npanels )
+
+    target_global_mesh_id = global_mesh_collection %                    &
+                                add_new_global_mesh( MultiGridFiles(2), &
+                                                     mesh_name, npanels )
 
     global_mesh_map_id = 1000*source_global_mesh_id + target_global_mesh_id
 

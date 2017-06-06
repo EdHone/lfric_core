@@ -18,40 +18,45 @@ use ugrid_generator_mod,   only : ugrid_generator_type
 use constants_mod,         only : r_def, i_def, str_def
 use log_mod,               only : log_event, LOG_LEVEL_ERROR
 use reference_element_mod, only : W, S, E, N, SWB, SEB, NWB, NEB
+
 implicit none
+
 private
+
 !-------------------------------------------------------------------------------
 ! Mesh Vertex directions: local aliases for reference_element_mod values
-integer, parameter     :: NW = NWB
-integer, parameter     :: NE = NEB
-integer, parameter     :: SE = SEB
-integer, parameter     :: SW = SWB
+integer(i_def), parameter :: NW = NWB
+integer(i_def), parameter :: NE = NEB
+integer(i_def), parameter :: SE = SEB
+integer(i_def), parameter :: SW = SWB
+
 ! Prefix for error messages
 character(len=*),   parameter :: prefix = "[Biperiodic Mesh] "
-character(str_def), parameter :: mesh_class = 'plane'
+character(str_def), parameter :: MESH_CLASS = "plane"
 !-------------------------------------------------------------------------------
 type, extends(ugrid_generator_type), public :: genbiperiodic_type
+
   private
 
-  character(str_def)                 :: mesh_class
-  integer                            :: nx, ny
-  real(kind=r_def)                   :: dx, dy
-  integer, allocatable               :: cell_next(:,:)     ! (4, nx*ny)
-  integer, allocatable               :: mesh(:,:)          ! (4, nx*ny)
-  integer, allocatable               :: edges_on_cell(:,:) ! (4, nx*ny)
-  integer, allocatable               :: verts_on_edge(:,:) ! (2, nx*ny)
-  real(kind=r_def), allocatable      :: vert_coords(:,:)   ! (2, nx*ny)
-
+  character(str_def)          :: mesh_name
+  character(str_def)          :: mesh_class
+  integer(i_def)              :: nx, ny
+  real(r_def)                 :: dx, dy
+  integer(i_def), allocatable :: cell_next(:,:)     ! (4, nx*ny)
+  integer(i_def), allocatable :: verts_on_cell(:,:) ! (4, nx*ny)
+  integer(i_def), allocatable :: edges_on_cell(:,:) ! (4, nx*ny)
+  integer(i_def), allocatable :: verts_on_edge(:,:) ! (2, nx*ny)
+  real(r_def),    allocatable :: vert_coords(:,:)   ! (2, nx*ny)
 contains
   procedure :: calc_adjacency
   procedure :: calc_face_to_vert
   procedure :: calc_edges
   procedure :: calc_coords
+  procedure :: generate
   procedure :: get_metadata
   procedure :: get_dimensions
   procedure :: get_coordinates
   procedure :: get_connectivity
-  procedure :: generate
   procedure :: write_mesh
 end type genbiperiodic_type
 !-------------------------------------------------------------------------------
@@ -61,30 +66,34 @@ end interface genbiperiodic_type
 !-------------------------------------------------------------------------------
 contains
 !-------------------------------------------------------------------------------
-!>  @brief       Constructor for genbiperiodic_type
+!>  @brief     Constructor for genbiperiodic_type
 !!
-!!  @details     Accepts mesh dimension and optional coordinate step arguments
-!!               for initialisation and validation.
+!!  @details   Accepts mesh dimension and optional coordinate step arguments
+!!             for initialisation and validation.
 !!
-!!  @param[in]   nx  Number of faces in biperiodic mesh x dimension
-!!  @param[in]   ny  Number of faces in biperiodic mesh y dimension
-!!  @param[in]   dx  Optional. Size of vertex x coordinate step
-!!  @param[in]   dy  Optional. Size of vertex y coordinate step
+!!  @param[in] mesh_name  Name of this mesh topology
+!!  @param[in] nx         Number of faces in biperiodic mesh x dimension
+!!  @param[in] ny         Number of faces in biperiodic mesh y dimension
+!!  @param[in] dx         Optional. Size of vertex x coordinate step
+!!  @param[in] dy         Optional. Size of vertex y coordinate step
 !-------------------------------------------------------------------------------
-type(genbiperiodic_type) function genbiperiodic_constructor(nx, ny, dx, dy) &
-                         result(self)
+function genbiperiodic_constructor( mesh_name, nx, ny, dx, dy ) &
+                            result( self )
 
   implicit none
 
-  integer(kind=i_def), intent(in)                   :: nx, ny
-  real(kind=r_def), intent(in), optional            :: dx, dy
+  character(len=*),       intent(in) :: mesh_name
+  integer(i_def),         intent(in) :: nx, ny
+  real(r_def), optional,  intent(in) :: dx, dy
 
+  type( genbiperiodic_type ) :: self
 
   if(nx < 2 .or. ny < 2) then
     call log_event(prefix//"Invalid dimension argument.", LOG_LEVEL_ERROR)
   end if
 
-  self%mesh_class = mesh_class
+  self%mesh_name  = trim(mesh_name)
+  self%mesh_class = trim(MESH_CLASS)
   self%nx = nx
   self%ny = ny
 
@@ -122,12 +131,11 @@ subroutine calc_adjacency(self, cell_next)
 
   implicit none
 
-  class(genbiperiodic_type), intent(in)              :: self
-  integer, allocatable, intent(out)                  :: cell_next(:,:)
+  class(genbiperiodic_type),   intent(in)  :: self
+  integer(i_def), allocatable, intent(out) :: cell_next(:,:)
 
-  integer        :: nx, ny, ncells
-  integer        :: cell, astat
-
+  integer(i_def) :: nx, ny, ncells
+  integer(i_def) :: cell, astat
 
   nx = self%nx
   ny = self%ny
@@ -171,18 +179,18 @@ end subroutine calc_adjacency
 !!               the vertices which form each cell.
 !!
 !!  @param[in]   self The genbiperiodic_type instance reference.
-!!  @param[out]  mesh A rank 2 (4,ncells)-sized integer array of vertices
-!!                    which constitute each cell.
+!!  @param[out]  verts_on_cell A rank 2 (4,ncells)-sized integer array of vertices
+!!               which constitute each cell.
 !-------------------------------------------------------------------------------
-subroutine calc_face_to_vert(self, mesh)
+subroutine calc_face_to_vert(self, verts_on_cell)
 
   implicit none
 
-  class(genbiperiodic_type), intent(in)              :: self
-  integer, allocatable, intent(out)                  :: mesh(:,:)
+  class(genbiperiodic_type),   intent(in)  :: self
+  integer(i_def), allocatable, intent(out) :: verts_on_cell(:,:)
 
-  integer        :: nx, ny, ncells
-  integer        :: y, vert, cell, nxf, astat
+  integer(i_def) :: nx, ny, ncells
+  integer(i_def) :: y, vert, cell, nxf, astat
 
   nx = self%nx
   ny = self%ny
@@ -191,99 +199,99 @@ subroutine calc_face_to_vert(self, mesh)
   cell = 1
   nxf = 1
 
-  allocate(mesh(4, ncells), stat=astat)
+  allocate(verts_on_cell(4, ncells), stat=astat)
 
   if(astat /= 0) call log_event(prefix//"Failure to allocate mesh.", &
                                         LOG_LEVEL_ERROR)
 
   do vert = 1, 4
-    mesh(vert, cell) = nxf
+    verts_on_cell(vert, cell) = nxf
     nxf = nxf+1
   end do
   ! East neighbour
-  mesh(NW , self%cell_next(E, cell)) = mesh(NE, cell)
-  mesh(SW , self%cell_next(E, cell)) = mesh(SE, cell)
+  verts_on_cell(NW , self%cell_next(E, cell)) = verts_on_cell(NE, cell)
+  verts_on_cell(SW , self%cell_next(E, cell)) = verts_on_cell(SE, cell)
   ! South neighbour
-  mesh(NW , self%cell_next(S, cell)) = mesh(SW, cell)
-  mesh(NE , self%cell_next(S, cell)) = mesh(SE, cell)
+  verts_on_cell(NW , self%cell_next(S, cell)) = verts_on_cell(SW, cell)
+  verts_on_cell(NE , self%cell_next(S, cell)) = verts_on_cell(SE, cell)
 
   ! First row
   do cell = 2, nx-1
-    mesh(NE, cell) = nxf
-    mesh(SE, cell) = nxf+1
+    verts_on_cell(NE, cell) = nxf
+    verts_on_cell(SE, cell) = nxf+1
     nxf = nxf + 2
     ! East neighbour
-    mesh(NW , self%cell_next(E, cell)) = mesh(NE, cell)
-    mesh(SW , self%cell_next(E, cell)) = mesh(SE, cell)
+    verts_on_cell(NW , self%cell_next(E, cell)) = verts_on_cell(NE, cell)
+    verts_on_cell(SW , self%cell_next(E, cell)) = verts_on_cell(SE, cell)
     ! South neighbour
-    mesh(NW , self%cell_next(S, cell)) = mesh(SW, cell)
-    mesh(NE , self%cell_next(S, cell)) = mesh(SE, cell)
+    verts_on_cell(NW , self%cell_next(S, cell)) = verts_on_cell(SW, cell)
+    verts_on_cell(NE , self%cell_next(S, cell)) = verts_on_cell(SE, cell)
   end do
 
   ! Inner rows
   do y = 1, ny-2
     ! First cell in row
     cell = y*nx+1
-    mesh(SE, cell) = nxf
-    mesh(SW, cell) = nxf+1
+    verts_on_cell(SE, cell) = nxf
+    verts_on_cell(SW, cell) = nxf+1
     nxf = nxf+2
     ! South neighbour
-    mesh(NW , self%cell_next(S, cell)) = mesh(SW, cell)
-    mesh(NE , self%cell_next(S, cell)) = mesh(SE, cell)
+    verts_on_cell(NW , self%cell_next(S, cell)) = verts_on_cell(SW, cell)
+    verts_on_cell(NE , self%cell_next(S, cell)) = verts_on_cell(SE, cell)
 
     ! Remainder of row, every other cell
     do cell = y*nx+3, (y+1)*nx-1, 2
-      mesh(SW, cell) = nxf
-      mesh(SE, cell) = nxf+1
+      verts_on_cell(SW, cell) = nxf
+      verts_on_cell(SE, cell) = nxf+1
       nxf = nxf+2
       ! South neighbour
-      mesh(NW, self%cell_next(S, cell)) = mesh(SW, cell)
-      mesh(NE, self%cell_next(S, cell)) = mesh(SE, cell)
+      verts_on_cell(NW, self%cell_next(S, cell)) = verts_on_cell(SW, cell)
+      verts_on_cell(NE, self%cell_next(S, cell)) = verts_on_cell(SE, cell)
     end do
     ! Special case at end of row for odd nx
     if(mod(nx, 2) == 1) then
       cell = (y+1)*nx
-      mesh(SW, cell) = nxf
+      verts_on_cell(SW, cell) = nxf
       nxf = nxf+1
       ! South neighbour
-      mesh(NW, self%cell_next(S, cell)) = mesh(SW, cell)
+      verts_on_cell(NW, self%cell_next(S, cell)) = verts_on_cell(SW, cell)
       ! West neighbour
-      mesh(SE, self%cell_next(W, cell)) = mesh(SW, cell)
+      verts_on_cell(SE, self%cell_next(W, cell)) = verts_on_cell(SW, cell)
     end if
   end do
 
   ! Right edge
   do cell = nx, ncells, nx
     ! Copy from left edge
-    mesh(NE, cell) = mesh(NW, cell-nx+1)
-    mesh(SE, cell) = mesh(SW, cell-nx+1)
+    verts_on_cell(NE, cell) = verts_on_cell(NW, cell-nx+1)
+    verts_on_cell(SE, cell) = verts_on_cell(SW, cell-nx+1)
   end do
 
   ! Inner step 2 cells
   do y = 1, ny-2
     do cell = y*nx+2, (y+1)*nx, 2
-      mesh(NW, cell) = mesh(SW, self%cell_next(N, cell))
-      mesh(NE, cell) = mesh(SE, self%cell_next(N, cell))
-      mesh(SE, cell) = mesh(SW, self%cell_next(E, cell))
-      mesh(SW, cell) = mesh(SE, self%cell_next(W, cell))
+      verts_on_cell(NW, cell) = verts_on_cell(SW, self%cell_next(N, cell))
+      verts_on_cell(NE, cell) = verts_on_cell(SE, self%cell_next(N, cell))
+      verts_on_cell(SE, cell) = verts_on_cell(SW, self%cell_next(E, cell))
+      verts_on_cell(SW, cell) = verts_on_cell(SE, self%cell_next(W, cell))
     end do
   end do
 
   ! Special case at end of row for odd nx
   if(mod(nx, 2) == 1) then
     do cell = 2*nx, ncells, nx
-      mesh(NW, cell) = mesh(SW, self%cell_next(N, cell))
+      verts_on_cell(NW, cell) = verts_on_cell(SW, self%cell_next(N, cell))
     end do
   end if
 
   ! Last row
   do cell = ncells-nx+1, ncells
     ! Copy from first row
-    mesh(SE, cell) = mesh(NE, cell-(ny-1)*nx)
-    mesh(SW, cell) = mesh(NW, cell-(ny-1)*nx)
+    verts_on_cell(SE, cell) = verts_on_cell(NE, cell-(ny-1)*nx)
+    verts_on_cell(SW, cell) = verts_on_cell(NW, cell-(ny-1)*nx)
     ! Copy from N
-    mesh(NW, cell) = mesh(SW, self%cell_next(N, cell))
-    mesh(NE, cell) = mesh(SE, self%cell_next(N, cell))
+    verts_on_cell(NW, cell) = verts_on_cell(SW, self%cell_next(N, cell))
+    verts_on_cell(NE, cell) = verts_on_cell(SE, self%cell_next(N, cell))
   end do
 
 
@@ -305,12 +313,12 @@ subroutine calc_edges(self, edges_on_cell, verts_on_edge)
 
   implicit none
 
-  class(genbiperiodic_type), intent(in)              :: self
-  integer, allocatable, intent(out)                  :: edges_on_cell(:,:)
-  integer, allocatable, intent(out)                  :: verts_on_edge(:,:)
+  class(genbiperiodic_type),   intent(in)  :: self
+  integer(i_def), allocatable, intent(out) :: edges_on_cell(:,:)
+  integer(i_def), allocatable, intent(out) :: verts_on_edge(:,:)
 
-  integer        :: nx, ny, ncells
-  integer        :: cell, nxf, astat
+  integer(i_def) :: nx, ny, ncells
+  integer(i_def) :: cell, nxf, astat
 
   nx = self%nx
   ny = self%ny
@@ -332,16 +340,16 @@ subroutine calc_edges(self, edges_on_cell, verts_on_edge)
   ! Top row
   do cell = 1, nx
     ! Top edge
-    verts_on_edge(1, nxf) = self%mesh(NW, cell)
-    verts_on_edge(2, nxf) = self%mesh(NE, cell)
+    verts_on_edge(1, nxf) = self%verts_on_cell(NW, cell)
+    verts_on_edge(2, nxf) = self%verts_on_cell(NE, cell)
     edges_on_cell(N, cell) = nxf
     ! Right edge
-    verts_on_edge(1, nxf+1) = self%mesh(NE, cell)
-    verts_on_edge(2, nxf+1) = self%mesh(SE, cell)
+    verts_on_edge(1, nxf+1) = self%verts_on_cell(NE, cell)
+    verts_on_edge(2, nxf+1) = self%verts_on_cell(SE, cell)
     edges_on_cell(E, cell) = nxf+1
     ! Bottom edge
-    verts_on_edge(1, nxf+2) = self%mesh(SE, cell)
-    verts_on_edge(2, nxf+2) = self%mesh(SW, cell)
+    verts_on_edge(1, nxf+2) = self%verts_on_cell(SE, cell)
+    verts_on_edge(2, nxf+2) = self%verts_on_cell(SW, cell)
     edges_on_cell(S, cell) = nxf+2
     nxf = nxf+3
   end do
@@ -349,12 +357,12 @@ subroutine calc_edges(self, edges_on_cell, verts_on_edge)
   ! Inner rows
   do cell = nx+1, ncells-nx
     ! Right edge
-    verts_on_edge(1, nxf) = self%mesh(NE, cell)
-    verts_on_edge(2, nxf) = self%mesh(SE, cell)
+    verts_on_edge(1, nxf) = self%verts_on_cell(NE, cell)
+    verts_on_edge(2, nxf) = self%verts_on_cell(SE, cell)
     edges_on_cell(E, cell) = nxf
     ! Bottom edge
-    verts_on_edge(1, nxf+1) = self%mesh(SE, cell)
-    verts_on_edge(2, nxf+1) = self%mesh(SW, cell)
+    verts_on_edge(1, nxf+1) = self%verts_on_cell(SE, cell)
+    verts_on_edge(2, nxf+1) = self%verts_on_cell(SW, cell)
     edges_on_cell(S, cell) = nxf+1
     nxf = nxf+2
   end do
@@ -362,8 +370,8 @@ subroutine calc_edges(self, edges_on_cell, verts_on_edge)
   ! Bottom row
   do cell = ncells-nx+1, ncells
     ! Right edge
-    verts_on_edge(1, nxf) = self%mesh(NE, cell)
-    verts_on_edge(2, nxf) = self%mesh(SE, cell)
+    verts_on_edge(1, nxf) = self%verts_on_cell(NE, cell)
+    verts_on_edge(2, nxf) = self%verts_on_cell(SE, cell)
     edges_on_cell(E, cell) = nxf
     nxf = nxf+1
   end do
@@ -402,11 +410,11 @@ subroutine calc_coords(self, vert_coords)
 
   implicit none
 
-  class(genbiperiodic_type), intent(in)              :: self
-  real(kind=r_def), allocatable, intent(out)         :: vert_coords(:,:)
+  class(genbiperiodic_type), intent(in)  :: self
+  real(r_def), allocatable,  intent(out) :: vert_coords(:,:)
 
-  integer              :: ncells, nx, ny
-  integer              :: cell, x, y, astat
+  integer(i_def) :: ncells, nx, ny
+  integer(i_def) :: cell, x, y, astat
 
 
   nx = self%nx
@@ -422,9 +430,9 @@ subroutine calc_coords(self, vert_coords)
     y = 1+(cell-1)/nx
     x = cell-(y-1)*nx
     ! x, E/W
-    vert_coords(1, self%mesh(SW, cell)) = real(x-1 - nx/2)*self%dx
+    vert_coords(1, self%verts_on_cell(SW, cell)) = real(x-1 - nx/2)*self%dx
     ! y  N/S
-    vert_coords(2, self%mesh(SW, cell)) = real(ny/2 - (y-1))*self%dy
+    vert_coords(2, self%verts_on_cell(SW, cell)) = real(ny/2 - (y-1))*self%dy
   end do
 
 
@@ -449,14 +457,14 @@ subroutine get_dimensions(self, num_nodes, num_edges, num_faces,        &
                                 num_nodes_per_edge)
   implicit none
 
-  class(genbiperiodic_type), intent(in)            :: self
+  class(genbiperiodic_type), intent(in) :: self
 
-  integer, intent(out)                             :: num_nodes
-  integer, intent(out)                             :: num_edges
-  integer, intent(out)                             :: num_faces
-  integer, intent(out)                             :: num_nodes_per_face
-  integer, intent(out)                             :: num_edges_per_face
-  integer, intent(out)                             :: num_nodes_per_edge
+  integer(i_def), intent(out) :: num_nodes
+  integer(i_def), intent(out) :: num_edges
+  integer(i_def), intent(out) :: num_faces
+  integer(i_def), intent(out) :: num_nodes_per_face
+  integer(i_def), intent(out) :: num_edges_per_face
+  integer(i_def), intent(out) :: num_nodes_per_edge
 
   num_nodes = self%nx*self%ny
   num_edges = 2*self%nx*self%ny
@@ -480,8 +488,8 @@ end subroutine get_dimensions
 subroutine get_coordinates(self, node_coordinates)
   implicit none
 
-  class(genbiperiodic_type), intent(in)            :: self
-  real(kind=r_def), intent(out)                    :: node_coordinates(:,:)
+  class(genbiperiodic_type), intent(in)  :: self
+  real(r_def),               intent(out) :: node_coordinates(:,:)
 
 
   node_coordinates = self%vert_coords
@@ -507,14 +515,14 @@ subroutine get_connectivity(self, face_node_connectivity,   &
                                   face_face_connectivity)
   implicit none
 
-  class(genbiperiodic_type), intent(in)            :: self
-  integer, intent(out)                             :: face_node_connectivity(:,:)
-  integer, intent(out)                             :: edge_node_connectivity(:,:)
-  integer, intent(out)                             :: face_edge_connectivity(:,:)
-  integer, intent(out)                             :: face_face_connectivity(:,:)
+  class(genbiperiodic_type), intent(in) :: self
+  integer(i_def), intent(out) :: face_node_connectivity(:,:)
+  integer(i_def), intent(out) :: edge_node_connectivity(:,:)
+  integer(i_def), intent(out) :: face_edge_connectivity(:,:)
+  integer(i_def), intent(out) :: face_face_connectivity(:,:)
 
 
-  face_node_connectivity = self%mesh
+  face_node_connectivity = self%verts_on_cell
   edge_node_connectivity = self%verts_on_edge
   face_edge_connectivity = self%edges_on_cell
   face_face_connectivity = self%cell_next
@@ -536,7 +544,7 @@ subroutine generate(self)
 
 
   call calc_adjacency(self, self%cell_next)
-  call calc_face_to_vert(self, self%mesh)
+  call calc_face_to_vert(self, self%verts_on_cell)
   call calc_edges(self, self%edges_on_cell, self%verts_on_edge)
   call calc_coords(self, self%vert_coords)
 
@@ -552,9 +560,9 @@ subroutine write_mesh(self)
   use iso_fortran_env,     only : stdout => output_unit
   implicit none
 
-  class(genbiperiodic_type), intent(in)         :: self
+  class(genbiperiodic_type), intent(in) :: self
 
-  integer(kind=i_def)                           :: i, cell, ncells
+  integer(i_def) :: i, cell, ncells
 
 
   ncells = self%nx * self%ny
@@ -567,7 +575,7 @@ subroutine write_mesh(self)
   write(stdout,*)
   write(stdout,*) "verts_on_cell"
   do cell=1, ncells
-    write(stdout,"(I3,T8,4I4)") cell, self%mesh(:,cell)
+    write(stdout,"(I3,T8,4I4)") cell, self%verts_on_cell(:,cell)
   end do
 
   write(stdout,*)
@@ -596,13 +604,15 @@ end subroutine write_mesh
 !! @param[in]     self           The generator strategy object.
 !! @param[out]    mesh_class     Primitive shape, i.e. plane
 !-----------------------------------------------------------------------------
-subroutine get_metadata( self, mesh_class )
+subroutine get_metadata( self, mesh_name, mesh_class )
 
   implicit none
 
-  class(genbiperiodic_type), intent(in)  :: self
-  character(str_def),     intent(out) :: mesh_class
+  class(genbiperiodic_type), intent(in) :: self
+  character(str_def), intent(out) :: mesh_name
+  character(str_def), intent(out) :: mesh_class
 
+  mesh_name  = self%mesh_name
   mesh_class = self%mesh_class
 
   return

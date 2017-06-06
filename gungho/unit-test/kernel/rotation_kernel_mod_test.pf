@@ -87,10 +87,10 @@ contains
                               rd=rd, cp=cp, p_zero=p_zero,                 &
                               scaling_factor=scaling )
 
-    call feign_base_mesh_config( 'foo',                        &
-                                 base_mesh_geometry_planar,    &
-                                 base_mesh_partitioner_planar, &
-                                 .false., f_lat)
+    call feign_base_mesh_config( filename='foo', prime_mesh_name='Mesh2',  &
+                                 geometry=base_mesh_geometry_planar,       &
+                                 partitioner=base_mesh_partitioner_planar, &
+                                 fplane=.false., f_lat_deg=f_lat )
 
     reference_element = finite_element_shape_quadrilateral
     call reference_cube()

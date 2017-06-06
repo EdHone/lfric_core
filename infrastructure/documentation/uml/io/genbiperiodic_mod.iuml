@@ -1,0 +1,38 @@
+' (c) The copyright relating to this work is owned jointly by the Crown,
+' Met Office and NERC 2014. However, it has been created with the help of the
+' GungHo Consortium, whose members are identified at
+' https://puma.nerc.ac.uk/trac/GungHo/wiki
+
+class genbiperiodic_mod::genbiperiodic_type {
+
+  -mesh_name: string
+  -mesh_class: string
+  -nx: integer
+  -ny: integer
+  -dx: real
+  -dy: real
+
+  -cell_next: integer[::] <<allocatable>>
+  -verts_on_cell: integer[::] <<allocatable>>
+  -edges_on_cell: integer[::] <<allocatable>>
+  -verts_on_edge: integer[::] <<allocatable>>
+  -vert_coords: real[::] <<allocatable>>
+
+  +<<create>>genbiperiodic_constructor( <<in>> mesh_name: string, <<in>> nx: integer, <<in>> ny: integer, <<in>> dx: integer, <<in>> dy: integer ): genbiperiodic_type
+
+  +calc_adjacency( <<out>> cell_next:integer[::] <<allocatable>> )
+  +calc_face_to_vert( <<out>> verts_on_cell: integer[::] <<allocatable>> )
+  +calc_edges( <<out>> edges_on_cell: integer[::] <<allocatable>>, <<out>> verts_on_edge: integer[::] <<allocatable>> )
+  +calc_coords( <<out>> vert_coords: real[::] <<allocatable>> )
+
+  +generate( ... )
+  +get_metadata( ... )
+  +get_dimensions( ... )
+  +get_coordinates( ... )
+  +get_connectivity( ... )
+
+  +write_mesh()
+
+}
+
+genbiperiodic_mod::genbiperiodic_type -|> ugrid_generator_mod::ugrid_generator_type

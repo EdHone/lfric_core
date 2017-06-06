@@ -8,7 +8,7 @@
 !>
 module mesh_mod_test
 
-  use constants_mod,        only: r_def, i_def, PI, str_max_filename
+  use constants_mod,        only: r_def, i_def, PI, str_max_filename, str_def
   use coord_transform_mod,  only: llr2xyz
   use extrusion_config_mod, only: extrusion_method_uniform
   use global_mesh_collection_mod, only: global_mesh_collection_type &
@@ -57,9 +57,10 @@ module mesh_mod_test
 
   end type mesh_test_type
 
-  integer(i_def), parameter :: npanels    = 6_i_def
-  integer(i_def), parameter :: nlayers    = 5_i_def
-  real(r_def),    parameter :: domain_top = 10000.0_r_def
+  character(str_def), parameter :: mesh_name = 'Mesh2'
+  integer(i_def),     parameter :: npanels    = 6_i_def
+  integer(i_def),     parameter :: nlayers    = 5_i_def
+  real(r_def),        parameter :: domain_top = 10000.0_r_def
 
   real(r_def), parameter :: gravity = 10.0_r_def
   real(r_def), parameter :: radius  = 6371229.0_r_def
@@ -171,10 +172,12 @@ contains
 
     integer(i_def) :: global_mesh_id
 
-    call feign_base_mesh_config( 'foo',                             &
-                                 base_mesh_geometry_spherical,      &
-                                 base_mesh_partitioner_cubedsphere, &
-                                 .false., 0.0_r_def)
+    call feign_base_mesh_config                               &
+             ( filename='foo', prime_mesh_name=mesh_name,     &
+               geometry=base_mesh_geometry_spherical,         &
+               partitioner=base_mesh_partitioner_cubedsphere, &
+               fplane=.false., f_lat_deg=0.0_r_def )
+
     call feign_extrusion_config( extrusion_method_uniform, domain_top, nlayers )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
@@ -737,10 +740,13 @@ contains
     ! Add global meshes to the global mesh collection for later generation
     ! of local meshes, the order in which they are added should create 
     ! a global mesh map between the source and target global meshes.
-    source_global_mesh_id = global_mesh_collection % &
-                            add_new_global_mesh( MultiGridFiles(1), npanels )
-    target_global_mesh_id = global_mesh_collection % &
-                            add_new_global_mesh( MultiGridFiles(2), npanels )
+    source_global_mesh_id = global_mesh_collection %                    &
+                                add_new_global_mesh( MultiGridFiles(1), &
+                                                     mesh_name, npanels )
+
+    target_global_mesh_id = global_mesh_collection %                    &
+                                add_new_global_mesh( MultiGridFiles(2), &
+                                                     mesh_name, npanels )
 
     ! Get pointers to the global objects
     source_global_mesh => global_mesh_collection % &

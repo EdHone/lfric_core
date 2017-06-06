@@ -14,11 +14,11 @@ program biperiodic_mesh_generator
 
   use biperiodic_mesh_generator_config_mod,                              &
                          only : read_biperiodic_mesh_generator_namelist, &
-                                cells_in_x, cells_in_y,                  &
+                                mesh_name, cells_in_x, cells_in_y,       &
                                 cell_width, cell_height,                 &
                                 mesh_filename
   use cli_mod,           only : get_initial_filename
-  use constants_mod,     only : i_def, r_def, str_def
+  use constants_mod,     only : i_def
   use ESMF
   use genbiperiodic_mod, only : genbiperiodic_type
   use io_utility_mod,    only : open_file, close_file
@@ -30,16 +30,16 @@ program biperiodic_mesh_generator
 
   implicit none
 
-  type(ESMF_VM) :: vm
-  integer       :: rc
+  type(ESMF_VM)  :: vm
+  integer(i_def) :: rc
 
   character(:), allocatable :: filename
-  integer                   :: namelist_unit
+  integer(i_def)            :: namelist_unit
 
   type(genbiperiodic_type)            :: bpgen
   type(ugrid_2d_type)                 :: ugrid_2d
   class(ugrid_file_type), allocatable :: ugrid_file
-  integer                             :: fsize
+  integer(i_def)                      :: fsize
 
   call ESMF_Initialize(vm=vm, defaultlogfilename="biperiodic.log", &
                        logkindflag=ESMF_LOGKIND_SINGLE, rc=rc)
@@ -55,7 +55,9 @@ program biperiodic_mesh_generator
   allocate(ncdf_quad_type::ugrid_file)
   call ugrid_2d%set_file_handler(ugrid_file)
 
-  bpgen = genbiperiodic_type(cells_in_x, cells_in_y, cell_width, cell_height)
+  bpgen = genbiperiodic_type( mesh_name,              &
+                              cells_in_x, cells_in_y, &
+                              cell_width, cell_height )
 
   call log_event( "Generating biperiodic mesh with...", LOG_LEVEL_INFO )
   write(log_scratch_space, "(A,I0)") "  cells_in_x: ", cells_in_x
@@ -67,14 +69,14 @@ program biperiodic_mesh_generator
   write(log_scratch_space, "(A,F6.1)") "  cell_height: ", cell_height
   call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
-  call ugrid_2d%set_by_generator(bpgen)
-  call log_event( "...generation complete.", LOG_LEVEL_INFO )
+  call ugrid_2d%set_by_generator( bpgen )
+  call ugrid_2d%write_to_file( trim(mesh_filename) )
 
-  call ugrid_2d%write_to_file(trim(mesh_filename))
+  call log_event( "...generation complete.", LOG_LEVEL_INFO )
   inquire(file=mesh_filename, size=fsize)
-  write( log_scratch_space, &
-         '("Writing ugrid mesh to ", A, " - ", I0, " bytes written.")' ) &
-       trim(adjustl(mesh_filename)), fsize
+  write( log_scratch_space, '(A,I0,A)' )                       &
+      'Writing ugrid mesh to '//trim(adjustl(mesh_filename))// &
+      ' - ', fsize, ' bytes written.'
   call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
   call ESMF_Finalize(rc=rc)

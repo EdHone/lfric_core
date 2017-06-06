@@ -8,7 +8,7 @@
 !
 module function_space_chain_mod_test
 
-use constants_mod,           only: r_def, i_def, str_max_filename
+use constants_mod,           only: r_def, i_def, str_def, str_max_filename
 use extrusion_config_mod,    only: extrusion_method_uniform
 use global_mesh_mod,         only: global_mesh_type
 use function_space_mod,      only: function_space_type, W0
@@ -50,11 +50,12 @@ contains
   procedure :: test_local_mesh_map_contents
 end type function_space_chain_test_type
 
-character(len=str_max_filename), parameter :: filenames(4) =    &
-                               [ 'data/CubedSphere96Cell.nc  ', &! 4x4   panel
-                                 'data/CubedSphere384Cell.nc ', &! 8x8   panel
-                                 'data/CubedSphere1536Cell.nc', &! 16x16 panel
-                                 'data/CubedSphere6144Cell.nc']  ! 32x32 panel
+character(str_def), parameter :: mesh_name = 'Mesh2'
+character(str_max_filename), parameter :: filenames(4) =    &
+                           [ 'data/CubedSphere96Cell.nc  ', &! 4x4   panel
+                             'data/CubedSphere384Cell.nc ', &! 8x8   panel
+                             'data/CubedSphere1536Cell.nc', &! 16x16 panel
+                             'data/CubedSphere6144Cell.nc']  ! 32x32 panel
 
 integer(i_def), parameter :: npanels           = 6_i_def
 integer(i_def), parameter :: local_rank        = 0_i_def
@@ -110,7 +111,7 @@ integer(i_def) :: npanels = 6
 
 procedure (partitioner_interface), pointer :: partitioner_ptr => null()
 
-call feign_base_mesh_config( filename='foo',                                &
+call feign_base_mesh_config( filename='foo', prime_mesh_name=mesh_name,     &
                              geometry=base_mesh_geometry_spherical,         &
                              partitioner=base_mesh_partitioner_cubedsphere, &
                              fplane=.false., f_lat_deg=0.0_r_def )
@@ -134,8 +135,10 @@ function_space_collection = function_space_collection_type()
     
 do i=1, size(filenames)
 
-  global_mesh_id =  global_mesh_collection % &
-                                   add_new_global_mesh( filenames(i), npanels )
+  global_mesh_id =  global_mesh_collection %               &
+                        add_new_global_mesh( filenames(i), &
+                                             mesh_name,    &
+                                             npanels )
 
   global_mesh    => global_mesh_collection % get_global_mesh( global_mesh_id )
 

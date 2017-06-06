@@ -8,12 +8,13 @@
 !>
 module global_mesh_collection_mod_test
 
-  use constants_mod,                  only: i_def, str_max_filename, imdi
+  use constants_mod,                  only: i_def, IMDI, &
+                                            str_max_filename, str_def
   use global_mesh_mod,                only: global_mesh_type
   use global_mesh_map_mod,            only: global_mesh_map_type
   use global_mesh_map_collection_mod, only: global_mesh_map_collection_type
-  use global_mesh_collection_mod,     only: global_mesh_collection_type        &
-                                          , global_mesh_collection
+  use global_mesh_collection_mod,     only: global_mesh_collection_type, &
+                                            global_mesh_collection
 
 
   use pFUnit_Mod
@@ -43,6 +44,7 @@ module global_mesh_collection_mod_test
 
   end type global_mesh_collection_test_type
 
+  character(str_def), parameter :: mesh_name = 'Mesh2'
   character(str_max_filename), parameter ::                                    &
       CubedSphereFile = 'data/ugrid_quads_2d_cubedsphere_6x4x4.nc'
   character(str_max_filename), parameter :: &
@@ -90,6 +92,7 @@ contains
     integer (i_def) :: global_mesh_id
     integer (i_def) :: global_mesh_duplicate_id
     integer (i_def) :: npanels
+
     
     npanels  = 6
     filename = CubedSphereFile
@@ -97,9 +100,11 @@ contains
     ! Create a mesh collection
     global_mesh_collection = global_mesh_collection_type()
 
-    global_mesh_id =  global_mesh_collection %                             &
-                        add_new_global_mesh( filename, npanels )
-    global_mesh    => global_mesh_collection %                             &
+    global_mesh_id =  global_mesh_collection %          &
+                        add_new_global_mesh( filename,  &
+                                             mesh_name, &
+                                             npanels )
+    global_mesh    => global_mesh_collection % &
                         get_global_mesh( global_mesh_id )
 
     ! Test that something is returned
@@ -138,9 +143,11 @@ contains
     ! Create a mesh collection
     global_mesh_collection = global_mesh_collection_type()
 
-    global_mesh_id =  global_mesh_collection %                             &
-                        add_new_global_mesh( filename, npanels )
-    global_mesh    => global_mesh_collection %                             &
+    global_mesh_id =  global_mesh_collection %          &
+                        add_new_global_mesh( filename,  &
+                                             mesh_name, &
+                                             npanels )
+    global_mesh    => global_mesh_collection % &
                         get_global_mesh( global_mesh_id )
 
     ! Test that something is returned
@@ -223,9 +230,10 @@ contains
     npanels = 6
 
     do i=1, 4
-      MultiGrid_id(i) = global_mesh_collection %                               &
-                          add_new_global_mesh( MultiGridFiles(i), npanels )
-
+      MultiGrid_id(i) = global_mesh_collection %                    &
+                          add_new_global_mesh( MultiGridFiles(i),   &
+                                               mesh_name,           &
+                                               npanels )
     end do
 
     MultiGrid1 => global_mesh_collection%get_global_mesh( MultiGrid_id(1) )

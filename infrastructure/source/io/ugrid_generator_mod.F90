@@ -10,8 +10,11 @@
 !-------------------------------------------------------------------------------
 
 module ugrid_generator_mod
-use constants_mod, only : i_def, r_def, str_def, str_long
+
+use constants_mod, only : r_def, i_def, str_def
+
 implicit none
+
 private
 
 !-------------------------------------------------------------------------------
@@ -21,11 +24,11 @@ type, abstract, public :: ugrid_generator_type
   private
 
 contains
-  procedure (generate_interface         ), deferred :: generate
-  procedure (get_metadata_interface     ), deferred :: get_metadata
-  procedure (get_dimensions_interface   ), deferred :: get_dimensions
-  procedure (get_coordinates_interface  ), deferred :: get_coordinates
-  procedure (get_connectivity_interface ), deferred :: get_connectivity
+  procedure ( generate_interface         ), deferred :: generate
+  procedure ( get_metadata_interface     ), deferred :: get_metadata
+  procedure ( get_dimensions_interface   ), deferred :: get_dimensions
+  procedure ( get_coordinates_interface  ), deferred :: get_coordinates
+  procedure ( get_connectivity_interface ), deferred :: get_connectivity
 end type ugrid_generator_type
 
 !-------------------------------------------------------------------------------
@@ -50,17 +53,18 @@ abstract interface
   !> @brief Interface: returns mesh metadata information.
   !!
   !! @param[in]     self           The generator strategy object.
+  !! @param[out]    mesh_name      Name of mesh instance to generate
   !! @param[out]    mesh_class     Primitive shape, i.e. sphere, plane
   !-----------------------------------------------------------------------------
-  subroutine get_metadata_interface ( self, mesh_class )
+  subroutine get_metadata_interface ( self, mesh_name, mesh_class )
 
     import :: ugrid_generator_type, str_def
 
     class(ugrid_generator_type), intent(in)  :: self
+    character(str_def),          intent(out) :: mesh_name
     character(str_def),          intent(out) :: mesh_class
 
   end subroutine get_metadata_interface
-
 
   !-----------------------------------------------------------------------------
   !> @brief Interface: returns mesh dimension information.
@@ -77,15 +81,16 @@ abstract interface
   subroutine get_dimensions_interface (self, num_nodes, num_edges, num_faces,  &
                  num_nodes_per_face, num_edges_per_face, num_nodes_per_edge)
 
-    import :: ugrid_generator_type
+    import :: ugrid_generator_type, i_def
+
     class(ugrid_generator_type), intent(in) :: self
 
-    integer, intent(out) :: num_nodes
-    integer, intent(out) :: num_edges
-    integer, intent(out) :: num_faces
-    integer, intent(out) :: num_nodes_per_face
-    integer, intent(out) :: num_edges_per_face
-    integer, intent(out) :: num_nodes_per_edge
+    integer(i_def), intent(out) :: num_nodes
+    integer(i_def), intent(out) :: num_edges
+    integer(i_def), intent(out) :: num_faces
+    integer(i_def), intent(out) :: num_nodes_per_face
+    integer(i_def), intent(out) :: num_edges_per_face
+    integer(i_def), intent(out) :: num_nodes_per_edge
 
   end subroutine get_dimensions_interface
 
@@ -100,7 +105,8 @@ abstract interface
     import :: ugrid_generator_type, r_def
 
     class(ugrid_generator_type), intent(in) :: self
-    real(kind=r_def), intent(out) :: node_coordinates(:,:)
+
+    real(r_def), intent(out) :: node_coordinates(:,:)
 
   end subroutine get_coordinates_interface
 
@@ -117,13 +123,14 @@ abstract interface
                        face_node_connectivity, edge_node_connectivity, &
                        face_edge_connectivity, face_face_connectivity)
 
-    import :: ugrid_generator_type, r_def
+    import :: ugrid_generator_type, i_def
+
     class(ugrid_generator_type), intent(in) :: self
 
-    integer, intent(out) :: face_node_connectivity(:,:)
-    integer, intent(out) :: edge_node_connectivity(:,:)
-    integer, intent(out) :: face_edge_connectivity(:,:)
-    integer, intent(out) :: face_face_connectivity(:,:)
+    integer(i_def), intent(out) :: face_node_connectivity(:,:)
+    integer(i_def), intent(out) :: edge_node_connectivity(:,:)
+    integer(i_def), intent(out) :: face_edge_connectivity(:,:)
+    integer(i_def), intent(out) :: face_face_connectivity(:,:)
 
   end subroutine get_connectivity_interface
 

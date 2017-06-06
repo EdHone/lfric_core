@@ -11,7 +11,7 @@
 !-------------------------------------------------------------------------------
 
 module ugrid_2d_mod
-use constants_mod,  only : r_def, str_def
+use constants_mod,  only : i_def, r_def, str_def
 use ugrid_file_mod, only : ugrid_file_type
 implicit none
 private
@@ -20,7 +20,7 @@ private
 ! Module parameters
 !-------------------------------------------------------------------------------
 
-integer, parameter :: TOPOLOGY_DIMENSION  = 2
+integer(i_def), parameter :: TOPOLOGY_DIMENSION  = 2
 
 !-------------------------------------------------------------------------------
 !> @brief Stores 2-dimensional grid information
@@ -28,44 +28,49 @@ integer, parameter :: TOPOLOGY_DIMENSION  = 2
 type, public :: ugrid_2d_type
   private
 
-  character(str_def) :: mesh_class    !< Primitive class of mesh, i.e. sphere, plane
+  character(str_def) :: mesh_name
+  character(str_def) :: mesh_class           !< Primitive class of mesh, 
+                                             !< i.e. sphere, plane
 
   !Numbers of different entities
-  integer :: num_cells                !< Number of cells
-  integer :: num_nodes                !< Number of nodes
-  integer :: num_edges                !< Number of edges
-  integer :: num_faces                !< Number of faces
+  integer(i_def) :: num_cells                !< Number of cells
+  integer(i_def) :: num_nodes                !< Number of nodes
+  integer(i_def) :: num_edges                !< Number of edges
+  integer(i_def) :: num_faces                !< Number of faces
 
-  integer :: num_nodes_per_face       !< Number of nodes surrounding each face
-  integer :: num_nodes_per_edge       !< Number of nodes defining each edge
-  integer :: num_edges_per_face       !< Number of edges bordering each face
-  integer :: max_num_faces_per_node   !< Maximum number of faces surrounding each node
+  integer(i_def) :: num_nodes_per_face       !< Number of nodes surrounding each face
+  integer(i_def) :: num_nodes_per_edge       !< Number of nodes defining each edge
+  integer(i_def) :: num_edges_per_face       !< Number of edges bordering each face
+  integer(i_def) :: max_num_faces_per_node   !< Maximum number of faces surrounding each node
 
   !Coordinates
-  real(kind=r_def), allocatable :: node_coordinates(:,:) !< Coordinates of nodes
+  real(r_def), allocatable :: node_coordinates(:,:) !< Coordinates of nodes
 
   !Connectivity
-  integer, allocatable :: face_node_connectivity(:,:) !< Nodes belonging to each face
-  integer, allocatable :: edge_node_connectivity(:,:) !< Nodes belonging to each edge
-  integer, allocatable :: face_edge_connectivity(:,:) !< Edges belonging to each face
-  integer, allocatable :: face_face_connectivity(:,:) !< Neighbouring faces of each face
+  integer(i_def), allocatable :: face_node_connectivity(:,:) !< Nodes belonging to each face
+  integer(i_def), allocatable :: edge_node_connectivity(:,:) !< Nodes belonging to each edge
+  integer(i_def), allocatable :: face_edge_connectivity(:,:) !< Edges belonging to each face
+  integer(i_def), allocatable :: face_face_connectivity(:,:) !< Neighbouring faces of each face
 
   !File handler
   class(ugrid_file_type), allocatable :: file_handler
 
 contains
+  procedure :: get_nmeshes
+  procedure :: get_mesh_names
   procedure :: get_dimensions
   procedure :: set_by_generator
   procedure :: set_file_handler
-  procedure :: read_from_file
+  procedure :: set_from_file_read
   procedure :: write_to_file
+  procedure :: append_to_file
   procedure :: get_node_coords
   procedure :: get_node_coords_transpose
   procedure :: get_face_node_connectivity
-  procedure :: get_face_node_connectivity_transpose
   procedure :: get_face_edge_connectivity
-  procedure :: get_face_edge_connectivity_transpose
   procedure :: get_face_face_connectivity
+  procedure :: get_face_node_connectivity_transpose
+  procedure :: get_face_edge_connectivity_transpose
   procedure :: get_face_face_connectivity_transpose
   procedure :: write_coordinates
 end type
@@ -97,13 +102,13 @@ subroutine get_dimensions(self, num_nodes, num_edges, num_faces,    &
   !Arguments
   class(ugrid_2d_type), intent(in) :: self
 
-  integer, intent(out) :: num_nodes
-  integer, intent(out) :: num_edges
-  integer, intent(out) :: num_faces
-  integer, intent(out) :: num_nodes_per_face
-  integer, intent(out) :: num_edges_per_face
-  integer, intent(out) :: num_nodes_per_edge
-  integer, intent(out) :: max_num_faces_per_node
+  integer(i_def), intent(out) :: num_nodes
+  integer(i_def), intent(out) :: num_edges
+  integer(i_def), intent(out) :: num_faces
+  integer(i_def), intent(out) :: num_nodes_per_face
+  integer(i_def), intent(out) :: num_edges_per_face
+  integer(i_def), intent(out) :: num_nodes_per_edge
+  integer(i_def), intent(out) :: max_num_faces_per_node
 
   num_nodes = self%num_nodes
   num_edges = self%num_edges
@@ -116,6 +121,48 @@ subroutine get_dimensions(self, num_nodes, num_edges, num_faces,    &
 
   return
 end subroutine get_dimensions
+
+!-------------------------------------------------------------------------------
+!> @brief Gets a list of the mesh names in a ugrid file
+!>
+!> @param[in]  filename   The name of the file to query
+!> @param[out] mesh_names Character[:], Name of mesh topologies in the file.
+!-------------------------------------------------------------------------------
+subroutine get_mesh_names(self, filename, mesh_names)
+
+  implicit none
+
+  class(ugrid_2d_type), intent(inout) :: self
+  character(len=*),     intent(in)    :: filename
+  character(len=*),     intent(out)   :: mesh_names(:)
+
+  call self%file_handler%file_open(trim(filename))
+  call self%file_handler%get_mesh_names(mesh_names)
+  call self%file_handler%file_close()
+
+  return
+end subroutine get_mesh_names
+
+!-------------------------------------------------------------------------------
+!> @brief Gets the number of the mesh topologies in a ugrid file
+!>
+!> @param[in]  filename   The name of the file to query
+!> @param[out] n_meshes   Integer, Number of mesh topologies in the file.
+!-------------------------------------------------------------------------------
+subroutine get_nmeshes(self, filename, nmeshes)
+
+  implicit none
+
+  class(ugrid_2d_type), intent(inout) :: self
+  character(len=*),     intent(in)    :: filename
+  integer(i_def),       intent(out)   :: nmeshes
+
+  call self%file_handler%file_open(trim(filename))
+  nmeshes = self%file_handler%get_nmeshes()
+  call self%file_handler%file_close()
+
+  return
+end subroutine get_nmeshes
 
 !-------------------------------------------------------------------------------
 !>  @brief Allocates ugrid_2d internal storage, populated by ugrid generator.
@@ -144,6 +191,23 @@ subroutine allocate_arrays(self, generator_strategy)
          num_edges_per_face = self%num_edges_per_face,   &
          num_nodes_per_edge = self%num_nodes_per_edge)
 
+
+
+  if ( allocated( self%node_coordinates ) )       &
+                                     deallocate( self%node_coordinates )
+
+  if ( allocated( self%edge_node_connectivity ) ) &
+                                     deallocate( self%edge_node_connectivity )
+
+  if ( allocated( self%face_node_connectivity ) ) &
+                                     deallocate( self%face_node_connectivity )
+
+  if ( allocated( self%face_edge_connectivity ) ) &
+                                     deallocate( self%face_edge_connectivity )
+
+  if ( allocated( self%face_face_connectivity ) ) &
+                                     deallocate( self%face_face_connectivity )
+
   allocate(self%node_coordinates(1:2, self%num_nodes))
 
   allocate(self%edge_node_connectivity(self%num_nodes_per_edge, self%num_edges))
@@ -169,6 +233,21 @@ subroutine allocate_arrays_for_file(self)
 
   !Arguments
   type(ugrid_2d_type),    intent(inout) :: self
+
+  if ( allocated( self%node_coordinates ) )       &
+                                     deallocate( self%node_coordinates )
+
+  if ( allocated( self%edge_node_connectivity ) ) &
+                                     deallocate( self%edge_node_connectivity )
+
+  if ( allocated( self%face_node_connectivity ) ) &
+                                     deallocate( self%face_node_connectivity )
+
+  if ( allocated( self%face_edge_connectivity ) ) &
+                                     deallocate( self%face_edge_connectivity )
+
+  if ( allocated( self%face_face_connectivity ) ) &
+                                     deallocate( self%face_face_connectivity )
 
   allocate(self%node_coordinates(1:2, self%num_nodes))
 
@@ -197,19 +276,21 @@ subroutine set_by_generator(self, generator_strategy)
   class(ugrid_2d_type),        intent(inout) :: self
   class(ugrid_generator_type), intent(inout) :: generator_strategy
 
-  call generator_strategy%get_metadata( mesh_class=self%mesh_class )
+
+  call generator_strategy%get_metadata( mesh_name=self%mesh_name, &
+                                        mesh_class=self%mesh_class )
 
   call generator_strategy%generate()
 
   call allocate_arrays(self, generator_strategy)
 
-  call generator_strategy%get_coordinates(           &
-         node_coordinates = self%node_coordinates )
+  call generator_strategy%get_coordinates( &
+         node_coordinates = self%node_coordinates)
 
-  call generator_strategy%get_connectivity(                       &
-         face_node_connectivity = self%face_node_connectivity,    &
-         edge_node_connectivity = self%edge_node_connectivity,    &
-         face_edge_connectivity = self%face_edge_connectivity,    &
+  call generator_strategy%get_connectivity(                    &
+         face_node_connectivity = self%face_node_connectivity, &
+         edge_node_connectivity = self%edge_node_connectivity, &
+         face_edge_connectivity = self%face_edge_connectivity, &
          face_face_connectivity = self%face_face_connectivity)
 
   return
@@ -245,40 +326,47 @@ end subroutine set_file_handler
 !!          read the ugrid mesh data and populate internal arrays with data
 !!          from a file.
 !!
-!! @param[in,out] self  Calling ugrid object.
+!! @param[in,out] self      Calling ugrid object.
+!! @param[in]     mesh_name Name of the mesh topology
+!! @param[in]     filename  Name of the ugrid file
 !-------------------------------------------------------------------------------
 
-subroutine read_from_file(self, filename)
+subroutine set_from_file_read(self, mesh_name, filename)
   implicit none
 
   !Arguments
   class(ugrid_2d_type), intent(inout) :: self
-  character(len=*),        intent(in) :: filename
+  character(len=*),     intent(in)    :: mesh_name
+  character(len=*),     intent(in)    :: filename
+
+  self%mesh_name = trim(mesh_name)
 
   call self%file_handler%file_open(trim(filename))
 
-  call self%file_handler%get_dimensions(                     &
-         num_nodes              = self%num_nodes,            &
-         num_edges              = self%num_edges,            &
-         num_faces              = self%num_faces,            &
-         num_nodes_per_face     = self%num_nodes_per_face,   &
-         num_edges_per_face     = self%num_edges_per_face,   &
-         num_nodes_per_edge     = self%num_nodes_per_edge,   &
+  call self%file_handler%get_dimensions(                   &
+         mesh_name              = self%mesh_name,          &
+         num_nodes              = self%num_nodes,          &
+         num_edges              = self%num_edges,          &
+         num_faces              = self%num_faces,          &
+         num_nodes_per_face     = self%num_nodes_per_face, &
+         num_edges_per_face     = self%num_edges_per_face, &
+         num_nodes_per_edge     = self%num_nodes_per_edge, &
          max_num_faces_per_node = self%max_num_faces_per_node )
 
   call allocate_arrays_for_file(self)
 
-  call self%file_handler%read(                                &
-      node_coordinates       = self%node_coordinates,         &
-      face_node_connectivity = self%face_node_connectivity,   &
-      edge_node_connectivity = self%edge_node_connectivity,   &
-      face_edge_connectivity = self%face_edge_connectivity,   &
-      face_face_connectivity = self%face_face_connectivity)
+  call self%file_handler%read(                              &
+      mesh_name              = self%mesh_name,              &
+      node_coordinates       = self%node_coordinates,       &
+      face_node_connectivity = self%face_node_connectivity, &
+      edge_node_connectivity = self%edge_node_connectivity, &
+      face_edge_connectivity = self%face_edge_connectivity, &
+      face_face_connectivity = self%face_face_connectivity )
 
   call self%file_handler%file_close()
 
   return
-end subroutine read_from_file
+end subroutine set_from_file_read
 
 !-------------------------------------------------------------------------------
 !> @brief Writes stored ugrid information to data file.
@@ -291,29 +379,65 @@ end subroutine read_from_file
 !-------------------------------------------------------------------------------
 
 subroutine write_to_file(self, filename)
+
+  use ugrid_generator_mod, only: ugrid_generator_type
+
   implicit none
 
   !Arguments
   class(ugrid_2d_type), intent(inout) :: self
-  character(len=*),        intent(in) :: filename
+  character(len=*),     intent(in)    :: filename
 
   call self%file_handler%file_new(trim(filename))
 
-  call self%file_handler%write(                             &
-      mesh_class             = self%mesh_class,             &
-      num_nodes              = self%num_nodes,              &
-      num_edges              = self%num_edges,              &
-      num_faces              = self%num_faces,              &
-      node_coordinates       = self%node_coordinates,       &
-      face_node_connectivity = self%face_node_connectivity, &
-      edge_node_connectivity = self%edge_node_connectivity, &
-      face_edge_connectivity = self%face_edge_connectivity, &
-      face_face_connectivity = self%face_face_connectivity)
+  call self%file_handler%write(                              &
+       mesh_name              = self%mesh_name,              &
+       mesh_class             = self%mesh_class,             &
+       num_nodes              = self%num_nodes,              &
+       num_edges              = self%num_edges,              &
+       num_faces              = self%num_faces,              &
+       node_coordinates       = self%node_coordinates,       &
+       face_node_connectivity = self%face_node_connectivity, &
+       edge_node_connectivity = self%edge_node_connectivity, &
+       face_edge_connectivity = self%face_edge_connectivity, &
+       face_face_connectivity = self%face_face_connectivity)
+
+  call self%file_handler%file_close()
+
+
+  return
+end subroutine write_to_file
+
+
+subroutine append_to_file(self, filename)
+
+  use ugrid_generator_mod, only: ugrid_generator_type
+
+  implicit none
+
+  !Arguments
+  class(ugrid_2d_type), intent(inout) :: self
+  character(len=*),     intent(in) :: filename
+
+  call self%file_handler%file_open(trim(filename))
+
+  call self%file_handler%append(                             &
+       mesh_name              = self%mesh_name,              &
+       mesh_class             = self%mesh_class,             &
+       num_nodes              = self%num_nodes,              &
+       num_edges              = self%num_edges,              &
+       num_faces              = self%num_faces,              &
+       node_coordinates       = self%node_coordinates,       &
+       face_node_connectivity = self%face_node_connectivity, &
+       edge_node_connectivity = self%edge_node_connectivity, &
+       face_edge_connectivity = self%face_edge_connectivity, &
+       face_face_connectivity = self%face_face_connectivity)
 
   call self%file_handler%file_close()
 
   return
-end subroutine write_to_file
+end subroutine append_to_file
+
 
 !-------------------------------------------------------------------------------
 !> @brief Gets node coordinates with ugrid array index ordering.
@@ -330,9 +454,9 @@ subroutine get_node_coords(self, node_coords)
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
-  real(kind=r_def),        intent(out) :: node_coords(:,:)
+  real(r_def),          intent(out) :: node_coords(:,:)
 
-  integer :: i
+  integer(i_def) :: i
 
   do i = 1, self%num_nodes
     node_coords(1:2,i) = self%node_coordinates(1:2,i)
@@ -357,9 +481,9 @@ subroutine get_node_coords_transpose(self, node_coords)
   implicit none
 
   class(ugrid_2d_type), intent(in)  :: self
-  real(kind=r_def),     intent(out) :: node_coords(:,:)
+  real(r_def),          intent(out) :: node_coords(:,:)
 
-  integer :: i
+  integer(i_def) :: i
 
   do i = 1, self%num_nodes
     node_coords(i,1:2) = self%node_coordinates(1:2,i)
@@ -381,10 +505,10 @@ end subroutine get_node_coords_transpose
 subroutine get_face_node_connectivity(self, face_node_connectivity)
   implicit none
 
-  class(ugrid_2d_type), intent(in)   :: self
-  integer,              intent(out)  :: face_node_connectivity(:,:)
+  class(ugrid_2d_type), intent(in)  :: self
+  integer(i_def),       intent(out) :: face_node_connectivity(:,:)
 
-  integer :: i,j
+  integer(i_def) :: i,j
 
   do j = 1, self%num_faces
     do i = 1, self%num_nodes_per_face
@@ -412,10 +536,10 @@ end subroutine get_face_node_connectivity
 subroutine get_face_node_connectivity_transpose(self, face_node_connectivity)
   implicit none
 
-  class(ugrid_2d_type), intent(in)   :: self
-  integer,              intent(out)  :: face_node_connectivity(:,:)
+  class(ugrid_2d_type), intent(in)  :: self
+  integer(i_def),       intent(out) :: face_node_connectivity(:,:)
 
-  integer :: i,j
+  integer(i_def) :: i,j
 
   do j = 1, self%num_faces
     do i = 1, self%num_nodes_per_face
@@ -439,10 +563,10 @@ end subroutine get_face_node_connectivity_transpose
 subroutine get_face_edge_connectivity(self, face_edge_connectivity)
   implicit none
 
-  class(ugrid_2d_type), intent(in)   :: self
-  integer,              intent(out)  :: face_edge_connectivity(:,:)
+  class(ugrid_2d_type), intent(in)  :: self
+  integer(i_def),       intent(out) :: face_edge_connectivity(:,:)
 
-  integer :: i,j
+  integer(i_def) :: i,j
 
   do j = 1, self%num_faces
     do i = 1, self%num_edges_per_face
@@ -470,10 +594,10 @@ end subroutine get_face_edge_connectivity
 subroutine get_face_edge_connectivity_transpose(self, face_edge_connectivity)
   implicit none
 
-  class(ugrid_2d_type), intent(in)   :: self
-  integer,              intent(out)  :: face_edge_connectivity(:,:)
+  class(ugrid_2d_type), intent(in)  :: self
+  integer(i_def),       intent(out) :: face_edge_connectivity(:,:)
 
-  integer :: i,j
+  integer(i_def) :: i,j
 
   do j = 1, self%num_faces
     do i = 1, self%num_edges_per_face
@@ -497,10 +621,10 @@ end subroutine get_face_edge_connectivity_transpose
 subroutine get_face_face_connectivity(self, face_face_connectivity)
   implicit none
 
-  class(ugrid_2d_type), intent(in)   :: self
-  integer,              intent(out)  :: face_face_connectivity(:,:)
+  class(ugrid_2d_type), intent(in)  :: self
+  integer(i_def),       intent(out) :: face_face_connectivity(:,:)
 
-  integer :: i,j
+  integer(i_def) :: i,j
 
   do j = 1, self%num_faces
     do i = 1, self%num_nodes_per_face
@@ -527,10 +651,10 @@ end subroutine get_face_face_connectivity
 subroutine get_face_face_connectivity_transpose(self, face_face_connectivity)
   implicit none
 
-  class(ugrid_2d_type), intent(in)   :: self
-  integer,              intent(out)  :: face_face_connectivity(:,:)
+  class(ugrid_2d_type), intent(in)  :: self
+  integer(i_def),       intent(out) :: face_face_connectivity(:,:)
 
-  integer :: i,j
+  integer(i_def) :: i,j
 
   do j = 1, self%num_faces
     do i = 1, self%num_nodes_per_face
@@ -559,7 +683,7 @@ subroutine write_coordinates(self)
   !Arguments
   class(ugrid_2d_type), intent(in) :: self
 
-  integer :: inode
+  integer(i_def) :: inode
 
   open(56, file='nodes.dat')
   do inode = 1, self%num_nodes

@@ -13,10 +13,11 @@
 program cubedsphere_mesh_generator
 
   use cli_mod,         only : get_initial_filename
-  use constants_mod,   only : i_def, r_def, str_def
-  use cubedsphere_mesh_generator_config_mod,                           &
+  use constants_mod,   only : i_def, str_def
+  use cubedsphere_mesh_generator_config_mod,                            &
                        only : read_cubedsphere_mesh_generator_namelist, &
-                              edge_cells, smooth_passes, mesh_filename
+                              mesh_name, edge_cells, smooth_passes,     &
+                              mesh_filename
   use ESMF
   use gencube_ps_mod,  only : gencube_ps_type
   use io_utility_mod,  only : open_file, close_file
@@ -28,22 +29,22 @@ program cubedsphere_mesh_generator
 
   implicit none
 
-  type(ESMF_VM) :: vm
-  integer       :: rc
+  type(ESMF_VM)  :: vm
+  integer(i_def) :: rc
 
   character(:), allocatable :: filename
-  integer                   :: namelist_unit
+  integer(i_def)            :: namelist_unit
 
   type(gencube_ps_type)               :: csgen
   type(ugrid_2d_type)                 :: ugrid_2d
   class(ugrid_file_type), allocatable :: ugrid_file
-  integer                             :: fsize
+  integer(i_def)                      :: fsize
+
 
   call ESMF_Initialize(vm=vm, defaultlogfilename="cubedsphere.log", &
                        logkindflag=ESMF_LOGKIND_SINGLE, rc=rc)
   if (rc /= ESMF_SUCCESS) call log_event( 'Failed to initialise ESMF.', &
                                           LOG_LEVEL_ERROR )
-
 
   call get_initial_filename( filename )
   namelist_unit = open_file( filename )
@@ -54,20 +55,19 @@ program cubedsphere_mesh_generator
   allocate(ncdf_quad_type::ugrid_file)
   call ugrid_2d%set_file_handler(ugrid_file)
 
-  csgen = gencube_ps_type( edge_cells, smooth_passes )
 
+  csgen = gencube_ps_type( mesh_name, edge_cells, smooth_passes )
   call log_event( "Generating cubed-sphere mesh with...", LOG_LEVEL_INFO )
   write(log_scratch_space, "(A,I0)") "  ndivs: ", edge_cells
   call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  call ugrid_2d%set_by_generator( csgen )
+  call ugrid_2d%write_to_file(trim( mesh_filename) )
 
-  call ugrid_2d%set_by_generator(csgen)
   call log_event( "...generation complete.", LOG_LEVEL_INFO )
-
-  call ugrid_2d%write_to_file(trim(mesh_filename))
   inquire(file=mesh_filename, size=fsize)
-  write( log_scratch_space, &
-         '("Writing ugrid mesh to ", A, " - ", I0, " bytes written.")' ) &
-       trim(adjustl(mesh_filename)), fsize
+  write( log_scratch_space, '(A,I0,A)' )                       &
+      'Writing ugrid mesh to '//trim(adjustl(mesh_filename))// &
+      ' - ', fsize, ' bytes written.'
   call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
 end program cubedsphere_mesh_generator

@@ -3,33 +3,42 @@
 ' should have received as part of this distribution.
 
 class ncdf_quad_mod::ncdf_quad_type {
-  -file_name: string
-  -four_dim_id: integer
-  -ncid: integer
-  -mesh2_class: string
-  -mesh2_edge_nodes_id: integer
-  -mesh2_face_edges_id: integer
-  -mesh2_face_links_id: integer
-  -mesh2_face_nodes_id: integer
-  -mesh2_id: integer
-  -mesh2_node_x_id: integer
-  -mesh2_node_y_id: integer
-  -nMesh2_edge_dim_id: integer
-  -nMesh2_edge_len: integer
-  -nMesh2_face_dim_id: integer
-  -nMesh2_face_len: integer
-  -nMesh2_node_dim_id: integer
-  -nMesh2_node_len: integer
-  -num_vars: string
-  -two_dim_id: integer
 
-  +file_close()
-  +file_new( file_name: string )
-  +file_open( file_name: string )
-  +get_dimensions( <<out>> num_nodes: integer, <<out>> num_edges: integer, <<out>> num_faces: integer, <<out>> num_nodes_per_face: integer, <<out>> num_edges_per_face: integer, <<out>> num_nodes_per_edge: integer, <<out>> max_num_faces_per_node: integer )
-  +read( <<out>> node_coordinates: real[::], <<out>> face_node_connectivity: integer[::], <<out>> edge_node_connectivity: integer[::], <<out>> face_edge_connectivity: integer[::], <<out>> face_face_connectivity: integer[::] )
-  +write( <<in>> num_nodes: integer, <<in>> num_edges: integer, <<in>> num_faces: integer, <<in>> node_coordinates: real[::], <<in>> face_node_connectivity: integer[::], <<in>> edge_node_connectivity: integer[::], <<in>> face_edge_connectivity: integer[::], <<in>> face_face_connectivity: integer[::] )
+  -ncid: integer
+  -file_name: string
+  -mesh_name: string
+  -mesh_class: string
+
+  -nmesh_nodes: integer
+  -nmesh_edges: integer
+  -nmesh_faces: integer
+
+  -nmesh_nodes_dim_id: integer
+  -nmesh_edges_dim_id: integer
+  -nmesh_faces_dim_id: integer
+  -two_dim_id: integer
+  -four_dim_id: integer
+
+  -mesh_id: integer
+  -mesh_edge_nodes_id: integer
+  -mesh_face_nodes_id: integer
+  -mesh_face_edges_id: integer
+  -mesh_face_links_id: integer
+
+  -mesh_node_x_id: integer
+  -mesh_node_y_id: integer
+
+  +read( ... )
+  +write( ... )
+  +append( ... )
+  +get_dimensions( ... )
+  +get_mesh_names( ... )
+  +get_nmeshes( ... )
+  +is_mesh_present( ... )
+  +file_close( ... )
+  +file_new( ... )
+  +file_open( ... )
 
 }
 
-ugrid_file_mod::ugrid_file_type <|.. ncdf_quad_mod::ncdf_quad_type
+ugrid_file_mod::ugrid_file_type <|.left. ncdf_quad_mod::ncdf_quad_type

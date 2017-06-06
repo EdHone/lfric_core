@@ -3,34 +3,34 @@
 ' should have received as part of this distribution.
 
 class gencube_ps_mod::gencube_ps_type {
+  -mesh_name: string
   -mesh_class: string
   -ndivs: integer
   -nsmooth: integer
+
   -cell_next: integer[::] <<allocatable>>
   -verts_on_cell: integer[::] <<allocatable>>
   -edges_on_cell: integer[::] <<allocatable>>
   -verts_on_edge: integer[::] <<allocatable>>
   -vert_coords: real[::] <<allocatable>>
-  +<<create>>gencube_ps_constructor( <<in>> ndivs: integer, <<in>> nsmooth: integer ): gencube_ps_type
+
+  +<<create>>gencube_ps_constructor( <<in>> mesh_name: string, <<in>> ndivs: integer, <<in>> nsmooth: integer ): gencube_ps_type
+
   +calc_adjacency ( <<out>> cell_next:integer[::] <<allocatable>> )
   +calc_face_to_vert ( <<out>> verts_on_cell:integer[::] <<allocatable>> )
-  +calc_edges( <<out>> edges_on_cell: integer[::] <<allocatable>>,
-  <<out>> verts_on_edge: integer[::] <<allocatable>> )
+  +calc_edges( <<out>> edges_on_cell: integer[::] <<allocatable>>, <<out>> verts_on_edge: integer[::] <<allocatable>> )
   +calc_coords( <<out>> vert_coords: real[::] <<allocatable>> )
-  +get_metadata( <<out>> mesh_class: string )
-  +get_dimensions( <<out>> num_nodes: integer, <<out>> num_edges: integer, <<out>> num_faces: integer, <<out>> num_nodes_per_face: integer, <<out>> num_edges_per_face: integer, <<out>> num_nodes_per_edge: integer )
-  +get_coordinates(( <<out>> node_coordinates: real[::] )
-  +get_connectivity( <<out>> face_node_connectivity: integer[::], <<out>> edge_node_connectivity: integer[::], <<out>> face_edge_connectivity: integer[::], <<out>> face_face_connectivity: integer[::] )
-  +generate()
+
+  +generate( ... )
+  +get_metadata( ... )
+  +get_dimensions( ... )
+  +get_coordinates( ... )
+  +get_connectivity( ... )
+
   +write_mesh()
   +orient_lfric()
   +smooth()
 
 }
 
-note "gencube_ps_type used as\ninput for set_by_generator()" as N1
-
-gencube_ps_mod::gencube_ps_type -up-|> ugrid_generator_mod::ugrid_generator_type
-
-gencube_ps_mod::gencube_ps_type .up. N1
-N1 .up. ugrid_2d_mod::ugrid_2d_type
+gencube_ps_mod::gencube_ps_type -|> ugrid_generator_mod::ugrid_generator_type

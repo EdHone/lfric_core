@@ -5,13 +5,13 @@
 !-----------------------------------------------------------------------------
 !> @brief Test suite to verify computation of colour map.
 !>
-!> @details Fixture provides ESMF init to allow creation of 
+!> @details Fixture provides ESMF init to allow creation of
 !> prerequistes to perform colouring.
 !>
 !-------------------------------------------------------------------------------
 module mesh_colouring_mod_test
 !-------------------------------------------------------------------------------
-  use constants_mod,     only : i_def, r_def, str_max_filename, imdi
+  use constants_mod,     only : i_def, r_def, str_def, str_max_filename, IMDI
   use global_mesh_collection_mod, only: global_mesh_collection_type            &
                                       , global_mesh_collection
   use global_mesh_mod,            only: global_mesh_type
@@ -21,25 +21,28 @@ module mesh_colouring_mod_test
   use pFUnit_Mod
   use gungho_suite_fixture_mod,   only : get_esmf_handle
 
-  implicit none 
+  implicit none
 
   private
   public setUp, tearDown, test_compute_colours_cubedsphere, &
                           test_compute_colours_biperiodic,  &
                           test_compute_colours_generic
 
-@testCase
-type, public, extends(TestCase) :: compute_colours_test_type
-  integer       :: total_ranks, local_rank
-  integer       :: xproc, yproc
-  integer       :: num_layers
-  integer       :: element_order
-contains
-  procedure     :: setUp
-  procedure     :: tearDown
-  procedure     :: test_compute_colours_cubedsphere
-  procedure     :: test_compute_colours_biperiodic
-end type compute_colours_test_type
+  @testCase
+  type, public, extends(TestCase) :: compute_colours_test_type
+    integer       :: total_ranks, local_rank
+    integer       :: xproc, yproc
+    integer       :: num_layers
+    integer       :: element_order
+  contains
+    procedure     :: setUp
+    procedure     :: tearDown
+    procedure     :: test_compute_colours_cubedsphere
+    procedure     :: test_compute_colours_biperiodic
+  end type compute_colours_test_type
+
+  character(str_def), parameter :: mesh_name ='Mesh2'
+  
 !-------------------------------------------------------------------------------
 contains
 !-------------------------------------------------------------------------------
@@ -51,7 +54,7 @@ subroutine setUp(this)
 
   implicit none
 
-  class(compute_colours_test_type), intent(inout)  :: this 
+  class(compute_colours_test_type), intent(inout)  :: this
   type(ESMF_VM)  :: vm
   integer        :: rc, local_pet, pet_count
 
@@ -125,8 +128,10 @@ subroutine test_compute_colours_cubedsphere(this)
 
   npanels = 6
   filename = "data/ugrid_quads_2d_cubedsphere_6x4x4.nc"
-  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename       &
-                                                              , npanels )
+
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename,  &
+                                                                mesh_name, &
+                                                                npanels )
   global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
 
   partitioner_ptr => partitioner_cubedsphere_serial
@@ -215,8 +220,9 @@ subroutine test_compute_colours_biperiodic(this)
   npanels = 1
   filename = "data/ugrid_quads_2d_biperiodic_8x8.nc"
 
-  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename       &
-                                                              , npanels )
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename,  &
+                                                                mesh_name, &
+                                                                npanels )
   global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
 
   partitioner_ptr => partitioner_biperiodic
@@ -225,7 +231,7 @@ subroutine test_compute_colours_biperiodic(this)
                             partitioner_ptr, &
                             this%xproc, &
                             this%yproc, &
-                            1, & 
+                            1, &
                             this%local_rank, &
                             this%total_ranks)
 
@@ -304,11 +310,13 @@ subroutine test_compute_colours_generic(this)
   type(mesh_type), pointer :: mesh => null()
   integer(i_def)           :: err
 
-  ! Force colour generator to use generic colour routine by not saying it's a cubed sphere
-  npanels = 999
+  ! Force colour generator to use generic colour routine by not saying
+  ! it's a cubed sphere
+  npanels = IMDI
   filename = "data/ugrid_quads_2d_cubedsphere_6x4x4.nc"
-  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename       &
-                                                              , npanels )
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename,  &
+                                                                mesh_name, &
+                                                                npanels )
   global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
 
   partitioner_ptr => partitioner_cubedsphere_serial

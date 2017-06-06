@@ -8,7 +8,8 @@
 !>
 module mesh_map_collection_mod_test
 
-  use constants_mod,              only: r_def, i_def, str_max_filename, imdi
+  use constants_mod,              only: r_def, i_def, IMDI, &
+                                        str_max_filename, str_def
   use extrusion_config_mod,       only: extrusion_method_uniform
   use global_mesh_map_collection_mod, &
                                   only: global_mesh_map_collection_type
@@ -49,6 +50,7 @@ module mesh_map_collection_mod_test
     procedure :: test_mesh_map_collection
   end type mesh_map_collection_test_type
 
+  character(str_def), parameter :: mesh_name = 'Mesh2'
   character(str_max_filename), parameter :: coarse_ugrid = 'data/CubedSphere96Cell.nc'  ! 4x4 panel
   character(str_max_filename), parameter :: fine_ugrid   = 'data/CubedSphere384Cell.nc' ! 8x8 panel
 
@@ -103,11 +105,12 @@ contains
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null()
 
+    call feign_base_mesh_config                               &
+             ( filename='foo', prime_mesh_name=mesh_name,     &
+               geometry=base_mesh_geometry_spherical,         &
+               partitioner=base_mesh_partitioner_cubedsphere, &
+               fplane=.false., f_lat_deg=0.0_r_def )
 
-    call feign_base_mesh_config( 'foo',                             &
-                                 base_mesh_geometry_spherical,      &
-                                 base_mesh_partitioner_cubedsphere, &
-                                 .false., 0.0_r_def )
     call feign_extrusion_config( extrusion_method_uniform, domain_top, nlayers )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
@@ -125,10 +128,13 @@ contains
 
 
     npanels = 6
-    coarse_global_mesh_id = &
-        global_mesh_collection%add_new_global_mesh( coarse_ugrid, npanels )
-    fine_global_mesh_id   = &
-        global_mesh_collection%add_new_global_mesh( fine_ugrid,   npanels )
+    coarse_global_mesh_id =                          &
+        global_mesh_collection % add_new_global_mesh &
+                                 ( coarse_ugrid, mesh_name, npanels )
+
+    fine_global_mesh_id   =                          &
+        global_mesh_collection % add_new_global_mesh &
+                                 ( fine_ugrid, mesh_name, npanels )
 
     coarse_global_mesh => &
         global_mesh_collection%get_global_mesh( coarse_global_mesh_id )
@@ -241,7 +247,7 @@ contains
     allocate(map(ntarget_cells_per_source_cell,nsource_cells))
 
     ! For this test we don't care what's in the map
-    map(:,:) = imdi
+    map(:,:) = IMDI
 
     call mesh_maps % add_mesh_map( this%coarse_mesh%get_id(), &
                                    this%fine_mesh%get_id(),   &

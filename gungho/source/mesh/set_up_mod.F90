@@ -14,17 +14,18 @@
 
 module set_up_mod
 
-  use base_mesh_config_mod,      only : filename, &
-                                        geometry, &
-                                        base_mesh_geometry_spherical
-  use constants_mod,             only : i_def, r_def, str_def, l_def
-  use extrusion_config_mod,      only : number_of_layers,           &
-                                        domain_top,                 &
-                                        method,                     &
-                                        extrusion_method_uniform,   &
-                                        extrusion_method_quadratic, &
-                                        extrusion_method_geometric, &
-                                        extrusion_method_dcmip
+  use base_mesh_config_mod,       only : filename,        &
+                                         prime_mesh_name, &
+                                         geometry,        &
+                                         base_mesh_geometry_spherical
+  use constants_mod,              only : i_def, r_def, str_def, l_def
+  use extrusion_config_mod,       only : number_of_layers,           &
+                                         domain_top,                 &
+                                         method,                     &
+                                         extrusion_method_uniform,   &
+                                         extrusion_method_quadratic, &
+                                         extrusion_method_geometric, &
+                                         extrusion_method_dcmip
   use finite_element_config_mod,  only : shape,                         &
                                          finite_element_shape_triangle, &
                                          finite_element_shape_quadrilateral
@@ -54,6 +55,10 @@ module set_up_mod
                                          transport_scheme_cusph_cosmic
   use subgrid_config_mod,         only : dep_pt_stencil_extent, &
                                          rho_approximation_stencil_extent
+  use ugrid_file_mod,             only : ugrid_file_type
+  use ncdf_quad_mod,              only : ncdf_quad_type
+  use ugrid_2d_mod,               only : ugrid_2d_type
+
   implicit none
 
 contains
@@ -74,10 +79,8 @@ contains
     integer(i_def), parameter :: max_factor_iters = 10000
 
     type (global_mesh_type), pointer :: global_mesh_ptr => null()
-    type (global_mesh_type)          :: global_mesh
     type (partition_type)            :: partition
     type (mesh_type),        pointer :: prime_mesh_ptr  => null()
-    type (mesh_type)                 :: prime_mesh
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
 
@@ -98,12 +101,19 @@ contains
     integer(i_def) :: ranks_per_panel
     integer(i_def) :: start_factor
     integer(i_def) :: fact_count
-    logical(l_def) :: found_factors
-    character(str_def) :: domain_desc, partition_desc
-
     integer(i_def) :: global_mesh_id
     integer(i_def) :: npanels
     integer(i_def) :: max_fv_stencil
+    integer(i_def) :: n_meshes
+    integer(i_def) :: i
+    logical(l_def) :: found_factors
+
+    character(str_def)  :: domain_desc
+    character(str_def)  :: partition_desc
+    type(ugrid_2d_type) :: ugrid_2d
+
+    class(ugrid_file_type), allocatable :: file_handler
+    character(str_def),     allocatable :: mesh_names(:)
 
     call log_event( "set_up: Generating/reading the mesh", LOG_LEVEL_INFO )
 
@@ -214,12 +224,29 @@ contains
     end if
     if ( wtheta_on ) max_stencil_depth = max(max_stencil_depth,1)
 
+    ! Interrogate ugrid file to get the names of all the
+    ! contained mesh topologies 
+    allocate( ncdf_quad_type :: file_handler )
+    call ugrid_2d%set_file_handler( file_handler )
+    call ugrid_2d%get_nmeshes( trim(filename), n_meshes )
+    allocate( mesh_names(n_meshes) )
+    call ugrid_2d%get_mesh_names( trim(filename), mesh_names )
 
-    global_mesh_id = global_mesh_collection%add_new_global_mesh &
-                                                          ( filename, npanels )
+    ! Read in prime mesh only
+    ! Other meshes may need to be read in when multiple meshes
+    ! are use i.e. in function space chains. 
+    do i=1, n_meshes
+      if (trim(mesh_names(i)) == trim(prime_mesh_name)) then
+        global_mesh_id = global_mesh_collection %                 &
+                             add_new_global_mesh ( filename,      &
+                                                   mesh_names(i), &
+                                                   npanels )
 
-
-    global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
+        global_mesh_ptr => global_mesh_collection % &
+                               get_global_mesh( global_mesh_id )
+        exit
+      end if
+    end do
 
     if ( .not. associated(global_mesh_ptr) )                   &
       call log_event( "set_up: Global mesh not in collection", &

@@ -13,7 +13,8 @@ module partition_mod_test
   use partition_mod
 
   use infrastructure_suite_fixture_mod, only: get_esmf_handle
-  use constants_mod,                    only: r_def, i_def, str_max_filename
+  use constants_mod,                    only: r_def, i_def, str_max_filename, &
+                                              str_def
   use global_mesh_mod,                  only: global_mesh_type
   use global_mesh_collection_mod,       only: global_mesh_collection_type, &
                                               global_mesh_collection
@@ -38,6 +39,8 @@ module partition_mod_test
     procedure :: test_partition_Cubedsphere
     procedure :: test_partition_BiPeriodic
   end type partition_test_type
+
+  character(str_def), parameter :: mesh_name = 'Mesh2'
 
 contains
 
@@ -133,8 +136,9 @@ contains
 
   filename = 'data/ugrid_quads_2d_biperiodic_8x8.nc' 
   npanels  = 1
-  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename       &
-                                                              , npanels )
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename,  &
+                                                                mesh_name, &
+                                                                npanels )
   global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
 
   partitioner_ptr => partitioner_biperiodic
@@ -268,8 +272,9 @@ end subroutine test_partition_BiPeriodic
 
   filename = 'data/ugrid_quads_2d_cubedsphere_6x4x4.nc' 
   npanels  = 6
-  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename       &
-                                                              , npanels )
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename,  &
+                                                                mesh_name, &
+                                                                npanels )
   global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
 
   partitioner_ptr => partitioner_cubedsphere_serial

@@ -5,8 +5,8 @@
 !-----------------------------------------------------------------------------
 module gencube_ps_mod_test
 
-  use constants_mod,  only: i_def, r_def
-  use gencube_ps_mod, only: gencube_ps_type
+  use constants_mod,     only: i_def, r_def, str_def
+  use gencube_ps_mod,    only: gencube_ps_type
   use pFUnit_Mod
 
   implicit none
@@ -15,7 +15,7 @@ module gencube_ps_mod_test
   public :: test_all
 
   @TestCase
-  type, extends(TestCase), public :: gencue_ps_test_type
+  type, extends(TestCase), public :: gencube_ps_test_type
     private
     integer(i_def), allocatable :: faces_on_face(:,:)
     integer(i_def), allocatable :: nodes_on_face(:,:)
@@ -26,10 +26,11 @@ module gencube_ps_mod_test
     procedure setUp
     procedure tearDown
     procedure test_all
-  end type gencue_ps_test_type
+  end type gencube_ps_test_type
 
-  integer(kind=i_def), parameter :: ndivs = 3
-  integer(kind=i_def), parameter :: nsmooth = 1
+  character(str_def), parameter :: mesh_name = 'Mesh2'
+  integer(i_def),     parameter :: ndivs = 3
+  integer(i_def),     parameter :: nsmooth = 1
 
 contains
 
@@ -38,7 +39,7 @@ contains
 
     implicit none
 
-    class(gencue_ps_test_type), intent(inout) :: this
+    class(gencube_ps_test_type), intent(inout) :: this
 
     allocate( this%faces_on_face(4, 6*ndivs*ndivs) )
     allocate( this%nodes_on_face(4, 6*ndivs*ndivs) )
@@ -53,7 +54,7 @@ contains
 
     implicit none
 
-    class(gencue_ps_test_type), intent(inout) :: this
+    class(gencube_ps_test_type), intent(inout) :: this
 
     deallocate( this%faces_on_face )
     deallocate( this%nodes_on_face )
@@ -69,15 +70,27 @@ contains
 
     implicit none
 
-    class(gencue_ps_test_type), intent(inout) :: this
+    class(gencube_ps_test_type), intent(inout) :: this
 
-    type(gencube_ps_type)                  :: csgen
-    integer(kind=i_def)                    :: nodes, edges, faces
-    integer(kind=i_def)                    :: nodes_per_face, edges_per_face
-    integer(kind=i_def)                    :: nodes_per_edge, max_faces_per_node
-    real(kind=r_def), parameter            :: eps = 1E-09_r_def
+    type(gencube_ps_type)  :: csgen
+    integer(i_def)         :: nodes, edges, faces
+    integer(i_def)         :: nodes_per_face, edges_per_face
+    integer(i_def)         :: nodes_per_edge, max_faces_per_node
 
-    csgen = gencube_ps_type(ndivs, nsmooth)
+    character(len=str_def) :: test_str1,test_str2
+
+    real(r_def), parameter :: eps = 1E-09_r_def
+
+   
+    csgen = gencube_ps_type(mesh_name, ndivs, nsmooth)
+
+
+    ! Test metadata retrieval
+    call csgen%get_metadata( mesh_name  = test_str1, &
+                             mesh_class = test_str2 )
+    @assertEqual( trim(test_str1), mesh_name )
+    @assertEqual( trim(test_str2), 'sphere')
+
     ! Generate the mesh and connectivity
     call csgen%generate()
     ! Retrieve calculated dimensions

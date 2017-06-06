@@ -13,7 +13,7 @@
 !
 module global_mesh_collection_mod
 
-  use constants_mod,   only: r_def, i_def, imdi, str_max_filename
+  use constants_mod,   only: r_def, i_def, IMDI, str_max_filename, str_def
   use log_mod,         only: log_event, log_scratch_space, &
                              LOG_LEVEL_ERROR, LOG_LEVEL_TRACE
   use linked_list_mod, only: linked_list_type, linked_list_item_type
@@ -45,7 +45,7 @@ module global_mesh_collection_mod
     ! added to the global mesh_collection. This calculation requires that all
     ! meshes have the same number of panels in the mesh. npanels is set to
     ! be the same as the 1st global mesh loaded into the collection.
-    integer(i_def)         :: npanels = imdi
+    integer(i_def)         :: npanels = IMDI
     !>
     !> An unused allocatable integer that prevents an intenal compiler error
     !> with the Gnu Fortran compiler. Adding an allocatable forces the compiler
@@ -57,8 +57,10 @@ module global_mesh_collection_mod
   contains
     !> @brief Adds a global mesh object to the collection from a
     !>        ugrid file which contains a single global mesh.
-    !> @param [in] filename  File containing details of a single global
-    !>                       mesh object.
+    !> @param [in] filename  File containing details of global
+    !>                       mesh object(s).
+    !> @param [in] global_mesh_name The name of the global mesh
+    !>                       to read from the file.
     !> @return ID of the global mesh added to collection.
 
     ! Adds a global mesh object to the collection from ugrid files
@@ -133,13 +135,15 @@ end function global_mesh_collection_constructor
 
 
 !==============================================================================
-function add_new_global_mesh( self, filename, npanels ) result (global_mesh_id)
+function add_new_global_mesh( self, filename, global_mesh_name, npanels ) &
+                      result( global_mesh_id )
 
   implicit none
 
   class(global_mesh_collection_type), intent(inout) :: self
-  character(len=str_max_filename), intent(in)       :: filename
-  integer(i_def),                  intent(in)       :: npanels
+  character(str_max_filename),        intent(in)    :: filename
+  character(str_def),                 intent(in)    :: global_mesh_name
+  integer(i_def),                     intent(in)    :: npanels
 
   integer(i_def)          :: n_global_meshes
   integer(i_def)          :: global_mesh_id
@@ -152,7 +156,8 @@ function add_new_global_mesh( self, filename, npanels ) result (global_mesh_id)
   ! Pointer to linked list - used for looping through the list
   type(linked_list_item_type), pointer :: list_item => null()
 
-  global_mesh_to_add = global_mesh_type(trim(filename))
+  global_mesh_to_add = global_mesh_type(trim(filename), global_mesh_name)
+
   global_mesh_id     = global_mesh_to_add%get_id()
 
   n_global_meshes = self%global_mesh_list%get_length()

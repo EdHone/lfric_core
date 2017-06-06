@@ -3,10 +3,16 @@
 ' should have received as part of this distribution.
 
 interface ugrid_generator_mod::ugrid_generator_type{
+
 +{abstract} generate()
-+{abstract} get_metadata( <<out>> mesh_class: string )
++{abstract} get_metadata( <<out>> mesh_name: string, <<out>> mesh_class: string )
 +{abstract} get_dimensions( <<out>> num_nodes: integer, <<out>> num_edges: integer, <<out>> num_faces: integer, <<out>> num_nodes_per_face: integer, <<out>> num_edges_per_face: integer, <<out>> num_nodes_per_edge: integer )
 +{abstract} get_coordinates( <<out>> node_coordinates: real[::] )
 +{abstract} get_connectivity( <<out>> face_node_connectivity: integer[::], <<out>> edge_node_connectivity: integer[::], <<out>> face_edge_connectivity: integer[::], <<out>> face_face_connectivity: integer[::] )
+
 }
 
+note "ugrid_generator_type used as\ninput for set_by_generator()" as N1
+
+ugrid_generator_mod::ugrid_generator_type .down. N1
+N1 .down. ugrid_2d_mod::ugrid_2d_type
