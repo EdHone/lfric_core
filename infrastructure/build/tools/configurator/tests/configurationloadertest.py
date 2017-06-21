@@ -26,17 +26,20 @@ class LoaderTest( unittest.TestCase ):
 !-----------------------------------------------------------------------------
 ! Handles the loading of namelists.
 !
-module empty_mod
+module configuration_mod
 
   use constants_mod, only : i_native, l_def, str_def, str_max_filename
   use log_mod,       only : log_scratch_space, log_event, LOG_LEVEL_ERROR
-  use ESMF,          only : ESMF_VM, ESMF_VMGet, ESMF_SUCCESS, &
-                            ESMF_VMGetCurrent, ESMF_VMBroadcast
 
   implicit none
 
   private
   public :: read_configuration, ensure_configuration
+
+  interface read_configuration
+    procedure read_configuration_file
+    procedure read_configuration_unit
+  end interface read_configuration
 
 contains
 
@@ -48,7 +51,7 @@ contains
   ! TODO: Support "namelist file" namelists which recursively call this
   !       procedure to load other namelist files.
   !
-  subroutine read_configuration( filename )
+  subroutine read_configuration_file( filename )
 
     use io_utility_mod, only : open_file, close_file
 
@@ -56,103 +59,50 @@ contains
 
     character(*), intent(in) :: filename
 
-    integer(i_native) :: local_rank
-    type(ESMF_VM)     :: vm
+    integer(i_native) :: unit
 
-    character(str_def), allocatable :: namelists(:)
-    integer(i_native) :: unit = -1
-    integer(i_native) :: condition
+    unit = open_file( filename )
+    call read_configuration_unit( unit )
+    call close_file( unit )
 
-    call ESMF_VMGetCurrent( vm=vm, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to get VM when trying to read configuration, file: "//filename
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
+  end subroutine read_configuration_file
 
-    call ESMF_VMGet( vm, localPet=local_rank, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to query VM when trying to read configuration, file: "//filename
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    if (local_rank == 0) unit = open_file( filename )
-
-    call get_namelist_names( unit, vm, local_rank, namelists )
-
-    call read_configuration_namelists( unit, vm, local_rank, &
-                                       namelists, filename )
-
-    if (local_rank == 0) call close_file( unit )
-
-  end subroutine read_configuration
-
-  ! Finds names of all namelists present in file.
+  ! Reads configuration namelists from an I/O unit.
   !
-  ! [in] unit File holding namelists.
-  ! [out] names of namelist in file (in order).
+  ! [in] unit File holding the namelists.
   !
-  ! TODO: Assumes namelist tags are at the start of lines.
-  !
-  subroutine get_namelist_names( unit, vm, local_rank, names )
+  subroutine read_configuration_unit( unit )
 
     use io_utility_mod, only : read_line
 
     implicit none
 
-    integer(i_native),  intent(in)                 :: unit
-    type(esmf_vm),      intent(in)                 :: vm
-    integer(i_native),  intent(in)                 :: local_rank
-    character(str_def), intent(inout), allocatable :: names(:)
+    integer(i_native), intent(in) :: unit
 
-    character(str_def), allocatable :: names_temp(:)
-    integer(i_native)  :: condition
     character(str_def) :: buffer
-    logical(l_def)     :: continue_read
-    ! Number of names - technically a scalar but must be defined as a
-    ! single element array to be broadcast-able
-    integer(i_native)  :: namecount(1)
+    logical(l_def)     :: continue
+    character(str_max_filename) :: filename
 
-    namecount = 0
-    if (local_rank == 0) then
-      text_line_loop: do
+    text_line_loop: do
 
-        continue_read = read_line( unit, buffer )
-        if ( .not. continue_read ) exit text_line_loop
+      continue = read_line( unit, buffer )
+      if (.not. continue) exit
 
-        if (buffer(1:1) == '&') then
-          namecount = namecount + 1
-          allocate(names_temp(namecount(1)))
-          if (namecount(1) > 1) then
-            names_temp(1:namecount(1)-1) = names
-          end if
-          names_temp(namecount(1)) = trim(buffer(2:))
-          call move_alloc(names_temp, names)
-        end if
-      end do text_line_loop
-      rewind(unit)
-    end if
+      if (buffer(1:1) == '&') then
+        select case (trim(buffer(2:)))
+          case default
+            inquire( unit, name=filename )
+            write( log_scratch_space, '(A, A, A, A)' ) &
+                 "Unrecognised namelist """,           &
+                 trim(buffer),                         &
+                 """ found in file ",                  &
+                 trim(filename)
+            call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end select
+      end if
+    end do text_line_loop
 
-    call ESMF_VMBroadcast( vm, namecount, 1, 0, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to broadcast number of namelists"
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    if (local_rank /= 0) then
-      allocate(names(namecount(1)))
-    end if
-
-    call ESMF_VMBroadcast( vm, names, namecount(1)*str_def, 0, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to broadcast list of namelist names"
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-  end subroutine get_namelist_names
+  end subroutine read_configuration_unit
 
   ! Checks that the requested namelists have been loaded.
   !
@@ -199,51 +149,11 @@ contains
 
   end function ensure_configuration
 
-  subroutine read_configuration_namelists( unit, vm, local_rank, &
-                                           namelists, filename )
-    implicit none
-
-    integer(i_native),  intent(in) :: unit
-    type(ESMF_VM),      intent(in) :: vm
-    integer(i_native),  intent(in) :: local_rank
-    character(str_def), intent(in) :: namelists(:)
-    character(*),       intent(in) :: filename
-
-    integer(i_native) :: i
-
-    ! Read the namelists
-    do i = 1, size(namelists)
-      select case (trim(namelists(i)))
-        case default
-          write( log_scratch_space, '(A)' )        &
-                "Unrecognised namelist """//        &
-                trim(namelists(i))//                &
-                """ found in file "//               &
-                trim(filename)
-          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end select
-    end do
-
-    ! Perform post load actions
-    do i = 1, size(namelists)
-      select case (trim(namelists(i)))
-        case default
-          write( log_scratch_space, '(A)' )        &
-                "Unrecognised namelist """//        &
-                trim(namelists(i))//                &
-                """ found in file "//               &
-                trim(filename)
-          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end select
-    end do
-
-  end subroutine read_configuration_namelists
-
-end module empty_mod
-        '''.strip()
+end module configuration_mod
+        '''.strip().replace( '~', ' ' )
 
         outputFile = StringIO.StringIO()
-        uut = loader.ConfigurationLoader( 'empty_mod')
+        uut = loader.ConfigurationLoader()
         uut.writeModule( outputFile )
 
         self.assertMultiLineEqual( expectedSource + '\n', \
@@ -259,22 +169,22 @@ end module empty_mod
 !-----------------------------------------------------------------------------
 ! Handles the loading of namelists.
 !
-module content_mod
+module configuration_mod
 
   use constants_mod, only : i_native, l_def, str_def, str_max_filename
   use log_mod,       only : log_scratch_space, log_event, LOG_LEVEL_ERROR
-  use ESMF,          only : ESMF_VM, ESMF_VMGet, ESMF_SUCCESS, &
-                            ESMF_VMGetCurrent, ESMF_VMBroadcast
 
-  use foo_config_mod, only : read_foo_namelist, &
-                             postprocess_foo_namelist, &
-                             foo_is_loadable, &
-                             foo_is_loaded
+{usage}
 
   implicit none
 
   private
   public :: read_configuration, ensure_configuration
+
+  interface read_configuration
+    procedure read_configuration_file
+    procedure read_configuration_unit
+  end interface read_configuration
 
 contains
 
@@ -286,7 +196,7 @@ contains
   ! TODO: Support "namelist file" namelists which recursively call this
   !       procedure to load other namelist files.
   !
-  subroutine read_configuration( filename )
+  subroutine read_configuration_file( filename )
 
     use io_utility_mod, only : open_file, close_file
 
@@ -294,103 +204,51 @@ contains
 
     character(*), intent(in) :: filename
 
-    integer(i_native) :: local_rank
-    type(ESMF_VM)     :: vm
+    integer(i_native) :: unit
 
-    character(str_def), allocatable :: namelists(:)
-    integer(i_native) :: unit = -1
-    integer(i_native) :: condition
+    unit = open_file( filename )
+    call read_configuration_unit( unit )
+    call close_file( unit )
 
-    call ESMF_VMGetCurrent( vm=vm, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to get VM when trying to read configuration, file: "//filename
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
+  end subroutine read_configuration_file
 
-    call ESMF_VMGet( vm, localPet=local_rank, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to query VM when trying to read configuration, file: "//filename
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    if (local_rank == 0) unit = open_file( filename )
-
-    call get_namelist_names( unit, vm, local_rank, namelists )
-
-    call read_configuration_namelists( unit, vm, local_rank, &
-                                       namelists, filename )
-
-    if (local_rank == 0) call close_file( unit )
-
-  end subroutine read_configuration
-
-  ! Finds names of all namelists present in file.
+  ! Reads configuration namelists from an I/O unit.
   !
-  ! [in] unit File holding namelists.
-  ! [out] names of namelist in file (in order).
+  ! [in] unit File holding the namelists.
   !
-  ! TODO: Assumes namelist tags are at the start of lines.
-  !
-  subroutine get_namelist_names( unit, vm, local_rank, names )
+  subroutine read_configuration_unit( unit )
 
     use io_utility_mod, only : read_line
 
     implicit none
 
-    integer(i_native),  intent(in)                 :: unit
-    type(esmf_vm),      intent(in)                 :: vm
-    integer(i_native),  intent(in)                 :: local_rank
-    character(str_def), intent(inout), allocatable :: names(:)
+    integer(i_native), intent(in) :: unit
 
-    character(str_def), allocatable :: names_temp(:)
-    integer(i_native)  :: condition
     character(str_def) :: buffer
-    logical(l_def)     :: continue_read
-    ! Number of names - technically a scalar but must be defined as a
-    ! single element array to be broadcast-able
-    integer(i_native)  :: namecount(1)
+    logical(l_def)     :: continue
+    character(str_max_filename) :: filename
 
-    namecount = 0
-    if (local_rank == 0) then
-      text_line_loop: do
+    text_line_loop: do
 
-        continue_read = read_line( unit, buffer )
-        if ( .not. continue_read ) exit text_line_loop
+      continue = read_line( unit, buffer )
+      if (.not. continue) exit
 
-        if (buffer(1:1) == '&') then
-          namecount = namecount + 1
-          allocate(names_temp(namecount(1)))
-          if (namecount(1) > 1) then
-            names_temp(1:namecount(1)-1) = names
-          end if
-          names_temp(namecount(1)) = trim(buffer(2:))
-          call move_alloc(names_temp, names)
-        end if
-      end do text_line_loop
-      rewind(unit)
-    end if
+      if (buffer(1:1) == '&') then
+        select case (trim(buffer(2:)))
+{readSection}
+          case default
+            inquire( unit, name=filename )
+            write( log_scratch_space, '(A, A, A, A)' ) &
+                 "Unrecognised namelist """,           &
+                 trim(buffer),                         &
+                 """ found in file ",                  &
+                 trim(filename)
+            call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end select
+      end if
+    end do text_line_loop
 
-    call ESMF_VMBroadcast( vm, namecount, 1, 0, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to broadcast number of namelists"
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    if (local_rank /= 0) then
-      allocate(names(namecount(1)))
-    end if
-
-    call ESMF_VMBroadcast( vm, names, namecount(1)*str_def, 0, rc=condition )
-    if (condition /= ESMF_SUCCESS) then
-      write(log_scratch_space, "(A)") &
-          "Failed to broadcast list of namelist names"
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-  end subroutine get_namelist_names
+  end subroutine read_configuration_unit
 
   ! Checks that the requested namelists have been loaded.
   !
@@ -421,8 +279,7 @@ contains
 
     name_loop: do i = 1, size(names)
       select case(trim( names(i) ))
-        case ('foo')
-          configuration_found = foo_is_loaded()
+{ensureSection}
         case default
           write( log_scratch_space, '(A, A, A)' )          &
                "Tried to ensure unrecognised namelist """, &
@@ -439,65 +296,39 @@ contains
 
   end function ensure_configuration
 
-  subroutine read_configuration_namelists( unit, vm, local_rank, &
-                                           namelists, filename )
-    implicit none
+end module configuration_mod
+        '''.strip().replace( '~', ' ' )
 
-    integer(i_native),  intent(in) :: unit
-    type(ESMF_VM),      intent(in) :: vm
-    integer(i_native),  intent(in) :: local_rank
-    character(str_def), intent(in) :: namelists(:)
-    character(*),       intent(in) :: filename
+        firstUsage = '''
+~~use foo_config_mod, only : read_foo_namelist, foo_is_loadable, foo_is_loaded
+        '''.strip().replace( '~', ' ' )
 
-    integer(i_native) :: i
+        firstReadSection = '''
+~~~~~~~~~~case ('foo')
+            if (foo_is_loadable()) then
+              backspace( unit )
+              call read_foo_namelist( unit )
+            else
+              write( log_scratch_space, '(A, A, A)' ) &
+                   "Namelist """,                     &
+                   trim(buffer),                      &
+                   """ can not be read. Too many instances?"
+              call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+            end if
+        '''.strip().replace( '~', ' ' )
 
-    ! Read the namelists
-    do i = 1, size(namelists)
-      select case (trim(namelists(i)))
-        case ('foo')
-          if (foo_is_loadable()) then
-            call read_foo_namelist( unit, vm, local_rank )
-          else
-            write( log_scratch_space, '(A)' )      &
-                  "Namelist """//                   &
-                  trim(namelists(i))//              &
-                  """ can not be read. Too many instances?"
-            call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-          end if
-        case default
-          write( log_scratch_space, '(A)' )        &
-                "Unrecognised namelist """//        &
-                trim(namelists(i))//                &
-                """ found in file "//               &
-                trim(filename)
-          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end select
-    end do
-
-    ! Perform post load actions
-    do i = 1, size(namelists)
-      select case (trim(namelists(i)))
-        case ('foo')
-          call postprocess_foo_namelist()
-        case default
-          write( log_scratch_space, '(A)' )        &
-                "Unrecognised namelist """//        &
-                trim(namelists(i))//                &
-                """ found in file "//               &
-                trim(filename)
-          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end select
-    end do
-
-  end subroutine read_configuration_namelists
-
-end module content_mod
-        '''.strip()
+        firstEnsureSection = '''
+~~~~~~~~case ('foo')
+          configuration_found = foo_is_loaded()
+        '''.strip().replace( '~', ' ' )
 
         outputFile = StringIO.StringIO()
-        uut = loader.ConfigurationLoader( 'content_mod' )
+        uut = loader.ConfigurationLoader()
         uut.addNamelist( 'foo' )
         uut.writeModule( outputFile )
 
-        self.assertMultiLineEqual( expectedSource + '\n',
+        inserts = {'usage'         : firstUsage,         \
+                   'readSection'   : firstReadSection,   \
+                   'ensureSection' : firstEnsureSection}
+        self.assertMultiLineEqual( expectedSource.format( **inserts ) + '\n', \
                                    outputFile.getvalue() )
