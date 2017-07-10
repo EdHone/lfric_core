@@ -56,7 +56,6 @@ module runtime_constants_mod
   use compute_curl_operator_kernel_mod,      only: compute_curl_operator_kernel_type
   use compute_div_operator_kernel_mod,       only: compute_div_operator_kernel_type
   use matrix_vector_kernel_mod,              only: matrix_vector_kernel_type
-  use matrix_vector_nobc_kernel_mod,         only: matrix_vector_nobc_kernel_type
   use get_height_kernel_mod,                 only: get_height_kernel_type
 
   use output_config_mod,                     only: subroutine_timers 
@@ -264,10 +263,7 @@ contains
     m1_lumped_inv  = field_type( vector_space = w1_fs )
     call invoke( set_field_scalar(1.0_r_def, ones), &
                  set_field_scalar(0.0_r_def, m1_lumped_inv) )
-    ! Use a special version of matrix vector to avoid psyclone generating the
-    ! enforce_bc call, otherwise the invoke_divide_field below will divide by zero
-    ! See #678
-    call invoke( matrix_vector_nobc_kernel_type( m1_lumped_inv, ones, mm_w1 ) )
+    call invoke( matrix_vector_kernel_type( m1_lumped_inv, ones, mm_w1 ) )
     call invoke_raise_field( m1_lumped_inv, -1_i_def)
 
     ones           = field_type( vector_space = w0_fs )
