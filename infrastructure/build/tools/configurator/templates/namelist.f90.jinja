@@ -56,11 +56,13 @@ module {{listname}}_config_mod
   character(str_def), parameter :: {{name}}_key({{parameters[name].mapping | length()}}) &
 {%    set indent = '          = [character(len=str_def) :: ' %}
 {%-   for value, key in parameters[name].inverseMapping | dictsort %}
-{%-     if not loop.first %}, &{{'\n'}}{% endif %}
+{%-       if not loop.first %}
+{%-         set indent = ' ' * indent | length() -%}
+, &{{'\n'}}
+{%-        endif %}
 {{- indent }}'{{ key }}'
-{%-     set indent = ' ' * indent | length() %}
-{%-   endfor %}]
-{%- endfor %}
+{%-     endfor %}]
+{%-   endfor %}
 
 contains
 
