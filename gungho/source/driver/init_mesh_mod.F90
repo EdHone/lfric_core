@@ -211,16 +211,11 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id )
     max_stencil_depth = max(max_stencil_depth,max_fv_stencil)
   end if
 
-  if (scheme == transport_scheme_bip_cosmic) then
-    max_stencil_depth = max(max_stencil_depth,         &
-                            max(dep_pt_stencil_extent, &
-                                rho_approximation_stencil_extent))
-  end if
-
-  if (scheme == transport_scheme_cusph_cosmic) then
-    max_stencil_depth = max( max_stencil_depth,      &
-                             dep_pt_stencil_extent + &
-                             rho_approximation_stencil_extent )
+  if (scheme == transport_scheme_bip_cosmic .or. &
+      scheme == transport_scheme_cusph_cosmic) then
+    max_stencil_depth = max(max_stencil_depth,      &
+                            dep_pt_stencil_extent + &
+                            rho_approximation_stencil_extent)
   end if
 
   if (wtheta_on) max_stencil_depth = max(max_stencil_depth,1)
