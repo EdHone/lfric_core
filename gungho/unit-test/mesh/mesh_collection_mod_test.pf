@@ -9,6 +9,7 @@
 module mesh_collection_mod_test
 
     use constants_mod,        only : i_def, r_def, str_def
+    use extrusion_mod,        only : uniform_extrusion_type
     use global_mesh_mod,      only : global_mesh_type
     use partition_mod,        only : partition_type
     use global_mesh_collection_mod,                                         &
@@ -28,15 +29,17 @@ module mesh_collection_mod_test
   type, extends(TestCase), public ::mesh_collection_test_type
     private
     type(global_mesh_type), pointer :: global_mesh => null()
-    type(partition_type)   :: partition
+    type(partition_type)            :: partition
+    type(uniform_extrusion_type)    :: extrusion
   contains
     procedure setUp
     procedure tearDown
     procedure test_all
   end type mesh_collection_test_type
 
-  integer(i_def), parameter :: nlayers    = 5_i_def
-  real(r_def),    parameter :: domain_top = 10000.0_r_def
+  integer(i_def), parameter :: nlayers       = 5_i_def
+  real(r_def),    parameter :: domain_bottom = 0.0_r_def
+  real(r_def),    parameter :: domain_top    = 10000.0_r_def
 
 contains
 
@@ -56,10 +59,12 @@ contains
     ! Create top level collections
     global_mesh_collection = global_mesh_collection_type()
 
-
     global_test_mesh_id = global_mesh_collection%add_unit_test_global_mesh()
     this%global_mesh => global_mesh_collection%get_global_mesh( global_test_mesh_id )
     this%partition   = partition_type()
+    this%extrusion   = uniform_extrusion_type( domain_bottom, &
+                                               domain_top,    &
+                                               nlayers )
 
   end subroutine setUp
 
@@ -81,15 +86,13 @@ contains
   @test
   subroutine test_all( this )
 
-    use extrusion_config_mod, only : extrusion_method_uniform
-
     implicit none
 
     class(mesh_collection_test_type), intent(inout) :: this
 
-    integer(i_def) :: mesh_id, mesh_test_id
+    integer(i_def)           :: mesh_id, mesh_test_id
     type(mesh_type), pointer :: mesh, mesh_test
-    integer(i_def) :: ncells_2d_with_ghost, num_layers
+    integer(i_def)           :: ncells_2d_with_ghost, num_layers
 
 
     ! Create a mesh collection
@@ -98,9 +101,7 @@ contains
     ! Add a couple of meshes to the collection
     mesh_id = mesh_collection%add_new_mesh( this%global_mesh, &
                                             this%partition,   &
-                                            nlayers,          &
-                                            domain_top,       &
-                                            extrusion_method_uniform )
+                                            this%extrusion )
 
     mesh_test_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 

@@ -33,6 +33,8 @@ module function_space_collection_mod_test
     type(function_space_type), pointer :: temp_w0_fs => null()
     integer(i_def)                     :: mesh_id
 
+    integer, allocatable :: dummy_for_gcc
+
   contains
     procedure setUp
     procedure tearDown

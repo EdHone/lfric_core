@@ -11,7 +11,9 @@
 !-------------------------------------------------------------------------------
 module mesh_colouring_mod_test
 !-------------------------------------------------------------------------------
-  use constants_mod,     only : i_def, r_def, str_def, str_max_filename, IMDI
+  use constants_mod,              only : i_def, imdi, r_def, &
+                                         str_def, str_max_filename
+  use extrusion_mod,              only : uniform_extrusion_type
   use global_mesh_collection_mod, only: global_mesh_collection_type            &
                                       , global_mesh_collection
   use global_mesh_mod,            only: global_mesh_type
@@ -113,6 +115,7 @@ subroutine test_compute_colours_cubedsphere(this)
   integer                          :: nc_colour, cic_colour, nc_colour_subset
   type(partition_type)             :: partition
   type(global_mesh_type), pointer  :: global_mesh => null()
+  type(uniform_extrusion_type)     :: extrusion
   procedure(partitioner_interface), pointer  :: partitioner_ptr => null()
 
   integer(i_def)                   :: num_cells
@@ -144,12 +147,13 @@ subroutine test_compute_colours_cubedsphere(this)
                             1, &
                             this%local_rank, &
                             this%total_ranks)
+  extrusion = uniform_extrusion_type( 100.0_r_def,   &
+                                      10000.0_r_def, &
+                                      this%num_layers )
   ! Construct a mesh which is  uniform in vertical for purpose of the test
   mesh_id = mesh_collection%add_new_mesh( global_mesh,     &
                                           partition,       &
-                                          this%num_layers, &
-                                          10000.0_r_def,   &
-                                          extrusion_method_uniform )
+                                          extrusion )
   mesh => mesh_collection%get_mesh( mesh_id )
 
   @assertTrue(mesh%is_coloured(), "Mesh uncoloured")
@@ -206,6 +210,7 @@ subroutine test_compute_colours_biperiodic(this)
   integer                          :: total_colours, total_cells, colour_idx
   integer                          :: nc_colour, cic_colour, nc_colour_subset
   type(partition_type)             :: partition
+  type(uniform_extrusion_type)     :: extrusion
   type(global_mesh_type), pointer  :: global_mesh => null()
   procedure(partitioner_interface), pointer  :: partitioner_ptr => null()
 
@@ -237,13 +242,14 @@ subroutine test_compute_colours_biperiodic(this)
                             1, &
                             this%local_rank, &
                             this%total_ranks)
+  extrusion = uniform_extrusion_type( 100.00_r_def,  &
+                                      10000.0_r_def, &
+                                      this%num_layers )
 
   ! Construct a mesh which is  uniform in vertical for purpose of the test
-  mesh_id = mesh_collection%add_new_mesh( global_mesh,     &
-                                          partition,       &
-                                          this%num_layers, &
-                                          10000.0_r_def,   &
-                                          extrusion_method_uniform )
+  mesh_id = mesh_collection%add_new_mesh( global_mesh, &
+                                          partition,   &
+                                          extrusion  )
   mesh => mesh_collection%get_mesh( mesh_id )
 
   @assertTrue(mesh%is_coloured(), "Mesh uncoloured")
@@ -301,6 +307,7 @@ subroutine test_compute_colours_generic(this)
   integer                          :: total_colours, total_cells, colour_idx
   integer                          :: nc_colour, cic_colour
   type(partition_type)             :: partition
+  type(uniform_extrusion_type)     :: extrusion
   type(global_mesh_type), pointer  :: global_mesh => null()
   procedure(partitioner_interface), pointer  :: partitioner_ptr => null()
 
@@ -333,12 +340,14 @@ subroutine test_compute_colours_generic(this)
                             1, &
                             this%local_rank, &
                             this%total_ranks)
+  extrusion = uniform_extrusion_type( 100.0_r_def,   &
+                                      10000.0_r_def, &
+                                      this%num_layers )
+
   ! Construct a mesh which is  uniform in vertical for purpose of the test
-  mesh_id = mesh_collection%add_new_mesh( global_mesh,     &
-                                          partition,       &
-                                          this%num_layers, &
-                                          10000.0_r_def,   &
-                                          extrusion_method_uniform )
+  mesh_id = mesh_collection%add_new_mesh( global_mesh, &
+                                          partition,   &
+                                          extrusion )
   mesh => mesh_collection%get_mesh( mesh_id )
 
   @assertTrue(mesh%is_coloured(), "Mesh uncoloured")

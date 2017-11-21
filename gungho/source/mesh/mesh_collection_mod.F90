@@ -72,45 +72,34 @@ end function mesh_collection_constructor
 !> @param [in] global_mesh   Global mesh object on which the partition is
 !>                           applied
 !> @param [in] partition     Partition object to base 3D-Mesh on
-!> @param [in] nlayers_in    Number of 3D-cell layers in the 3D-Mesh object
-!> @param [in] domain_top    Top of atmosphere above surface
-!> @param [in] vgrid_option  Choice of vertical grid
+!> @param [in] extrusion     Mechanism by which extrusion will be performed.
 !> @return                   A unique identifier for the created mesh
-function add_new_mesh( self,          &
-                       global_mesh,   &
-                       partition,     &
-                       nlayers_in,    &
-                       domain_top,    &
-                       vgrid_option ) &
-                result( mesh_id )
+function add_new_mesh( self,        &
+                       global_mesh, &
+                       partition,   &
+                       extrusion ) result( mesh_id )
 
-  use global_mesh_mod,      only : global_mesh_type
-  use partition_mod,        only : partition_type
+  use extrusion_mod,   only : extrusion_type
+  use global_mesh_mod, only : global_mesh_type
+  use partition_mod,   only : partition_type
 
   implicit none
 
-  class(mesh_collection_type), intent(inout)   :: self
-  type (global_mesh_type), pointer, intent(in) :: global_mesh
-  type (partition_type),            intent(in) :: partition
-  integer(i_def),                   intent(in) :: nlayers_in
-  integer(i_def),                   intent(in) :: vgrid_option
-  real(r_def),                      intent(in) :: domain_top
+  class(mesh_collection_type), intent(inout)       :: self
+  type(global_mesh_type),      intent(in), pointer :: global_mesh
+  type(partition_type),        intent(in)          :: partition
+  class(extrusion_type),       intent(in)          :: extrusion
 
   integer(i_def) :: mesh_id
 
   type(mesh_type) :: mesh
 
-  mesh = mesh_type( global_mesh, &
-                    partition,   &
-                    nlayers_in,  &
-                    domain_top,  &
-                    vgrid_option )
+  mesh = mesh_type( global_mesh, partition, extrusion )
 
   mesh_id=mesh%get_id()
 
   call self%mesh_list%insert_item( mesh )
 
-  return
 end function add_new_mesh
 
 !> @brief Creates a unit test version of the mesh object and adds it to the
@@ -190,6 +179,8 @@ subroutine mesh_collection_destructor(self)
   implicit none
 
   type (mesh_collection_type), intent(inout) :: self
+
+  call self%clear()
 
 end subroutine mesh_collection_destructor
 

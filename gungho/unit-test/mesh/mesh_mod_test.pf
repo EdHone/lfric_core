@@ -10,7 +10,7 @@ module mesh_mod_test
 
   use constants_mod,        only: r_def, i_def, PI, str_max_filename, str_def
   use coord_transform_mod,  only: llr2xyz
-  use extrusion_config_mod, only: extrusion_method_uniform
+  use extrusion_mod,        only: uniform_extrusion_type
   use global_mesh_collection_mod, only: global_mesh_collection_type &
                                       , global_mesh_collection
   use global_mesh_mod,      only: global_mesh_type
@@ -28,7 +28,6 @@ module mesh_mod_test
                                   partitioner_interface,            &
                                   partitioner_cubedsphere_serial
 
-
   implicit none
 
   private
@@ -43,7 +42,8 @@ module mesh_mod_test
   type, extends( TestCase ) :: mesh_test_type
     private
     type(global_mesh_type), pointer :: global_mesh => null()
-    type(partition_type)   :: partition
+    type(partition_type)            :: partition
+    type(uniform_extrusion_type)    :: extrusion
   contains
     procedure :: setUp
     procedure :: tearDown
@@ -160,6 +160,7 @@ contains
 
     use base_mesh_config_mod,      only : base_mesh_geometry_spherical, &
                                           base_mesh_partitioner_cubedsphere
+    use extrusion_config_mod,      only : extrusion_method_uniform
     use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
     use gungho_feign_config_mod,   only : feign_base_mesh_config, &
                                           feign_extrusion_config, &
@@ -193,6 +194,8 @@ contains
     this%global_mesh => global_mesh_collection%get_global_mesh(global_mesh_id)
     this%partition   =  partition_type()
 
+    this%extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -223,9 +226,7 @@ contains
     integer(i_def) :: test_integer
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     !-------------------------------------------------------------------
     ! Test get_nlayers
@@ -347,9 +348,7 @@ contains
 
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     !-------------------------------------------------------------------
     ! Test get_vert_coords
@@ -405,9 +404,7 @@ contains
     real(r_def) :: test_real_array2_2d(3,8)
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     !-------------------------------------------------------------------
     ! Test get_cell_coords
@@ -460,9 +457,7 @@ contains
     real(r_def) :: test_real_array2_3d(3,8,5)
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     !-------------------------------------------------------------------
     ! Test get_column_coords
@@ -536,9 +531,8 @@ contains
 
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
+
      !-------------------------------------------------------------------
     ! Test get_vert_cell_owner
     test_integer=mesh_1%get_vertex_cell_owner(2,4)
@@ -606,9 +600,7 @@ contains
 
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     !-------------------------------------------------------------------
     ! Test is_vertex_owned
@@ -638,9 +630,7 @@ contains
 
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     !-------------------------------------------------------------------
     ! Test get_domain_size
@@ -675,9 +665,7 @@ contains
 
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
 
     test_partition => mesh_1%get_partition()
@@ -698,9 +686,7 @@ contains
 
     mesh_1 = mesh_type( this%global_mesh, &
                         this%partition,   &
-                        nlayers,          &
-                        domain_top,       &
-                        extrusion_method_uniform )
+                        this%extrusion )
 
     @assertEqual (mesh_1%get_global_mesh_id(),this%global_mesh%get_id()) 
 
@@ -726,7 +712,8 @@ contains
 
 
     type(mesh_map_type), pointer :: mesh_map => null()
-    type(partition_type) :: partition
+    type(partition_type)         :: partition
+    type(uniform_extrusion_type) :: extrusion
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
 
@@ -762,20 +749,19 @@ contains
 
     ! Generate the partition
     partitioner_ptr => partitioner_cubedsphere_serial
- 
+
+    extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
 
     ! Generate the local meshes
     partition = partition_type(source_global_mesh, partitioner_ptr,1,1,1,0,1)
     source_mesh_id = mesh_collection%add_new_mesh( source_global_mesh, &
-                                                   partition, nlayers, &
-                                                   domain_top,         &
-                                                   extrusion_method_uniform )
+                                                   partition,          &
+                                                   extrusion )
 
     partition = partition_type(target_global_mesh, partitioner_ptr,1,1,1,0,1)
     target_mesh_id = mesh_collection%add_new_mesh( target_global_mesh, &
-                                                   partition, nlayers, &
-                                                   domain_top,         &
-                                                   extrusion_method_uniform )
+                                                   partition,          &
+                                                   extrusion )
 
     source_mesh => mesh_collection%get_mesh(source_mesh_id)
     target_mesh => mesh_collection%get_mesh(target_mesh_id)

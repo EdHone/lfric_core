@@ -19,6 +19,7 @@ module mesh_mod
   use base_mesh_config_mod, only : geometry, &
                                    base_mesh_geometry_spherical
   use constants_mod,        only : i_def, i_native, r_def, l_def, pi, imdi
+  use extrusion_mod,        only : extrusion_type
   use extrusion_config_mod, only : extrusion_method_uniform
   use global_mesh_mod,      only : global_mesh_type
   use global_mesh_map_mod,  only : global_mesh_map_type
@@ -46,7 +47,6 @@ module mesh_mod
                                    mesh_connectivity,       &
                                    set_domain_size,         &
                                    set_base_z,              &
-                                   set_vertical_coordinate, &
                                    set_dz
 
   implicit none
@@ -277,7 +277,7 @@ module mesh_mod
   ! -------------------------------------------------------------------------
   ! Module parameters
   ! -------------------------------------------------------------------------
-  
+
   !> Counter variable to keep track of the next mesh id number to uniquely 
   !! identify each different mesh
   integer(i_def), save :: mesh_id_counter = 0
@@ -296,22 +296,17 @@ contains
 
   !============================================================================
   !> @brief Constructor for the mesh object
-  !> @param [in] partition     Partition object to base 3D-Mesh on
   !> @param [in] global_mesh   Global mesh object on which the partition is
   !>                           applied
-  !> @param [in] nlayers_in    Number of 3D-cell layers in the 3D-Mesh object
-  !> @param [in] domain_top    Top of atmosphere above surface
-  !> @param [in] vgrid_option  Choice of vertical grid
+  !> @param [in] partition     Partition object to base 3D-Mesh on
+  !> @param [in] extrusion     Mechnism by which extrusion is to be achieved.
   !> @return                   3D-Mesh object based on the list of partitioned
   !>                           cells on the given global mesh
   !============================================================================
   function mesh_constructor ( global_mesh,   &
                               partition,     &
-                              nlayers_in,    &
-                              domain_top,    &
-                              vgrid_option ) &
+                              extrusion )    &
                             result( self )
-    
 
     ! User structure constructor function for 3d-mesh object
     ! for given 2d-partition of global skin.
@@ -320,11 +315,9 @@ contains
 
     implicit none
 
-    type (global_mesh_type), pointer, intent(in) :: global_mesh
-    type (partition_type),   intent(in) :: partition
-    integer(i_def),          intent(in) :: nlayers_in
-    integer(i_def),          intent(in) :: vgrid_option
-    real(r_def),             intent(in) :: domain_top
+    type(global_mesh_type), intent(in), pointer :: global_mesh
+    type(partition_type),   intent(in)          :: partition
+    class(extrusion_type),  intent(in)          :: extrusion
 
     type(mesh_type)                     :: self
 
@@ -394,22 +387,21 @@ contains
     self%ncells_2d            = partition%get_num_cells_in_layer()
     self%ncells_2d_with_ghost = self%ncells_2d &
                                  + partition%get_num_cells_ghost()
-    self%nlayers              = nlayers_in
+    self%nlayers              = extrusion%get_number_of_layers()
     self%ncells               = self%ncells_2d * self%nlayers
     self%ncells_with_ghost    = self%ncells_2d_with_ghost * self%nlayers
-    self%domain_top           = domain_top
+    self%domain_top           = extrusion%get_atmosphere_top()
     self%ncolours             = -1     ! Initialise ncolours to error status
     self%ncells_global_mesh   = global_mesh%get_ncells()
-    
+
     npanels              = partition%get_num_panels_global_mesh()
 
     allocate( self%eta ( 0:self%nlayers ) )
     allocate( self%dz  ( self%nlayers   ) )
 
-    ! Calculate non-dimensional vertical coordinate eta[0,1] 
-    call set_vertical_coordinate( self%eta,     &
-                                  self%nlayers, &
-                                  vgrid_option )
+    ! Calculate non-dimensional vertical coordinate eta[0,1]
+    call extrusion%extrude( self%eta )
+
     ! Calculate layer depth dz for flat planet surface
     call set_dz( self%dz,      &
                  self%eta,     &
@@ -2148,6 +2140,8 @@ contains
     !    +---+---+---+
     !
 
+    use extrusion_mod, only : uniform_extrusion_type
+
     implicit none
 
     integer(i_def), intent(in) :: mesh_cfg
@@ -2157,6 +2151,8 @@ contains
     integer(i_def), parameter :: nedges_per_cell    = 12
     integer(i_def), parameter :: nverts_per_2d_cell = 4
     integer(i_def), parameter :: nedges_per_2d_cell = 4
+
+    type(uniform_extrusion_type) :: extrusion
 
     self%partition       = partition_type()
     self%nverts_per_cell = 8
@@ -2173,25 +2169,25 @@ contains
 
     if (mesh_cfg == PLANE) then
        self%domain_top = 10000.0_r_def
-       
+
        self%ncells_2d = 9
        self%nverts_2d = 16
        self%nedges_2d = 24
-       
+
        self%nlayers = 5
        self%ncells  = 45
        self%nverts  = 96
        self%nfaces  = 156
        self%nedges  = 224
-       
+
     else if (mesh_cfg == PLANE_BI_PERIODIC) then
        self%domain_top = 6000.0_r_def
-       
+
        ! 3x3x3 mesh bi-periodic
        self%ncells_2d = 9
        self%nverts_2d = 9
        self%nedges_2d = 18
-       
+
        self%nlayers = 3
        self%ncells  = 27
        self%nverts  = 36
@@ -2225,10 +2221,11 @@ contains
 
     ! Calculate vertical coordinates eta[0,1] and dz in a separate subroutine
     ! for the unit tests.
-    ! Uniform vertical grid is used for pFunit tests (hard-wired).
-    call set_vertical_coordinate( self%eta,     &
-                                  self%nlayers, &
-                                  extrusion_method_uniform )
+    ! Hard wires for uniform vertical grid on planar mesh.
+    extrusion = uniform_extrusion_type( 0.0_r_def,       &
+                                        self%domain_top, &
+                                        self%nlayers )
+    call extrusion%extrude( self%eta )
 
     self%vert_cell_owner (:,:) = reshape( [ &
          9, 8, 5, 6, &  ! Cell 1

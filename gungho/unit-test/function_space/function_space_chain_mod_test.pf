@@ -23,7 +23,7 @@ use function_space_collection_mod, only: function_space_collection, &
                                          function_space_collection_type
 use global_mesh_collection_mod,    only: global_mesh_collection_type, &
                                          global_mesh_collection
-use pFUnit_Mod                                            
+use pFUnit_Mod
 
 implicit none
 
@@ -33,7 +33,6 @@ public :: function_space_chain_test_type, &
           test_local_mesh_map_creation,   &
           test_local_mesh_map_contents
 
-  
 @testCase
 type, extends( TestCase ) :: function_space_chain_test_type
   private
@@ -41,6 +40,8 @@ type, extends( TestCase ) :: function_space_chain_test_type
   type(function_space_type), pointer :: function_space2 => null()
   type(function_space_type), pointer :: function_space3 => null()
   type(function_space_type), pointer :: function_space4 => null()
+
+  integer, allocatable :: dummy_for_gcc
 
 contains
   procedure :: setUp
@@ -83,6 +84,7 @@ subroutine setUp( this )
 
 use base_mesh_config_mod,      only: base_mesh_geometry_spherical,      &
                                      base_mesh_partitioner_cubedsphere
+use extrusion_mod,             only: uniform_extrusion_type
 use finite_element_config_mod, only: finite_element_cellshape_quadrilateral
 use gungho_feign_config_mod,   only: feign_base_mesh_config,            &
                                      feign_planet_config,               &
@@ -98,6 +100,7 @@ type(global_mesh_type),    pointer :: source_global_mesh => null()
 type(global_mesh_type),    pointer :: target_global_mesh => null()
 
 type(partition_type)               :: partition
+type(uniform_extrusion_type)       :: extrusion
 type(mesh_type),           pointer :: mesh => null()
 type(function_space_type), pointer :: function_space   => null()
 
@@ -132,7 +135,7 @@ partitioner_ptr => partitioner_cubedsphere_serial
 global_mesh_collection    = global_mesh_collection_type()
 mesh_collection           = mesh_collection_type()
 function_space_collection = function_space_collection_type()
-    
+
 do i=1, size(filenames)
 
   global_mesh_id =  global_mesh_collection %               &
@@ -145,10 +148,11 @@ do i=1, size(filenames)
   partition =  partition_type( global_mesh, partitioner_ptr,    &
                                xproc, yproc, max_stencil_depth, &
                                local_rank, total_ranks )
+  extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
 
-  mesh_id(i) =  mesh_collection % add_new_mesh( global_mesh, partition, &
-                                                nlayers, domain_top,    &
-                                                extrusion_method_uniform )
+  mesh_id(i) =  mesh_collection % add_new_mesh( global_mesh, &
+                                                partition,   &
+                                                extrusion )
 end do
 
 this%function_space1 => function_space_collection%get_fs( mesh_id(1), &

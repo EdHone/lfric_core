@@ -9,6 +9,7 @@
 module mesh_map_mod_test
 
   use constants_mod,        only: r_def, i_def, str_max_filename, str_def
+  use extrusion_mod,        only: uniform_extrusion_type
   use extrusion_config_mod, only: extrusion_method_uniform
   use global_mesh_mod,      only: global_mesh_type
   use global_mesh_map_mod,  only: global_mesh_map_type
@@ -20,7 +21,7 @@ module mesh_map_mod_test
   use mesh_collection_mod,  only: mesh_collection_type, mesh_collection
   use global_mesh_collection_mod, only: global_mesh_collection_type, &
                                         global_mesh_collection
-  use pFUnit_Mod                                            
+  use pFUnit_Mod
 
 
   implicit none
@@ -42,7 +43,7 @@ module mesh_map_mod_test
 
     integer(i_def), allocatable :: coarse_lid_gid_map(:)
     integer(i_def), allocatable :: fine_lid_gid_map(:)
-    
+
   contains
     procedure :: setUp
     procedure :: tearDown
@@ -164,11 +165,13 @@ contains
     class( mesh_map_test_type ), intent( inout ) :: this
 
     type(global_mesh_type), pointer :: global_mesh => null()
-    type(partition_type)   :: partition
+    type(partition_type)            :: partition
+    type(uniform_extrusion_type)    :: extrusion
+
     integer(i_def)         :: mesh_id
 
     integer(i_def)         :: mesh_B_id
-    
+
     integer(i_def)         :: ncells
     integer(i_def)         :: i,j
     integer(i_def)         :: global_mesh_id
@@ -222,10 +225,11 @@ contains
       partition = partition_type( global_mesh, partitioner_ptr,    &
                                   xproc, yproc, max_stencil_depth, &
                                   local_rank, total_ranks )
+      extrusion =uniform_extrusion_type( radius, domain_top, nlayers )
 
-      mesh_id = mesh_collection%add_new_mesh( global_mesh, partition, &
-                                              nlayers, domain_top,    &
-                                              extrusion_method_uniform )
+      mesh_id = mesh_collection%add_new_mesh( global_mesh, &
+                                              partition,   &
+                                              extrusion )
 
       ncells = partition%get_num_cells_in_layer()
 

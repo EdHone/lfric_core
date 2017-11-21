@@ -1,0 +1,150 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2017 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+! Holds unit tests of extrusion_type.
+!
+module extrusion_mod_test
+
+  use constants_mod, only : i_def, r_def
+  use pFUnit_mod
+
+  implicit none
+
+  private
+  public :: test_uniform, test_quadratic, test_geometric, test_dcmip
+
+  ! Tests the base extrusion_type and derived extrusion methods.
+  !
+  @TestCase
+  type, public, extends(TestCase) :: extrusion_test_type
+
+    private
+
+  contains
+
+    private
+
+    procedure, public :: test_uniform
+    procedure, public :: test_quadratic
+    procedure, public :: test_geometric
+    procedure, public :: test_dcmip
+
+  end type extrusion_test_type
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test
+  subroutine test_uniform( this )
+
+    use extrusion_mod, only : uniform_extrusion_type
+
+    implicit none
+
+    class(extrusion_test_type), intent(inout) :: this
+
+    integer(i_def), parameter :: layers = 5
+    real(r_def),    parameter :: expected(0:layers) &
+                                 = [0.0_r_def, 0.2_r_def, 0.4_r_def, &
+                                    0.6_r_def, 0.8_r_def, 1.0_r_def]
+    real(r_def),    parameter :: tollerence = 0.001_r_def
+
+    type(uniform_extrusion_type) :: unit_under_test
+    real(r_def)                  :: eta(0:layers)
+
+    unit_under_test = uniform_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
+
+    ! Test the constructor. This need be done in only one of the child tests.
+    !
+    @assertEqual( 1.0_r_def, unit_under_test%get_atmosphere_bottom() )
+    @assertEqual( 2.0_r_def, unit_under_test%get_atmosphere_top() )
+    @assertEqual( layers,    unit_under_test%get_number_of_layers() )
+
+    ! Now test the extrusion
+    call unit_under_test%extrude( eta )
+    @assertEqual( expected, eta, tollerence )
+
+  end subroutine test_uniform
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test
+  subroutine test_quadratic( this )
+
+    use extrusion_mod, only : quadratic_extrusion_type
+
+    implicit none
+
+    class(extrusion_test_type), intent(inout) :: this
+
+    integer(i_def), parameter :: layers = 5
+    real(r_def),    parameter :: expected(0:layers) &
+                                 = [0.0_r_def,  0.04_r_def, 0.16_r_def, &
+                                    0.36_r_def, 0.64_r_def, 1.0_r_def]
+    real(r_def),    parameter :: tollerence = 0.001_r_def
+
+    type(quadratic_extrusion_type) :: unit_under_test
+    real(r_def)                  :: eta(0:layers)
+
+    unit_under_test = quadratic_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
+
+    call unit_under_test%extrude( eta )
+    @assertEqual( expected, eta, tollerence )
+
+  end subroutine test_quadratic
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test
+  subroutine test_geometric( this )
+
+    use extrusion_mod, only : geometric_extrusion_type
+
+    implicit none
+
+    class(extrusion_test_type), intent(inout) :: this
+
+    integer(i_def), parameter :: layers = 5
+    real(r_def),    parameter :: expected(0:layers) &
+                                 = [0.0_r_def,   0.188_r_def, 0.382_r_def, &
+                                    0.582_r_def, 0.788_r_def, 1.0_r_def]
+    real(r_def),    parameter :: tollerence = 0.001_r_def
+
+    type(geometric_extrusion_type) :: unit_under_test
+    real(r_def)                  :: eta(0:layers)
+
+    unit_under_test = geometric_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
+
+    call unit_under_test%extrude( eta )
+    @assertEqual( expected, eta, tollerence )
+
+  end subroutine test_geometric
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test
+  subroutine test_dcmip( this )
+
+    use extrusion_mod, only : dcmip_extrusion_type
+
+    implicit none
+
+    class(extrusion_test_type), intent(inout) :: this
+
+    integer(i_def), parameter :: layers = 5
+    real(r_def),    parameter :: expected(0:layers) &
+                                 = [0.0_r_def,   0.088_r_def, 0.281_r_def, &
+                                    0.510_r_def, 0.752_r_def, 1.0_r_def]
+    real(r_def),    parameter :: tollerence = 0.001_r_def
+
+    type(dcmip_extrusion_type) :: unit_under_test
+    real(r_def)                  :: eta(0:layers)
+
+    unit_under_test = dcmip_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
+
+    call unit_under_test%extrude( eta )
+    @assertEqual( expected, eta, tollerence )
+
+  end subroutine test_dcmip
+
+end module extrusion_mod_test

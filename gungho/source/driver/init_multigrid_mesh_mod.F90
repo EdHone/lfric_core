@@ -7,12 +7,13 @@
 module init_multigrid_mesh_mod
 
 use constants_mod,              only: i_def, str_def
+use extrusion_mod,              only: extrusion_type
+use global_mesh_mod,            only: global_mesh_type
 use global_mesh_collection_mod, only: global_mesh_collection
+use gungho_extrusion_mod,       only: create_extrusion
 use mesh_collection_mod,        only: mesh_collection
 use mesh_mod,                   only: mesh_type
-use global_mesh_mod,            only: global_mesh_type
 use partition_mod,              only: partition_type, partitioner_interface
-use extrusion_config_mod,       only: number_of_layers, domain_top, method
 use base_mesh_config_mod,       only: prime_mesh_name
 use log_mod,                    only: log_event, log_scratch_space,    &
                                       LOG_LEVEL_INFO, LOG_LEVEL_TRACE, &
@@ -53,6 +54,7 @@ integer(i_def) :: i
 type(mesh_type),        pointer :: prime_mesh => null()
 type(global_mesh_type), pointer :: global_mesh => null()
 type(partition_type) :: partition
+class(extrusion_type), pointer :: extrusion => null()
 
 character(str_def) :: mesh_name
 
@@ -76,6 +78,7 @@ prime_mesh  => mesh_collection%get_mesh(prime_mesh_id)
 global_mesh_ids(1) = prime_mesh%get_global_mesh_id()
 call global_mesh_collection % set_next_source_mesh(global_mesh_ids(1))
 
+extrusion => create_extrusion()
 
 ! Read global meshes into the global mesh collection,
 ! maps should be created in the order they are added.
@@ -92,10 +95,9 @@ do i=2, multigrid_chain_nitems
                                xproc, yproc, max_stencil_depth, &
                                local_rank, total_ranks )
 
-  mesh_ids(i) = mesh_collection % add_new_mesh               &
-                             ( global_mesh, partition,       &
-                               number_of_layers, domain_top, &
-                               method )
+  mesh_ids(i) = mesh_collection % add_new_mesh( global_mesh, &
+                                                partition,   &
+                                                extrusion )
 
 end do
 

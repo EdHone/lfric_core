@@ -153,7 +153,6 @@ contains
 
     type(field_type)             :: rho_analytic
     type(field_type)             :: rho_diff
-    type(operator_type), pointer :: m3_inv => null()
     type(quadrature_type)        :: qr
     type(field_type), pointer    :: chi(:) => null()
     real(r_def)                  :: l2

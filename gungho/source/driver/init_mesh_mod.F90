@@ -11,11 +11,12 @@ module init_mesh_mod
   use base_mesh_config_mod,       only: filename, prime_mesh_name, geometry, &
                                         base_mesh_geometry_spherical
   use constants_mod,              only: i_def, str_def, l_def
-  use extrusion_config_mod,       only: number_of_layers, domain_top, method
+  use extrusion_mod,              only: extrusion_type
   use finite_element_config_mod,  only: cellshape, wtheta_on, &
                                         finite_element_cellshape_quadrilateral
   use global_mesh_mod,            only: global_mesh_type
   use global_mesh_collection_mod, only: global_mesh_collection
+  use gungho_extrusion_mod,       only: create_extrusion
   use init_multigrid_mesh_mod,    only: init_multigrid_mesh
   use log_mod,                    only: log_event,         &
                                         log_scratch_space, &
@@ -67,8 +68,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id )
   ! Local variables
   procedure (partitioner_interface), pointer :: partitioner_ptr => null()
   type(global_mesh_type),            pointer :: global_mesh_ptr => null()
-
-  type(partition_type) :: partition
+  class(extrusion_type),             pointer :: extrusion       => null()
+  type(partition_type)                       :: partition
 
 
   ! max_stencil_depth is the maximum depth (of cells outside the cell over
@@ -257,13 +258,13 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id )
                               local_rank,        &
                               total_ranks )
 
+  extrusion => create_extrusion()
+
   ! Generate the mesh
   call log_event( "Creating prime mesh", LOG_LEVEL_INFO )
   prime_mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr,  &
                                                 partition,        &
-                                                number_of_layers, &
-                                                domain_top,       &
-                                                method )
+                                                extrusion )
 
   write(log_scratch_space,'(A,I0,A)') &
       "Prime mesh created (id:", prime_mesh_id, ")"

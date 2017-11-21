@@ -31,7 +31,6 @@ public :: mesh_extruder,           &
           mesh_connectivity,       &
           set_domain_size,         &
           set_base_z,              &
-          set_vertical_coordinate, &
           set_dz
 
 ! Declare type definitions used in this module
@@ -515,82 +514,6 @@ contains
 
     return
   end subroutine set_base_z
-
-  !============================================================================
-  !> @brief Helper function that calculates and stores vertical coordinate info
-  !> (called from the mesh constructor).
-  !> @param[in,out] eta           Non-dimensional vertical coordinate
-  !> @param[in]     nlayers       Number of layers
-  !> @param[in]     vgrid_option  Choice of vertical grid
-  subroutine set_vertical_coordinate( eta,     &
-                                      nlayers, &
-                                      vgrid_option )
-
-    use extrusion_config_mod, only: extrusion_method_uniform,   &
-                                    extrusion_method_quadratic, &
-                                    extrusion_method_geometric, &
-                                    extrusion_method_dcmip
-
-    implicit none
-
-    real(r_def),       intent(out) :: eta(0:nlayers)
-    integer(i_def),    intent(in)  :: nlayers
-    integer(i_native), intent(in)  :: vgrid_option
-
-    integer(i_def) :: k
-    real   (r_def) :: stretching_factor, phi_flatten, delta_eta, eta_uni
-
-    ! Calculate eta depending on uniform/stretching option
-    select case (vgrid_option)
-
-      ! UNIFORM GRID (constant delta_eta)
-      case (extrusion_method_uniform)
-        do k = 0, nlayers
-          eta(k) = real(k,r_def)/real(nlayers,r_def)
-        end do
-
-      ! QUADRATIC GRID: eta(k) = (k/numlayers)^2
-      case (extrusion_method_quadratic)
-        do k = 0, nlayers
-          eta(k) = ( real(k,r_def)/real(nlayers,r_def) )**2_i_def
-        end do
-
-      ! GEOMETRIC GRID
-      ! Source: John Thuburn's ENDGame code for staggered grid.
-      !         deta = (stretch - 1.0d0)/(stretch**(2*nz) - 1.0d0)
-      ! Here:   The grid is non-staggered grid so it must be
-      !         deta = (stretch - 1.0d0)/(stretch**(nz) - 1.0d0)
-      case (extrusion_method_geometric)
-        stretching_factor = 1.03_r_def
-        eta(0) = 0.0_r_def
-        delta_eta = ( stretching_factor - 1.0_r_def ) / &
-                    ( stretching_factor**(nlayers) - 1.0_r_def )
-        do k = 1, nlayers
-          eta(k) = eta(k-1) + delta_eta
-          delta_eta = delta_eta*stretching_factor
-        end do
-
-      ! DCMIP GRID
-      ! Source: DCMIP-TestCaseDocument_v1.7.pdf, Appendix F.2. - Eq. 229)
-      ! phi_flatten is a flattening parameter (usually phi_flatten = 15)
-      case (EXTRUSION_METHOD_DCMIP)
-        phi_flatten = 15.0_r_def
-        do k = 0, nlayers
-          eta_uni = real(k,r_def)/real(nlayers,r_def)
-          eta(k) = ( sqrt(phi_flatten*(eta_uni**2_i_def) + 1.0_r_def) &
-                          - 1.0_r_def ) / &
-                        ( sqrt(phi_flatten + 1.0_r_def) - 1.0_r_def )
-        end do
-
-      ! Default case - automatically make the uniform grid
-      case default
-        do k = 0, nlayers
-          eta(k) = real(k,r_def)/real(nlayers,r_def)
-        end do
-      end select
-
-    return
-  end subroutine set_vertical_coordinate
 
   !============================================================================
   !> @brief Helper function that calculates and stores depth of layers in 

@@ -26,9 +26,9 @@ module assign_orography_field_cartesian_mod_test
   @testCase
   type, public, extends(TestCase) :: assign_orography_field_cartesian_test_type
     real(r_def)         :: mountain_height
-    real(r_def)         :: half_width_x  
+    real(r_def)         :: half_width_x
     real(r_def)         :: half_width_y
-    real(r_def)         :: wavelength 
+    real(r_def)         :: wavelength
     real(r_def)         :: x_centre
     real(r_def)         :: y_centre
     integer(kind=i_def) :: direction
@@ -40,6 +40,7 @@ module assign_orography_field_cartesian_mod_test
 
   character(str_def), parameter   :: mesh_name     = 'unit_test'
   character(len=str_max_filename) :: filename      = "data/mesh_BiP40x40-5x5.nc"
+  real(r_def),        parameter   :: domain_bottom = 0.0_r_def
   real(r_def),        parameter   :: domain_top    = 10000.0_r_def
   integer(i_def),     parameter   :: npanels       = 1_i_def
   integer(i_def),     parameter   :: nlayers       = 10_i_def
@@ -141,7 +142,7 @@ contains
     use partition_mod,                         only : partition_type,        &
                                                       partitioner_interface, &
                                                       partitioner_biperiodic
-    use extrusion_config_mod,                  only : extrusion_method_uniform
+    use extrusion_mod,                         only : uniform_extrusion_type
     use mesh_constructor_helper_functions_mod, only : domain_size_type
     use orography_helper_functions_mod,        only : calc_domain_size_horizontal 
     use assign_orography_field_mod,            only : assign_orography_cartesian
@@ -158,6 +159,7 @@ contains
     type(domain_size_type)                    :: domain_size 
     type(partition_type)                      :: partition
     procedure(partitioner_interface), pointer :: partitioner_ptr => null()
+    type(uniform_extrusion_type)              :: extrusion
     ! Test parameters
     integer(i_def), parameter :: ndf = 1, undf = nlayers*ndf
     integer(i_def)            :: itest, i, map(1)
@@ -183,12 +185,11 @@ contains
                                 local_rank,      &
                                 total_ranks )
 
+    extrusion = uniform_extrusion_type( domain_bottom, domain_top, nlayers )
     ! Construct a mesh which is uniform in vertical for purpose of the test
     mesh_id = mesh_collection%add_new_mesh( global_mesh, &
                                             partition,   &
-                                            nlayers,     &
-                                            domain_top,  &
-                                            extrusion_method_uniform )
+                                            extrusion )
     mesh => mesh_collection%get_mesh( mesh_id )
 
     ! Get domain size required for the biperiodic coordinate transform

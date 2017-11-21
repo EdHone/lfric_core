@@ -152,6 +152,7 @@ contains
     use partition_mod,                  only : partition_type,        &
                                                partitioner_interface, &
                                                partitioner_cubedsphere_serial
+    use extrusion_mod,                  only : uniform_extrusion_type
     use extrusion_config_mod,           only : extrusion_method_uniform
     use planet_config_mod,              only : scaled_radius
     use assign_orography_field_mod,     only : assign_orography_spherical
@@ -168,6 +169,7 @@ contains
     type(mesh_type),                  pointer :: mesh => null()
     type(partition_type)                      :: partition
     procedure(partitioner_interface), pointer :: partitioner_ptr => null()
+    type(uniform_extrusion_type)              :: extrusion
     ! Test parameters
     integer(i_def), parameter :: ndf = 1, undf = nlayers*ndf
     integer(i_def)            :: itest, i, map(1)
@@ -194,12 +196,12 @@ contains
                                 local_rank,      &
                                 total_ranks )
 
+    extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
+
     ! Construct a mesh which is  uniform in vertical for purpose of the test
     mesh_id = mesh_collection%add_new_mesh( global_mesh, &
                                             partition,   &
-                                            nlayers,     &
-                                            domain_top,  &
-                                            extrusion_method_uniform )
+                                            extrusion )
     mesh => mesh_collection%get_mesh( mesh_id )
 
     ! Set map for chi coordinates

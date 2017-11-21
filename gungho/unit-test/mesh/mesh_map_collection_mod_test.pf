@@ -79,6 +79,7 @@ contains
 
     use base_mesh_config_mod,      only : base_mesh_geometry_spherical, &
                                           base_mesh_partitioner_cubedsphere
+    use extrusion_mod,             only : uniform_extrusion_type
     use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
     use gungho_feign_config_mod,   only : feign_base_mesh_config, &
                                           feign_planet_config,    &
@@ -91,8 +92,10 @@ contains
 
     type(global_mesh_type), pointer :: coarse_global_mesh => null()
     type(global_mesh_type), pointer :: fine_global_mesh   => null()
-    type(partition_type)   :: coarse_partition
-    type(partition_type)   :: fine_partition
+    type(partition_type)            :: coarse_partition
+    type(partition_type)            :: fine_partition
+    type(uniform_extrusion_type)    :: extrusion
+
     integer(i_def)         :: coarse_global_mesh_id
     integer(i_def)         :: fine_global_mesh_id
     integer(i_def)         :: coarse_mesh_id
@@ -155,15 +158,15 @@ contains
                                        xproc, yproc, max_stencil_depth,   &
                                        local_rank, total_ranks )
 
+    extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
+
     coarse_mesh_id   = mesh_collection%add_new_mesh(                         &
                                        coarse_global_mesh, coarse_partition, &
-                                       nlayers, domain_top,                  &
-                                       extrusion_method_uniform )
+                                       extrusion )
 
     fine_mesh_id     = mesh_collection%add_new_mesh(                     &
                                        fine_global_mesh, fine_partition, &
-                                       nlayers, domain_top,              &
-                                       extrusion_method_uniform )
+                                       extrusion )
 
     this%coarse_mesh => mesh_collection%get_mesh( coarse_mesh_id )
     this%fine_mesh   => mesh_collection%get_mesh( fine_mesh_id   )

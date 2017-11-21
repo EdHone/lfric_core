@@ -143,6 +143,7 @@ contains
   @test
   subroutine test_schar_orography_spherical(this)
 
+    use extrusion_mod,        only : uniform_extrusion_type
     use mesh_mod,             only : mesh_type
     use partition_mod,        only : partition_type,        &
                                      partitioner_interface, &
@@ -159,6 +160,7 @@ contains
     type(mesh_type),                  pointer :: mesh => null()
     type(partition_type)                      :: partition
     procedure(partitioner_interface), pointer :: partitioner_ptr => null()
+    type(uniform_extrusion_type)              :: extrusion
     ! Test parameters
     real(r_def), parameter  :: tol = 1.0e-3_r_def
     real(r_def)             :: vertex_coords_2d(3,1), chi_surf, chi_test
@@ -179,13 +181,12 @@ contains
                                 1,               &
                                 local_rank,      &
                                 total_ranks )
+    extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
 
     ! Construct a mesh which is  uniform in vertical for purpose of the test
     mesh_id = mesh_collection%add_new_mesh( global_mesh, &
                                             partition,   &
-                                            nlayers,     &
-                                            domain_top,  &
-                                            extrusion_method_uniform )
+                                            extrusion )
     mesh => mesh_collection%get_mesh( mesh_id )
 
     ! Calculate surface height for selected number of points
