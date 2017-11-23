@@ -121,7 +121,7 @@ subroutine output_nodal(field_name,n, field, mesh_id)
         call project_output(field, projected_field, output_dim, field%which_output_function_space() , mesh_id)
         do dir =1,output_dim
            ! Write the component number into the filename and the field name
-	   write(uchar,'(i1)') dir
+           write(uchar,'(i1)') dir
            field_name_new = field_name//uchar
            fname=trim(ts_fname("nodal_w3projection_", field_name_new, n, rank_name))
 
@@ -195,7 +195,7 @@ subroutine output_xios_nodal(field_name, field, mesh_id)
     call project_output(field, projected_field, output_dim, field%which_output_function_space() , mesh_id)
       do dir =1,output_dim
          ! Write the component number into the filename and the field name
-	 write(uchar,'(i1)') dir
+         write(uchar,'(i1)') dir
          field_name_new = field_name//uchar
          ! Transform the field data
          call nodal_output_alg(projected_field(dir), chi, nodal_output, nodal_coordinates, level)
@@ -724,12 +724,12 @@ subroutine nodal_write_field(nodal_coordinates, level, nodal_output, fspace_dime
   write(OUTPUT_UNIT,'(A)') 'x = [' 
   if ( fspace_dimension  == 1 ) then
     do df = 1,undf
-      write(OUTPUT_UNIT,'(5e18.8e3)') x_p(1)%data(df), x_p(2)%data(df), x_p(3)%data(df), l_p%data(df), n_p(1)%data(df)
+      write(OUTPUT_UNIT,'(5e25.15e3)') x_p(1)%data(df), x_p(2)%data(df), x_p(3)%data(df), l_p%data(df), n_p(1)%data(df)
     end do
   else
     do df = 1,undf
-      write(OUTPUT_UNIT,'(7e18.8e3)') x_p(1)%data(df), x_p(2)%data(df), x_p(3)%data(df), l_p%data(df), &
-                                    n_p(1)%data(df), n_p(2)%data(df), n_p(3)%data(df)
+      write(OUTPUT_UNIT,'(7e25.15e3)') x_p(1)%data(df), x_p(2)%data(df), x_p(3)%data(df), l_p%data(df), &
+                                       n_p(1)%data(df), n_p(2)%data(df), n_p(3)%data(df)
     end do
   end if
   write(OUTPUT_UNIT,'(A)') '];'
