@@ -137,10 +137,10 @@ contains
     call csgen%get_coordinates(this%coords)
 
     ! Mesh coordinates have expected values at specified points
-    @assertTrue(abs(this%coords(1,1) - 5.49778714537437_r_def) < eps, "Incorrect mesh coordinates.")
-    @assertTrue(abs(this%coords(2,1) - 0.615479708713493_r_def) < eps, "Incorrect mesh coordinates.")
-    @assertTrue(abs(this%coords(1,20) - 2.80515847438956_r_def) < eps, "Incorrect mesh coordinates.")
-    @assertTrue(abs(this%coords(2,20) - 0.756566664789698_r_def) < eps, "Incorrect mesh coordinates.")
+    @assertTrue(abs(this%coords(1,1) - 5.49778714378214_r_def) < eps, "Incorrect mesh coordinates.")
+    @assertTrue(abs(this%coords(2,1) - 0.615479708670387_r_def) < eps, "Incorrect mesh coordinates.")
+    @assertTrue(abs(this%coords(1,20) - 2.80515847360063_r_def) < eps, "Incorrect mesh coordinates.")
+    @assertTrue(abs(this%coords(2,20) - 0.756566664736064_r_def) < eps, "Incorrect mesh coordinates.")
 
   end subroutine test_all
 

@@ -30,7 +30,7 @@ use base_mesh_config_mod,          only : geometry, &
                                           base_mesh_geometry_spherical
 use planet_config_mod,             only : p_zero, Rd, kappa, scaled_radius, &
                                           scaled_omega, gravity, cp
-use reference_profile_mod,         only : reference_profile_wtheta
+use reference_profile_mod,         only : reference_profile
 use generate_global_gw_fields_mod, only : generate_global_gw_pert
 use initial_wind_config_mod,       only : u0, sbr_angle_lat
 use deep_baroclinic_wave_mod,      only : deep_baroclinic_wave
@@ -43,12 +43,11 @@ contains
 !> @param[in] chi Position in physical coordinates
 !> @param[in] choice Integer defining which specified formula to use
 !> @result temperature The result temperature field
-function analytic_temperature(chi, choice, chi_surf) result(temperature)
+function analytic_temperature(chi, choice) result(temperature)
 
   implicit none
   real(kind=r_def), intent(in) :: chi(3)
   integer,          intent(in) :: choice
-  real(kind=r_def), intent(in) :: chi_surf(3)
   real(kind=r_def)             :: temperature
 
   real(kind=r_def)             :: l, dt
@@ -61,7 +60,7 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
                                   ZC_cold = 3000.0_r_def, &
                                   ZC_hot = 260.0_r_def, &
                                   ZR = 2000.0_r_def
-  real(kind=r_def)             :: long, lat, radius, long_surf, lat_surf, radius_surf
+  real(kind=r_def)             :: long, lat, radius
   real(kind=r_def)             :: l1, l2
   real(kind=r_def)             :: h1, h2
   real(kind=r_def)             :: pressure, density
@@ -70,7 +69,6 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
  
   if ( geometry == base_mesh_geometry_spherical ) then
     call xyz2llr(chi(1),chi(2),chi(3),long,lat,radius)
-    call xyz2llr(chi_surf(1),chi_surf(2),chi_surf(3),long_surf,lat_surf,radius_surf)
     call central_angle(long,lat,x1,y1,l1)
     call central_angle(long,lat,x2,y2,l2)
   else
@@ -81,19 +79,14 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
   end if
 
   temperature = 0.0_r_def
-  call reference_profile_wtheta(pressure, density, temperature, chi, choice, chi_surf)
+  call reference_profile(pressure, density, temperature, chi, choice)
 
   select case( choice ) 
   
   case ( idealised_test_gravity_wave )
     if ( geometry == base_mesh_geometry_spherical ) then      
-      if (wtheta_on ) then
-        temperature = temperature &
-                    +  generate_global_gw_pert(long,lat,radius-radius_surf)
-      else
-        temperature = temperature &
-                    +  generate_global_gw_pert(long,lat,radius-scaled_radius)
-      end if
+      temperature = temperature &
+                  +  generate_global_gw_pert(long,lat,radius-scaled_radius)
     else
       temperature = temperature + THETA0 * sin ( PI * chi(3) / H ) &
                             / ( 1.0_r_def + ( chi(1) - XC )**2/A**2 )
@@ -177,15 +170,14 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
         *cos(lat)*cos(sbr_angle_lat*pi) &
         + sin(long)*sin(lat)*sin(sbr_angle_lat*pi)
     u00 = u0*(u0 + 2.0_r_def*scaled_omega*scaled_radius)/(t0*Rd)
-    f_sb = 0.5*u00*s**2
+    f_sb = 0.5_r_def*u00*s**2
     temperature = t0 * exp( gravity*(radius-scaled_radius)/( cp * t0 ) ) &
                 * exp(-kappa*f_sb)  
 
   case( idealised_test_deep_baroclinic_wave )
     call deep_baroclinic_wave(long, lat, radius-scaled_radius, &
                               pressure, temperature, density, &
-                              u, v, w) 
-
+                              u, v, w)
   end select
 
 end function analytic_temperature

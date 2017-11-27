@@ -111,10 +111,10 @@ contains
             temperature_at_dof=theta_at_dof*exner_at_dof
             mr_v(map_wtheta(df) + k) = 0.99_r_def *  &
                qsaturation(temperature_at_dof, 0.01_r_def*pressure_at_dof)
-            mr_c(map_wtheta(df) + k) = 0.0
-            mr_r(map_wtheta(df) + k) = 0.0
-            mr_nc(map_wtheta(df) + k) = 0.0
-            mr_nr(map_wtheta(df) + k) = 0.0
+            mr_c(map_wtheta(df) + k) = 0.0_r_def
+            mr_r(map_wtheta(df) + k) = 0.0_r_def
+            mr_nc(map_wtheta(df) + k) = 0.0_r_def
+            mr_nr(map_wtheta(df) + k) = 0.0_r_def
           end do
           
         end do

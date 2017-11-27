@@ -18,10 +18,9 @@ module advection_alg_mod
                                             get_inverse_lumped_mass_matrix, &
                                             w1_id, w2_id, w3inv_id, &
                                             theta_space_id
-  use field_bundle_mod,               only: bundle_ax
   use field_mod,                      only: field_type
   use finite_element_config_mod,      only: element_order, wtheta_on, supg, &
-                                            lumped_m1
+                                            lumped_m1, fd_vorticity
   use function_space_mod,             only: function_space_type
   use matrix_vector_kernel_mod,       only: matrix_vector_kernel_type
   use dg_matrix_vector_kernel_mod,    only: dg_matrix_vector_kernel_type
@@ -57,6 +56,7 @@ module advection_alg_mod
   use timer_mod,                      only: timer
   use timestepping_config_mod,        only: time_method => method, &
                                             timestepping_method_rk   
+  use fd_vorticity_kernel_mod,        only: fd_vorticity_kernel_type
 
   implicit none
 
@@ -289,25 +289,31 @@ contains
   ! 3) Vorticity advection
   ! Currently this is just a single stage approximation using xi = curl(u), it 
   ! should later be updated to use a RK scheme for the vorticity
-  call log_event( "Computing advective vorticity...", LOG_LEVEL_INFO)
-  curl   => get_curl()
-  call invoke( name = "Compute advective vorticity",                            &
-               setval_c(r_xi, 0.0_r_def),                                       &
-               transpose_matrix_vector_kernel_type(r_xi, advecting_wind, curl), &
-               enforce_bc_kernel_type(r_xi) )
-  if ( lumped_m1 ) then
-    m1_lumped_inv => get_inverse_lumped_mass_matrix(w1_id)
-    call invoke( X_times_Y(xi, r_xi, m1_lumped_inv), &
-                 enforce_bc_kernel_type(xi) )
+  if ( fd_vorticity ) then
+    call log_event( "Computing fd advective vorticity...", LOG_LEVEL_INFO)
+    call invoke( setval_c(xi, 0.0_r_def), &
+                 fd_vorticity_kernel_type(xi, advecting_wind, chi, qr) )
   else
-    call solver_algorithm( xi, r_xi)
+    call log_event( "Computing advective vorticity...", LOG_LEVEL_INFO)
+    curl   => get_curl()
+    call invoke( name = "Compute advective vorticity",                            &
+                 setval_c(r_xi, 0.0_r_def),                                       &
+                 transpose_matrix_vector_kernel_type(r_xi, advecting_wind, curl), &
+                 enforce_bc_kernel_type(r_xi) )
+    if ( lumped_m1 ) then
+      m1_lumped_inv => get_inverse_lumped_mass_matrix(w1_id)
+      call invoke( X_times_Y(xi, r_xi, m1_lumped_inv), &
+                   enforce_bc_kernel_type(xi) )
+    else
+      call solver_algorithm( xi, r_xi)
+    end if
   end if
 
   ! 4) Vorticity advection of u ( F/rho \cross curl(u))
   call log_event( "Computing advective wind increment...", LOG_LEVEL_INFO)
   call invoke( name = "Compute advective wind increment",    &
                setval_c(advection(igh_u), 0.0_r_def),        &
-               vorticity_advection_kernel_type(advection(igh_u), mass_flux, rho, &
+               vorticity_advection_kernel_type(advection(igh_u), advecting_wind, &
                                                xi, chi, qr), &
                enforce_bc_kernel_type(advection(igh_u)) )
 

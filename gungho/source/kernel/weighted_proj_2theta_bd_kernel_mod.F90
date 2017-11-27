@@ -122,9 +122,9 @@ subroutine weighted_proj_2theta_bd_code(cell, nlayers, ncell_3d,          &
   integer(kind=i_def), intent(in) :: stencil_wtheta_size
   integer(kind=i_def), dimension(ndf_wtheta, stencil_wtheta_size), intent(in)  :: stencil_wtheta_map
 
-  real(kind=r_def), dimension(4,3,ndf_w2,nqp_h_1d,nqp_v), intent(in)     :: w2_basis_face
-  real(kind=r_def), dimension(4,1,ndf_w3,nqp_h_1d,nqp_v), intent(in)     :: w3_basis_face
-  real(kind=r_def), dimension(4,1,ndf_wtheta,nqp_h_1d,nqp_v), intent(in) :: wtheta_basis_face
+  real(kind=r_def), dimension(3,ndf_w2,nqp_h_1d,nqp_v,4), intent(in)     :: w2_basis_face
+  real(kind=r_def), dimension(1,ndf_w3,nqp_h_1d,nqp_v,4), intent(in)     :: w3_basis_face
+  real(kind=r_def), dimension(1,ndf_wtheta,nqp_h_1d,nqp_v,4), intent(in) :: wtheta_basis_face
 
   real(kind=r_def), dimension(ndf_w2,ndf_wtheta,ncell_3d), intent(inout) :: projection
   real(kind=r_def), dimension(undf_wtheta),                intent(in)    :: theta
@@ -164,14 +164,14 @@ subroutine weighted_proj_2theta_bd_code(cell, nlayers, ncell_3d,          &
            theta_at_fquad      = 0.0_r_def
            theta_next_at_fquad = 0.0_r_def
            do df = 1, ndf_wtheta
-             theta_at_fquad      = theta_at_fquad + theta_e(df)*wtheta_basis_face(face,1,df,qp1,qp2)
-             theta_next_at_fquad = theta_next_at_fquad + theta_next_e(df)*wtheta_basis_face(face_next,1,df,qp1,qp2)
+             theta_at_fquad      = theta_at_fquad + theta_e(df)*wtheta_basis_face(1,df,qp1,qp2,face)
+             theta_next_at_fquad = theta_next_at_fquad + theta_next_e(df)*wtheta_basis_face(1,df,qp1,qp2,face_next)
            end do
            rho_at_fquad      = 0.0_r_def
            rho_next_at_fquad = 0.0_r_def
            do df = 1, ndf_w3
-             rho_at_fquad      = rho_at_fquad + rho_e(df)*w3_basis_face(face,1,df,qp1,qp2)
-             rho_next_at_fquad = rho_next_at_fquad + rho_next_e(df)*w3_basis_face(face_next,1,df,qp1,qp2)
+             rho_at_fquad      = rho_at_fquad + rho_e(df)*w3_basis_face(1,df,qp1,qp2,face)
+             rho_next_at_fquad = rho_next_at_fquad + rho_next_e(df)*w3_basis_face(1,df,qp1,qp2,face_next)
            end do
            exner_at_fquad      = calc_exner_pointwise(rho_at_fquad, theta_at_fquad)
            exner_next_at_fquad = calc_exner_pointwise(rho_next_at_fquad, theta_next_at_fquad)
@@ -179,11 +179,11 @@ subroutine weighted_proj_2theta_bd_code(cell, nlayers, ncell_3d,          &
 
            do df0 = 1, ndf_wtheta
              do df2 = 1, ndf_w2
-              v  = w2_basis_face(face,:,df2,qp1,qp2)
+              v  = w2_basis_face(:,df2,qp1,qp2,face)
 
               integrand = wqp_v(qp1)*wqp_v(qp2)* &
                             0.5_r_def*(exner_at_fquad + exner_next_at_fquad)* &
-                              dot_product(v, out_face_normal(:,face))*wtheta_basis_face(face,1,df0,qp1,qp2)
+                              dot_product(v, out_face_normal(:,face))*wtheta_basis_face(1,df0,qp1,qp2,face)
               projection(df2,df0,ik) = projection(df2,df0,ik) - integrand
             end do
           end do

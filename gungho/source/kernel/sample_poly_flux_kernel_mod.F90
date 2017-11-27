@@ -289,7 +289,7 @@ subroutine sample_poly_flux_init(order, nlayers)
   ! first tracer point in stencil is at x = 0, 
   ! flux points are at boundaries so first flux point is x = 1/2
   ! x0 then depends upon the number of upwind cells used
-  x0 = real(1+int(real(np)/2.0),r_def)
+  x0 = real(1+int(real(np,r_def)/2.0_r_def),r_def)
 
   ! Compute monomials at sampling point
   allocate( x_to_p(np) )

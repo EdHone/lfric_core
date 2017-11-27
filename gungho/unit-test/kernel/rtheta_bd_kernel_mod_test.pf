@@ -101,14 +101,14 @@ contains
     u_proxy = this%u%get_proxy()
     ndf_w2  = u_proxy%vspace%get_ndf( )
     dim_w2  = u_proxy%vspace%get_dim_space( )
-    allocate( this%basis_w2_face(nfaces_h,dim_w2,ndf_w2,nqp_h_1d,nqp_v) )
+    allocate( this%basis_w2_face(dim_w2,ndf_w2,nqp_h_1d,nqp_v,nfaces_h) )
 
     this%r_theta_bd  = field_type( vector_space = this%wtheta_fs )
     r_theta_bd_proxy = this%r_theta_bd%get_proxy()
     ndf_wtheta        = r_theta_bd_proxy%vspace%get_ndf( )
     dim_wtheta        = r_theta_bd_proxy%vspace%get_dim_space( )
     undf_wtheta       = r_theta_bd_proxy%vspace%get_undf()
-    allocate( this%basis_wtheta_face(nfaces_h,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v) )
+    allocate( this%basis_wtheta_face(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v,nfaces_h) )
 
     this%cross_stencil_w2 => u_proxy%vspace%get_stencil_dofmap(STENCIL_CROSS, 1)
     this%cross_stencil_w2_map => this%cross_stencil_w2%get_whole_dofmap()
@@ -194,7 +194,7 @@ contains
     ! Assumes same number of horizontal quad points in x and y
     nqp_h_1d = int(nqp_h**(1./2.))
 
-    allocate(xp_f(nfaces_h, nqp_h_1d, 2))
+    allocate(xp_f(nqp_h_1d, 2, nfaces_h))
 
     ndf_w2      = u_proxy%vspace%get_ndf( )
     undf_w2     = u_proxy%vspace%get_undf()
@@ -204,25 +204,25 @@ contains
 
     ! Quadrature points on horizontal faces
 
-    xp_f(1, :, :) = xp(1:nqp_h_1d, :)
-    xp_f(1, :, 1) = 0.0_r_def
+    xp_f(:, :, 1) = xp(1:nqp_h_1d, :)
+    xp_f(:, 1, 1) = 0.0_r_def
 
-    xp_f(2, :, :) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
-    xp_f(2, :, 2) = 0.0_r_def
+    xp_f(:, :, 2) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+    xp_f(:, 2, 2) = 0.0_r_def
 
-    xp_f(3, :, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
-    xp_f(3, :, 1) = 1.0_r_def
+    xp_f(:, :, 3) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+    xp_f(:, 1, 3) = 1.0_r_def
 
-    xp_f(4, :, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
-    xp_f(4, :, 2) = 1.0_r_def
+    xp_f(:, :, 4) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+    xp_f(:, 2, 4) = 1.0_r_def
 
     do ff = 1, nfaces_h
 
       call u_proxy%vspace%compute_basis_function( &
-        this%basis_w2_face(ff,:,:,:,:), ndf_w2, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+        this%basis_w2_face(:,:,:,:,ff), ndf_w2, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
 
       call theta_proxy%vspace%compute_basis_function( &
-        this%basis_wtheta_face(ff,:,:,:,:), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+        this%basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
 
     end do
 

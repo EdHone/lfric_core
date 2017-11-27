@@ -157,7 +157,7 @@ contains
     type(field_type),             intent(in)    :: rhs0(bundle_size)
     integer(i_def),               intent(in)    :: n
 
-    real(r_def),    parameter :: omega = 2.0/3.0
+    real(r_def),    parameter :: omega = 2.0_r_def/3.0_r_def
     real(r_def)               :: err, err0
     integer(i_def)            :: k
 

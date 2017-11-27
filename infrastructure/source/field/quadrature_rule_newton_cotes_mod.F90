@@ -52,18 +52,18 @@ function quadrature_rule(self, nqp_1d)
     quadrature_rule(1,1) = 0.5_r_def
   else
     do i = 1,nqp_1d
-     quadrature_rule(i,1) = real(i-1)/real(nqp_1d-1)
+     quadrature_rule(i,1) = real(i-1,r_def)/real(nqp_1d-1,r_def)
     end do
   end if
 
   ! Compute weights
   do i = 1,nqp_1d
-    b(i) = (real(nqp_1d)**i-1.0_r_def)/real(i)
+    b(i) = (real(nqp_1d,r_def)**i-1.0_r_def)/real(i,r_def)
   end do
   ! Compute coefficient matrix A
   do i = 1,nqp_1d
     do j = 1,nqp_1d
-      A(i,j) = real(j)**(i-1)
+      A(i,j) = real(j,r_def)**(i-1)
     end do
   end do
   call matrix_invert(A,Ainv,nqp_1d)

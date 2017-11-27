@@ -421,41 +421,41 @@ contains
     ! Assumes same number of horizontal quad points in x and y
     nqp_h_1d = int(sqrt(real(nqp_h)))
 
-    allocate(xp_f(nfaces_h, nqp_h_1d, 2))
+    allocate(xp_f(nqp_h_1d, 2, nfaces_h))
 
     ndf_w2      = u_proxy%vspace%get_ndf( )
     dim_w2      = u_proxy%vspace%get_dim_space( )
     undf_w2     = u_proxy%vspace%get_undf()
-    allocate(basis_w2_face(nfaces_h,dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_face(dim_w2,ndf_w2,nqp_h_1d,nqp_v,nfaces_h))
 
     ndf_wtheta      = theta_proxy%vspace%get_ndf( )
     dim_wtheta      = theta_proxy%vspace%get_dim_space( )
     undf_wtheta     = theta_proxy%vspace%get_undf()
-    allocate(basis_wtheta_face(nfaces_h,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_face(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v,nfaces_h))
 
     ! Quadrature points on horizontal faces
 
-    xp_f(1, :, :) = xp(1:nqp_h_1d, :)
-    xp_f(1, :, 1) = 0.0_r_def
+    xp_f(:, :, 1) = xp(1:nqp_h_1d, :)
+    xp_f(:, 1, 1) = 0.0_r_def
 
-    xp_f(2, :, :) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
-    xp_f(2, :, 2) = 0.0_r_def
+    xp_f(:, :, 2) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+    xp_f(:, 2, 2) = 0.0_r_def
 
-    xp_f(3, :, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
-    xp_f(3, :, 1) = 1.0_r_def
+    xp_f(:, :, 3) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+    xp_f(:, 1, 3) = 1.0_r_def
 
-    xp_f(4, :, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
-    xp_f(4, :, 2) = 1.0_r_def
+    xp_f(:, :, 4) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+    xp_f(:, 2, 4) = 1.0_r_def
 
     ! Filling up the basis vector with value of the basis functions at the horizontal faces quadrature points
 
     do ff = 1, nfaces_h
 
       call u_proxy%vspace%compute_basis_function( &
-        basis_w2_face(ff,:,:,:,:), ndf_w2, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+        basis_w2_face(:,:,:,:,ff), ndf_w2, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       call theta_proxy%vspace%compute_basis_function( &
-        basis_wtheta_face(ff,:,:,:,:), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+        basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
     end do
 
@@ -563,49 +563,49 @@ contains
     ! Assumes same number of horizontal qp in x and y
     nqp_h_1d = int(sqrt(real(nqp_h)))  ! use sqrt
 
-    allocate(xp_f(nfaces_h, nqp_h_1d, 2))
+    allocate(xp_f(nqp_h_1d, 2, nfaces_h))
 
     ndf_w2      = r_u_bd_proxy%vspace%get_ndf( )
     dim_w2      = r_u_bd_proxy%vspace%get_dim_space( )
     undf_w2     = r_u_bd_proxy%vspace%get_undf()
-    allocate(basis_w2_face(nfaces_h,dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_face(dim_w2,ndf_w2,nqp_h_1d,nqp_v,nfaces_h))
 
     ndf_w3  = rho_proxy%vspace%get_ndf( )
     dim_w3  = rho_proxy%vspace%get_dim_space( )
     undf_w3 = rho_proxy%vspace%get_undf()
-    allocate(basis_w3_face(nfaces_h,dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_face(dim_w3,ndf_w3,nqp_h_1d,nqp_v,nfaces_h))
 
     ndf_wtheta      = theta_proxy%vspace%get_ndf( )
     dim_wtheta      = theta_proxy%vspace%get_dim_space( )
     undf_wtheta     = theta_proxy%vspace%get_undf()
-    allocate(basis_wtheta_face(nfaces_h,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_face(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v,nfaces_h))
 
     ! Quadrature points on horizontal faces
 
-    xp_f(1, :, :) = xp(1:nqp_h_1d, :)
-    xp_f(1, :, 1) = 0.0_r_def
+    xp_f(:, :, 1) = xp(1:nqp_h_1d, :)
+    xp_f(:, 1, 1) = 0.0_r_def
 
-    xp_f(2, :, :) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
-    xp_f(2, :, 2) = 0.0_r_def
+    xp_f(:, :, 2) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+    xp_f(:, 2, 2) = 0.0_r_def
 
-    xp_f(3, :, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
-    xp_f(3, :, 1) = 1.0_r_def
+    xp_f(:, :, 3) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+    xp_f(:, 1, 3) = 1.0_r_def
 
-    xp_f(4, :, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
-    xp_f(4, :, 2) = 1.0_r_def
+    xp_f(:, :, 4) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+    xp_f(:, 2, 4) = 1.0_r_def
 
     ! Filling up the face basis vector with value of the basis functions at the horizontal faces quadrature points
 
     do ff = 1, nfaces_h
 
       call r_u_bd_proxy%vspace%compute_basis_function( &
-        basis_w2_face(ff,:,:,:,:), ndf_w2, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+        basis_w2_face(:,:,:,:,ff), ndf_w2, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       call rho_proxy%vspace%compute_basis_function( &
-        basis_w3_face(ff,:,:,:,:), ndf_w3, nqp_h_1d, nqp_v, xp_f(ff, :,:), zp)
+        basis_w3_face(:,:,:,:,ff), ndf_w3, nqp_h_1d, nqp_v, xp_f(:,:, ff), zp)
 
       call theta_proxy%vspace%compute_basis_function( &
-        basis_wtheta_face(ff,:,:,:,:), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+        basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
     end do
 
@@ -1025,34 +1025,34 @@ contains
       ! Assumes same number of horizontal qp in x and y
       nqp_h_1d = int(sqrt(real(nqp_h)))  ! use sqrt
 
-      allocate(xp_f(nfaces_h, nqp_h_1d, 2))
+      allocate(xp_f(nqp_h_1d, 2, nfaces_h))
 
       ndf_w2      = div_star_proxy%fs_to%get_ndf( )
       dim_w2      = div_star_proxy%fs_to%get_dim_space( )
-      allocate(basis_w2_face(nfaces_h,dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+      allocate(basis_w2_face(dim_w2,ndf_w2,nqp_h_1d,nqp_v,nfaces_h))
 
       ndf_w3  = div_star_proxy%fs_from%get_ndf( )
       dim_w3  = div_star_proxy%fs_from%get_dim_space( )
-      allocate(basis_w3_face(nfaces_h,dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+      allocate(basis_w3_face(dim_w3,ndf_w3,nqp_h_1d,nqp_v,nfaces_h))
 
       ndf_wtheta      = theta_proxy%vspace%get_ndf( )
       dim_wtheta      = theta_proxy%vspace%get_dim_space( )
       undf_wtheta     = theta_proxy%vspace%get_undf()
-      allocate(basis_wtheta_face(nfaces_h,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+      allocate(basis_wtheta_face(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v,nfaces_h))
 
       ! Quadrature points on horizontal faces
 
-      xp_f(1, :, :) = xp(1:nqp_h_1d, :)
-      xp_f(1, :, 1) = 0.0_r_def
+      xp_f(:, :, 1) = xp(1:nqp_h_1d, :)
+      xp_f(:, 1, 1) = 0.0_r_def
 
-      xp_f(2, :, :) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
-      xp_f(2, :, 2) = 0.0_r_def
+      xp_f(:, :, 2) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+      xp_f(:, 2, 2) = 0.0_r_def
 
-      xp_f(3, :, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
-      xp_f(3, :, 1) = 1.0_r_def
+      xp_f(:, :, 3) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+      xp_f(:, 1, 3) = 1.0_r_def
 
-      xp_f(4, :, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
-      xp_f(4, :, 2) = 1.0_r_def
+      xp_f(:, :, 4) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+      xp_f(:, 2, 4) = 1.0_r_def
 
       ! Stencil maps
       cross_stencil_wtheta => theta_proxy%vspace%get_stencil_dofmap(STENCIL_CROSS, 1)
@@ -1064,13 +1064,13 @@ contains
       do ff = 1, nfaces_h
 
         call div_star_proxy%fs_to%compute_basis_function( &
-          basis_w2_face(ff,:,:,:,:), ndf_w2, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+          basis_w2_face(:,:,:,:,ff), ndf_w2, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
         call div_star_proxy%fs_from%compute_basis_function( &
-          basis_w3_face(ff,:,:,:,:), ndf_w3, nqp_h_1d, nqp_v, xp_f(ff, :,:), zp)
+          basis_w3_face(:,:,:,:,ff), ndf_w3, nqp_h_1d, nqp_v, xp_f(:,:, ff), zp)
 
         call theta_proxy%vspace%compute_basis_function( &
-          basis_wtheta_face(ff,:,:,:,:), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+          basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       end do
       !
@@ -1176,35 +1176,35 @@ contains
       ! Assumes same number of horizontal qp in x and y
       nqp_h_1d = int(sqrt(real(nqp_h)))  ! use sqrt
 
-      allocate(xp_f(nfaces_h, nqp_h_1d, 2))
+      allocate(xp_f(nqp_h_1d, 2, nfaces_h))
 
       ndf_w2      = p2theta_proxy%fs_to%get_ndf( )
       dim_w2      = p2theta_proxy%fs_to%get_dim_space( )
-      allocate(basis_w2_face(nfaces_h,dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+      allocate(basis_w2_face(dim_w2,ndf_w2,nqp_h_1d,nqp_v,nfaces_h))
 
       ndf_w3   = rho_proxy%vspace%get_ndf( )
       undf_w3  = rho_proxy%vspace%get_undf( )
       dim_w3   = rho_proxy%vspace%get_dim_space( )
-      allocate(basis_w3_face(nfaces_h,dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+      allocate(basis_w3_face(dim_w3,ndf_w3,nqp_h_1d,nqp_v,nfaces_h))
 
       ndf_wtheta      = p2theta_proxy%fs_from%get_ndf( )
       dim_wtheta      = p2theta_proxy%fs_from%get_dim_space( )
       undf_wtheta     = p2theta_proxy%fs_from%get_undf()
-      allocate(basis_wtheta_face(nfaces_h,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+      allocate(basis_wtheta_face(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v,nfaces_h))
 
       ! Quadrature points on horizontal faces
 
-      xp_f(1, :, :) = xp(1:nqp_h_1d, :)
-      xp_f(1, :, 1) = 0.0_r_def
+      xp_f(:, :, 1) = xp(1:nqp_h_1d, :)
+      xp_f(:, 1, 1) = 0.0_r_def
 
-      xp_f(2, :, :) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
-      xp_f(2, :, 2) = 0.0_r_def
+      xp_f(:, :, 2) = xp(1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+      xp_f(:, 2, 2) = 0.0_r_def
 
-      xp_f(3, :, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
-      xp_f(3, :, 1) = 1.0_r_def
+      xp_f(:, :, 3) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+      xp_f(:, 1, 3) = 1.0_r_def
 
-      xp_f(4, :, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
-      xp_f(4, :, 2) = 1.0_r_def
+      xp_f(:, :, 4) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+      xp_f(:, 2, 4) = 1.0_r_def
 
       ! Stencil maps
       cross_stencil_wtheta => p2theta_proxy%fs_from%get_stencil_dofmap(STENCIL_CROSS, 1)
@@ -1220,13 +1220,13 @@ contains
       do ff = 1, nfaces_h
 
         call p2theta_proxy%fs_to%compute_basis_function( &
-          basis_w2_face(ff,:,:,:,:), ndf_w2, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+          basis_w2_face(:,:,:,:,ff), ndf_w2, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
         call p2theta_proxy%fs_from%compute_basis_function( &
-          basis_wtheta_face(ff,:,:,:,:), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(ff, :,:), zp)
+          basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:,:, ff), zp)
 
         call rho_proxy%vspace%compute_basis_function( &
-          basis_w3_face(ff,:,:,:,:), ndf_w3, nqp_h_1d, nqp_v, xp_f(ff, :, :), zp)
+          basis_w3_face(:,:,:,:,ff), ndf_w3, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       end do
       !

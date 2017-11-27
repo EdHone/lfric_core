@@ -110,9 +110,9 @@ contains
 
     integer(kind=i_def), dimension(ndf_wtheta,stencil_wtheta_size),  intent(in) :: stencil_wtheta_map
 
-    real(kind=r_def), dimension(4,3,ndf_w2,nqp_h_1d,nqp_v), intent(in)     :: w2_basis_face
-    real(kind=r_def), dimension(4,1,ndf_w3,nqp_h_1d,nqp_v), intent(in)     :: w3_basis_face
-    real(kind=r_def), dimension(4,1,ndf_wtheta,nqp_h_1d,nqp_v), intent(in) :: wtheta_basis_face
+    real(kind=r_def), dimension(3,ndf_w2,nqp_h_1d,nqp_v,4), intent(in)     :: w2_basis_face
+    real(kind=r_def), dimension(1,ndf_w3,nqp_h_1d,nqp_v,4), intent(in)     :: w3_basis_face
+    real(kind=r_def), dimension(1,ndf_wtheta,nqp_h_1d,nqp_v,4), intent(in) :: wtheta_basis_face
 
     real(kind=r_def), dimension(ndf_w2,ndf_w3,ncell_3d), intent(inout) :: div
     real(kind=r_def), dimension(undf_wtheta), intent(in)    :: theta
@@ -147,15 +147,15 @@ contains
             theta_at_fquad      = 0.0_r_def 
             theta_next_at_fquad = 0.0_r_def               
             do df = 1, ndf_wtheta
-              theta_at_fquad       = theta_at_fquad      + theta_e(df)     *wtheta_basis_face(face,1,df,qp1,qp2)
-              theta_next_at_fquad  = theta_next_at_fquad + theta_next_e(df)*wtheta_basis_face(face_next,1,df,qp1,qp2)
+              theta_at_fquad       = theta_at_fquad      + theta_e(df)     *wtheta_basis_face(1,df,qp1,qp2,face)
+              theta_next_at_fquad  = theta_next_at_fquad + theta_next_e(df)*wtheta_basis_face(1,df,qp1,qp2,face_next)
             end do                
             do df3 = 1, ndf_w3
               do df2 = 1, ndf_w2
-                v  = w2_basis_face(face,:,df2,qp1,qp2)
+                v  = w2_basis_face(:,df2,qp1,qp2,face)
                 this_bd_term =  dot_product(v, out_face_normal(:,face))*theta_at_fquad
                 next_bd_term = -dot_product(v, out_face_normal(:,face))*theta_next_at_fquad
-                integrand = wqp_v(qp1)*wqp_v(qp2)*w3_basis_face(face,1,df3,qp1,qp2) &
+                integrand = wqp_v(qp1)*wqp_v(qp2)*w3_basis_face(1,df3,qp1,qp2,face) &
                              * 0.5_r_def*(this_bd_term + next_bd_term)
                 div(df2,df3,ik) = div(df2,df3,ik) - integrand
               end do ! df2

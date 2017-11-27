@@ -112,64 +112,63 @@ def make_figure(plotpath, field, timestep, plotlong, plotlat, plotlevel):
   z2d = np.linspace(zmin, zmax, nz)
   y2d = np.linspace(ymin, ymax, ny)
   zi = np.zeros([ny,nx,len(levels)])
+  xi, yi = np.meshgrid(x2d, y2d)  
+  for p in xrange(len(levels)):
+    pp = int(l2h[p])
+    zi[:,:,p] = griddata((np.asarray(x[p]), np.asarray(y[p])), np.asarray(z[p]), (xi, yi), method='linear')
 
   cc = np.linspace(np.amin(z),np.amax(z),13)
 
   # xz plot
-  xi, yi = np.meshgrid(x2d, y2d)  
-  for p in xrange(len(levels)):
-    pp = int(l2h[p])
-    zi[:,:,p] = griddata((np.asarray(x[p]), np.asarray(y[p])), np.asarray(z[p]), (xi, yi), method='linear')
+  if int(plotlat) >= -90 and int(plotlat) <= 90:
 
-  lat = int(plotlat)+90
+    lat = int(plotlat)+90
  
-  yi, xi = np.meshgrid(z2d, x2d) 
-  dz = np.zeros([nx,len(levels)])
-  for i in range(nx):
-    dz[i,:] = zi[lat,i,:]
-
-  fig = plt.figure(figsize=(10,5))
-  cf = plt.contourf(xi *r2d, yi / 1000.0, dz, cc)
-  plt.colorbar(cf,  cmap=cm.spectral)
-  cl = plt.contour(xi * r2d, yi / 1000.0, dz, cc, linewidths=0.5,colors='k')
-  plt.title('max: %e, min: %e'%(np.max(dz),np.min(dz)))
-  plt.xlabel('Longitude')
-  plt.ylabel('z')
-  out_file_name = plotpath + "/" "slice_xz_" + field + "_" + timestep +  ".png"
-  plt.savefig(out_file_name , bbox_inches='tight')
+    yi, xi = np.meshgrid(z2d, x2d) 
+    dz = np.zeros([nx,len(levels)])
+    for i in range(nx):
+      dz[i,:] = zi[lat,i,:]
+ 
+    fig = plt.figure(figsize=(10,5))
+    cf = plt.contourf(xi *r2d, yi / 1000.0, dz, cc)
+    plt.colorbar(cf,  cmap=cm.spectral)
+    cl = plt.contour(xi * r2d, yi / 1000.0, dz, cc, linewidths=0.5,colors='k')
+    plt.title('max: %e, min: %e'%(np.max(dz),np.min(dz)))
+    plt.xlabel('Longitude')
+    plt.ylabel('z')
+    out_file_name = plotpath + "/" "slice_xz_" + field + "_" + timestep +  ".png"
+    plt.savefig(out_file_name , bbox_inches='tight')
 
   # yz plot
-  xi, yi = np.meshgrid(x2d, y2d)  
-  for p in xrange(len(levels)):
-    pp = int(l2h[p])
-    zi[:,:,p] = griddata((np.asarray(x[p]), np.asarray(y[p])), np.asarray(z[p]), (xi, yi), method='linear')
+  if int(plotlong) >= 0 and int(plotlong) <= 360:
 
-  yi, xi = np.meshgrid(z2d, y2d) 
-  dz = np.zeros([ny,len(levels)])
-  for i in range(ny):
-    dz[i,:] = zi[i,plotlong,:]
+    yi, xi = np.meshgrid(z2d, y2d) 
+    dz = np.zeros([ny,len(levels)])
+    for i in range(ny):
+      dz[i,:] = zi[i,int(plotlong),:]
 
-  fig = plt.figure(figsize=(10,5))
-  cf = plt.contourf(xi *r2d, yi / 1000.0, dz, cc)
-  plt.colorbar(cf,  cmap=cm.spectral)
-  cl = plt.contour(xi * r2d, yi / 1000.0, dz, cc, linewidths=0.5,colors='k')
-  plt.title('max: %e, min: %e'%(np.max(dz),np.min(dz)))
-  plt.xlabel('Latitude')
-  plt.ylabel('z')
-  out_file_name = plotpath + "/" "slice_yz_" + field + "_" + timestep +  ".png"
-  plt.savefig(out_file_name , bbox_inches='tight')
+    fig = plt.figure(figsize=(10,5))
+    cf = plt.contourf(xi *r2d, yi / 1000.0, dz, cc)
+    plt.colorbar(cf,  cmap=cm.spectral)
+    cl = plt.contour(xi * r2d, yi / 1000.0, dz, cc, linewidths=0.5,colors='k')
+    plt.title('max: %e, min: %e'%(np.max(dz),np.min(dz)))
+    plt.xlabel('Latitude')
+    plt.ylabel('z')
+    out_file_name = plotpath + "/" "slice_yz_" + field + "_" + timestep +  ".png"
+    plt.savefig(out_file_name , bbox_inches='tight')
 
   # xy plot
-  fig = plt.figure(figsize=(10,5))
-  xi, yi = np.meshgrid(x2d, y2d) 
-  dz = zi[:,:,plotlevel]
-  cf = plt.contourf(xi *r2d, yi * r2d, dz, cc)
-  plt.colorbar(cf,  cmap=cm.spectral)
-  cl = plt.contour(xi * r2d, yi * r2d, dz, cc, linewidths=0.5,colors='k')
-  plt.xlabel('Longitude')
-  plt.ylabel('Latitude')
-  out_file_name = plotpath + "/" "slice_xy_" + field + "_" + timestep +  ".png"
-  plt.savefig(out_file_name , bbox_inches='tight')
+  if int(plotlevel) >= 0 and int(plotlevel) < nz:
+    fig = plt.figure(figsize=(10,5))
+    xi, yi = np.meshgrid(x2d, y2d) 
+    dz = zi[:,:,int(plotlevel)]
+    cf = plt.contourf(xi *r2d, yi * r2d, dz, cc)
+    plt.colorbar(cf,  cmap=cm.spectral)
+    cl = plt.contour(xi * r2d, yi * r2d, dz, cc, linewidths=0.5,colors='k')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    out_file_name = plotpath + "/" "slice_xy_" + field + "_" + timestep +  ".png"
+    plt.savefig(out_file_name , bbox_inches='tight')
  
 if __name__ == "__main__":
 

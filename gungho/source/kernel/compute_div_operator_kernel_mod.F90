@@ -11,7 +11,7 @@ module compute_div_operator_kernel_mod
 use argument_mod,              only: arg_type, func_type,            &
                                      GH_OPERATOR, GH_FIELD,          &
                                      GH_READ, GH_WRITE,              &
-                                     W2, W3, ANY_SPACE_9,            &
+                                     W2, W3, ANY_SPACE_1,            &
                                      GH_BASIS,GH_DIFF_BASIS,         &
                                      CELLS, GH_QUADRATURE_XYoZ,      &
                                      QUADRATURE_XYoZ
@@ -30,12 +30,12 @@ type, public, extends(kernel_type) :: compute_div_operator_kernel_type
   private
   type(arg_type) :: meta_args(2) = (/                                  &
        arg_type(GH_OPERATOR, GH_WRITE, W3, W2),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
+       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)                    &
        /)
   type(func_type) :: meta_funcs(3) = (/                                &
        func_type(W3, GH_BASIS),                                        &
        func_type(W2, GH_DIFF_BASIS),                                   &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
+       func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
   integer :: gh_shape = GH_QUADRATURE_XYoZ

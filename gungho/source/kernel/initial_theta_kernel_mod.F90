@@ -96,7 +96,7 @@ contains
         !Internal variables
         integer(kind=i_def)                    :: df, dfc, k
         real(kind=r_def),   dimension(ndf_chi) :: chi_1_e, chi_2_e, chi_3_e
-        real(kind=r_def)                       :: x(3), x_surf(3)
+        real(kind=r_def)                       :: x(3)
 
         ! compute the pointwise theta profile
 
@@ -114,9 +114,8 @@ contains
               x(2) = x(2) + chi_2_e(dfc)*chi_basis(1,dfc,df)
               x(3) = x(3) + chi_3_e(dfc)*chi_basis(1,dfc,df)
             end do
-            if(df == 1 .and. k .eq. 0 ) x_surf = x
 
-            theta(map_wtheta(df) + k) = analytic_temperature(x, test, x_surf)
+            theta(map_wtheta(df) + k) = analytic_temperature(x, test)
 
           end do
         end do

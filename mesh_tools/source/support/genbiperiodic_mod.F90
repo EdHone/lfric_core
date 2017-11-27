@@ -135,11 +135,11 @@ function genbiperiodic_constructor( mesh_name, nx, ny,    &
   self%nmaps      = 0
 
 
-  if (domain_x < 0)                                                       &
+  if (domain_x < 0.0_r_def)                                                       &
       call log_event( PREFIX//" x-domain argument must be non-negative.", &
                       LOG_LEVEL_ERROR )
 
-  if (domain_y < 0)                                                       &
+  if (domain_y < 0.0_r_def)                                                       &
       call log_event( PREFIX//" y-domain argument must be non-negative.", &
                       LOG_LEVEL_ERROR )
 
@@ -559,9 +559,9 @@ subroutine calc_coords(self, vert_coords)
     y = 1+(cell-1)/nx
     x = cell-(y-1)*nx
     ! x, E/W
-    vert_coords(1, self%verts_on_cell(SW, cell)) = real(x-1 - nx/2)*self%dx
+    vert_coords(1, self%verts_on_cell(SW, cell)) = real(x-1 - nx/2,r_def)*self%dx
     ! y  N/S
-    vert_coords(2, self%verts_on_cell(SW, cell)) = real(ny/2 - (y-1))*self%dy
+    vert_coords(2, self%verts_on_cell(SW, cell)) = real(ny/2 - (y-1),r_def)*self%dy
   end do
 
   return

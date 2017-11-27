@@ -80,11 +80,11 @@ subroutine enforce_bc_code(nlayers,                        &
 
   k = 0
   do df = 1,ndf
-    field(map(df) + k) = field(map(df) + k)*real(boundary_value(df,1))
+    field(map(df) + k) = field(map(df) + k)*real(boundary_value(df,1),r_def)
   end do
   k = nlayers - 1  
   do df = 1,ndf
-    field(map(df) + k) = field(map(df) + k)*real(boundary_value(df,2))
+    field(map(df) + k) = field(map(df) + k)*real(boundary_value(df,2),r_def)
   end do
 
 end subroutine enforce_bc_code

@@ -78,7 +78,8 @@ contains
     integer :: i
 
     call feign_finite_element_config( finite_element_cellshape_quadrilateral, &
-                                      0, 1, .true., .false., .false., .false. )
+                                      0, 1, .true., .false., .false., .false.,&
+                                      .false. )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
                               rd=rd, cp=cp, p_zero=p_zero,                 &

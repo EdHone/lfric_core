@@ -63,8 +63,8 @@ contains
 
     x_departure = x_arrival
 
-    left_limit = real(-nCellEdges/2+1)
-    right_limit = real(nCellEdges/2)
+    left_limit = real(-nCellEdges/2+1,r_def)
+    right_limit = real(nCellEdges/2,r_def)
     call test_value_in_limits(x_arrival,left_limit,right_limit)
 
     select case (method)

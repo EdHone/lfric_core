@@ -51,9 +51,8 @@ module rk_alg_timestep_mod
   use held_suarez_kernel_mod,              only: held_suarez_kernel_type
   use enforce_bc_kernel_mod,               only: enforce_bc_kernel_type
   use rotation_kernel_mod,                 only: rotation_kernel_type
-  use pressure_gradient_kernel_mod,        only: pressure_gradient_kernel_type
+  use hydrostatic_kernel_mod,              only: hydrostatic_kernel_type
   use kinetic_energy_gradient_kernel_mod,  only: kinetic_energy_gradient_kernel_type
-  use geopotential_gradient_kernel_mod,    only: geopotential_gradient_kernel_type
 
   ! Derived Types
   use field_mod,                         only: field_type
@@ -195,17 +194,15 @@ contains
       ! Compute new rhs
       if ( rotating ) &
         call invoke( rotation_kernel_type( rhs_prediction(1,stage), state(igh_u), chi, qr ) )
-        if( wtheta_on ) &
-          call invoke_ru_bd_kernel ( rhs_prediction(1, stage), state(igh_d), state(igh_t), qr ) 
-        call invoke( name = "Compute new rhs",                            &
-                     pressure_gradient_kernel_type       &
-             ( rhs_prediction(1,stage), state(igh_d), state(igh_t), qr ), &
-                     kinetic_energy_gradient_kernel_type &
-             ( rhs_prediction(1,stage), state(igh_u), chi, qr ),          &
-                     geopotential_gradient_kernel_type   &
-             ( rhs_prediction(1,stage), geopotential, qr ),               &
-                     enforce_bc_kernel_type( rhs_prediction(1,stage) ) ) 
-        call set_bundle_scalar(0.0_r_def, rhs, bundle_size)
+      if( wtheta_on ) &
+        call invoke_ru_bd_kernel ( rhs_prediction(1, stage), state(igh_d), state(igh_t), qr ) 
+      call invoke( name = "Compute new rhs",                            &
+                   hydrostatic_kernel_type       &
+           ( rhs_prediction(1,stage), state(igh_d), state(igh_t), geopotential, qr ), &
+                   kinetic_energy_gradient_kernel_type &
+           ( rhs_prediction(1,stage), state(igh_u), chi, qr ),          &
+                   enforce_bc_kernel_type( rhs_prediction(1,stage) ) ) 
+      call set_bundle_scalar(0.0_r_def, rhs, bundle_size)
 
       do st = 1, stage
         call bundle_axpy(ak(stage,st), rhs_prediction(:,stage), rhs, rhs, bundle_size)

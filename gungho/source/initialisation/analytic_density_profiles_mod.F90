@@ -25,7 +25,8 @@ use idealised_config_mod,       only : idealised_test_cold_bubble_x, &
                                        idealised_test_vortex_field, &
                                        idealised_test_gravity_wave, &
                                        idealised_test_solid_body_rotation, &
-                                       idealised_test_deep_baroclinic_wave
+                                       idealised_test_deep_baroclinic_wave, &
+                                       idealised_test_isentropic
 use initial_density_config_mod, only : r1, x1, y1, r2, x2, y2,     &
                                        tracer_max, tracer_background
 use base_mesh_config_mod,       only : geometry, &
@@ -79,7 +80,7 @@ function vortex_field(lat,long,radius,time) result(density)
   V = v0*3.0_r_def*(sqrt(3.0_r_def)/2.0_r_def)*  &
                               (sinh(radial_distance)/cosh(radial_distance)**3)
 
-  if (abs(radial_distance)<1E-10) then
+  if (abs(radial_distance)<1E-10_r_def) then
     omega = 0.0_r_def
   else
     omega = V/(radius*radial_distance)
@@ -113,7 +114,6 @@ function analytic_density(chi, choice, time) result(density)
   real(kind=r_def)             :: h1, h2
   real(kind=r_def)             :: pressure, temperature
   real(kind=r_def)             :: t0
-  real(kind=r_def)             :: chi_surf(3)
   real(kind=r_def)             :: u, v, w
 
   integer                      :: id
@@ -131,7 +131,7 @@ function analytic_density(chi, choice, time) result(density)
 
   select case( choice ) 
   
-  case ( idealised_test_gravity_wave) 
+  case ( idealised_test_gravity_wave, idealised_test_isentropic) 
     call reference_profile(pressure, density, temperature, chi, choice)
  
   case ( idealised_test_cold_bubble_x, idealised_test_cold_bubble_y ) 
@@ -209,14 +209,12 @@ function analytic_density(chi, choice, time) result(density)
       density = tracer_background
     end if
 
-
   case( idealised_test_vortex_field )
     density = vortex_field(lat,long,radius,time)
 
   case( idealised_test_solid_body_rotation )
     t0 = 280.0_r_def
-    chi_surf = (/chi(1),chi(2),scaled_radius/)
-    temperature = analytic_temperature(chi, choice, chi_surf)
+    temperature = analytic_temperature(chi, choice)
     pressure = t0/temperature
     density = p_zero/(Rd*temperature) * pressure**( (1.0_r_def - kappa )/ kappa )
 

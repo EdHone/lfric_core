@@ -39,12 +39,12 @@ type, public, extends(kernel_type) :: held_suarez_kernel_type
        arg_type(GH_FIELD,   GH_READ,  W2),                             &
        arg_type(GH_FIELD,   GH_READ,  W0),                             &
        arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                              &
+       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
        /)
   type(func_type) :: meta_funcs(4) = (/                                &
-       func_type(W2, GH_BASIS),                        &
-       func_type(W0, GH_BASIS),                         &
-       func_type(W3, GH_BASIS),                                         &
+       func_type(W2, GH_BASIS),                                        &
+       func_type(W0, GH_BASIS),                                        &
+       func_type(W3, GH_BASIS),                                        &
        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
        /)
   integer :: iterates_over = CELLS
@@ -68,16 +68,16 @@ end interface
 ! local parameters
 !-------------------------------------------------------------------------------
 ! Held-Suarez parameters 
-real(kind=r_def), parameter :: SIGMA_B = 0.7  ! non-dimensional pressure threshold
+real(kind=r_def), parameter :: SIGMA_B = 0.7_r_def  ! non-dimensional pressure threshold
 ! relaxation and damping coefficients
-real(kind=r_def), parameter :: KF = 1./86400. ! 1 day-1
-real(kind=r_def), parameter :: KA = KF/40.0   ! 1/40 day-1
-real(kind=r_def), parameter :: KS = KF/4.0    ! 1/4 day-1
+real(kind=r_def), parameter :: KF = 1.0_r_def/86400.0_r_def ! 1 day-1
+real(kind=r_def), parameter :: KA = KF/40.0_r_def   ! 1/40 day-1
+real(kind=r_def), parameter :: KS = KF/4.0_r_def    ! 1/4 day-1
 
-real(kind=r_def), parameter :: T_MIN            = 200.0 ! Minimum/Stratospheric temperature 
-real(kind=r_def), parameter :: T_SURF           = 315.0 ! surface temperature 
-real(kind=r_def), parameter :: DT_EQ_POLE       = 60.0  ! Equator-Pole Temp diff (deltaT)_y
-real(kind=r_def), parameter :: STATIC_STABILITY = 10.0  ! Static Stability temperature (delta \theta)_z
+real(kind=r_def), parameter :: T_MIN            = 200.0_r_def ! Minimum/Stratospheric temperature 
+real(kind=r_def), parameter :: T_SURF           = 315.0_r_def ! surface temperature 
+real(kind=r_def), parameter :: DT_EQ_POLE       = 60.0_r_def  ! Equator-Pole Temp diff (deltaT)_y
+real(kind=r_def), parameter :: STATIC_STABILITY = 10.0_r_def  ! Static Stability temperature (delta \theta)_z
 
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
@@ -186,12 +186,12 @@ subroutine held_suarez_code(nlayers,                                           &
   real(kind=r_def) :: exner0 ! lowest level exner value
   real(kind=r_def) :: sigma  ! exner/exner0
              
-  exner0 = 0.0
-  dtheta(:) = 0.0
-  du(:) = 0.0
+  exner0 = 0.0_r_def
+  dtheta(:) = 0.0_r_def
+  du(:) = 0.0_r_def
   do k = 0, nlayers-1
-    dtheta_at_dof(:) = 0.0
-    du_at_dof(:) = 0.0
+    dtheta_at_dof(:) = 0.0_r_def
+    du_at_dof(:) = 0.0_r_def
 
    ! Store the values for each degree of freedom
    do df = 1, ndf_chi
@@ -242,7 +242,7 @@ subroutine held_suarez_code(nlayers,                                           &
           ! calculate mean exner value in bottom layer of quadrature points
           if (qp2==1)exner0 = exner0 + exner/real(nqp_v, r_def)
         else
-          sigma = (exner/exner0)**(1.0/kappa)
+          sigma = (exner/exner0)**(1.0_r_def/kappa)
         end if
 
         theta_eq = held_suarez_equilibrium_theta(exner, lat_at_quad) 
@@ -303,7 +303,7 @@ function held_suarez_newton_frequency(sigma, lat) result(held_suarez_frequency)
   real(kind=r_def)             :: held_suarez_frequency
   real(kind=r_def)             :: sigma_func
 
-  sigma_func = max((sigma - SIGMA_B)/(1.0 - SIGMA_B), 0.0_r_def)
+  sigma_func = max((sigma - SIGMA_B)/(1.0_r_def - SIGMA_B), 0.0_r_def)
   held_suarez_frequency = KA + (KS - KA)*sigma_func*(cos(lat)**4)
 
   ! If running on a scaled planet, then reduce the timescale...
@@ -321,7 +321,7 @@ function held_suarez_damping(sigma) result(held_suarez_damping_rate)
   real(kind=r_def)             :: held_suarez_damping_rate
   real(kind=r_def) :: sigma_func
 
-  sigma_func = max((sigma - SIGMA_B)/(1.0 - SIGMA_B), 0.0_r_def)
+  sigma_func = max((sigma - SIGMA_B)/(1.0_r_def - SIGMA_B), 0.0_r_def)
   held_suarez_damping_rate = -KF*sigma_func
 
   ! If running on a scaled planet, then reduce the timescale...

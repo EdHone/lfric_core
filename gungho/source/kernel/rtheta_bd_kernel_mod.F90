@@ -116,8 +116,8 @@ contains
         integer(kind=i_def), dimension(ndf_w2, stencil_w2_size), intent(in)          :: stencil_w2_map
         integer(kind=i_def), dimension(ndf_wtheta, stencil_wtheta_size), intent(in)  :: stencil_wtheta_map
 
-        real(kind=r_def), dimension(4,3,ndf_w2,nqp_h_1d,nqp_v), intent(in)     :: w2_basis_face
-        real(kind=r_def), dimension(4,1,ndf_wtheta,nqp_h_1d,nqp_v), intent(in) :: wtheta_basis_face
+        real(kind=r_def), dimension(3,ndf_w2,nqp_h_1d,nqp_v,4), intent(in)     :: w2_basis_face
+        real(kind=r_def), dimension(1,ndf_wtheta,nqp_h_1d,nqp_v,4), intent(in) :: wtheta_basis_face
 
         integer(kind=i_def), dimension(nfaces_h), intent(in) :: adjacent_face
 
@@ -130,6 +130,7 @@ contains
         !Internal variables
         integer(kind=i_def)               :: df, k, face, face_next
         integer(kind=i_def)               :: qp1, qp2
+        integer(kind=i_def)               :: i_face
 
         real(kind=r_def), dimension(ndf_wtheta)      :: theta_e, theta_next_e
         real(kind=r_def), dimension(ndf_wtheta)      :: rtheta_bd_e
@@ -151,13 +152,10 @@ contains
             do face = 1, nfaces_h
 
               ! Storing opposite face number on neighbouring cell
-
               face_next = adjacent_face(face)
-
-              sign_face_next_outward = (-1.0_r_def)**(int(floor(real(mod(face_next, 4))/2.0) + 1.0_r_def))
+              i_face = int(floor(real(mod(face_next, 4),r_def)/2.0_r_def) + 1.0_r_def)
+              sign_face_next_outward = (-1.0_r_def)**i_face
               face_next_inward_normal(:) = -sign_face_next_outward * normal_to_face(face_next, :)
-
-
 
               ! Computing theta and f in adjacent cells
 
@@ -178,16 +176,16 @@ contains
                   theta_next_at_uquad = 0.0_r_def
 
                   do df = 1, ndf_wtheta
-                    theta_at_uquad       = theta_at_uquad + theta_e(df)*wtheta_basis_face(face,1,df,qp1,qp2)
-                    theta_next_at_uquad  = theta_next_at_uquad + theta_next_e(df)*wtheta_basis_face(face_next,1,df,qp1,qp2)
+                    theta_at_uquad       = theta_at_uquad + theta_e(df)*wtheta_basis_face(1,df,qp1,qp2,face)
+                    theta_next_at_uquad  = theta_next_at_uquad + theta_next_e(df)*wtheta_basis_face(1,df,qp1,qp2,face_next)
                   end do
 
                   u_at_uquad(:) = 0.0_r_def
                   u_next_at_uquad(:) = 0.0_r_def
 
                   do df = 1, ndf_w2
-                    u_at_uquad(:)       = u_at_uquad(:)      + u_e(df)     *w2_basis_face(face,     :,df,qp1,qp2)
-                    u_next_at_uquad(:)  = u_next_at_uquad(:) + u_next_e(df)*w2_basis_face(face_next,:,df,qp1,qp2)
+                    u_at_uquad(:)       = u_at_uquad(:)      + u_e(df)     *w2_basis_face(:,df,qp1,qp2,face)
+                    u_next_at_uquad(:)  = u_next_at_uquad(:) + u_next_e(df)*w2_basis_face(:,df,qp1,qp2,face_next)
                   end do
 
                   flux_term = 0.5_r_def * (theta_next_at_uquad * dot_product(u_next_at_uquad, face_next_inward_normal) + &
@@ -200,7 +198,7 @@ contains
                   end if
 
                   do df = 1, ndf_wtheta
-                    gamma_wtheta  = wtheta_basis_face(face,1,df,qp1,qp2)
+                    gamma_wtheta  = wtheta_basis_face(1,df,qp1,qp2,face)
 
                     bdary_term = gamma_wtheta * flux_term
                     rtheta_bd_e(df) = rtheta_bd_e(df) +  wqp_v(qp1)*wqp_v(qp2) * bdary_term

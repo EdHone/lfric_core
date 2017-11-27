@@ -135,18 +135,20 @@ subroutine compute_tri_precon_code(cell, nlayers,                       &
   real(kind=r_def), dimension(3,3)           :: jac_av
   real(kind=r_def), dimension(ndf_chi)       :: chi1_e, chi2_e, chi3_e
   real(kind=r_def)                           :: JTJ
+  real(kind=r_def)                           :: r_ndf
 
   ! Metric terms: 
   ! J(3)^2 on w points
   ! dj on w and rho points
   ! Currently only for lowest order uniform grid
   kappa_term = (1.0_r_def - kappa)/kappa
+  r_ndf = real(ndf_wtheta,r_def)
   ! Compute layer terms
   do k = 0,nlayers-1
     theta_ref = 0.0_r_def
     do df = 1, ndf_wtheta
        theta_ref = theta_ref &
-                     + 1.0_r_def/real(ndf_wtheta) * (theta(map_wtheta(df) + k))
+                     + 1.0_r_def/r_ndf * (theta(map_wtheta(df) + k))
     end do
     exner(k) = calc_exner_pointwise(rho(map_w3(1)+k), theta_ref)
 
@@ -160,16 +162,16 @@ subroutine compute_tri_precon_code(cell, nlayers,                       &
   end do  
 
   ! Compute terms on interfaces
-  HB_inv(0)   = 1.0
-  dthetadz(0) = 0.0
+  HB_inv(0)   = 1.0_r_def
+  dthetadz(0) = 0.0_r_def
   do k = 1, nlayers-1
     theta_p = 0.0_r_def
     theta_m = 0.0_r_def
-    do df = 1, int(0.5 * real(ndf_wtheta))
+    do df = 1, int(0.5_r_def * r_ndf)
       theta_p = theta_p &
-                  + 2.0_r_def/real(ndf_wtheta) * theta(map_wtheta(df)+k+1)
+                  + 2.0_r_def/r_ndf * theta(map_wtheta(df)+k+1)
       theta_m = theta_m &
-                  + 2.0_r_def/real(ndf_wtheta) * theta(map_wtheta(df)+k-1)
+                  + 2.0_r_def/r_ndf * theta(map_wtheta(df)+k-1)
     end do
 
     dthetadz(k) = (theta_p - theta_m)/2.0_r_def
@@ -179,16 +181,16 @@ subroutine compute_tri_precon_code(cell, nlayers,                       &
     JTJ = jac_av(1,3)**2 + jac_av(2,3)**2 + jac_av(3,3)**2
     HB_inv = 1.0_r_def/max(0.1_r_def,JTJ-cp*tau_u*dt*dthetadz(k)*dpdz)
   end do
-  HB_inv(nlayers)   = 1.0
-  dthetadz(nlayers) = 0.0
+  HB_inv(nlayers)   = 1.0_r_def
+  dthetadz(nlayers) = 0.0_r_def
 
   Pw(0) = 0.0_r_def
   Pt(0) = 0.0_r_def
   do k = 1, nlayers-1
     theta_ref = 0.0_r_def
-    do df = 1, int(0.5 * real(ndf_wtheta))
+    do df = 1, int(0.5_r_def * r_ndf)
       theta_ref = theta_ref &
-                    + 2.0_r_def/real(ndf_wtheta) * theta(map_wtheta(df) + k)
+                    + 2.0_r_def/r_ndf * theta(map_wtheta(df) + k)
     end do
 
     Pw(k) = -tau_u*dt*cp*theta_ref*HB_inv(k)
@@ -202,11 +204,11 @@ subroutine compute_tri_precon_code(cell, nlayers,                       &
     km = max(k-1,0)
     theta_m = 0.0_r_def
     theta_p = 0.0_r_def
-    do df = 1, int(0.5 * real(ndf_wtheta))
+    do df = 1, int(0.5_r_def * r_ndf)
       theta_m = theta_m &
-                  + 2.0_r_def/real(ndf_wtheta) * theta(map_wtheta(df)+k)
+                  + 2.0_r_def/r_ndf * theta(map_wtheta(df)+k)
       theta_p = theta_p &
-                  + 2.0_r_def/real(ndf_wtheta) * theta(map_wtheta(df + int(0.5 * real(ndf_wtheta)))+k)
+                  + 2.0_r_def/r_ndf * theta(map_wtheta(df + int(0.5_r_def * r_ndf))+k)
     end do
 
     rho_p = 0.5_r_def*(rho(map_w3(1)+k)*dj(k) + rho(map_w3(1)+kp)*dj(kp))

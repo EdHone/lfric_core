@@ -121,56 +121,56 @@ contains
     llr = (/ 0.0_r_def, PI/8.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_vortex,0)
 
-    @assertEqual(-9.08019127578551_r_def, u(1), tol)
+    @assertEqual(-9.0801912773695435_r_def, u(1), tol)
     @assertEqual(0.0_r_def, u(2), tol)
 
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_vortex,0)
 
     @assertEqual(0.0_r_def, u(1), tol)
-    @assertEqual(9.08019127578551_r_def, u(2), tol)
+    @assertEqual(9.0801912773695435_r_def, u(2), tol)
 
     initial_time = 0.0_r_def
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_nl_case_1,0)
 
     @assertEqual(0.0_r_def, u(1), tol)
-    @assertEqual(0.382683432412462_r_def, u(2), tol)
+    @assertEqual(0.38268343236508978_r_def, u(2), tol)
 
     initial_time = 1.0_r_def
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_nl_case_1,0)
 
     @assertEqual(0.0_r_def, u(1), tol)
-    @assertEqual(0.363953572069218_r_def, u(2), tol)
+    @assertEqual(0.36395357202901429_r_def, u(2), tol)
 
     initial_time = 0.0_r_def
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_nl_case_2,0)
 
     @assertEqual(0.0_r_def, u(1), tol)
-    @assertEqual(1.41421356251813_r_def, u(2), tol)
+    @assertEqual(1.4142135623730949_r_def, u(2), tol)
 
     initial_time = 0.0_r_def
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_nl_case_3,0)
 
     @assertEqual(0.0_r_def, u(1), tol)
-    @assertEqual(0.382683432412462_r_def, u(2), tol)
+    @assertEqual(0.38268343236508978_r_def, u(2), tol)
 
     initial_time = 0.0_r_def
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_nl_case_4,0)
 
-    @assertEqual(0.628318530800000_r_def, u(1), tol)
-    @assertEqual(1.41421356251813_r_def, u(2), tol)
+    @assertEqual(0.62831853071795862_r_def, u(1), tol)
+    @assertEqual(1.4142135623730949_r_def, u(2), tol)
 
     initial_time = 1.0_r_def
     llr = (/ PI/8.0_r_def, 0.0_r_def, 6371229.0_r_def /)
     u = analytic_wind(llr,initial_time,initial_wind_profile_nl_case_4,0)
 
-    @assertEqual(0.628318530800000_r_def, u(1), tol)
-    @assertEqual(-0.863541246319551_r_def, u(2), tol)
+    @assertEqual(0.62831853071795862_r_def, u(1), tol)
+    @assertEqual(-0.86354124622677830_r_def, u(2), tol)
 
   end subroutine test_all
 

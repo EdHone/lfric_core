@@ -328,14 +328,14 @@ subroutine basis_setup( element_order, dynamo_fs, ndof_vert,  ndof_cell,       &
 
   ! Positional arrays - need two, i.e quadratic and linear for RT1
   do i=1,k+2
-    x1(i) = real(i-1)/real(k+1)
+    x1(i) = real(i-1,r_def)/real(k+1,r_def)
   end do
 
   if ( k == 0 ) then
     x2(1) = 0.5_r_def
   else
     do i=1,k+1
-      x2(i) = real(i-1)/real(k)
+      x2(i) = real(i-1,r_def)/real(k,r_def)
     end do
   end if
 

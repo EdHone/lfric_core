@@ -41,7 +41,7 @@ contains
      character(len=*),          intent(in)  :: cname
      character(len=str_def)                 :: lowname
      integer                                :: k
-     real                                   :: t
+     real(r_def)                            :: t
 
      ! check if this is the first call to timer
      if( num_tim_in_use == 0 ) start_stop(:) = .false.
@@ -62,7 +62,7 @@ contains
        routine_name(k) = lowname
        call cpu_time(prev_time(k))
        start_stop(k) = .true.
-       tot_time(k)   = 0.0
+       tot_time(k)   = 0.0_r_def
        num_calls(k)  = 1
      else
 
@@ -125,8 +125,8 @@ contains
        write(9,'(A)')  &
        '||=  Routine =||= total time(s) =||= No. calls =||= %time =||= time per call(s) =||'
        do k = 1, num_tim_in_use
-         pc_time = tot_time(k)/tot_time(1)*100.0  
-         if ( pc_time > 1.0 ) then
+         pc_time = tot_time(k)/tot_time(1)*100.0_r_def
+         if ( pc_time > 1.0_r_def ) then
            write(9,('(A,A50,A,f14.2,A,I12,A,f14.2,A,f14.2,A)')) &
                 '||', trim(routine_name(k)),'||', &
                       tot_time(k),'||',          &

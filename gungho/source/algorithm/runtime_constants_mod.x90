@@ -164,8 +164,8 @@ contains
     wth_k0_fs => function_space_collection%get_fs( mesh_id,             0, Wtheta )
 
     !================= Create quadrature object =====================!
-    qr = quadrature_type(element_order+3, GAUSSIAN)
 
+    qr = quadrature_type(element_order+3, GAUSSIAN)
 
     !=================== Create geopotential field ============================!
 
@@ -173,6 +173,7 @@ contains
     call invoke_compute_geopotential_kernel_type( geopotential, chi )
 
     !=================== Create cell orientation field ========================!
+
     if ( transport_only .and. scheme == transport_scheme_cusph_cosmic ) then
       temp_w2_field = field_type( vector_space = w2_fs )
       cell_orientation = field_type( vector_space = w3_fs )
@@ -182,6 +183,7 @@ contains
     end if
 
     !================ Create detj values at W2 dof locations ==================!
+
     detj_at_w2 = field_type( vector_space = w2_fs )
     call invoke( setval_c(detj_at_w2, 9999.0_r_def) )
     call invoke_mpi_detj_at_w2(detj_at_w2, chi)
@@ -211,9 +213,9 @@ contains
 
     ! These are separate invokes as chi is defined as any space and PSyclone
     ! does not support multiple any_spaces in the same invoke
-    call invoke( compute_grad_operator_kernel_type(grad, chi, qr) )
-    call invoke( compute_curl_operator_kernel_type(curl, chi, qr) )
-    call invoke( compute_div_operator_kernel_type (div,  chi, qr) )
+    call invoke( compute_grad_operator_kernel_type(grad, chi, qr), &
+                 compute_curl_operator_kernel_type(curl, chi, qr), &
+                 compute_div_operator_kernel_type (div,  chi, qr) )
 
 
     !================= Create mass matrix diagonal fields =====================!
@@ -243,6 +245,7 @@ contains
 
 
     !================= Create inverse lumped mass matrices =====================!
+
     ones           = field_type( vector_space = w1_fs )
     m1_lumped_inv  = field_type( vector_space = w1_fs )
     call invoke( name = "Create m1_lumped_inv",      &
@@ -269,7 +272,6 @@ contains
                  matrix_vector_kernel_type(mt_lumped_inv, ones, mm_wtheta) )
     ! PSyclone does not currently support raising field to an integer power
     call invoke_raise_field( mt_lumped_inv, -1_i_def )
- 
 
     !================= Create a height field =====================!
     ! Note that these fields represent the height relative to 

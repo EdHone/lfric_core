@@ -311,9 +311,9 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, mesh_id, chi, &
 
 
   if ( geometry == base_mesh_geometry_spherical ) then
-   r2d = 180.0/PI
+   r2d = 180.0_r_def/PI
   else
-   r2d = 1.0
+   r2d = 1.0_r_def
   endif
 
   ! Initialise the context
@@ -371,15 +371,15 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, mesh_id, chi, &
   allocate(nodes_lon_full(coord_dim_full))
   allocate(nodes_lat_full(coord_dim_full))
 
-  nodes_lon_full = 0.0
-  nodes_lat_full = 0.0
+  nodes_lon_full = 0.0_r_def
+  nodes_lat_full = 0.0_r_def
 
 
   allocate(nodes_lon( coord_dim_owned ))
   allocate(nodes_lat( coord_dim_owned ))
 
-  nodes_lon = 0.0
-  nodes_lat = 0.0
+  nodes_lon = 0.0_r_def
+  nodes_lat = 0.0_r_def
 
   allocate(bnd_nodes_lon(1,size(nodes_lon)))
   allocate(bnd_nodes_lat(1,size(nodes_lat)))
@@ -645,7 +645,7 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
       ! Convert to lat-lon in degrees if required
       if ( geometry == base_mesh_geometry_spherical ) then
 
-        r2d = 180.0/PI
+        r2d = 180.0_r_def/PI
 
         call xyz2llr(xyz(1), xyz(2), xyz(3), llr(1), llr(2), llr(3))
 
@@ -655,7 +655,7 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
         face_bnds_lon_coords(df_x,cell) = llr(1)*r2d
         face_bnds_lat_coords(df_x,cell) = llr(2)*r2d
       else
-        r2d = 1.0
+        r2d = 1.0_r_def
 
         lon_coords( ((map_x(df_x)-1)/nlayers)+1) = xyz(1)*r2d
         lat_coords( ((map_x(df_x)-1)/nlayers)+1) = xyz(2)*r2d

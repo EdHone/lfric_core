@@ -83,7 +83,7 @@ module constants_mod
 
   !> @name Mathematical constants
   !> @{
-  real(kind=r_def), parameter :: PI  = 3.141592654_r_def !< Value of pi.
+  real(kind=r_def), parameter :: PI  = 4.0_r_def*atan(1.0_r_def) !< Value of pi.
   !> @}
 
   !> @{
