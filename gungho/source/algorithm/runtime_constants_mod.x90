@@ -55,6 +55,7 @@ module runtime_constants_mod
   use get_height_kernel_mod,                 only: get_height_kernel_type
   use compute_geopotential_kernel_mod,       only: compute_geopotential_kernel_type
   use calc_detj_at_w2_kernel_mod,            only: calc_detj_at_w2_kernel_type
+  use calc_dA_at_w2_kernel_mod,              only: calc_dA_at_w2_kernel_type
 
   use output_config_mod,                     only: subroutine_timers 
   use timer_mod,                             only: timer
@@ -82,6 +83,7 @@ module runtime_constants_mod
   type(field_type), target              :: temp_w2_field
   type(field_type), target              :: cell_orientation
   type(field_type), target              :: detj_at_w2
+  type(field_type), target              :: dA_at_w2
   type(operator_type), target           :: grad, curl, div
   type( quadrature_xyoz_type ),target   :: qr
   type( quadrature_rule_gaussian_type ) :: quadrature_rule
@@ -112,6 +114,7 @@ module runtime_constants_mod
   public :: get_geopotential
   public :: get_cell_orientation
   public :: get_detj_at_w2
+  public :: get_dA_at_w2
   public :: get_mass_matrix
   public :: get_mass_matrix_diagonal
   public :: get_grad
@@ -188,6 +191,12 @@ contains
     detj_at_w2 = field_type( vector_space = w2_fs )
     call invoke( setval_c(detj_at_w2, 9999.0_r_def) )
     call invoke_mpi_detj_at_w2(detj_at_w2, chi)
+
+    !================ Create dA values at W2 dof locations ==================!
+
+    dA_at_w2 = field_type( vector_space = w2_fs )
+    call invoke( setval_c(dA_at_w2, 9999.0_r_def),&
+                 calc_dA_at_w2_kernel_type(dA_at_w2, chi) )
 
     !=================== Create mass matrix operators =========================!
 
@@ -395,6 +404,14 @@ contains
 
   end function get_detj_at_w2
 
+  !> Function to return the dA values at W2 dof locations
+  !> @return The dA field
+  function get_dA_at_w2() result(dA)
+
+    type(field_type), pointer :: dA
+    dA => dA_at_w2
+
+  end function get_dA_at_w2
 
   !> Function to return a pointer to a mass matrix
   !> @param[in] i the index of the desired mass matrix field
