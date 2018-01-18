@@ -85,7 +85,7 @@
 /
 
 &restart
-  filename = 'dynamo_restart.nml'
+  filename = 'gungho_restart.nml'
 /
 
 &solver
