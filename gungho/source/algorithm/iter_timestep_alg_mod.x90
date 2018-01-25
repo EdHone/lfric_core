@@ -264,7 +264,7 @@ contains
     !--------------------------------------------------------------------
     ! Pass updated fields into state
     !--------------------------------------------------------------------
-    if (spinup_winds .and. timestep <= spinup_period) then
+    if (spinup_winds .and. timestep*dt <= spinup_period) then
       call invoke( name = "Copy step fields to state", &
                    setval_X(state(igh_u), u    ),      &
                    setval_X(state(igh_t), theta),      &
@@ -272,8 +272,8 @@ contains
                    setval_X(state(igh_p), exner) )
     end if
 
-    if (spinup_alpha .and. timestep <= spinup_period) then
-      varalpha = alpha + (spinup_period - timestep + 1) * &
+    if (spinup_alpha .and. timestep*dt <= spinup_period) then
+      varalpha = alpha + (spinup_period - timestep*dt + 1) * &
          (1.0 - alpha)/spinup_period
     else
       varalpha = alpha
@@ -434,7 +434,7 @@ contains
 #endif
     
     if (use_wavedynamics) then
-      if (.not. (spinup_winds .and. timestep <= spinup_period)) then
+      if (.not. (spinup_winds .and. timestep*dt <= spinup_period)) then
         !--------------------------------------------------------------------
         ! Return field in u array
         !--------------------------------------------------------------------

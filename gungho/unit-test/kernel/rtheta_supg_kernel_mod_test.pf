@@ -56,7 +56,7 @@ module rtheta_supg_kernel_mod_test
   integer(i_def), parameter :: inner_iterations = 2
   integer(i_def), parameter :: outer_iterations = 2
   integer(i_def) :: mesh_id
-  integer(i_def), parameter :: spinup_period = 0
+  real(r_def),    parameter :: spinup_period = 0.0_r_def
   logical,        parameter :: spinup_winds  = .false.
   logical,        parameter :: spinup_alpha  = .false.
 

@@ -31,7 +31,7 @@ module departure_point_kernel_mod_test
   real(r_def), parameter    :: tau_r   = 0.5_r_def
   integer(i_def), parameter :: inner_iterations = 0
   integer(i_def), parameter :: outer_iterations = 0
-  integer(i_def), parameter :: spinup_period = 0
+  real(r_def), parameter    :: spinup_period = 0.0_r_def
   logical, parameter        :: spinup_winds  = .false.
   logical, parameter        :: spinup_alpha  = .false.
 
