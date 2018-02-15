@@ -467,8 +467,8 @@ contains
       call log_event( 'Applying Viscosity', LOG_LEVEL_INFO ) 
       call invoke_tracer_viscosity(   inc(igh_t), state(igh_t), 1, chi)
       call invoke_momentum_viscosity( inc(igh_u), state(igh_u), 1, chi)
-      call invoke( setval_c(inc(igh_d), 0.0_r_def) ) 
-      call bundle_axpy(dt, inc, state, state, bundle_size)
+      call invoke( inc_X_plus_bY( state(igh_t), dt, inc(igh_t) ), &
+                   inc_X_plus_bY( state(igh_u), dt, inc(igh_u) ) )
     end if    
 
 #ifdef UM_PHYSICS
