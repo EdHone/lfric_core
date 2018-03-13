@@ -209,8 +209,8 @@ run-unit-tests: generate-unit-tests
 .PHONY: integration-test-run/%
 integration-test-run/%: PYTHONPATH := $(PYTHONPATH):$(LFRIC_BUILD)
 integration-test-run/%: generate-integration-tests
-	$(MAKE) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/analyse.mk PROGRAMS=$(notdir $*)
-	$(MAKE) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk \
+	@$(MAKE) --quiet -C $(WORKING_DIR) -f $(LFRIC_BUILD)/analyse.mk PROGRAMS=$(notdir $*)
+	@$(MAKE) --quiet -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk \
 	        PROGRAMS=$(notdir $*) FFLAGS="$(FFLAGS) $(FFLAGS_DEBUG) $(FFLAGS_RUNTIME)"
 	$(call MESSAGE,Running,$*)
 	$(Q)cd $(dir $*); \
@@ -221,11 +221,11 @@ integration-test-run/%: generate-integration-tests
 #
 .PHONY: configuration
 configuration:
-	$(MAKE) -f $(LFRIC_BUILD)/configuration.mk
+	@$(MAKE) --quiet -f $(LFRIC_BUILD)/configuration.mk
 
 ##############################################################################
 # Generate pFUnit unit tests.
 #
 .PHONY: pfunit
 pfunit:
-	$(MAKE) -f $(LFRIC_BUILD)/pfunit.mk
+	@$(MAKE) --quiet -f $(LFRIC_BUILD)/pfunit.mk

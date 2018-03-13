@@ -147,7 +147,7 @@ else
 endif
 build: PROJECT      = $(PROJECT_NAME)
 build: SOURCE_DIR   = source
-build: WORKING_DIR := $(WORKING_DIR)/$(PROJECT_NAME)
+build: WORKING_DIR := $(WORKING_DIR)
 build: BIN_DIR     ?= $(PROJECT_DIR)/bin
 build: PROGRAMS    := $(basename $(notdir $(shell find $(SOURCE_DIR) -maxdepth 1 -name '*.[Ff]90' -print)))
 build: extract
@@ -187,7 +187,7 @@ generate-psykal: ALWAYS
 .PHONY: unit-tests
 unit-tests: export PROJECT      = $(PROJECT_NAME)
 unit-tests: export SOURCE_DIR   = $(PROJECT_DIR)/unit-test
-unit-tests: export WORKING_DIR := $(WORKING_DIR)/$(PROJECT_NAME)
+unit-tests: export WORKING_DIR := $(WORKING_DIR)
 unit-tests: export BIN_DIR      = $(PROJECT_DIR)/test
 unit-tests: export PROGRAMS     = $(PROJECT_NAME)_unit_tests
 unit-tests: export IGNORE_DEPENDENCIES       += pfunit_mod
@@ -211,7 +211,7 @@ generate-unit-tests: extract-unit-tests
 
 .PHONY: extract-unit-tests
 extract-unit-tests: extract
-extract-unit-tests: export SOURCE_DIR  = $(PROJECT_DIR)/unit-test
+extract-unit-tests: export SOURCE_DIR = $(PROJECT_DIR)/unit-test
 extract-unit-tests:
 	@$(MAKE) --quiet -f $(LFRIC_BUILD)/extract.mk WORKING_DIR=$(WORKING_DIR)
 	$(Q)cp -r $(SOURCE_DIR)/data $(WORKING_DIR)
@@ -223,21 +223,25 @@ extract-unit-tests:
 .PHONY: integration-tests
 integration-tests: export PROJECT      = $(PROJECT_NAME)
 integration-tests: export SOURCE_DIR   = integration-test
-integration-tests: export WORKING_DIR := $(WORKING_DIR)/integration-tests
+integration-tests: export WORKING_DIR := $(WORKING_DIR)
 integration-tests: export BIN_DIR      = $(PROJECT_DIR)/test
 integration-tests: $(addprefix integration-test-run/,$(basename $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)))
 	$(Q)echo > /dev/null
 
 .PHONY: generate-integration-tests
 generate-integration-tests: extract-integration-tests
-	$(MAKE) -C $(LFRIC_INFRASTRUCTURE) extract WORKING_DIR=$(realpath $(WORKING_DIR))
-	$(MAKE) extract
-	$(MAKE) generate-configuration
-	$(MAKE) generate-psykal
+	@$(MAKE) --quiet generate-configuration PROJECT=$(PROJECT_NAME) \
+                 SOURCE_DIR=$(WORKING_DIR) \
+                 WORKING_DIR=$(WORKING_DIR)
 
 .PHONY: extract-integration-tests
+extract-integration-tests: extract
+extract-integration-tests: export SOURCE_DIR = $(PROJECT_DIR)/integration-test
 extract-integration-tests: ALWAYS
-	$(MAKE) -f $(LFRIC_BUILD)/extract.mk
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Extracting integration-tests for $(PROJECT))
+	$(call MESSAGE,=========================================================)
+	@$(MAKE) --quiet -f $(LFRIC_BUILD)/extract.mk WORKING_DIR=$(WORKING_DIR)
 
 ##############################################################################
 # Clean
@@ -247,6 +251,6 @@ clean: ALWAYS
 	$(call MESSAGE,Removing,$(PROJECT_NAME) work space)
 	$(Q)-rm -r $(WORKING_DIR)
 	$(call MESSAGE,Removing,$(PROJECT_NAME) documents)
-	$(Q)-rm -r documents
+	$(Q)-rm -rf documents
 	$(call MESSAGE,Removing,$(PROJECT_NAME) binaries)
-	$(Q)-rm -r bin test
+	$(Q)-rm -rf bin test

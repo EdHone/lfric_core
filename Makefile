@@ -49,7 +49,7 @@ test-suite: $(addprefix test-suite/,$(OPERATE_ON))
 
 .PHONY: test-suite/%
 test-suite/%: ALWAYS
-	$(Q)$(MAKE) -C $* test-suite TEST_SUITE_TARGETS="$(TEST_SUITE_TARGETS)"
+	$(Q)-$(MAKE) -C $* test-suite TEST_SUITE_TARGETS="$(TEST_SUITE_TARGETS)"
 
 ##############################################################################
 
