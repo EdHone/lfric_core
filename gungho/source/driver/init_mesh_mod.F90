@@ -13,7 +13,7 @@ module init_mesh_mod
   use constants_mod,              only: i_def, str_def, l_def, r_def
   use extrusion_mod,              only: extrusion_type, uniform_extrusion_type
   use extrusion_config_mod,       only: domain_top
-  use finite_element_config_mod,  only: cellshape, wtheta_on,              &
+  use finite_element_config_mod,  only: cellshape, &
                                         key_from_cellshape,                &
                                         finite_element_cellshape_triangle, &
                                         finite_element_cellshape_quadrilateral
@@ -210,7 +210,7 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id )
   end if
 
   ! Determine max_stencil_depth
-  max_stencil_depth = 0
+  max_stencil_depth = 1
   if (operators == transport_operators_fv) then
     ! Need larger haloes for fv operators
     max_fv_stencil = &
@@ -224,8 +224,6 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id )
                             dep_pt_stencil_extent + &
                             rho_approximation_stencil_extent)
   end if
-
-  if (wtheta_on) max_stencil_depth = max(max_stencil_depth,1)
 
   ! Interrogate ugrid file to get the names of all the
   ! contained mesh topologies 

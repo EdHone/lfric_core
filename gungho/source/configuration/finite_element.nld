@@ -9,12 +9,6 @@ namelist finite_element
                              ! non-affine elements. For affine elements it is not
                              ! required. This is included here as in the future
                              ! we wish to move to not rehabiliating
-  wtheta_on     : logical ! Wtheta is the target space for the potential
-                          ! temperature. For a finite element discretization
-                          ! of order k, its basis functions are discontinuous
-                          ! polynomials of order k in the horizontal
-                          ! direction and continuous polynomials of order k+1 
-                          ! in the vertical direction.
   supg          : logical ! Use Streamline-Upwind-Petrov-Galerkin method for
                           ! stabilisation of CG advection
   vorticity_in_w1: logical ! Compute the vorticity in W1 (or implied W2) space

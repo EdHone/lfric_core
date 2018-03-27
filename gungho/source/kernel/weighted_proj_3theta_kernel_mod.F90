@@ -15,12 +15,12 @@ module weighted_proj_3theta_kernel_mod
   use argument_mod,            only: arg_type, func_type,      &
                                      GH_OPERATOR, GH_FIELD,    &
                                      GH_READ, GH_WRITE,        &
-                                     ANY_SPACE_9, ANY_SPACE_1, &
+                                     ANY_SPACE_1,              &
                                      GH_BASIS, GH_DIFF_BASIS,  &
                                      CELLS, GH_QUADRATURE_XYoZ
   use constants_mod,           only: r_def, i_def
   use coordinate_jacobian_mod, only: coordinate_jacobian
-  use fs_continuity_mod,       only: W3
+  use fs_continuity_mod,       only: W3, Wtheta
   use kernel_mod,              only: kernel_type
 
   implicit none
@@ -31,13 +31,13 @@ module weighted_proj_3theta_kernel_mod
   type, public, extends(kernel_type) :: weighted_proj_3theta_kernel_type
     private
     type(arg_type) :: meta_args(3) = (/                   &
-        arg_type(GH_OPERATOR, GH_WRITE, W3, ANY_SPACE_9), &
-        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),     &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, Wtheta),      &
+        arg_type(GH_FIELD,    GH_READ,  Wtheta),          &
         arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)      &
         /)
     type(func_type) :: meta_funcs(3) = (/     &
-        func_type(W3, GH_BASIS),              &
-        func_type(ANY_SPACE_9, GH_BASIS),     &
+        func_type(W3,          GH_BASIS),     &
+        func_type(Wtheta,      GH_BASIS),     &
         func_type(ANY_SPACE_1, GH_DIFF_BASIS) &
         /)
     integer :: iterates_over = CELLS

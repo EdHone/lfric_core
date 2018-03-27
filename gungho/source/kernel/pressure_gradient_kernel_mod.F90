@@ -26,11 +26,10 @@ module pressure_gradient_kernel_mod
 
   use argument_mod,      only : arg_type, func_type,       &
                                 GH_FIELD, GH_READ, GH_INC, &
-                                ANY_SPACE_1,               &
                                 GH_BASIS, GH_DIFF_BASIS,   &
                                 CELLS, GH_QUADRATURE_XYoZ
   use constants_mod,     only : r_def
-  use fs_continuity_mod, only : W2, W3
+  use fs_continuity_mod, only : W2, W3, Wtheta
   use kernel_mod,        only : kernel_type
   use planet_config_mod, only : cp
 
@@ -47,12 +46,12 @@ module pressure_gradient_kernel_mod
     type(arg_type) :: meta_args(3) = (/            &
         arg_type(GH_FIELD,   GH_INC,  W2),         &
         arg_type(GH_FIELD,   GH_READ, W3),         &
-        arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1) &
+        arg_type(GH_FIELD,   GH_READ, Wtheta)      &
         /)
     type(func_type) :: meta_funcs(3) = (/                &
         func_type(W2,          GH_BASIS, GH_DIFF_BASIS), &
         func_type(W3,          GH_BASIS),                &
-        func_type(ANY_SPACE_1, GH_BASIS, GH_DIFF_BASIS)  &
+        func_type(Wtheta,      GH_BASIS, GH_DIFF_BASIS)  &
         /)
     integer :: iterates_over = CELLS
     integer :: gh_shape = GH_QUADRATURE_XYoZ
@@ -113,8 +112,10 @@ subroutine pressure_gradient_code(nlayers,                                      
                                   )
                            
   use calc_exner_pointwise_mod, only: calc_exner_pointwise
+
+  implicit none
   
-  !Arguments
+  ! Arguments
   integer, intent(in) :: nlayers,nqp_h, nqp_v
   integer, intent(in) :: ndf_wt, ndf_w2, ndf_w3
   integer, intent(in) :: undf_wt, undf_w2, undf_w3
@@ -137,7 +138,7 @@ subroutine pressure_gradient_code(nlayers,                                      
   real(kind=r_def), dimension(nqp_h), intent(in)      ::  wqp_h
   real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
 
-  !Internal variables
+  ! Internal variables
   integer               :: df, k 
   integer               :: qp1, qp2
   

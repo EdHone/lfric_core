@@ -15,7 +15,7 @@ module init_gungho_mod
                                              write_interface, &
                                              checkpoint_interface, &
                                              restart_interface
-  use finite_element_config_mod,      only : element_order, wtheta_on, &
+  use finite_element_config_mod,      only : element_order, &
                                              vorticity_in_w1
   use fs_continuity_mod,              only : W0, W1, W2, W3, Wtheta
   use function_space_collection_mod , only : function_space_collection
@@ -23,11 +23,6 @@ module init_gungho_mod
   use log_mod,                        only : log_event,         &
                                              LOG_LEVEL_INFO
   use restart_control_mod,            only : restart_type
-  use formulation_config_mod,         only : transport_only
-  use transport_config_mod,           only : scheme, &
-                                             operators, &
-                                             transport_scheme_method_of_lines, &
-                                             transport_operators_fv
   use mr_indices_mod,                 only : nummr
   use runtime_constants_mod,          only : create_runtime_constants
   use output_config_mod,              only : write_xios_output
@@ -56,6 +51,8 @@ contains
   !> @param[in] restart Restart dump to read prognostic fields from
   subroutine init_gungho( mesh_id, chi, u, rho, theta, exner, rho_in_wth, mr, xi, restart )
 
+    implicit none
+
     integer(i_def), intent(in)               :: mesh_id
     ! Prognostic fields
     type( field_type ), intent(inout)        :: u, rho, theta, exner
@@ -76,17 +73,8 @@ contains
     call log_event( 'GungHo: initialisation...', LOG_LEVEL_INFO )
 
     ! Create prognostic fields
-    if ( (transport_only .and. &
-         scheme == transport_scheme_method_of_lines .and. &
-         operators == transport_operators_fv) .or. &
-         wtheta_on  ) then
-      ! Only use Wtheta for fv method of lines transport or if wtheta_on
-      theta = field_type( vector_space = &
-                          function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
-    else
-      theta = field_type( vector_space = &
-                          function_space_collection%get_fs(mesh_id, element_order, W0) )
-    end if
+    theta = field_type( vector_space = &
+                        function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
     if ( vorticity_in_w1 ) then
       xi    = field_type( vector_space = &
                           function_space_collection%get_fs(mesh_id, element_order, W1), &

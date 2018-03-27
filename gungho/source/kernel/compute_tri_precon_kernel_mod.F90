@@ -12,13 +12,13 @@
 !>
 module compute_tri_precon_kernel_mod
 
-  use argument_mod,            only: arg_type, func_type,        &
-                                    GH_FIELD, GH_READ, GH_WRITE, &
-                                    ANY_SPACE_9, ANY_SPACE_1,    &
-                                    GH_BASIS, GH_DIFF_BASIS,     &
-                                    CELLS, GH_EVALUATOR
+  use argument_mod,            only: arg_type, func_type,         &
+                                     GH_FIELD, GH_READ, GH_WRITE, &
+                                     ANY_SPACE_1,                 &
+                                     GH_BASIS, GH_DIFF_BASIS,     &
+                                     CELLS, GH_EVALUATOR
   use constants_mod,           only: r_def, i_def
-  use fs_continuity_mod,       only: W3
+  use fs_continuity_mod,       only: W3, Wtheta
   use kernel_mod,              only: kernel_type
   use planet_config_mod,       only: kappa, cp
   use timestepping_config_mod, only: dt, tau_u, tau_t
@@ -32,7 +32,7 @@ module compute_tri_precon_kernel_mod
     private
     type(arg_type) :: meta_args(5) = (/               &
         arg_type(GH_FIELD*3,  GH_WRITE, W3),          &
-        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9), &
+        arg_type(GH_FIELD,    GH_READ,  Wtheta),      &
         arg_type(GH_FIELD,    GH_READ,  W3),          &
         arg_type(GH_FIELD,    GH_READ,  W3),          &
         arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)  &

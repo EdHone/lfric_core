@@ -16,7 +16,7 @@ module runtime_constants_mod
                                                LOG_LEVEL_INFO, &
                                                LOG_LEVEL_ERROR
   ! Configuration
-  use finite_element_config_mod,         only: element_order, wtheta_on
+  use finite_element_config_mod,         only: element_order
   use formulation_config_mod,            only: transport_only, dlayer_on
   use transport_config_mod,              only: scheme,                     &
                                                transport_scheme_cusph_cosmic
@@ -345,7 +345,7 @@ contains
   !> @brief Function to return a pointer to the coordinate array
   !> @return The coordinate field array
   function get_coordinates() result(coords_ptr)
-
+    implicit none
     type(field_type), pointer :: coords_ptr(:)
     coords_ptr => coords
 
@@ -355,7 +355,7 @@ contains
   !> @param[in] i the space of the desired height field
   !> @return A height field
   function get_height(space) result(height)
-
+    implicit none
     integer(i_def), intent(in) :: space
     type(field_type), pointer :: height
 
@@ -374,7 +374,7 @@ contains
   !> @brief Function to return a pointer to the geopotential field
   !> @return The geopotential field
   function get_geopotential() result(phi)
-
+    implicit none
     type(field_type), pointer :: phi
     phi => geopotential
 
@@ -383,7 +383,7 @@ contains
   !> @brief Function to return a pointer to the cell_orientation field
   !> @return The cell_orientation field
   function get_cell_orientation() result(orientation)
-
+    implicit none
     type(field_type), pointer :: orientation
     if ( transport_only .and. scheme == transport_scheme_cusph_cosmic ) then
       orientation => cell_orientation
@@ -397,7 +397,7 @@ contains
   !> @brief Function to return the detj values at W2 dof locations
   !> @return The detj field
   function get_detj_at_w2() result(detj)
-
+    implicit none
     type(field_type), pointer :: detj
     detj => detj_at_w2
 
@@ -406,7 +406,7 @@ contains
   !> @brief Function to return the dA values at W2 dof locations
   !> @return The dA field
   function get_dA_at_w2() result(dA)
-
+    implicit none
     type(field_type), pointer :: dA
     dA => dA_at_w2
 
@@ -416,7 +416,7 @@ contains
   !> @param[in] i the index of the desired mass matrix field
   !> @return The mass matrix operator
   function get_mass_matrix(i) result(mm)
-
+    implicit none
     integer(i_def), intent(in) :: i
     type(operator_type), pointer :: mm 
 
@@ -434,11 +434,7 @@ contains
       case (wt_id)
         mm => mm_wtheta
       case (theta_space_id)
-        if (wtheta_on)then
-          mm => mm_wtheta
-        else
-          mm => mm_w0
-        end if
+        mm => mm_wtheta
       case (dl_id)
         mm => mm_dl
       case default
@@ -453,7 +449,7 @@ contains
   !> @param[in] i Index of the desired mass matrix diagonal field
   !> @return The mass matrix diagonal field
   function get_mass_matrix_diagonal(i) result(mmd)
-
+    implicit none
     integer(i_def), intent(in) :: i
     type(field_type), pointer :: mmd  
 
@@ -471,11 +467,7 @@ contains
       case (w3_id)
         mmd => mm3_diag
       case (theta_space_id)
-        if (wtheta_on) then
-          mmd => mmtheta_diag
-        else  
-          mmd => mm0_diag
-        end if
+        mmd => mmtheta_diag
       case default
         mmd => null()
         call log_event( "Mass matrix diagonal does not exist", LOG_LEVEL_ERROR)
@@ -487,7 +479,7 @@ contains
   !> @brief Function to return a pointer to the grad operator
   !> @return The grad operator
   function get_grad() result(grad_op)
-
+    implicit none
     type(operator_type), pointer :: grad_op
     grad_op => grad
 
@@ -496,7 +488,7 @@ contains
   !> @brief Function to return a pointer to the curl operator
   !> @return The curl operator
   function get_curl() result(curl_op)
-
+    implicit none
     type(operator_type), pointer :: curl_op
     curl_op => curl
 
@@ -505,7 +497,7 @@ contains
   !> @brief Function to return a pointer to the div operator
   !> @return The grad operator
   function get_div() result(div_op)
-
+    implicit none
     type(operator_type), pointer :: div_op
     div_op => div
 
@@ -514,7 +506,7 @@ contains
   !> @brief Function to return a pointer to the quadrature object
   !> @return The quadrature object
   function get_qr() result(qr_obj)
-
+    implicit none
     type(quadrature_xyoz_type), pointer :: qr_obj
     qr_obj => qr
 
@@ -524,7 +516,7 @@ contains
   !> @param[in] i Index of the desired lumped mass matrix inverse field
   !> @return The lumped inverse mass matrix 
   function get_inverse_lumped_mass_matrix(i) result(mm)
-
+    implicit none
     integer(i_def), intent(in) :: i
     type(field_type), pointer :: mm
 
@@ -536,11 +528,7 @@ contains
       case (wt_id)
         mm => mt_lumped_inv
       case (theta_space_id)
-        if (wtheta_on) then
-          mm => mt_lumped_inv
-        else  
-          mm => m0_lumped_inv
-        end if
+        mm => mt_lumped_inv
       case default
         mm => null()
         call log_event( "Lumped inverse mass matrix does not exist", LOG_LEVEL_ERROR)
@@ -553,6 +541,7 @@ contains
   !> @return The nodal multiplicity field
   !> @param[in] space enumeration of the function space
   function get_rmultiplicity(space) result(rmultiplicity)
+    implicit none
     integer(i_def), intent(in) :: space
     type(field_type), pointer :: rmultiplicity
 
@@ -577,6 +566,7 @@ contains
   !> @return The normalisation field
   !> @param[in] space enumeration of the function space
   function get_normalisation(space) result(normalisation)
+    implicit none
     integer(i_def), intent(in) :: space
     type(field_type), pointer :: normalisation
 
@@ -586,11 +576,7 @@ contains
       case (wt_id)
         normalisation => mt_lumped_inv
       case (theta_space_id)
-        if (wtheta_on) then
-          normalisation => mt_lumped_inv
-        else
-          normalisation => m0_lumped_inv
-        end if
+        normalisation => mt_lumped_inv
       case default
         normalisation => null()
         call log_event( " Normalisation does not exist for given space", &

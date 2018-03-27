@@ -18,19 +18,18 @@
   element_order    = 0
   coordinate_order = 1
   rehabilitate     = .true.
-  wtheta_on        = .true.
-  supg             = .false. 
-  lumped_m1        = .false.
+  supg             = .false.
+  vorticity_in_w1  = .true.
 /
 
 &formulation
   transport_only = .false.
   rotating       = .true.
-  eliminate_p    = .true.
   use_moisture   = .false.
   shallow        = .false.
   use_physics    = .true.
   use_wavedynamics = .false.
+  dry_static_adjust = .false.
 /
 
 &idealised
@@ -71,7 +70,9 @@
 /
 
 &physics
- heldsuarez_placement = -1
+ heldsuarez_thermo_placement = 0
+ heldsuarez_wind_placement  = 0
+ hs_random = .false.
  l_flux_bc=.true.
  fixed_flux_e=0.0
  fixed_flux_h=300.0
@@ -114,8 +115,8 @@
 
 &helmholtz_solver
   gcrk                           = 18
-  si_pressure_method             = 'bicgstab'
-  si_pressure_preconditioner     = 'tridiagonal'
+  method                         = 'bicgstab'
+  preconditioner                 = 'tridiagonal'
   si_pressure_tolerance          = 1.0e-6
   si_pressure_maximum_iterations = 400
   normalise                      = .T

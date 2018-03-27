@@ -121,8 +121,9 @@ subroutine rtheta_supg_code(nlayers,                                          &
                             ndf_w3, undf_w3, map_w3, w3_basis,                 &
                             ndf_chi, undf_chi, map_chi, chi_diff_basis,  &
                             nqp_h, nqp_v, wqp_h, wqp_v )
+  implicit none
 
-  !Arguments
+  ! Arguments
   integer, intent(in) :: nlayers, nqp_h, nqp_v
   integer, intent(in) :: ndf_w0, ndf_w2, ndf_w3, undf_w0, undf_w2, undf_w3, ndf_chi, undf_chi
 
@@ -146,7 +147,7 @@ subroutine rtheta_supg_code(nlayers,                                          &
   real(kind=r_def), dimension(nqp_h), intent(in)      ::  wqp_h
   real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
 
-  !Internal variables
+  ! Internal variables
   integer               :: df, k 
   integer               :: qp1, qp2
 

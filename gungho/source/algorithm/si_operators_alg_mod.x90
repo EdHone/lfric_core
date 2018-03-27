@@ -9,7 +9,6 @@ module si_operators_alg_mod
   use constants_mod,             only: i_def, r_def
   use operator_mod,              only: operator_type
   use field_mod,                 only: field_type
-  use finite_element_config_mod, only: wtheta_on
   use fs_continuity_mod,         only: W2
   use log_mod,                   only: log_event,      &
                                        LOG_LEVEL_INFO, &
@@ -75,13 +74,9 @@ contains
     if ( subroutine_timers ) call timer('si_operators_alg:create')
     call log_event( "Gungho: creating si_operators", LOG_LEVEL_INFO )
 
-    w2_fs     => function_space_collection%get_fs( mesh_id, element_order, W2 )
-    w3_fs     => function_space_collection%get_fs( mesh_id, element_order, W3 )
-    if (wtheta_on) then
-      wt_fs => function_space_collection%get_fs( mesh_id, element_order, Wtheta )
-    else
-      wt_fs => function_space_collection%get_fs( mesh_id, element_order, W0 )
-    end if
+    w2_fs => function_space_collection%get_fs( mesh_id, element_order, W2 )
+    w3_fs => function_space_collection%get_fs( mesh_id, element_order, W3 )
+    wt_fs => function_space_collection%get_fs( mesh_id, element_order, Wtheta )
  
     m3_rho_star       = operator_type( w3_fs, w3_fs )
     m3_exner_star     = operator_type( w3_fs, w3_fs )
@@ -117,8 +112,6 @@ contains
     use weighted_div_kernel_mod,         only: weighted_div_kernel_type
     use weighted_proj_2theta_kernel_mod, only: weighted_proj_2theta_kernel_type
     use weighted_proj_theta2_kernel_mod, only: weighted_proj_theta2_kernel_type
-    use weighted_proj_theta2_wt_kernel_mod, &
-                                         only: weighted_proj_theta2_wt_kernel_type
     use weighted_proj_theta2_vert_kernel_mod, &
                                          only: weighted_proj_theta2_vert_kernel_type
     use compound_operator_kernel_mod,    only: compound_operator_kernel_type
@@ -129,7 +122,7 @@ contains
                                                invoke_weighted_proj_2theta_bd_kernel_type, &
                                                invoke_weighted_proj_theta2_bd_kernel_type, &
                                                invoke_raise_field
-    use finite_element_config_mod,       only: element_order, wtheta_on
+    use finite_element_config_mod,       only: element_order
     use function_space_mod,              only: function_space_type
     use runtime_constants_mod,           only: get_coordinates, &
                                                get_div, &
@@ -181,19 +174,13 @@ contains
     call invoke( weighted_div_kernel_type(div_star, theta, const1, qr),         &
                  weighted_proj_2theta_kernel_type(p2theta, exner, const1, qr),  & 
                  weighted_proj_theta2_vert_kernel_type(ptheta2v, theta, const2, &
-                                                      qr) )
-    if  (wtheta_on) then
-      call invoke( weighted_proj_theta2_wt_kernel_type(ptheta2, theta, const2, qr) )
-    else
-      call invoke( weighted_proj_theta2_kernel_type(ptheta2, theta, const2, qr) )
-    end if
+                                                      qr),                      &
+                 weighted_proj_theta2_kernel_type(ptheta2, theta, const2, qr) )
 
     ! Boundary kernels
-    if (wtheta_on) then
-      call invoke_weighted_div_bd_kernel_type(div_star, theta, const1, qr)
-      call invoke_weighted_proj_theta2_bd_kernel_type(ptheta2, theta, const2, qr)
-      call invoke_weighted_proj_2theta_bd_kernel_type(p2theta, exner, const1, qr)
-    end if
+    call invoke_weighted_div_bd_kernel_type(div_star, theta, const1, qr)
+    call invoke_weighted_proj_theta2_bd_kernel_type(ptheta2, theta, const2, qr)
+    call invoke_weighted_proj_2theta_bd_kernel_type(p2theta, exner, const1, qr)
 
     ! Compute rho^ref at u nodal points
     u_fs => ref_state(igh_u)%get_function_space()

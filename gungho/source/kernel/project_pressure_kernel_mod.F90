@@ -11,11 +11,11 @@ module project_pressure_kernel_mod
   use argument_mod,      only : arg_type, func_type,            &
                                 GH_FIELD, GH_OPERATOR,          &
                                 GH_READ, GH_WRITE,              &
-                                ANY_SPACE_1, ANY_SPACE_2,       &
+                                ANY_SPACE_2,                    &
                                 GH_BASIS, GH_DIFF_BASIS, CELLS, &
                                 GH_QUADRATURE_XYoZ
   use constants_mod,     only : r_def
-  use fs_continuity_mod, only : W3
+  use fs_continuity_mod, only : W3, Wtheta
   use kernel_mod,        only : kernel_type
 
   implicit none
@@ -31,13 +31,13 @@ module project_pressure_kernel_mod
     type(arg_type) :: meta_args(5) = (/               &
         arg_type(GH_FIELD,   GH_WRITE,  W3),          &
         arg_type(GH_FIELD,   GH_READ,   W3),          &
-        arg_type(GH_FIELD,   GH_READ,   ANY_SPACE_1), &
+        arg_type(GH_FIELD,   GH_READ,   Wtheta),      &
         arg_type(GH_FIELD*3, GH_READ,   ANY_SPACE_2), &
         arg_type(GH_OPERATOR, GH_READ,  W3, W3)       &
         /)
     type(func_type) :: meta_funcs(3) = (/     &
         func_type(W3,          GH_BASIS),     &
-        func_type(ANY_SPACE_1, GH_BASIS),     &
+        func_type(Wtheta,      GH_BASIS),     &
         func_type(ANY_SPACE_2, GH_DIFF_BASIS) &
         /)
     integer :: iterates_over = CELLS
@@ -105,7 +105,9 @@ subroutine project_pressure_code(cell, nlayers,                                &
   use calc_exner_pointwise_mod,only: calc_exner_pointwise
   use coordinate_jacobian_mod, only: coordinate_jacobian
 
-  !Arguments
+  implicit none
+
+  ! Arguments
   integer, intent(in) :: nlayers, nqp_h, nqp_v, ncell_3d, cell
   integer, intent(in) :: ndf_wt, ndf_w3, ndf_chi
   integer, intent(in) :: undf_wt, undf_w3, undf_chi
@@ -128,7 +130,7 @@ subroutine project_pressure_code(cell, nlayers,                                &
   real(kind=r_def), dimension(nqp_h), intent(in)      ::  wqp_h
   real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
 
-  !Internal variables
+  ! Internal variables
   integer               :: df, k, ik 
   integer               :: qp1, qp2
   

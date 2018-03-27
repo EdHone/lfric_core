@@ -15,11 +15,10 @@ module weighted_proj_theta2_vert_kernel_mod
   use argument_mod,      only : arg_type, func_type,            &
                                 GH_OPERATOR, GH_FIELD, GH_REAL, &
                                 GH_READ, GH_WRITE,              &
-                                ANY_SPACE_1,                    &
                                 GH_BASIS, GH_DIFF_BASIS,        &
                                 CELLS, GH_QUADRATURE_XYoZ
   use constants_mod,     only : r_def, i_def
-  use fs_continuity_mod, only : W2
+  use fs_continuity_mod, only : W2, Wtheta
   use kernel_mod,        only : kernel_type
 
   implicit none
@@ -32,14 +31,14 @@ module weighted_proj_theta2_vert_kernel_mod
   !>
   type, public, extends(kernel_type) :: weighted_proj_theta2_vert_kernel_type
     private
-    type(arg_type) :: meta_args(3) = (/                   &
-        arg_type(GH_OPERATOR, GH_WRITE, ANY_SPACE_1, W2), &
-        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),     &
-        arg_type(GH_REAL,     GH_READ)                    &
+    type(arg_type) :: meta_args(3) = (/              &
+        arg_type(GH_OPERATOR, GH_WRITE, Wtheta, W2), &
+        arg_type(GH_FIELD,    GH_READ,  Wtheta),     &
+        arg_type(GH_REAL,     GH_READ)               &
         /)
-    type(func_type) :: meta_funcs(2) = (/                &
-        func_type(ANY_SPACE_1, GH_BASIS, GH_DIFF_BASIS), &
-        func_type(W2,          GH_BASIS)                 &
+    type(func_type) :: meta_funcs(2) = (/           &
+        func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W2,     GH_BASIS)                 &
         /)
     integer :: iterates_over = CELLS
     integer :: gh_shape = GH_QUADRATURE_XYoZ

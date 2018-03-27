@@ -189,7 +189,7 @@ contains
   !>
   !> @param[in] mesh              Mesh to define the function space on.
   !> @param[in] element_order     Polynomial order of the function space.
-  !> @param[in] dynamo_fs         Enumeration of the function space.
+  !> @param[in] gungho_fs         Enumeration of the function space.
   !> @param[out] ndof_vert        Number of dofs on each vertex.
   !> @param[out] ndof_edge        Number of dofs on each edge.
   !> @param[out] ndof_face        Number of dofs on each face.
@@ -200,7 +200,7 @@ contains
   !>                              connectivity.
   !> @param[out] ndof_exterior    Number of dofs with vertical connectivity.
   !>
-  subroutine ndof_setup( mesh, element_order, dynamo_fs,           &
+  subroutine ndof_setup( mesh, element_order, gungho_fs,           &
                         ndof_vert, ndof_edge, ndof_face, ndof_vol, &
                         ndof_cell, ndof_glob, ndof_interior, ndof_exterior )
 
@@ -210,7 +210,7 @@ contains
     ! Input
     type(mesh_type), intent(in), pointer :: mesh
     integer(i_def),  intent(in)          :: element_order
-    integer(i_def),  intent(in)          :: dynamo_fs
+    integer(i_def),  intent(in)          :: gungho_fs
 
     ! Output
     ! Number of dofs per ...
@@ -293,7 +293,7 @@ contains
 
     ! Possible modifications to number of dofs
     ! on edges depending on presets
-    select case (dynamo_fs)
+    select case (gungho_fs)
 
     case (W0)
       ! H1 locates dofs on the element vertices for a element order = 0,
@@ -383,7 +383,7 @@ contains
                   + ndof_vol
 
     ! Calculated the global number of dofs on the function space
-    select case (dynamo_fs)
+    select case (gungho_fs)
     case (W0,W1,W2,W3,WCHI)
       ndof_glob = ncells*nlayers*ndof_vol + nface_g*ndof_face                    &
                   + nedge_g*ndof_edge     + nvert_g*ndof_vert
@@ -408,7 +408,7 @@ contains
   !> is unlikely to be useful elsewhere.
   !>
   !> @param[in] element_order  Polynomial order of the function space.
-  !> @param[in] dynamo_fs  Enumeration of the function space.
+  !> @param[in] gungho_fs  Enumeration of the function space.
   !> @param[in] ndof_vert  Number dofs on each vertex.
   !> @param[in] ndof_cell  Total number of dofs associated with a cell.
   !> @param[in] reference_element  Object describing the reference element of
@@ -421,7 +421,7 @@ contains
   !> @param[out] dof_on_vert_boundary  Array indication if a dof is on the top
   !>                                   or bottom boundary of a cell.
   !>
-  subroutine basis_setup( element_order, dynamo_fs, ndof_vert,  ndof_cell, &
+  subroutine basis_setup( element_order, gungho_fs, ndof_vert,  ndof_cell, &
                           reference_element,                               &
                           basis_index, basis_order, basis_vector, basis_x, &
                           nodal_coords, dof_on_vert_boundary )
@@ -430,7 +430,7 @@ contains
 
     ! Input
     integer(i_def), intent(in) :: element_order
-    integer(i_def), intent(in) :: dynamo_fs
+    integer(i_def), intent(in) :: gungho_fs
 
     ! Number of dofs per entity
     integer(i_def), intent(in) :: ndof_vert ! ndofs per vertex
@@ -501,9 +501,17 @@ contains
     if ( k == 0 ) then
       x2(1) = 0.5_r_def
     else
-      do i=1,k+1
-        x2(i) = real(i-1,r_def)/real(k,r_def)
-      end do
+      if ( gungho_fs == W3 .or. gungho_fs == Wtheta ) then
+        ! Evenly space the points away from the element edges for high order
+        ! spaces - this helps with visualising the output
+        do i=1,k+1
+          x2(i) = real(i,r_def)/real(k+2,r_def)
+        end do
+      else
+        do i=1,k+1
+          x2(i) = real(i-1,r_def)/real(k,r_def)
+        end do
+      end if
     end if
 
     if ( k == 0 ) x2(1) = 0.5_r_def
@@ -564,13 +572,13 @@ contains
     dof_on_vert_boundary(:,:) = 1
 
     ! Allocate arrays to allow on the fly evaluation of basis functions
-    select case (dynamo_fs)
+    select case (gungho_fs)
     case (W1, W2, W2H, W2V)
       allocate( unit_vec(ndof_cell,3) )
     end select
 
 
-    select case (dynamo_fs)
+    select case (gungho_fs)
     case (W0)
 
       !---------------------------------------------------------------------------
@@ -1218,7 +1226,7 @@ contains
 
 
     ! Allocate arrays to allow on the fly evaluation of basis functions
-    select case (dynamo_fs)
+    select case (gungho_fs)
     case (W1, W2, W2H, W2V)
       deallocate( unit_vec )
     end select
@@ -1235,7 +1243,7 @@ contains
   !>          same as a stencil dofmap of a single dof.
   !>
   !> @param[in] mesh                  Mesh to define the function space on.
-  !> @param[in] dynamo_fs             Enumeration of the function space.
+  !> @param[in] gungho_fs             Enumeration of the function space.
   !> @param[in] ncells_2d_with_ghost  Number of 2d cells with ghost cells.
   !> @param[in] ndof_vert             Number of dofs on vertices.
   !> @param[in] ndof_edge             Number of dofs on edges.
@@ -1252,7 +1260,7 @@ contains
   !>                                  cells.
   !> @param[out] global_dof_id        Global id of of dofs.
   !>
-  subroutine dofmap_setup( mesh, dynamo_fs, ncells_2d_with_ghost,                &
+  subroutine dofmap_setup( mesh, gungho_fs, ncells_2d_with_ghost,                &
                            ndof_vert, ndof_edge, ndof_face,                      &
                            ndof_vol,  ndof_cell, last_dof_owned,                 &
                            last_dof_annexed, last_dof_halo, dofmap,              &
@@ -1262,7 +1270,7 @@ contains
 
 
     type(mesh_type), intent(in), pointer :: mesh
-    integer(i_def),  intent(in) :: dynamo_fs
+    integer(i_def),  intent(in) :: gungho_fs
     integer(i_def),  intent(in) :: ncells_2d_with_ghost
     integer(i_def),  intent(in) :: ndof_vert
     integer(i_def),  intent(in) :: ndof_edge
@@ -1441,7 +1449,7 @@ contains
           mesh%get_num_cells_edge() + &
           mesh%get_num_cells_halo(1)
 
-    select case (dynamo_fs)
+    select case (gungho_fs)
     case(W0,W1,W2,W3,WCHI)
       select_entity => select_entity_all
     case(WTHETA)

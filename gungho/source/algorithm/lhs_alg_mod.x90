@@ -17,7 +17,7 @@ module lhs_alg_mod
                                                get_normalisation
   use field_mod,                         only: field_type
   use function_space_mod,                only: function_space_type
-  use finite_element_config_mod,         only: element_order, wtheta_on
+  use finite_element_config_mod,         only: element_order
   use formulation_config_mod,            only: dlayer_on
   use fs_continuity_mod,                 only: W2
   use field_indices_mod,                 only: igh_u, igh_t, igh_d, igh_p
@@ -115,7 +115,6 @@ contains
   subroutine on_the_fly_lhs_alg(lhs, state, ref_state, tau_u_dt, tau_t_dt, tau_r_dt)
   use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
   use rtheta_kernel_mod,                 only: rtheta_kernel_type
-  use rtheta_wtheta_kernel_mod,          only: rtheta_wtheta_kernel_type
   use exner_gradient_kernel_mod,         only: exner_gradient_kernel_type
   use psykal_lite_mod,                   only: invoke_rtheta_bd_kernel, &
                                                invoke_exner_gradient_bd_kernel
@@ -187,10 +186,8 @@ contains
   call invoke( setval_c( lhs_tmp(igh_u), 0.0_r_def ), &
                setval_c( lhs(igh_u),     0.0_r_def ) )
 
-  if (wtheta_on) then
-    call invoke_exner_gradient_bd_kernel( lhs_tmp(igh_u), exner, theta_ref, qr )
-    call invoke_exner_gradient_bd_kernel( lhs_tmp(igh_u), exner_ref, theta, qr )
-  end if
+  call invoke_exner_gradient_bd_kernel( lhs_tmp(igh_u), exner, theta_ref, qr )
+  call invoke_exner_gradient_bd_kernel( lhs_tmp(igh_u), exner_ref, theta, qr )
   call invoke( exner_gradient_kernel_type( lhs_tmp(igh_u), exner, theta_ref, qr ), &
                exner_gradient_kernel_type( lhs_tmp(igh_u), exner_ref, theta, qr ), &
                matrix_vector_kernel_type( lhs(igh_u), u, mm_vel ) )
@@ -202,15 +199,10 @@ contains
   ! Compute lhs_theta
   call invoke( setval_c( lhs_tmp(igh_t), 0.0_r_def ), &
                setval_c( lhs(igh_t),     0.0_r_def ) )
-  if (wtheta_on) then
-    call invoke_rtheta_bd_kernel ( lhs_tmp(igh_t), theta_ref, u, qr )
-    call invoke( rtheta_wtheta_kernel_type( lhs_tmp(igh_t), theta_ref, u, qr ), &
-                 matrix_vector_kernel_type( lhs(igh_t), theta, mm_wtheta ) )
-  else
-    call invoke( rtheta_kernel_type( lhs_tmp(igh_t), theta_ref, u, qr ), &
-                 matrix_vector_kernel_type( lhs(igh_t), theta, mm_wtheta ) )
-  end if
-  call invoke( inc_X_plus_bY( lhs(igh_t), tau_t_dt, lhs_tmp(igh_t) ) )
+  call invoke_rtheta_bd_kernel ( lhs_tmp(igh_t), theta_ref, u, qr )
+  call invoke( rtheta_kernel_type( lhs_tmp(igh_t), theta_ref, u, qr ),         &
+               matrix_vector_kernel_type( lhs(igh_t), theta, mm_wtheta ),      &
+               inc_X_plus_bY( lhs(igh_t), tau_t_dt, lhs_tmp(igh_t) ) )
 
   ! Compute lhs_rho
   ! Need to create u*rho^ref \in W2 for lhs_tmp(igh_d) kernel -> sampled mass flux

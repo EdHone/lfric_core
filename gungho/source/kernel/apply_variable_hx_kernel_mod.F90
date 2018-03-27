@@ -9,10 +9,9 @@ module apply_variable_hx_kernel_mod
   use argument_mod,      only : arg_type,                       &
                                 GH_FIELD, GH_OPERATOR, GH_REAL, &
                                 GH_READ, GH_WRITE,              &
-                                ANY_SPACE_1,                    &
                                 CELLS
   use constants_mod,     only : r_def
-  use fs_continuity_mod, only : W2, W3
+  use fs_continuity_mod, only : W2, W3, Wtheta
   use kernel_mod,        only : kernel_type
 
   implicit none
@@ -26,12 +25,12 @@ module apply_variable_hx_kernel_mod
     type(arg_type) :: meta_args(9) = (/                   &
         arg_type(GH_FIELD,    GH_WRITE, W3),              &
         arg_type(GH_FIELD,    GH_READ,  W2),              &
-        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),     &
+        arg_type(GH_FIELD,    GH_READ,  Wtheta),          &
         arg_type(GH_FIELD,    GH_READ,  W3),              &
-        arg_type(GH_OPERATOR, GH_READ,  W3, W2),          &
-        arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1), &
-        arg_type(GH_OPERATOR, GH_READ,  ANY_SPACE_1, W2), &
-        arg_type(GH_OPERATOR, GH_READ,  W3, W3),          &
+        arg_type(GH_OPERATOR, GH_READ,  W3,     W2),      &
+        arg_type(GH_OPERATOR, GH_READ,  W3,     Wtheta),  &
+        arg_type(GH_OPERATOR, GH_READ,  Wtheta, W2),      &
+        arg_type(GH_OPERATOR, GH_READ,  W3,     W3),      &
         arg_type(GH_REAL,     GH_READ)                    &
         /)
     integer :: iterates_over = CELLS
@@ -44,12 +43,12 @@ module apply_variable_hx_kernel_mod
     type(arg_type) :: meta_args(9) = (/                   &
         arg_type(GH_FIELD,    GH_WRITE, W3),              &
         arg_type(GH_FIELD,    GH_READ,  W2),              &
-        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),     &
+        arg_type(GH_FIELD,    GH_READ,  Wtheta),          &
         arg_type(GH_FIELD,    GH_READ,  W3),              &
-        arg_type(GH_OPERATOR, GH_READ,  W3, W2),          &
-        arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1), &
-        arg_type(GH_OPERATOR, GH_READ,  ANY_SPACE_1, W2), &
-        arg_type(GH_OPERATOR, GH_READ,  W3, W3),          &
+        arg_type(GH_OPERATOR, GH_READ,  W3,     W2),      &
+        arg_type(GH_OPERATOR, GH_READ,  W3,     Wtheta),  &
+        arg_type(GH_OPERATOR, GH_READ,  Wtheta, W2),      &
+        arg_type(GH_OPERATOR, GH_READ,  W3,     W3),      &
         arg_type(GH_REAL,     GH_READ)                    &
         /)
     integer :: iterates_over = CELLS

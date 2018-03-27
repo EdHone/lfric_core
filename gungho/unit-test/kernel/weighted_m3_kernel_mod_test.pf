@@ -71,7 +71,7 @@ contains
     integer(i_def) :: i
 
     call feign_finite_element_config( finite_element_cellshape_quadrilateral, &
-                                      0, 1, .true., .false., .false., .false.)
+                                      0, 1, .true., .false., .false.)
 
     ! Create top level function space collection
 

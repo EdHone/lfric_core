@@ -12,11 +12,11 @@ module compute_total_energy_kernel_mod
 
 use argument_mod,      only : arg_type, func_type,                  &
                               GH_FIELD, GH_WRITE, GH_READ,          &
-                              ANY_SPACE_1, ANY_SPACE_9,             &
+                              ANY_SPACE_9,                          &
                               GH_BASIS, GH_DIFF_BASIS,              &
                               CELLS, GH_QUADRATURE_XYoZ
 use constants_mod,     only : r_def
-use fs_continuity_mod, only : W0, W2, W3
+use fs_continuity_mod, only : W0, W2, W3, Wtheta
 use kernel_mod,        only : kernel_type
 use planet_config_mod, only : scaled_radius, cv
 
@@ -30,21 +30,21 @@ implicit none
 !>
 type, public, extends(kernel_type) :: compute_total_energy_kernel_type
   private
-  type(arg_type) :: meta_args(7) = (/               &
-       arg_type(GH_FIELD,   GH_WRITE, W3),          &
-       arg_type(GH_FIELD,   GH_READ,  W2),          &
-       arg_type(GH_FIELD,   GH_READ,  W3),          &
-       arg_type(GH_FIELD,   GH_READ,  W3),          &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1), &
-       arg_type(GH_FIELD,   GH_READ,  W0),          &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)   &
+  type(arg_type) :: meta_args(7) = (/                                  &
+       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
+       arg_type(GH_FIELD,   GH_READ,  W2),                             &
+       arg_type(GH_FIELD,   GH_READ,  W3),                             &
+       arg_type(GH_FIELD,   GH_READ,  W3),                             &
+       arg_type(GH_FIELD,   GH_READ,  Wtheta),                         &
+       arg_type(GH_FIELD,   GH_READ,  W0),                             &
+       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
        /)
-  type(func_type) :: meta_funcs(5) = (/      &
-       func_type(W2, GH_BASIS),              &
-       func_type(W3, GH_BASIS),              &
-       func_type(ANY_SPACE_1, GH_BASIS),     &
-       func_type(W0, GH_BASIS),              &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+  type(func_type) :: meta_funcs(5) = (/                                &
+       func_type(W2,          GH_BASIS),                               &
+       func_type(W3,          GH_BASIS),                               &
+       func_type(Wtheta,      GH_BASIS),                               &
+       func_type(W0,          GH_BASIS),                               &
+       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
   integer :: gh_shape = GH_QUADRATURE_XYoZ

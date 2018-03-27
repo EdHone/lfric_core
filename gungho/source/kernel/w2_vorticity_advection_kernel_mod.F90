@@ -105,8 +105,9 @@ subroutine w2_vorticity_advection_code(nlayers,                                 
                                   )
                            
   use coordinate_jacobian_mod,  only: coordinate_jacobian
-  
-  !Arguments
+  implicit none
+
+  ! Arguments
   integer, intent(in) :: nlayers,nqp_h, nqp_v
   integer, intent(in) :: ndf_chi, ndf_w2
   integer, intent(in) :: undf_chi, undf_w2
@@ -124,7 +125,7 @@ subroutine w2_vorticity_advection_code(nlayers,                                 
   real(kind=r_def), dimension(nqp_h), intent(in)      ::  wqp_h
   real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
 
-  !Internal variables
+  ! Internal variables
   integer               :: df, k, loc 
   integer               :: qp1, qp2
   

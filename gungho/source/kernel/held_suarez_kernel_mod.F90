@@ -14,13 +14,14 @@
 
 module held_suarez_kernel_mod
   
-use kernel_mod,               only: kernel_type
 use argument_mod,             only: arg_type, func_type,                 &
                                     GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
-                                    W2, W3, ANY_SPACE_9, ANY_SPACE_1,    &
+                                    ANY_SPACE_9,                         &
                                     GH_BASIS, GH_DIFF_BASIS,             &
                                     CELLS, GH_QUADRATURE_XYoZ
 use constants_mod,            only: r_def
+use fs_continuity_mod,        only: W2, W3, Wtheta
+use kernel_mod,               only: kernel_type
 use coord_transform_mod,      only: xyz2llr
 use planet_config_mod,        only: scaling_factor, kappa
 implicit none
@@ -33,15 +34,15 @@ type, public, extends(kernel_type) :: held_suarez_kernel_type
   private
   type(arg_type) :: meta_args(6) = (/                                  &
        arg_type(GH_FIELD,   GH_INC,   W2),                             &
-       arg_type(GH_FIELD,   GH_INC,   ANY_SPACE_1),                    &
+       arg_type(GH_FIELD,   GH_INC,   Wtheta),                         &
        arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1),                    &
+       arg_type(GH_FIELD,   GH_READ,  Wtheta),                         &
        arg_type(GH_FIELD,   GH_READ,  W3),                             &
        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
        /)
   type(func_type) :: meta_funcs(4) = (/                                &
        func_type(W2, GH_BASIS),                                        &
-       func_type(ANY_SPACE_1, GH_BASIS),                               &
+       func_type(Wtheta, GH_BASIS),                                    &
        func_type(W3, GH_BASIS),                                        &
        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
        /)

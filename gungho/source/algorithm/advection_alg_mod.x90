@@ -19,7 +19,7 @@ module advection_alg_mod
                                             w1_id, w2_id, w3inv_id, &
                                             theta_space_id
   use field_mod,                      only: field_type
-  use finite_element_config_mod,      only: element_order, wtheta_on, supg, &
+  use finite_element_config_mod,      only: element_order, supg, &
                                             vorticity_in_w1
   use function_space_mod,             only: function_space_type
   use matrix_vector_kernel_mod,       only: matrix_vector_kernel_type
@@ -32,7 +32,6 @@ module advection_alg_mod
   use quadrature_rule_gaussian_mod,   only: quadrature_rule_gaussian_type
 
   use rtheta_kernel_mod,              only: rtheta_kernel_type
-  use rtheta_wtheta_kernel_mod,       only: rtheta_wtheta_kernel_type
   use rtheta_supg_kernel_mod,         only: rtheta_supg_kernel_type
   use flux_rhs_kernel_mod,            only: flux_rhs_kernel_type
   use solver_mod,                     only: solver_algorithm
@@ -279,16 +278,9 @@ contains
     ! or W0) 
     mt_lumped_inv => get_inverse_lumped_mass_matrix(theta_space_id)
     mm_wt         => get_mass_matrix(theta_space_id) 
-    if ( wtheta_on ) then
-      ! If using Wtheta use lumped approximation to inverse mass matrix
-      call invoke( X_times_Y(rtheta_prediction(stage), r_theta, mt_lumped_inv) )
-    else
-      ! If using W0 use full mass matrix with iterative inverse
-      ! (It would be possible to use the lumped inverse to speed things up)
-      call solver_algorithm( rtheta_prediction(stage), r_theta)
-    end if
+    call invoke( X_times_Y(rtheta_prediction(stage), r_theta, mt_lumped_inv), &
+                 setval_c(r_theta, 0.0_r_def) )
     ! Build the rhs of the RK scheme at this stage: sum_s -ak(s)*r_theta(s)
-    call invoke( setval_c(r_theta, 0.0_r_def) )
     do st = 1, stage
       call invoke( inc_X_minus_bY(r_theta, ak_adv(stage,st), rtheta_prediction(st)) )
     end do
@@ -520,12 +512,8 @@ contains
      ! Use project u.grad(theta) into the theta function space
       qr = quadrature_xyoz_type(element_order+3, quadrature_rule)
       call invoke( setval_c(rtheta, 0.0_r_def) )
-      if ( wtheta_on ) then
-        call invoke( rtheta_wtheta_kernel_type (rtheta, theta, wind, qr) )
-        call invoke_rtheta_bd_kernel ( rtheta, theta, wind, qr )
-      else
-        call invoke( rtheta_kernel_type(rtheta, theta, wind, qr) )
-      end if
+      call invoke( rtheta_kernel_type (rtheta, theta, wind, qr) )
+      call invoke_rtheta_bd_kernel ( rtheta, theta, wind, qr )
    end select
 
   end subroutine advective_inc_alg

@@ -57,7 +57,7 @@ contains
 
     class(columnwise_op_mul_test_type), intent(inout) :: this
     call feign_finite_element_config( finite_element_cellshape_quadrilateral, &
-                                      0, 0, .true., .false., .false., .false.)
+                                      0, 0, .true., .false., .false.)
 
     ! Create top level mesh collection
     mesh_collection = mesh_collection_type()

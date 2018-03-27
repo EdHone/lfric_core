@@ -17,7 +17,7 @@ module conservation_algorithm_mod
   use constants_mod,                   only: r_def, i_def
   use function_space_collection_mod,   only: function_space_collection
   use field_mod,                       only: field_type
-  use finite_element_config_mod,       only: element_order, wtheta_on, &
+  use finite_element_config_mod,       only: element_order, &
                                              vorticity_in_w1
   use fs_continuity_mod,               only: W3
   use function_space_mod,              only: function_space_type
@@ -103,23 +103,21 @@ contains
                  sum_X(total_aam, aam) )
 
     ! Gradient of theta not defined for the Wtheta case, TBD
-    if (.not. wtheta_on .and. vorticity_in_w1 ) then
+    if ( .false. .and. vorticity_in_w1 ) then
       ! Compute Ertel PV
       pv = field_type( vector_space = w3_fs )
       call invoke( name = "Compute total PV",                            &
                    compute_total_pv_kernel_type(pv, xi, theta, chi, qr), &
                    sum_X(total_pv, pv) )
-    end if
-
-    if (wtheta_on .or. .not. vorticity_in_w1) then
-      write( log_scratch_space, '(A,I4,4E32.24)')  &
-             'Conservation  = ',&
-              tstep, total_mass, total_energy, total_aam
-    else
       write( log_scratch_space, '(A,I4,4E32.24)')  &
              'Conservation  = ',&
               tstep, total_mass, total_energy, total_pv, total_aam
+    else
+      write( log_scratch_space, '(A,I4,4E32.24)')  &
+             'Conservation  = ',&
+              tstep, total_mass, total_energy, total_aam
     end if
+
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     if ( subroutine_timers ) call timer('conservation_alg')
 

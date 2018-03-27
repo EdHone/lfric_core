@@ -27,8 +27,8 @@ module initial_exner_sample_kernel_mod
   type, public, extends(kernel_type) :: initial_exner_sample_kernel_type
       private
       type(arg_type) :: meta_args(3) = (/                                 &
-          arg_type(GH_FIELD,   GH_WRITE,  W3),                            &
-          arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9),                     &
+          arg_type(GH_FIELD,   GH_WRITE, W3),                             &
+          arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9),                    &
           arg_type(GH_REAL,    GH_READ)                                   &
           /)
       integer :: iterates_over = CELLS

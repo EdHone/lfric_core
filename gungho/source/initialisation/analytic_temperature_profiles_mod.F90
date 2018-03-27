@@ -14,7 +14,6 @@ use log_mod,                      only : log_event,                &
                                          log_scratch_space,        &
                                          LOG_LEVEL_ERROR
 use coord_transform_mod,          only : xyz2llr, central_angle
-use finite_element_config_mod,    only : wtheta_on
 use idealised_config_mod,         only : idealised_test_cold_bubble_x, &
                                          idealised_test_cold_bubble_y, &
                                          idealised_test_gaussian_hill, &

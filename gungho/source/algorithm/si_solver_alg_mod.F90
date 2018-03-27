@@ -23,7 +23,6 @@ module si_solver_alg_mod
                                        bundle_divide, &
                                        bundle_minmax, &
                                        bundle_inner_product
-  use finite_element_config_mod, only: wtheta_on
   use runtime_constants_mod,     only: get_mass_matrix_diagonal, &
                                        w2_id, theta_space_id, eye_id
   use field_mod,                 only: field_type

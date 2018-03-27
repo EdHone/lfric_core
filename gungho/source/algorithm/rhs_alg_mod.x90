@@ -17,7 +17,7 @@ module rhs_alg_mod
                                                  theta_space_id,   &
                                                  w3inv_id, dl_id
   use field_mod,                           only: field_type
-  use finite_element_config_mod,           only: element_order, wtheta_on
+  use finite_element_config_mod,           only: element_order
   use formulation_config_mod,              only: rotating
   use kinetic_energy_gradient_kernel_mod,  only: kinetic_energy_gradient_kernel_type
   use matrix_vector_kernel_mod,            only: matrix_vector_kernel_type
@@ -117,7 +117,7 @@ contains
                  setval_c( rhs(igh_t), 0.0_r_def ) )
 
     ! Compute rhs_u
-    if (wtheta_on) call invoke_ru_bd_kernel (rhs_tmp, exner, theta, qr)
+    call invoke_ru_bd_kernel (rhs_tmp, exner, theta, qr)
     call invoke( name = "Compute rhs_u setup",                               &
                  hydrostatic_kernel_type( rhs_tmp, exner, theta, geopotential,qr ),   &
                  kinetic_energy_gradient_kernel_type( rhs_tmp, u, chi, qr ), &

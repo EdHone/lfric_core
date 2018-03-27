@@ -17,7 +17,6 @@ coordinate_order=2,
 element_order=0,
 rehabilitate=.true.,
 supg=.false.,
-wtheta_on=.false.,
 /
 &output
 diag_stem_name='miniapp_skeleton',

@@ -207,7 +207,7 @@ contains
                                             opt_apply_variable_hx_kernel_type
     use operator_mod,                 only: operator_type
     use enforce_bc_kernel_mod,        only: enforce_bc_kernel_type
-    use finite_element_config_mod,    only: element_order, wtheta_on
+    use finite_element_config_mod,    only: element_order
     use psykal_lite_mod,              only: invoke_raise_field
 
     implicit none
@@ -247,7 +247,7 @@ contains
     ! r_pi = M3^-1*(rhs_pi + P03*M0^-1*rhs_t + M3rho*M3^-1*rhs_r)
     ! r_rho already contains M3^-1 factor
     mt_lumped_inv => get_normalisation(theta_space_id)
-    if ( wtheta_on .and. element_order == 0 ) then
+    if ( element_order == 0 ) then
       call invoke( opt_apply_variable_hx_kernel_type( r_p, u_term, mt_lumped_inv, rhs0(igh_d), &
                                                       compound_div, p3theta, ptheta2, m3_rho_star,&
                                                       mone), &
@@ -331,7 +331,7 @@ contains
     use enforce_bc_kernel_mod,           only: enforce_bc_kernel_type
     use apply_variable_hx_kernel_mod,    only: apply_variable_hx_kernel_type, &
                                                opt_apply_variable_hx_kernel_type
-    use finite_element_config_mod,       only: element_order, wtheta_on
+    use finite_element_config_mod,       only: element_order
 
     implicit none
     type(field_type),  intent(inout) :: Hp
@@ -358,7 +358,7 @@ contains
     u_normalisation => get_normalisation(w2_id)
 
     ! Compute M3*p + H[ D{\theta*}*p ]
-    if ( wtheta_on .and. element_order == 0 ) then
+    if ( element_order == 0 ) then
       ! Hard wired optimisation for desired configuration
       call invoke( setval_c( grad_p, 0.0_r_def ),                              &
                    opt_scaled_matrix_vector_kernel_type(grad_p, p, div_star,   &
