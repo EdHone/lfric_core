@@ -69,6 +69,7 @@
   diagnostic_frequency      = 1
   nodal_output_on_w3        = .false.
   subroutine_timers         = .true.
+  subroutine_counters       = .false.
 /
 
 &physics

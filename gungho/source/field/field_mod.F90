@@ -759,6 +759,7 @@ contains
 
     use log_mod,         only : log_event, &
                                 LOG_LEVEL_ERROR
+    use count_mod,       only : halo_calls
     implicit none
 
     class( field_proxy_type ), target, intent(inout) :: self
@@ -787,6 +788,8 @@ contains
       ! Halo exchange is complete so set the halo dirty flag to say it
       ! is clean (or more accurately - not dirty)
       self%halo_dirty(1:depth) = 0
+      ! If a halo counter has been set up, increment it
+      if (allocated(halo_calls)) call halo_calls%counter_inc()
     end if
 
     nullify( mesh )
@@ -836,6 +839,7 @@ contains
 
     use log_mod,         only : log_event, &
                                 LOG_LEVEL_ERROR
+    use count_mod,       only : halo_calls
     implicit none
 
     class( field_proxy_type ), target, intent(inout) :: self
@@ -865,6 +869,8 @@ contains
       ! Halo exchange is complete so set the halo dirty flag to say it
       ! is clean (or more accurately - not dirty)
       self%halo_dirty(1:depth) = 0
+      ! If a halo counter has been set up, increment it
+      if (allocated(halo_calls)) call halo_calls%counter_inc()
 
       nullify( mesh )
     end if

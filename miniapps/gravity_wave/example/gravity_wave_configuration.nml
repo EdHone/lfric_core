@@ -45,6 +45,7 @@
   write_nodal_output        = .true.
   diagnostic_frequency      =  36
   subroutine_timers         = .true.
+  subroutine_counters       = .false.
 /
 
 &planet

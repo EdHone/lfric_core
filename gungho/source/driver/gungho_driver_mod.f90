@@ -54,6 +54,7 @@ module gungho_driver_mod
                                          imr_nr, nummr
   use output_config_mod,          only : diagnostic_frequency, &
                                          subroutine_timers, &
+                                         subroutine_counters, &
                                          write_nodal_output, &
                                          write_xios_output
 
@@ -76,6 +77,7 @@ module gungho_driver_mod
                                          transport_scheme_bip_cosmic, &
                                          transport_scheme_cusph_cosmic
   use xios
+  use count_mod,                  only: count_type, halo_calls
 
   implicit none
 
@@ -170,6 +172,11 @@ contains
     ! Model init
     !-------------------------------------------------------------------------
     if ( subroutine_timers ) call timer('gungho')
+
+    if ( subroutine_counters ) then
+      allocate(halo_calls, source=count_type('halo_calls'))
+      call halo_calls%counter('gungho')
+    end if
 
     allocate( global_mesh_collection, &
               source = global_mesh_collection_type() )
@@ -514,6 +521,11 @@ contains
     if ( subroutine_timers ) then
       call timer('gungho')
       call output_timer()
+    end if
+
+    if ( subroutine_counters ) then
+      call halo_calls%counter('gungho')
+      call halo_calls%output_counters()
     end if
 
     call log_event( 'gungho completed', LOG_LEVEL_INFO )
