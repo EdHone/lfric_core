@@ -151,8 +151,7 @@ build: PROJECT      = $(PROJECT_NAME)
 build: SOURCE_DIR   = source
 build: WORKING_DIR := $(WORKING_DIR)
 build: BIN_DIR     ?= $(PROJECT_DIR)/bin
-#build: PROGRAMS    := $(basename $(notdir $(shell find $(SOURCE_DIR) -maxdepth 1 -name '*.[Ff]90' -print)))
-build: PROGRAMS    := io_dev
+build: PROGRAMS    := $(basename $(notdir $(shell find $(SOURCE_DIR) -maxdepth 1 -name '*.[Ff]90' -print)))
 build: extract
 	$(Q)$(MAKE) $(QUIET_ARG) generate-configuration \
                  PROJECT=$(PROJECT_NAME)                \

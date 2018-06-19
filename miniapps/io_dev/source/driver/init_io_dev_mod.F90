@@ -36,7 +36,7 @@ module init_io_dev_mod
 
     procedure(write_interface), pointer      :: tmp_ptr
 
-    call log_event( 'io miniapp: initialisation...', LOG_LEVEL_INFO )
+    call log_event( 'io_dev: initialisation...', LOG_LEVEL_INFO )
 
     ! Create field
     test_field   = field_type( vector_space = &
@@ -59,7 +59,7 @@ module init_io_dev_mod
 
     nullify( tmp_ptr )
 
-    call log_event( 'io_dev miniapp initialised', LOG_LEVEL_INFO )
+    call log_event( 'io_dev: initialised', LOG_LEVEL_INFO )
 
   end subroutine init_io_dev
 
