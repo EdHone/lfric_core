@@ -1,0 +1,52 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2018 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!>@brief Initialisation of density field for the transport miniapp.
+
+!>@details The initial density field can be generated either by sampling or by
+!>         projection.
+module transport_init_fields_alg_mod
+
+  use constants_mod,                     only: r_def
+  use runtime_constants_mod,             only: get_coordinates
+  use finite_element_config_mod,         only: element_order
+  use field_mod,                         only: field_type
+  use quadrature_xyoz_mod,               only: quadrature_xyoz_type
+  use quadrature_rule_gaussian_mod,      only: quadrature_rule_gaussian_type
+  use psykal_lite_mod,                   only: invoke_initial_rho_sample_kernel
+  use set_rho_kernel_mod,                only: set_rho_kernel_type
+  use initial_density_config_mod,        only: sample_init_rho
+
+  implicit none
+
+  private
+  public :: transport_init_fields_alg
+
+contains
+  !> @param[inout] density Density field
+  subroutine transport_init_fields_alg( density )
+
+    implicit none
+
+    type(field_type), intent(inout)     :: density
+
+    type(quadrature_xyoz_type)          :: qr
+    type(quadrature_rule_gaussian_type) :: quadrature_rule
+    type(field_type), pointer           :: chi(:) => null()
+    real(kind=r_def), parameter         :: initial_time = 0.0_r_def
+
+    chi => get_coordinates()
+    qr = quadrature_xyoz_type( element_order+3, quadrature_rule )
+
+    if ( sample_init_rho ) then
+      call invoke_initial_rho_sample_kernel( density, chi, initial_time )
+    else
+      call invoke( set_rho_kernel_type( density, chi, initial_time, qr ) )
+    end if
+
+  end subroutine transport_init_fields_alg
+
+end module transport_init_fields_alg_mod

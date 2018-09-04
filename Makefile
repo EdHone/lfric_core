@@ -19,7 +19,8 @@ OPERATE_ON ?= infrastructure mesh_tools gungho lfric_atm \
               miniapps/skeleton                          \
               miniapps/gravity_wave                      \
               miniapps/solver_miniapp                    \
-              miniapps/io_dev
+              miniapps/io_dev                            \
+              miniapps/transport
 
 ##############################################################################
 # Perform default action on each sub-project in OPERATE_ON list.
