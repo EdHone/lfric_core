@@ -4029,6 +4029,138 @@ end subroutine invoke_sample_poly_adv
 
   end subroutine invoke_tracer_smagorinsky_diff
 
+  !------------------------------------------------------------------------------
+  !> invoke_hydrostatic_exner_kernel_type: invoke the hydrostatic exner pressure initialization.
+  !> Computation of value of basis function of coordinate field for non-write argument is
+  !> currently not supported by PSyClone, will be introduced in modification of quadrature
+  !> strategy, see LFRic ticket #1540, PSyClone issue 196, and related LFRic ticket
+  !> #1583 on fixing the get_height function.
+
+  subroutine invoke_hydrostatic_exner_kernel(exner, theta, height_wt, height_w3, chi)
+    use hydrostatic_exner_kernel_mod, only: hydrostatic_exner_code
+    use function_space_mod,           only: BASIS, DIFF_BASIS
+    use mesh_mod,                     only: mesh_type
+
+    type(field_type), intent(inout) :: exner
+    type(field_type), intent(in) :: theta, height_wt, height_w3, chi(3)
+
+    integer         :: cell, df_nodal, df_chi, nlayers, dim_chi
+    integer         :: ndf_wt, undf_wt, ndf_w3, undf_w3, ndf_chi, undf_chi
+
+    real(KIND=r_def), allocatable :: basis_chi_on_wt(:,:,:)
+    real(KIND=r_def), pointer     :: nodes_wt(:,:) => null()
+    type(field_proxy_type)        :: theta_proxy, exner_proxy, height_wt_proxy, height_w3_proxy, chi_proxy(3)
+    integer, pointer              :: map_w3(:,:) => null(), map_wt(:,:) => null(), map_chi(:,:) => null()
+    type(mesh_type), pointer      :: mesh => null()
+    !
+    ! Initialise field and/or operator proxies
+    !
+    theta_proxy = theta%get_proxy()
+    exner_proxy = exner%get_proxy()
+
+    height_wt_proxy = height_wt%get_proxy()
+    height_w3_proxy = height_w3%get_proxy()
+
+    chi_proxy(1) = chi(1)%get_proxy()
+    chi_proxy(2) = chi(2)%get_proxy()
+    chi_proxy(3) = chi(3)%get_proxy()
+    !
+    ! Initialise number of layers
+    !
+    nlayers = exner_proxy%vspace%get_nlayers()
+    !
+    ! Create a mesh object
+    !
+    mesh => exner%get_mesh()
+    !
+    !
+    ! Initialise number of DoFs for wtheta
+    !
+    ndf_wt  = theta_proxy%vspace%get_ndf()
+    undf_wt = theta_proxy%vspace%get_undf()
+    !
+    ! Initialise number of DoFs for w3
+    !
+    ndf_w3  = exner_proxy%vspace%get_ndf()
+    undf_w3 = exner_proxy%vspace%get_undf()
+    !
+    ! Initialise number of DoFs for Wchi
+    !
+    ndf_chi  = chi_proxy(1)%vspace%get_ndf()
+    undf_chi = chi_proxy(1)%vspace%get_undf()
+    !
+    ! Initialise evaluator-related quantities using the field(s) that are written to
+    !
+    nodes_wt => theta_proxy%vspace%get_nodes()
+    !
+    ! Allocate basis arrays
+    !
+    dim_chi = chi_proxy(1)%vspace%get_dim_space()
+    allocate(basis_chi_on_wt(dim_chi, ndf_chi, ndf_wt))
+    !
+    ! Compute basis arrays
+    !
+    do df_nodal=1,ndf_wt
+      do df_chi=1,ndf_chi
+        basis_chi_on_wt(:,df_chi,df_nodal) = &
+          chi_proxy(1)%vspace%call_function(BASIS,df_chi,nodes_wt(:,df_nodal))
+      end do
+    end do
+    !
+    ! Call kernels and communication routines
+    !
+    if (chi_proxy(1)%is_dirty(depth=1)) then
+      call chi_proxy(1)%halo_exchange(depth=1)
+    end if
+    !
+    if (chi_proxy(2)%is_dirty(depth=1)) then
+      call chi_proxy(2)%halo_exchange(depth=1)
+    end if
+    !
+    if (chi_proxy(3)%is_dirty(depth=1)) then
+      call chi_proxy(3)%halo_exchange(depth=1)
+    end if
+    !
+    do cell=1,mesh%get_last_halo_cell(1)
+
+      ! Look-up dofmaps for each function space
+      !
+      map_w3     => exner_proxy%vspace%get_whole_dofmap()
+      map_wt     => theta_proxy%vspace%get_whole_dofmap()
+      map_chi    => chi_proxy(1)%vspace%get_whole_dofmap()
+
+      !
+      call hydrostatic_exner_code(nlayers, &
+                                  exner_proxy%data, &
+                                  theta_proxy%data, &
+                                  height_wt_proxy%data, &
+                                  height_w3_proxy%data, &
+                                  chi_proxy(1)%data, &
+                                  chi_proxy(2)%data, &
+                                  chi_proxy(3)%data, &
+                                  ndf_w3, &
+                                  undf_w3, &
+                                  map_w3(:,cell), &
+                                  ndf_wt, &
+                                  undf_wt, &
+                                  map_wt(:,cell), &
+                                  ndf_chi, &
+                                  undf_chi, &
+                                  map_chi(:,cell), &
+                                  basis_chi_on_wt)
+    end do
+    !
+    ! Set halos dirty/clean for fields modified in the above loop
+    !
+    call exner_proxy%set_dirty()
+    !
+    !
+    ! Deallocate basis arrays
+    !
+    deallocate(basis_chi_on_wt)
+    !
+  end subroutine invoke_hydrostatic_exner_kernel
+
 
 
 end module psykal_lite_mod

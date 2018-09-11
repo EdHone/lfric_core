@@ -8,7 +8,7 @@
 !>
 module hydrostatic_exner_kernel_mod_test
 
-  use constants_mod,                 only : i_def, r_def
+  use constants_mod,                 only : i_def, r_def, str_long
   use function_space_collection_mod, only : function_space_collection_type, &
                                             function_space_collection
   use mesh_collection_mod,           only : mesh_collection_type, &
@@ -16,35 +16,37 @@ module hydrostatic_exner_kernel_mod_test
   use field_mod,                     only : field_type, &
                                             field_proxy_type
   use function_space_mod,            only : function_space_type
+  use formulation_config_mod,        only : init_exner_bt
   use fs_continuity_mod,             only : W0, W3, WTHETA
   use pFUnit_Mod
-  use quadrature_xyoz_mod,               only: quadrature_xyoz_type, &
-                                               quadrature_xyoz_proxy_type
-  use quadrature_rule_gaussian_mod,      only: quadrature_rule_gaussian_type
+  use quadrature_xyoz_mod,           only : quadrature_xyoz_type, &
+                                              quadrature_xyoz_proxy_type
+  use quadrature_rule_gaussian_mod,  only : quadrature_rule_gaussian_type
   use yaxt,                          only : xt_initialize, xt_finalize
   use mpi_mod,                       only : store_comm, clear_comm
 
   implicit none
 
   private
-  public :: hydrostatic_exner_test_type, test_all
+  public :: hydrostatic_exner_test_type, test_bottom_up, test_top_down
 
-  @TestCase
+  @TestCase(npes=[1])
   type, extends(MPITestCase) :: hydrostatic_exner_test_type
     private
     type( quadrature_xyoz_type )          :: qr
     type(quadrature_xyoz_proxy_type)      :: qr_proxy
     type( quadrature_rule_gaussian_type ) :: quadrature_rule
-    type(function_space_type), pointer :: w0_fs => null()
-    type(function_space_type), pointer :: wt_fs => null()
-    type(function_space_type), pointer :: w3_fs => null()
-    type(field_type)                   :: exner, theta, chi(3)
-    type(field_type)                   :: height_wt, height_w3
-    real(r_def), allocatable           :: basis_w0(:,:,:,:)
+    type(function_space_type), pointer    :: w0_fs => null()
+    type(function_space_type), pointer    :: wt_fs => null()
+    type(function_space_type), pointer    :: w3_fs => null()
+    type(field_type)                      :: exner, theta, chi(3)
+    type(field_type)                      :: height_wt, height_w3
+    real(r_def), allocatable              :: basis_w0(:,:,:,:)
   contains
     procedure setUp
     procedure tearDown
-    procedure test_all
+    procedure test_bottom_up
+    procedure test_top_down
   end type hydrostatic_exner_test_type
 
   integer(i_def), parameter :: element_order = 0
@@ -189,9 +191,10 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   @test( npes=[1] )
-  subroutine test_all( this )
+  subroutine test_bottom_up( this )
 
     use hydrostatic_exner_kernel_mod, only : hydrostatic_exner_code
+    use gungho_feign_config_mod,      only : feign_formulation_config
 
     implicit none
 
@@ -201,14 +204,12 @@ contains
                               dy = 1000.0_r_def, &
                               dz = 2000.0_r_def
     real(r_def), parameter :: tol = 1.0e-6_r_def
-    real(r_def)            :: answer
 
     type(field_type) :: chi(3)
     type(field_proxy_type )   :: chi_p(3)
 
     type(field_proxy_type )   :: exner_proxy, theta_proxy
     type(field_proxy_type )   :: height_wt_proxy, height_w3_proxy
-
 
     integer :: i, j, k, cell, err
 
@@ -217,11 +218,22 @@ contains
     integer                 :: undf_w0, undf_wt, undf_w3
     integer                 :: element_order
     integer, pointer        :: map_w3(:), map_wt(:), map_w0(:) => null()
+    real                    :: answer
 
     real(kind=r_def), pointer :: xp(:,:) => null()
     real(kind=r_def), pointer :: zp(:) => null()
     real(kind=r_def), pointer :: wh(:), wv(:) => null()
 
+    call feign_formulation_config(transport_only=.false., rotating=.false.,  &
+                                  use_moisture=.false.,                      &
+                                  shallow=.true., use_physics=.false.,       &
+                                  use_wavedynamics=.true.,                   &
+                                  dry_static_adjust=.false.,                 &
+                                  dlayer_on=.false.,                         &
+                                  set_hydrostatic_init = .true.,             &
+                                  init_exner_bt        = .true.,             &
+                                  hard_wired_j         = .false.,            &
+                                  hard_wired_detj      = .false.  )
 
     ! Make a coordinate field with a function space
     do i = 1,3
@@ -295,9 +307,133 @@ contains
                                  )
 
     k = 1
-    answer = 0.9666666_r_def
+    answer = 0.9591617_r_def
     @assertEqual(answer, exner_proxy%data(map_w3(1)+k), tol)
 
-  end subroutine test_all
+  end subroutine test_bottom_up
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test( npes=[1] )
+  subroutine test_top_down( this )
+
+    use hydrostatic_exner_kernel_mod, only : hydrostatic_exner_code
+    use gungho_feign_config_mod,      only : feign_formulation_config
+
+    implicit none
+
+    class(hydrostatic_exner_test_type), intent(inout) :: this
+
+    real(r_def), parameter :: dx = 6000.0_r_def, &
+                              dy = 1000.0_r_def, &
+                              dz = 2000.0_r_def
+    real(r_def), parameter :: tol = 1.0e-6_r_def
+
+    type(field_type) :: chi(3)
+    type(field_proxy_type )   :: chi_p(3)
+
+    type(field_proxy_type )   :: exner_proxy, theta_proxy
+    type(field_proxy_type )   :: height_wt_proxy, height_w3_proxy
+
+    integer :: i, j, k, cell, err
+
+    integer                 :: nlayers, nqp_h, nqp_v
+    integer                 :: ndf_w0, ndf_wt, ndf_w3
+    integer                 :: undf_w0, undf_wt, undf_w3
+    integer                 :: element_order
+    integer, pointer        :: map_w3(:), map_wt(:), map_w0(:) => null()
+    real                    :: answer
+
+    real(kind=r_def), pointer :: xp(:,:) => null()
+    real(kind=r_def), pointer :: zp(:) => null()
+    real(kind=r_def), pointer :: wh(:), wv(:) => null()
+
+    call feign_formulation_config(transport_only=.false., rotating=.false.,  &
+                                  use_moisture=.false.,                      &
+                                  shallow=.true., use_physics=.false.,       &
+                                  use_wavedynamics=.true.,                   &
+                                  dry_static_adjust=.false.,                 &
+                                  dlayer_on=.false.,                         &
+                                  set_hydrostatic_init = .true.,             &
+                                  init_exner_bt        = .false.,            &
+                                  hard_wired_j         = .false.,            &
+                                  hard_wired_detj      = .false.  )
+
+    ! Make a coordinate field with a function space
+    do i = 1,3
+      chi(i) = field_type( vector_space = this%w0_fs )
+      chi_p(i) = chi(i)%get_proxy()
+    end do
+
+    ! Compute coordinates
+    cell = 1
+    do j = 1,3
+      do i = 1,3
+        map_w0 => chi_p(1)%vspace%get_cell_dofmap( cell )
+        do k = 0,3
+          chi_p(1)%data(map_w0(1) + k) = real(i-1)*dx
+          chi_p(2)%data(map_w0(1) + k) = real(j-1)*dy
+          chi_p(3)%data(map_w0(1) + k) = real(k)  *dz
+        end do
+        cell = cell + 1
+      end do
+    end do
+
+    ! Test kernel
+    exner_proxy  = this%exner%get_proxy()
+    theta_proxy = this%theta%get_proxy()
+    height_wt_proxy = this%height_wt%get_proxy()
+    height_w3_proxy = this%height_w3%get_proxy()
+
+    nlayers = exner_proxy%vspace%get_nlayers()
+    nqp_h=this%qr_proxy%np_xy
+    nqp_v=this%qr_proxy%np_z
+    xp=>this%qr_proxy%points_xy
+    zp=>this%qr_proxy%points_z
+
+    ndf_w3  = exner_proxy%vspace%get_ndf( )
+    undf_w3 = exner_proxy%vspace%get_undf()
+
+    ndf_wt  = theta_proxy%vspace%get_ndf( )
+    undf_wt = theta_proxy%vspace%get_undf()
+
+    ndf_w0  = chi_p(1)%vspace%get_ndf( )
+    undf_w0 = chi_p(1)%vspace%get_undf()
+
+    call chi_p(1)%vspace%compute_basis_function( &
+         this%basis_w0, ndf_w0, nqp_h, nqp_v, xp, zp )
+
+    cell = 1
+
+    map_w3  => exner_proxy%vspace%get_cell_dofmap( cell )
+    map_wt  => theta_proxy%vspace%get_cell_dofmap( cell )
+    map_w0  => chi_p(1)%vspace%get_cell_dofmap( cell )
+
+    ! Create the data
+    exner_proxy%data(:) = 0.0_r_def
+    theta_proxy%data(:) = 300.0_r_def
+    height_wt_proxy%data(:) = 0.0_r_def
+    height_w3_proxy%data(:) = 1000.0_r_def
+
+    call hydrostatic_exner_code( nlayers,                                   &
+                                 exner_proxy%data,                          &
+                                 theta_proxy%data,                          &
+                                 height_wt_proxy%data,                      &
+                                 height_w3_proxy%data,                      &
+                                 chi_p(1)%data,                             &
+                                 chi_p(2)%data,                             &
+                                 chi_p(3)%data,                             &
+                                 ndf_w3, undf_w3,                           &
+                                 map_w3, ndf_wt,                            &
+                                 undf_wt, map_wt,                           &
+                                 ndf_w0, undf_w0,                           &
+                                 map_w0, this%basis_w0                      &
+                                 )
+
+    k = 1
+    answer = 0.8287541_r_def
+    @assertEqual(answer, exner_proxy%data(map_w3(1)+k), tol)
+
+  end subroutine test_top_down
 
 end module hydrostatic_exner_kernel_mod_test

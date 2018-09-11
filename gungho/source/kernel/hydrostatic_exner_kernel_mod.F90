@@ -19,8 +19,10 @@ use constants_mod,              only : r_def, i_def
 use planet_config_mod,          only : gravity, cp, rd, p_zero
 use idealised_config_mod,       only : test
 use kernel_mod,                 only : kernel_type
+use extrusion_config_mod,       only : domain_top
 use fs_continuity_mod,          only : WTHETA, W3
 use formulation_config_mod,     only : init_exner_bt
+use coord_transform_mod,        only : xyz2llr
 
 implicit none
 
@@ -103,38 +105,47 @@ subroutine hydrostatic_exner_code(nlayers, exner, theta, height_wt, height_w3,  
   real(kind=r_def), dimension(undf_w3), intent(in) :: height_w3
   real(kind=r_def), dimension(undf_chi),intent(in) :: chi_1, chi_2, chi_3
 
-  real(kind=r_def), dimension(1,ndf_chi,ndf_w3),  intent(in)  :: basis_chi
+  real(kind=r_def), dimension(1,ndf_chi,ndf_wt),  intent(in)  :: basis_chi
 
   !Internal variables
-  integer(kind=i_def)                    :: k, dfc
-  real(kind=r_def)                       :: dz
+  integer(kind=i_def)                    :: k, dfc, layers_offset, wt_dof
+  real(kind=r_def)                       :: dz  
   real(kind=r_def),   dimension(ndf_chi) :: chi_1_e, chi_2_e, chi_3_e
   real(kind=r_def)                       :: x(3)
 
-  real(kind=r_def)            :: exner_surf, exner_top
+  real(kind=r_def)            :: exner_start
+   
+  if(init_exner_bt) then
+    layers_offset = 0
+    wt_dof = 1
+  else
+    layers_offset = nlayers - 1
+    wt_dof = 2
+  end if
 
-  
   do dfc = 1, ndf_chi
-    chi_1_e(dfc) = chi_1( map_chi(dfc))
-    chi_2_e(dfc) = chi_2( map_chi(dfc))
-    chi_3_e(dfc) = chi_3( map_chi(dfc))
+    chi_1_e(dfc) = chi_1( map_chi(dfc) + layers_offset )
+    chi_2_e(dfc) = chi_2( map_chi(dfc) + layers_offset )
+    chi_3_e(dfc) = chi_3( map_chi(dfc) + layers_offset )
   end do
 
-  ! Horizontal coordinates of cell center, particular to lowest order, ndf_w3=1
+  ! Horizontal coordinates of cell bottom or top
   x(:) = 0.0_r_def
   do dfc = 1, ndf_chi
-    x(1) = x(1) + chi_1_e(dfc)*basis_chi(1,dfc,1)
-    x(2) = x(2) + chi_2_e(dfc)*basis_chi(1,dfc,1)
+    x(1) = x(1) + chi_1_e(dfc)*basis_chi(1,dfc,wt_dof)
+    x(2) = x(2) + chi_2_e(dfc)*basis_chi(1,dfc,wt_dof)
+    x(3) = x(3) + chi_3_e(dfc)*basis_chi(1,dfc,wt_dof)
   end do
   
+  ! Exner at the model surface or top
+  exner_start = analytic_pressure( (/x(1), x(2), x(3)/), test, 0.0_r_def)
+
   if(init_exner_bt) then
 
-    ! Exner at the surface
-    exner_surf = analytic_pressure( (/x(1), x(2), height_wt(map_wt(1))/), test, 0.0_r_def)
-
-    ! Exner at the first level
+    ! Bottom-up initialization
+    ! Exner at the bottom level
     dz = height_w3(map_w3(1))-height_wt(map_wt(1))
-    exner(map_w3(1)) = exner_surf**(rd/cp) - gravity * dz /(cp*theta(map_wt(1)))
+    exner(map_w3(1)) = exner_start - gravity * dz /(cp*theta(map_wt(1)))
 
     ! Exner on other levels
     do k = 1, nlayers-1
@@ -144,20 +155,18 @@ subroutine hydrostatic_exner_code(nlayers, exner, theta, height_wt, height_w3,  
 
   else
 
-    ! Exner at the top of the model
-    exner_top = analytic_pressure( (/x(1), x(2), height_wt(map_wt(1)+nlayers)/), test, 0.0_r_def)
-
+    ! Top-down initialization
     ! Exner at the top level
     dz = height_wt(map_wt(1)+nlayers) - height_w3(map_w3(1)+nlayers-1)
-    exner(map_w3(1)+nlayers-1) = exner_top**(rd/cp) + gravity * dz /(cp*theta(map_wt(1)+nlayers))
+    exner(map_w3(1)+nlayers-1) = exner_start + gravity * dz /(cp*theta(map_wt(1)+nlayers))
 
     ! Exner on other levels
     do k = nlayers-1, 1, -1
       dz = height_w3(map_w3(1)+k)-height_w3(map_w3(1)+k-1)
       exner(map_w3(1)+k-1) = exner(map_w3(1)+k) + gravity * dz/(cp*theta(map_wt(1)+k))
     end do
-  end if
 
+  end if
 
 end subroutine hydrostatic_exner_code
 

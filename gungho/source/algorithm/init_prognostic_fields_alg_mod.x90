@@ -29,7 +29,8 @@ module init_prognostic_fields_alg_mod
   ! PsyKAl-lite kernels
   use psykal_lite_mod,                 only: invoke_initial_mr_kernel, &
                                              invoke_initial_rho_sample_kernel, &
-                                             invoke_initial_exner_sample_kernel
+                                             invoke_initial_exner_sample_kernel, &
+                                             invoke_hydrostatic_exner_kernel
 
   ! PsyKAl PSYClone kernels
   use set_rho_kernel_mod,              only: set_rho_kernel_type
@@ -38,8 +39,7 @@ module init_prognostic_fields_alg_mod
   use enforce_bc_kernel_mod,           only: enforce_bc_kernel_type
   use initial_theta_kernel_mod,        only: initial_theta_kernel_type
   use project_pressure_kernel_mod,     only: project_pressure_kernel_type
-  use sample_eos_rho_kernel_mod,  only: sample_eos_rho_kernel_type
-  use hydrostatic_exner_kernel_mod,    only: hydrostatic_exner_kernel_type
+  use sample_eos_rho_kernel_mod,       only: sample_eos_rho_kernel_type
 
   ! Derived Types
   use field_mod,                       only: field_type
@@ -126,10 +126,10 @@ contains
         height_w3 => get_height(W3)
         height_wth => get_height(Wtheta)
 
-        ! Initialize working up from theta distro and hydrostatic balance
-        call invoke( hydrostatic_exner_kernel_type( exner, theta, height_wth, &
-                                                    height_w3, chi ), &
-                     sample_eos_rho_kernel_type( rho, exner, theta ) )
+        ! Initialize from theta distro using hydrostatic balance, then compute rho with equation of state
+        call invoke_hydrostatic_exner_kernel( exner, theta, height_wth, &
+                                                    height_w3, chi )
+        call invoke( sample_eos_rho_kernel_type( rho, exner, theta ) )
       else
         if(sample_init_rho) then
           call invoke_initial_rho_sample_kernel  ( rho,   chi, initial_time )
