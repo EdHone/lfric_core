@@ -70,11 +70,6 @@ contains
     type( field_type ), intent( in ) :: theta_in_wth
     type( field_collection_type ), intent(inout) :: twod_fields
     type( field_proxy_type )  :: theta_in_wth_proxy
-    type( field_type ), pointer :: tstar_2d  => null()
-    type( field_type ), pointer :: zh_2d => null()
-    type( field_type ), pointer :: z0msea_2d => null()
-    type( field_type ), pointer :: ntml_2d => null()
-    type( field_type ), pointer :: cumulus_2d => null()
 
 
     integer(kind=i_def) :: nlayers
@@ -83,13 +78,6 @@ contains
     integer :: i,j,l
 
     theta_in_wth_proxy = theta_in_wth%get_proxy()
-
-    tstar_2d => twod_fields%get_field('tstar')
-    zh_2d => twod_fields%get_field('zh')
-    z0msea_2d => twod_fields%get_field('z0msea')
-
-    ntml_2d => twod_fields%get_field('ntml')
-    cumulus_2d => twod_fields%get_field('cumulus')
 
     ! set up various dimensions for a single column sea point
     nlayers = theta_in_wth_proxy%vspace%get_nlayers()
@@ -214,13 +202,6 @@ contains
     allocate(r_theta_levels(row_length,rows,0:nlayers))
     allocate(r_rho_levels(row_length,rows,nlayers))
     allocate(eta_theta_levels(0:nlayers))
-
-    ! BL prognostics - initialise
-    call invoke( setval_c(tstar_2d, 300.0_r_def))
-    call invoke( setval_c(zh_2d, 1000.0_r_def))
-    call invoke( setval_c(z0msea_2d, 1.5e-4_r_def))
-    call invoke( setval_c(ntml_2d, 1.0_r_def))
-    call invoke( setval_c(cumulus_2d, 0.0_r_def))
 
     !-----------------------------------------------------------------------
     ! Set up index for sea and sea-ice

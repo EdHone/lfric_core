@@ -17,7 +17,7 @@ module init_physics_mod
   use field_collection_mod,           only : field_collection_type
   use fs_continuity_mod,              only : W0, W1, W2, W3, Wtheta
   use function_space_mod,             only : function_space_type
-  use init_cloud_fields_alg_mod,      only : init_cloud_fields_alg
+  use init_cloud_twod_fields_alg_mod, only : init_cloud_twod_fields_alg
   use log_mod,                        only : log_event,         &
                                              LOG_LEVEL_INFO,         &
                                              LOG_LEVEL_ERROR
@@ -120,7 +120,7 @@ contains
     !========================================================================
     twod_fields = field_collection_type(name='twod_fields')
     vector_space=> function_space_collection%get_fs(twod_mesh_id, 0, W3) 
-    checkpoint_restart_flag = .false.
+    checkpoint_restart_flag = .true.
 
     call add_physics_field(twod_fields, 'tstar',   vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(twod_fields, 'zh',      vector_space, checkpoint_restart_flag, restart)
@@ -143,7 +143,7 @@ contains
     call add_physics_field(cloud_fields, 'rhcrit',           vector_space, checkpoint_restart_flag, restart)
 
     ! Initialise cloud fields
-    call init_cloud_fields_alg( cloud_fields, restart )
+    call init_cloud_twod_fields_alg( cloud_fields, twod_fields, restart )
     call log_event( 'Physics initialised', LOG_LEVEL_INFO ) 
 
 

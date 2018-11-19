@@ -107,7 +107,6 @@ module gungho_driver_mod
   type( field_type ), pointer :: cf_bulk  => null()
   type( field_type ), pointer :: rhcrit_in_wth  => null()
 
-
   ! A pointer used for retrieving fields for use in diagnostics
   type( field_type ), pointer :: diag_ptr  => null()
 
@@ -129,6 +128,8 @@ module gungho_driver_mod
      [ 'area_fraction  ', 'ice_fraction   ', 'liquid_fraction', 'bulk_fraction  ', &
        'rhcrit         ']
 
+  character(str_short) :: twodnames(5) = &
+     [ 'tstar  ', 'zh     ', 'z0msea ', 'ntml   ', 'cumulus']
 
 contains
 
@@ -216,7 +217,7 @@ contains
       call xios_domain_init( xios_ctx,     &
                              comm,         &
                              dtime,        &
-                             restart,      &
+                             restart,      & 
                              mesh_id,      &
                              twod_mesh_id, &
                              chi)
@@ -576,6 +577,17 @@ contains
 
        end if
 
+       if (use_physics)then
+         do i=1,5
+           diag_ptr => twod_fields%get_field(trim(twodnames(i)))
+           write(name, '(A,A)') 'checkpoint_',trim(twodnames(i))
+           write(log_scratch_space,'(3A,I6)') "Checkpointing ", trim(name) ," at ts ",restart%ts_end()
+           call log_event(log_scratch_space,LOG_LEVEL_INFO)
+           call diag_ptr%write_checkpoint(trim(name),trim(restart%endfname(twodnames(i))))
+         end do
+
+       endif
+
     end if
 
     ! Call timestep finalizers
@@ -599,6 +611,15 @@ contains
         ! Finalise cloud fields
         call diag_ptr%field_final()
       end do   
+    endif
+
+    if (use_physics) then
+      do i=1,5
+        ! Extract twod fields
+        diag_ptr => twod_fields%get_field(trim(twodnames(i)))
+        ! Finalise twod fields
+        call diag_ptr%field_final()
+      end do
     endif
 
     if(write_minmax_tseries) call minmax_tseries_final(mesh_id)
