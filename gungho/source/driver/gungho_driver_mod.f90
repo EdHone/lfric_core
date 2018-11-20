@@ -52,8 +52,8 @@ module gungho_driver_mod
   use minmax_tseries_mod,         only : minmax_tseries, &
                                          minmax_tseries_init, &
                                          minmax_tseries_final
-  use mr_indices_mod,             only : imr_v, imr_cl, imr_r, imr_ci, &
-                                         imr_nc, imr_nr, nummr, mr_names
+  use mr_indices_mod,             only : imr_v, imr_cl, imr_r, &
+                                         imr_ci, imr_s, imr_g, nummr, mr_names
   use physics_config_mod,         only : cloud_scheme, &
                                          physics_cloud_scheme_none
   use output_config_mod,          only : diagnostic_frequency, &
@@ -258,8 +258,8 @@ contains
           call output_nodal('m_cl',    ts_init, mr(imr_cl),  mesh_id)
           call output_nodal('m_r',     ts_init, mr(imr_r),   mesh_id)
           call output_nodal('m_ci',    ts_init, mr(imr_ci),  mesh_id)
-          call output_nodal('m_nc',    ts_init, mr(imr_nc),  mesh_id)
-          call output_nodal('m_nr',    ts_init, mr(imr_nr),  mesh_id)
+          call output_nodal('m_s',     ts_init, mr(imr_s),   mesh_id)
+          call output_nodal('m_g',     ts_init, mr(imr_g),   mesh_id)
 
           if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
             ! Extract cloud fields
@@ -301,10 +301,10 @@ contains
           call output_xios_nodal('init_m_cl',    mr(imr_cl),  mesh_id)
           call output_xios_nodal('init_m_r',     mr(imr_r),   mesh_id)
           call output_xios_nodal('init_m_ci',    mr(imr_ci),  mesh_id)
-          call output_xios_nodal('init_m_nc',    mr(imr_nc),  mesh_id)
-          call output_xios_nodal('init_m_nr',    mr(imr_nr),  mesh_id)
-
-          if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
+          call output_xios_nodal('init_m_s',     mr(imr_s),   mesh_id)
+          call output_xios_nodal('init_m_g',     mr(imr_g),   mesh_id)
+       
+         if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
             ! Extract cloud fields
             cf_area        => cloud_fields%get_field('area_fraction')
             cf_ice         => cloud_fields%get_field('ice_fraction')
@@ -438,8 +438,8 @@ contains
             call output_nodal('m_cl',    timestep, mr(imr_cl),  mesh_id)
             call output_nodal('m_r',     timestep, mr(imr_r),   mesh_id)
             call output_nodal('m_ci',    timestep, mr(imr_ci),  mesh_id)
-            call output_nodal('m_nc',    timestep, mr(imr_nc),  mesh_id)
-            call output_nodal('m_nr',    timestep, mr(imr_nr),  mesh_id)
+            call output_nodal('m_s',     timestep, mr(imr_s),   mesh_id)
+            call output_nodal('m_g',     timestep, mr(imr_g),   mesh_id)
 
             if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
               ! Extract cloud fields
@@ -454,7 +454,7 @@ contains
               call output_nodal('bulk_fraction', timestep, cf_bulk,    mesh_id)
               call output_nodal('rhcrit', timestep, rhcrit_in_wth,     mesh_id)
             end if
-
+            
           end if
 
         end if
@@ -475,8 +475,8 @@ contains
             call output_xios_nodal('m_cl',    mr(imr_cl),  mesh_id)
             call output_xios_nodal('m_r',     mr(imr_r),   mesh_id)
             call output_xios_nodal('m_ci',    mr(imr_ci),  mesh_id)
-            call output_xios_nodal('m_nc',    mr(imr_nc),  mesh_id)
-            call output_xios_nodal('m_nr',    mr(imr_nr),  mesh_id)
+            call output_xios_nodal('m_s',     mr(imr_s),   mesh_id)
+            call output_xios_nodal('m_g',     mr(imr_g),   mesh_id)
 
             if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
               ! Extract cloud fields

@@ -245,7 +245,8 @@ contains
                                fixed_flux_e=0.0_r_def,         &
                                fixed_flux_h=0.0_r_def,         &
                                cloud_scheme = physics_cloud_scheme_none, &
-                               rhcritical = [1.0_r_def])
+                               rhcritical = [1.0_r_def],       &
+                               microphysics_placement=0 )
 
 
     ndf_w2      = u_proxy%vspace%get_ndf( )

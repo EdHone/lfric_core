@@ -376,7 +376,7 @@ contains
     if (use_physics)then
       call map_physics_fields_alg(state_n(igh_u), state_n(igh_p),       &
                                   state_n(igh_d), state_n(igh_t),       &
-                                  derived_fields)
+                                  mr_n, derived_fields)
       u_physics => derived_fields%get_field('u_physics')
       w_physics => derived_fields%get_field('w_physics')
       ! map dynamics winds into physics space
@@ -404,7 +404,7 @@ contains
       call invoke( setval_c(dtheta, 0.0_r_def), &
                    setval_c(du, 0.0_r_def) )
       call slow_physics(du, dtheta, state_n(igh_t), state_n(igh_d),     &
-                        state_n(igh_p), mr,                             &
+                        state_n(igh_p), mr_n, mr,                       &
                         derived_fields, cloud_fields, twod_fields,      &
                         height_w3, height_wth,  chi)
       ! update state prognostics including map back of winds

@@ -61,7 +61,8 @@ contains
                                fixed_flux_e=0.0_r_def,         &
                                fixed_flux_h=0.0_r_def,         &
                                cloud_scheme = physics_cloud_scheme_smith, &
-                               rhcritical=[0.5_r_def])
+                               rhcritical=[0.5_r_def],         &
+                               microphysics_placement=0)
 
     undf_wth  = 1_i_def
     nlayers  = 1_i_def

@@ -56,8 +56,8 @@
        <field id="checkpoint_m_cl" name="m_cl" long_name="m_cl" unit="1" domain_ref="restart_Wtheta" />
        <field id="checkpoint_m_r" name="m_r" long_name="m_r" unit="1" domain_ref="restart_Wtheta" />
        <field id="checkpoint_m_ci" name="m_ci" long_name="m_ci" unit="1" domain_ref="restart_Wtheta" />
-       <field id="checkpoint_m_nc" name="m_nc" long_name="m_nc" unit="1" domain_ref="restart_Wtheta" />
-       <field id="checkpoint_m_nr" name="m_nr" long_name="m_nr"  unit="1" domain_ref="restart_Wtheta" />
+       <field id="checkpoint_m_s" name="m_s" long_name="m_s" unit="1" domain_ref="restart_Wtheta" />
+       <field id="checkpoint_m_g" name="m_g" long_name="m_g" unit="1" domain_ref="restart_Wtheta" />
        <field id="checkpoint_area_fraction" name="area_fraction" long_name="area_fraction"  unit="1" domain_ref="restart_Wtheta" />
        <field id="checkpoint_ice_fraction" name="ice_fraction" long_name="ice_fraction"  unit="1" domain_ref="restart_Wtheta" />
        <field id="checkpoint_liquid_fraction" name="liquid_fraction" long_name="liquid_fraction"  unit="1" domain_ref="restart_Wtheta" />
@@ -78,8 +78,8 @@
        <field id="m_cl" name="m_cl" long_name="m_cl" unit="1" grid_ref="full_level_face_grid" />
        <field id="m_r" name="m_r" long_name="m_r" unit="1" grid_ref="full_level_face_grid" />
        <field id="m_ci" name="m_ci" long_name="m_ci" unit="1" grid_ref="full_level_face_grid" />
-       <field id="m_nc" name="m_nc" long_name="m_nc" unit="1" grid_ref="full_level_face_grid" />
-       <field id="m_nr" name="m_nr" long_name="m_nr"  unit="1" grid_ref="full_level_face_grid" />    
+       <field id="m_s" name="m_s" long_name="m_s" unit="1" grid_ref="full_level_face_grid" />
+       <field id="m_g" name="m_g" long_name="m_g" unit="1" grid_ref="full_level_face_grid" />
        <field id="area_fraction" name="area_fraction" long_name="area_fraction" unit="1" grid_ref="full_level_face_grid" />
        <field id="ice_fraction" name="ice_fraction" long_name="ice_fraction" unit="1" grid_ref="full_level_face_grid" />
        <field id="liquid_fraction" name="liquid_fraction" long_name="liquid_fraction" unit="1" grid_ref="full_level_face_grid" />
@@ -103,8 +103,8 @@
        <field id="init_m_cl" name="m_cl" long_name="m_cl" unit="1" grid_ref="full_level_face_grid" />
        <field id="init_m_r" name="m_r" long_name="m_r" unit="1" grid_ref="full_level_face_grid" />
        <field id="init_m_ci" name="m_ci" long_name="m_ci" unit="1" grid_ref="full_level_face_grid" />
-       <field id="init_m_nc" name="m_nc" long_name="m_nc" unit="1" grid_ref="full_level_face_grid" />
-       <field id="init_m_nr" name="m_nr" long_name="m_nr"  unit="1" grid_ref="full_level_face_grid" />  
+       <field id="init_m_s" name="m_s"  long_name="m_s" unit="1" grid_ref="full_level_face_grid" />
+       <field id="init_m_g" name="m_g"  long_name="m_g" unit="1" grid_ref="full_level_face_grid" />
        <field id="init_area_fraction" name="area_fraction" long_name="area_fraction"  unit="1" grid_ref="full_level_face_grid" />
        <field id="init_ice_fraction" name="ice_fraction" long_name="ice_fraction"  unit="1" grid_ref="full_level_face_grid" />
        <field id="init_liquid_fraction" name="liquid_fraction" long_name="liquid_fraction"  unit="1" grid_ref="full_level_face_grid" />
@@ -143,8 +143,8 @@
         <field field_ref="checkpoint_m_cl"/>
         <field field_ref="checkpoint_m_r"/>
         <field field_ref="checkpoint_m_ci"/>
-        <field field_ref="checkpoint_m_nc"/>
-        <field field_ref="checkpoint_m_nr"/>
+        <field field_ref="checkpoint_m_s"/>
+        <field field_ref="checkpoint_m_g"/>
         <field field_ref="checkpoint_area_fraction"/>
         <field field_ref="checkpoint_ice_fraction"/>
         <field field_ref="checkpoint_liquid_fraction"/>
@@ -168,8 +168,8 @@
        <field id="restart_m_cl" name="m_cl" long_name="m_cl" unit="1" operation="instant" domain_ref="restart_Wtheta" />
        <field id="restart_m_r" name="m_r" long_name="m_r" unit="1" operation="instant" domain_ref="restart_Wtheta" />
        <field id="restart_m_ci" name="m_ci" long_name="m_ci" unit="1" operation="instant" domain_ref="restart_Wtheta" />
-       <field id="restart_m_nc" name="m_nc" long_name="m_nc" unit="1" operation="instant" domain_ref="restart_Wtheta" />
-       <field id="restart_m_nr" name="m_nr" long_name="m_nr"  unit="1" operation="instant" domain_ref="restart_Wtheta" />   
+       <field id="restart_m_s" name="m_s" long_name="m_s" unit="1" operation="instant" domain_ref="restart_Wtheta" />
+       <field id="restart_m_g" name="m_g" long_name="m_g" unit="1" operation="instant" domain_ref="restart_Wtheta" />
        <field id="restart_area_fraction" name="area_fraction" long_name="area_fraction" unit="1" operation="instant" domain_ref="restart_Wtheta" />
        <field id="restart_ice_fraction" name="ice_fraction" long_name="ice_fraction" unit="1" operation="instant" domain_ref="restart_Wtheta" />
        <field id="restart_liquid_fraction" name="liquid_fraction" long_name="liquid_fraction" unit="1" operation="instant" domain_ref="restart_Wtheta" />
@@ -189,8 +189,8 @@
         <field field_ref="m_cl"/>
         <field field_ref="m_r"/>
         <field field_ref="m_ci"/>
-        <field field_ref="m_nc"/>
-        <field field_ref="m_nr"/>
+        <field field_ref="m_s"/>
+        <field field_ref="m_g"/>
         <field field_ref="area_fraction"/>
         <field field_ref="ice_fraction"/>
         <field field_ref="liquid_fraction"/>
@@ -214,8 +214,8 @@
         <field field_ref="init_m_cl"/>
         <field field_ref="init_m_r"/>
         <field field_ref="init_m_ci"/>
-        <field field_ref="init_m_nc"/>
-        <field field_ref="init_m_nr"/>
+        <field field_ref="init_m_s"/>
+        <field field_ref="init_m_g"/>
         <field field_ref="init_area_fraction"/>
         <field field_ref="init_ice_fraction"/>
         <field field_ref="init_liquid_fraction"/>

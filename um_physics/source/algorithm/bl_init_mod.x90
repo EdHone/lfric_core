@@ -7,15 +7,16 @@
 
 module bl_init_mod
 
-  use constants_mod,         only: i_um, r_def, i_def
-  use field_collection_mod,  only: field_collection_type
-  use physics_config_mod,    only: cloud_scheme,               &
-                                   physics_cloud_scheme_none,  &
-                                   physics_cloud_scheme_smith, &
-                                   rhcritical
-  use log_mod,               only: log_event,         &
-                                   log_scratch_space, &
-                                   LOG_LEVEL_ERROR
+  use constants_mod,         only : i_def, i_um, r_def, r_um, PI
+  use extrusion_config_mod,  only : domain_top
+  use field_collection_mod,  only : field_collection_type
+  use physics_config_mod,    only : cloud_scheme,               &
+                                    physics_cloud_scheme_none,  &
+                                    physics_cloud_scheme_smith, &
+                                    rhcritical
+  use log_mod,               only : log_event,         &
+                                    log_scratch_space, &
+                                    LOG_LEVEL_ERROR
   implicit none
 
 contains
@@ -60,10 +61,21 @@ contains
          rows, land_field, ntiles, sm_levels, tr_vars
     use timestep_mod, only: timestep
     use tuning_segments_mod, only: bl_segment_size
+    use mphys_inputs_mod, only: ai, ar, bi, c_r_correl, ci_input, cic_input, &
+        di_input, dic_input, i_mcr_iter, l_diff_icevt,                       &
+        l_mcr_qrain, l_psd, l_psd_global, l_rain, l_rainfall_as,             &
+        l_warm_new, timestep_mp_in, tnuc, x1r, x2r, l_mcr_qcf2
 
     ! LFRic modules
     use field_mod, only : field_type, field_proxy_type
     use timestepping_config_mod, only: dt
+
+    ! Further settings need by mphys
+    use mphys_bypass_mod,      only: mphys_mod_top
+    use tuning_segments_mod,   only: precip_segment_size
+    use trignometric_mod,      only: cos_theta_latitude
+    use cderived_mod,          only: delta_lambda, delta_phi
+    use fsd_parameters_mod,    only: fsd_eff_lam, fsd_eff_phi 
 
     implicit none
 
@@ -92,6 +104,20 @@ contains
     nice_use=1
     tr_vars=0
 
+    ! Things required by mphys.
+    ! These should all be reviewed and removed or
+    ! set to more sensible values based on LFRic mesh
+    ! However the code will not work if they are left
+    ! unset.
+
+    allocate(cos_theta_latitude(row_length,rows), source=1.0_r_um)
+
+    mphys_mod_top       = domain_top
+    precip_segment_size = 1
+    delta_lambda        = 1.875_r_um*PI/180._r_um
+    delta_phi           = 1.875_r_um*PI/180._r_um
+    fsd_eff_lam         = delta_lambda
+    fsd_eff_phi         = delta_phi
 
     ! set up array sizes for a single column model
     model_type=5
@@ -181,6 +207,29 @@ contains
     ! here.
     rhcrit = rhcritical
 
+    ! microphysics options
+
+    ai=2.5700e-2
+    ar=1.00
+    bi=2.00
+    c_r_correl=0.9
+    ci_input=14.3
+    cic_input=1024.0
+    di_input=0.416
+    dic_input=1.0
+    i_mcr_iter=2
+    l_diff_icevt=.true.
+    l_mcr_qrain=.true.
+    l_psd=.true.
+    l_psd_global=.true.
+    l_rain=.true.
+    l_rainfall_as=.true.
+    l_warm_new=.true.
+    timestep_mp_in=120
+    tnuc=-10.00
+    x1r=2.2000e-1
+    x2r=2.2000
+
     ! dynamics options
     numcycles=1
 
@@ -247,6 +296,18 @@ contains
     sice_pts_ncat(:)=0
     sice_index_ncat(:,:)=0
     sice_frac_ncat(:,:)=0.0
+
+
+    !-----------------------------------------------------------------------
+    ! Final error checking
+    !-----------------------------------------------------------------------
+    if (l_mcr_qcf2) then
+         call log_event( &
+        'mphys_kernel_mod: Second ice prognostic is retired in LFRic.', &
+         LOG_LEVEL_ERROR )
+    end if
+
+
 
   end subroutine bl_init
 

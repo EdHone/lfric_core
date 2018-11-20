@@ -83,6 +83,7 @@
   heldsuarez_wind_placement   = 0
   hs_random = .false.
   cloud_scheme = 'none'
+  microphysics_placement = 0
 /
 
 &planet

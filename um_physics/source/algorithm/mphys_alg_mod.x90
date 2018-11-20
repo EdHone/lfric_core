@@ -1,0 +1,89 @@
+!-------------------------------------------------------------------------------
+! (c) Crown copyright 2017 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-------------------------------------------------------------------------------
+
+!> @brief Interface to the Microphysics scheme
+
+module mphys_alg_mod
+
+   use field_mod,            only: field_type
+   use field_collection_mod, only: field_collection_type
+
+   implicit none
+
+   private
+
+   public mphys_alg_step
+
+contains
+  !>@brief Run the UM Microphysics scheme
+  !>@details The UM Microphysics scheme calculates:
+  !>             1) Precipitation rates output to the surface
+  !>                and other physics schemes.
+  !>             2) Increments to the large scale prognostics
+  !>                due to cloud microphysical processes
+  !>                (e.g. latent heating and cooling).
+  !>         See UMDP26 for full scheme details
+  !>@param[in]     mr_n           Start of timestep mixing ratios
+  !>@param[in]     theta          Potential temperature (theta) in native space
+  !>@param[in]     exner_in_w3    Exner Pressure in the w3 space (i.e. colocated with density)
+  !>@param[in]     height_w3      Dry density in its native space
+  !>@param[in]     height_wth     Dry density in its native space
+  !>@param[in,out]  derived_fields Group of derived fields
+  !>@param[in,out]  cloud_fields   Group of cloud fields
+  !>@param[in,out]  dmr_mphys      Mixing ratio increment due to microphysics
+  !>@param[in,out]  theta_inc      Potential temperature increment in native space
+
+  subroutine mphys_alg_step( mr_n, theta, exner_in_w3, height_w3, height_wth, &
+                             derived_fields, cloud_fields, dmr_mphys,         &
+                             theta_inc )
+
+    use mphys_kernel_mod, only: mphys_kernel_type
+    use mr_indices_mod,   only: imr_v, imr_cl, imr_r, imr_ci, imr_g, nummr
+
+    implicit none
+
+    type( field_type ), intent( in )    :: mr_n ( nummr ), theta, exner_in_w3
+    type( field_type ), intent( in )    :: height_w3, height_wth
+
+    type( field_collection_type ), intent(inout) :: derived_fields, cloud_fields
+
+    type( field_type ), intent( inout ) :: dmr_mphys ( nummr )
+    type( field_type ), intent( inout ) :: theta_inc
+    
+    ! Temporary unpacked fields from collections
+    type( field_type ), pointer :: exner_in_wth  => null()
+    type( field_type ), pointer :: u1_in_w3      => null()
+    type( field_type ), pointer :: u2_in_w3      => null()
+    type( field_type ), pointer :: w_phys        => null()
+    type( field_type ), pointer :: wetrho_in_w3  => null()
+    type( field_type ), pointer :: cf_in         => null()
+    type( field_type ), pointer :: cfl_in        => null()
+    type( field_type ), pointer :: cff_in        => null()
+
+    ! Unpack fields
+    exner_in_wth  => derived_fields%get_field('exner_in_wth')
+    u1_in_w3      => derived_fields%get_field('u1_in_w3')
+    u2_in_w3      => derived_fields%get_field('u2_in_w3')
+    w_phys        => derived_fields%get_field('w_physics')
+    wetrho_in_w3  => derived_fields%get_field('wetrho_in_w3')
+
+    cf_in         => cloud_fields%get_field('bulk_fraction')
+    cfl_in        => cloud_fields%get_field('liquid_fraction')
+    cff_in        => cloud_fields%get_field('ice_fraction')
+
+    call invoke ( mphys_kernel_type (mr_n(imr_v), mr_n(imr_cl), mr_n(imr_ci),  &
+                                     mr_n(imr_r), mr_n(imr_g),                 &
+                                     cf_in, cfl_in, cff_in,                    &
+                                     u1_in_w3, u2_in_w3, w_phys,               &
+                                     theta, exner_in_w3, exner_in_wth,         &
+                                     wetrho_in_w3, height_w3, height_wth,      &
+                                     dmr_mphys(imr_v),  dmr_mphys(imr_cl),     &
+                                     dmr_mphys(imr_ci), dmr_mphys(imr_r),      &
+                                     dmr_mphys(imr_g),  theta_inc ) )
+    
+  end subroutine mphys_alg_step
+
+end module mphys_alg_mod

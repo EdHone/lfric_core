@@ -10,4 +10,6 @@ export socrates_rev=um11.0
 export socrates_sources=
 export steplist="extract preprocess-atmos"
 export um_rev=vn11.0
-export um_sources="fcm:um.xm-br/dev/matthewhambley/vn11.0_WorkingWithLFRic@52366 fcm:um.xm-br/dev/michaelwhitall/vn11.0_fix_lift_cond_lev@55262"
+export um_sources="fcm:um.xm-br/dev/matthewhambley/vn11.0_WorkingWithLFRic@52366 fcm:um.xm-br/dev/michaelwhitall/vn11.0_fix_lift_cond_lev@55262 fcm:um.xm-br/dev/jonathanwilkinson/vn11.0_mphys_lfric_v2@55478"
+
+# fcm:um.xm-br/dev/jonathanwilkinson/vn11.0_mphys_lfric_v2@55478: UM ticket #3990 (Lodged on the UM trunk for vn11.1)

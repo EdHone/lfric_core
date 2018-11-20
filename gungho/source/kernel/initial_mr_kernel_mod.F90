@@ -70,20 +70,20 @@ contains
     !! @param[in] theta       Theta
     !! @param[in] rho         Dry rho
     !! @param[in,out] mr_v    Vapour
-    !! @param[in,out] mr_c    Liquid cloud
+    !! @param[in,out] mr_cl   Liquid cloud
     !! @param[in,out] mr_r    Rain
-    !! @param[in,out] mr_i    Ice cloud
-    !! @param[in,out] mr_nc   Cloud number
-    !! @param[in,out] mr_nr   Rain number
+    !! @param[in,out] mr_ci   Ice cloud
+    !! @param[in,out] mr_s    Snow
+    !! @param[in,out] mr_g    Graupel
     !! @param[in] ndf_chi     Number of degrees of freedom per cell for chi
     !! @param[in] undf_chi    Number of total degrees of freedom for chi
     !! @param[in] map_chi     Dofmap for the cell at the base of the column
     !! @param[in] chi_1       X component of the chi coordinate field
     !! @param[in] chi_2       Y component of the chi coordinate field
     !! @param[in] chi_3       Z component of the chi coordinate field
-    subroutine initial_mr_code(nlayers, ndf_wtheta, undf_wtheta, map_wtheta,  &
-                               theta, rho, ndf_w3, undf_w3, map_w3,              &
-                               mr_v, mr_c, mr_r, mr_i, mr_nc, mr_nr,             &
+    subroutine initial_mr_code(nlayers, ndf_wtheta, undf_wtheta, map_wtheta,    &
+                               theta, rho, ndf_w3, undf_w3, map_w3,             &
+                               mr_v, mr_cl, mr_r, mr_ci, mr_s, mr_g,            &
                                ndf_chi, undf_chi, map_chi, chi_1, chi_2, chi_3)
 
         implicit none
@@ -94,8 +94,8 @@ contains
         integer(kind=i_def), dimension(ndf_wtheta), intent(in)  :: map_wtheta
         integer(kind=i_def), dimension(ndf_w3), intent(in)      :: map_w3
         integer(kind=i_def), dimension(ndf_chi), intent(in)     :: map_chi
-        real(kind=r_def), dimension(undf_wtheta), intent(inout) :: mr_v, mr_c, mr_r, mr_i, &
-                                                                   mr_nc, mr_nr
+        real(kind=r_def), dimension(undf_wtheta), intent(inout) :: mr_v, mr_cl, mr_r, mr_ci, &
+                                                                   mr_s, mr_g
         real(kind=r_def), dimension(undf_wtheta), intent(in)    :: theta
         real(kind=r_def), dimension(undf_w3), intent(in)        :: rho
         real(kind=r_def), dimension(undf_chi), intent(in)       :: chi_1, chi_2, chi_3
@@ -115,13 +115,15 @@ contains
                (rho_at_dof*Rd/p_zero*theta_at_dof)**(1.0_r_def/(1.0_r_def-kappa))
             exner_at_dof    = (pressure_at_dof / p_zero ) ** kappa
             temperature_at_dof=theta_at_dof*exner_at_dof
+
             mr_v(map_wtheta(df) + k) = 0.99_r_def *  &
                qsaturation(temperature_at_dof, 0.01_r_def*pressure_at_dof)
-            mr_c(map_wtheta(df) + k) = 0.0_r_def
-            mr_r(map_wtheta(df) + k) = 0.0_r_def
-            mr_i(map_wtheta(df) + k) = 0.0_r_def
-            mr_nc(map_wtheta(df) + k) = 0.0_r_def
-            mr_nr(map_wtheta(df) + k) = 0.0_r_def
+
+            mr_cl(map_wtheta(df) + k)  = 0.0_r_def
+            mr_r( map_wtheta(df) + k)  = 0.0_r_def
+            mr_ci(map_wtheta(df) + k)  = 0.0_r_def
+            mr_s( map_wtheta(df) + k)  = 0.0_r_def
+            mr_g( map_wtheta(df) + k)  = 0.0_r_def
           end do
 
         end do

@@ -12,6 +12,9 @@ module map_physics_fields_alg_mod
   use field_collection_mod,     only: field_collection_type
   use physics_mappings_alg_mod, only: map_physics_winds, map_physics_scalars
   use formulation_config_mod,   only: use_wavedynamics
+  use mr_indices_mod,           only: nummr
+  use wetrho_kernel_mod,        only: wetrho_kernel_type
+
 
   implicit none
 
@@ -27,16 +30,20 @@ contains
   !> @param[in]    exner Pressure
   !> @param[in]    rho Density
   !> @param[in]    theta Potential temperature
+  !> @param[in]    mr mixing ratios
   !> @param[inout] derived_fields Group of derived fields
-  subroutine map_physics_fields_alg(u, exner, rho, theta, &
+  subroutine map_physics_fields_alg(u, exner, rho, theta, mr, &
                                     derived_fields)
     ! Prognostic fields
     type( field_type ), intent(in)               :: u, rho, theta, exner
+    type( field_type ), intent(in)               :: mr ( nummr )
     type( field_collection_type ), intent(inout) :: derived_fields
 
     type( field_type ), pointer :: theta_in_w3 => null()
     type( field_type ), pointer :: rho_in_wth => null() 
     type( field_type ), pointer :: exner_in_wth => null()
+    type( field_type ), pointer :: wetrho_in_wth => null()
+    type( field_type ), pointer :: wetrho_in_w3 => null()
     type( field_type ), pointer :: u1_in_w3 => null() 
     type( field_type ), pointer :: u2_in_w3 => null()
     type( field_type ), pointer :: u3_in_w3 => null()
@@ -48,6 +55,13 @@ contains
     exner_in_wth => derived_fields%get_field('exner_in_wth')
     call map_physics_scalars(rho_in_wth,   rho)
     call map_physics_scalars(exner_in_wth, exner)
+
+    ! create wetrho which is needed by the physics
+    wetrho_in_wth => derived_fields%get_field('wetrho_in_wth')
+    call invoke(setval_X(wetrho_in_wth, rho_in_wth), &
+                wetrho_kernel_type(wetrho_in_wth,mr) )
+    wetrho_in_w3 => derived_fields%get_field('wetrho_in_w3')
+    call map_physics_scalars(wetrho_in_w3, wetrho_in_wth)
 
     ! Now the winds (this currently doesn't currently re-orientate the winds
     ! so they are not necessarily perpendicular or aligned lat-lon)

@@ -13,7 +13,8 @@ module slow_physics_alg_mod
                                        LOG_LEVEL_ERROR
   use physics_config_mod,        only: heldsuarez_thermo_placement, &
                                        heldsuarez_wind_placement, &
-                                       boundary_layer_placement
+                                       boundary_layer_placement,  &
+                                       microphysics_placement
   ! PsyKAl PSYClone kernels
   use held_suarez_fv_kernel_mod,      only: held_suarez_fv_kernel_type
   use held_suarez_fv_wind_kernel_mod, only: held_suarez_fv_wind_kernel_type
@@ -29,6 +30,16 @@ module slow_physics_alg_mod
 
   use runtime_constants_mod,     only: get_rmultiplicity
 
+  use field_bundle_mod,          only: clone_bundle, set_bundle_scalar,  &
+                                       add_bundle
+
+  use formulation_config_mod,    only: use_moisture
+
+#ifdef UM_PHYSICS
+  ! UM Microphysics scheme
+  use mphys_alg_mod,  only: mphys_alg_step
+#endif
+
   implicit none
 
 contains
@@ -40,14 +51,15 @@ contains
   !> @param[in]    theta theta field 
   !> @param[in]    rho        Rho on w3 space
   !> @param[in]    exner      Exner pressure on w3 space
-  !> @param[inout] mr Mixing ratios
+  !> @param[in]    mr_n Mixing ratios at start of timestep
+  !> @param[inout] mr Mixing ratios to be updated
   !> @param[in]    derived_fields Group of derived fields
   !> @param[inout] cloud_fields Group of cloud fields
   !> @param[inout] twod_fields Group of 2D fields
   !> @param[in]    height_w3  Height in w3
   !> @param[in]    height_wth Height in wth
   !> @param[in]    chi coordinate array
-  subroutine slow_physics(du, dtheta, theta, rho, exner, mr, &
+  subroutine slow_physics(du, dtheta, theta, rho, exner, mr_n, mr,   &
                           derived_fields, cloud_fields, twod_fields, &
                           height_w3, height_wth,  chi)
 
@@ -55,10 +67,12 @@ contains
 
     ! Fields    
     type( field_type ), intent( inout ) :: du, dtheta
+    type( field_type ), intent( inout ) :: mr(nummr) ! To be modified by physics
     type( field_type ), intent( in )    :: theta, rho, exner
 
     ! Field bundles
-    type( field_type ), intent( in )    :: mr(nummr)
+    type( field_type ), intent( in )    :: mr_n(nummr) ! Start of timestep
+                                                       ! Do not alter
 
     ! Field groups
     type( field_collection_type ), intent(inout) :: derived_fields
@@ -72,6 +86,8 @@ contains
     ! Local fields (should be created at initialization, but done here for the time being)
     type( field_type ) :: dtheta_hs
     type( field_type ) :: du_hs
+    type( field_type ) :: dmr_mphys(nummr)
+    type( field_type ) :: dtheta_mphys
 
     type(field_type),   pointer  :: w2_rmultiplicity => null() ! 1/multiplicity of w2
 
@@ -82,16 +98,17 @@ contains
     !Flags to indicate completed actions
     logical :: held_suarez_thermo_done ! Flag to indicate that held_suarez has been calculated
     logical :: held_suarez_wind_done ! Flag to indicate that held_suarez has been calculated
+    logical :: microphysics_done ! Flag to indicate that microphysics has been calculated
 
     w2_rmultiplicity => get_rmultiplicity( W2 ) ! 1/multiplicity of w2
 
     held_suarez_thermo_done=.false.
     held_suarez_wind_done=.false.
+    microphysics_done=.false.
 
     ! Some unpacking
     u_physics => derived_fields%get_field('u_physics')
     exner_in_wth => derived_fields%get_field('exner_in_wth')
-
 
     if (heldsuarez_thermo_placement < 0)then
       dtheta_hs = field_type( vector_space = theta%get_function_space() )
@@ -113,6 +130,47 @@ contains
          exner_in_wth, chi))
       held_suarez_wind_done=.true. ! We've done it, so need to collect this term later on
     end if
+
+#ifdef UM_PHYSICS
+    if (microphysics_placement < 0) then
+      if (use_moisture) then
+        ! Algorithm which calls the UM microphysics scheme
+        call log_event( 'slow_physics: Running Microphysics', LOG_LEVEL_INFO )
+
+        call clone_bundle(mr, dmr_mphys, nummr)
+        call set_bundle_scalar(0.0_r_def, dmr_mphys, nummr)
+    
+        dtheta_mphys = field_type( vector_space = theta%get_function_space() )
+        call invoke( setval_c(dtheta_mphys, 0.0_r_def) )
+
+        call mphys_alg_step( mr_n, theta,  exner, height_w3, height_wth,       &
+                             derived_fields, cloud_fields, dmr_mphys,          &
+                             dtheta_mphys )
+
+        ! N.B. Call to microphysics passes in mr_n, which is intent(in) and
+        !      represents the start of the timestep value of the mixing 
+        !      ratios. The equivalent variable mr is just a copy of this and
+        !      is passed into slow physics as intent(inout). Variable mr is
+        !      then updated by microphysics and used to generate the slow
+        !      physics increment.
+
+        microphysics_done=.true. ! Microphysics completed
+
+      else ! not use moisture
+        ! throw an error: this is just plain daft and user has made a mistake.
+        call log_event( &
+        'slow_physics: Microphysics cannot be run without moisture. Please correct', &
+         LOG_LEVEL_ERROR )
+      end if ! use moisture
+
+      if (microphysics_done) then
+        call invoke(inc_X_plus_Y(dtheta, dtheta_mphys))
+        call add_bundle(dmr_mphys, mr, mr, nummr)
+      end if
+
+    end if   ! microphysics placement > 0
+#endif
+
 
     if (boundary_layer_placement < 0) then       
       call log_event( &

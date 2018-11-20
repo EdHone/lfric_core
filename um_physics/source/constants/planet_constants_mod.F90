@@ -19,7 +19,8 @@ module planet_constants_mod
   public :: set_planet_constants
   public :: c_virtual, cp, cv, etar, g, grcp, kappa, lcrcp, lfrcp, ls, lsrcp, &
             one_minus_epsilon, one_minus_epsilon_32b, p_zero, planet_radius,  &
-            pref, r, recip_a2, recip_kappa, repsilon, repsilon_32b, rv, vkman
+            pref, r, recip_a2, recip_kappa, repsilon, repsilon_32b, rv, vkman,&
+            recip_epsilon
 
   ! The following variables have been hidden as they are not currently
   ! required to build the extracted UM code. They have been left in
@@ -42,7 +43,7 @@ module planet_constants_mod
   !   planet_obs_lat,     stellar_radius, solar_zenith_angle,
   !   solar_azimuth_angle, sc, sclht, lapse, omega, i_eqt,
   !   ip_smart, ip_mueller, two_omega, s2r, recip_p_zero,
-  !   recip_epsilon, g_over_r
+  !   g_over_r
 
 
 

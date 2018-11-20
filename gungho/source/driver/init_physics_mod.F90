@@ -92,6 +92,7 @@ contains
 
     call add_physics_field(derived_fields, 'w_physics',      vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'rho_in_wth',     vector_space, checkpoint_restart_flag, restart)
+    call add_physics_field(derived_fields, 'wetrho_in_wth',  vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'exner_in_wth',   vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'w_physics_star', vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'theta_star',     vector_space, checkpoint_restart_flag, restart)
@@ -103,6 +104,7 @@ contains
     call add_physics_field(derived_fields, 'u2_in_w3',      vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'u3_in_w3',      vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'theta_in_w3',   vector_space, checkpoint_restart_flag, restart)
+    call add_physics_field(derived_fields, 'wetrho_in_w3',  vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'u1_in_w3_star', vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'u2_in_w3_star', vector_space, checkpoint_restart_flag, restart)
     call add_physics_field(derived_fields, 'u3_in_w3_star', vector_space, checkpoint_restart_flag, restart)
