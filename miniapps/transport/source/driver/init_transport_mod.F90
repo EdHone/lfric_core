@@ -44,8 +44,11 @@ module init_transport_mod
   !> @param[in,out] dep_pts_y  Departure points in the y-direction
   !> @param[in,out] dep_pts_z  Departure points in the z-direction
   !> @param[in,out] increment  Density increment
-  subroutine init_transport( mesh_id, chi, wind, density, dep_pts_x,          &
-                             dep_pts_y, dep_pts_z, increment )
+  !> @param[in,out] divergence Divergence field
+  subroutine init_transport( mesh_id, chi, wind, density, dep_pts_x,  &
+                             dep_pts_y, dep_pts_z, increment, divergence )
+
+    implicit none
 
     integer(i_def), intent(in)        :: mesh_id
     type(field_type), intent(inout)   :: chi(:)
@@ -55,6 +58,7 @@ module init_transport_mod
     type(field_type), intent(inout)   :: dep_pts_y
     type(field_type), intent(inout)   :: dep_pts_z
     type(field_type), intent(inout)   :: increment
+    type(field_type), intent(inout)   :: divergence
 
     type(function_space_type), pointer       :: function_space => null()
     procedure(write_diag_interface), pointer :: tmp_write_diag_ptr => null()
@@ -65,6 +69,8 @@ module init_transport_mod
     density = field_type( vector_space = &
                           function_space_collection%get_fs( mesh_id, element_order, W3 ) )
     increment = field_type( vector_space = &
+                          function_space_collection%get_fs( mesh_id, element_order, W3 ) )
+    divergence = field_type( vector_space = &
                           function_space_collection%get_fs( mesh_id, element_order, W3 ) )
 
     dep_pts_x  = field_type( vector_space = &
@@ -89,11 +95,13 @@ module init_transport_mod
        call wind%set_write_diag_behaviour( tmp_write_diag_ptr )
        call density%set_write_diag_behaviour( tmp_write_diag_ptr )
        call increment%set_write_diag_behaviour( tmp_write_diag_ptr )
+       call divergence%set_write_diag_behaviour( tmp_write_diag_ptr )
     end if
 
     call density%set_restart_behaviour( tmp_restart_ptr )
     call wind%set_restart_behaviour( tmp_restart_ptr )
     call increment%set_restart_behaviour( tmp_restart_ptr )
+    call divergence%set_restart_behaviour( tmp_restart_ptr )
 
     nullify( function_space, tmp_write_diag_ptr, tmp_restart_ptr )
 

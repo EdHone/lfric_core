@@ -78,6 +78,7 @@ module transport_driver_mod
   type(field_type) :: wind_shifted
   type(field_type) :: density_shifted
   type(field_type) :: increment
+  type(field_type) :: wind_divergence
 
   ! Coordinate field
   type(field_type), target, dimension(3) :: chi
@@ -153,7 +154,8 @@ contains
     call init_fem( mesh_id, chi, shifted_mesh_id, shifted_chi )
 
     ! Transport initialisation
-    call init_transport( mesh_id, chi, wind, density, dep_pts_x, dep_pts_y, dep_pts_z, increment )
+    call init_transport( mesh_id, chi, wind, density, dep_pts_x, dep_pts_y,   &
+                         dep_pts_z, increment, wind_divergence )
     call init_shifted_fields( shifted_mesh_id, wind_shifted, density_shifted )
 
 
@@ -215,7 +217,7 @@ contains
       ! Update the wind each timestep.
       call set_winds( wind, mesh_id, timestep )
       ! Calculate departure points.
-      call calc_dep_pts( dep_pts_x, dep_pts_y, dep_pts_z, wind, chi )
+      call calc_dep_pts( dep_pts_x, dep_pts_y, dep_pts_z, wind_divergence, wind, chi )
 
       select case( scheme )
         case ( transport_scheme_yz_bip_cosmic )
@@ -247,6 +249,8 @@ contains
 
         call write_vector_diagnostic('wind', wind, timestep, mesh_id, nodal_output_on_w3)
         call write_scalar_diagnostic('density', density, timestep, mesh_id, nodal_output_on_w3)
+        call write_scalar_diagnostic('wind_divergence', wind_divergence, timestep,    &
+                                      mesh_id, nodal_output_on_w3)
 
       end if
 
