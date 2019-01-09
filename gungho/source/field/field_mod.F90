@@ -36,9 +36,7 @@ module field_mod
    !> object hierarchy
    type, extends(linked_list_data_type), public, abstract :: field_parent_type
    contains
-    procedure(get_proxy_interface), deferred :: get_proxy
    end type field_parent_type
-
 
   !> Algorithm layer representation of a field.
   !>
@@ -138,6 +136,23 @@ module field_mod
 
   interface field_type
     module procedure field_constructor
+  end interface
+
+   !> A pointer to a field
+   !>
+   !> We want to be able hold pointers to fields but when these are passed
+   !> around, Fortran has a habit of automatically dereferencing them for you.
+   !> If we store them in an object that contains the pointer - they won't
+   !> get dereferenced.
+   !>
+   type, extends(field_parent_type), public :: field_pointer_type
+     type(field_type), pointer, public :: field_ptr
+   contains
+     final :: field_pointer_destructor
+   end type field_pointer_type
+
+  interface field_pointer_type
+    module procedure field_pointer_constructor
   end interface
 
   !> Psy layer representation of a field.
@@ -273,6 +288,29 @@ contains
 
   end function get_proxy
 
+  !> Constructor for a field pointer
+  !>
+  !> @param [in] field_ptr A pointer to the field that is to be
+  !>                       stored as a reference
+  !> @return The field_pointer type
+  function field_pointer_constructor(field_ptr) result(self)
+    implicit none
+
+    type(field_type), pointer :: field_ptr
+    type(field_pointer_type) :: self
+
+    self%field_ptr => field_ptr
+  end function field_pointer_constructor
+
+  !> Finaliser for a field pointer
+  !>
+  ! The following finaliser doesn't do anything. Without it, the Gnu compiler
+  ! tries to create its own, but only ends up producing an Internal Compiler
+  ! Error, so its included here to prevent that.
+  subroutine field_pointer_destructor(self)
+    implicit none
+    type(field_pointer_type), intent(inout) :: self
+  end subroutine field_pointer_destructor
 
   !> Construct a <code>field_type</code> object.
   !>

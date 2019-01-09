@@ -14,6 +14,8 @@ module field_mod_test
                                              function_space_collection
   use mesh_collection_mod,            only : mesh_collection_type, &
                                              mesh_collection
+  use mesh_mod,                       only : mesh_type, PLANE_BI_PERIODIC
+  use function_space_mod,             only : function_space_type
   use fs_continuity_mod,              only : W2
   use yaxt,                           only : xt_initialize, xt_finalize
   use mpi_mod,                        only : store_comm, clear_comm
@@ -22,16 +24,17 @@ module field_mod_test
   implicit none
 
   private
-  public :: test_all
+  public :: test_field, test_field_pointer
 
   @TestCase
   type, extends(MPITestCase), public :: field_test_type
     private
-    type(function_space_collection_type) :: fs_list
+    type(function_space_type), pointer :: w2_fs => null()
   contains
     procedure setUp
     procedure tearDown
-    procedure test_all
+    procedure test_field
+    procedure test_field_pointer
   end type field_test_type
 
   integer(i_def), parameter :: element_order = 0
@@ -47,6 +50,8 @@ contains
 
     class(field_test_type), intent(inout) :: this
 
+    integer(i_def) :: mesh_id
+
     ! Initialise YAXT
     call xt_initialize(this%getMpiCommunicator())
     !Store the MPI communicator for later use
@@ -56,6 +61,13 @@ contains
     mesh_collection = mesh_collection_type()
     ! Create top level function space collection
     function_space_collection = function_space_collection_type()
+
+    ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
+    mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
+
+    ! Make a function space to be used to create fields in the tests
+    this%w2_fs => function_space_collection%get_fs( mesh_id, &
+                                                    element_order, W2 )
 
   end subroutine setUp
 
@@ -78,12 +90,9 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   @Test( npes=[1] )
-  subroutine test_all( this )
+  subroutine test_field( this )
 
     use field_mod,             only: field_type, field_proxy_type
-
-    use mesh_mod,              only: mesh_type, PLANE_BI_PERIODIC
-    use function_space_mod,    only: function_space_type
 
     implicit none
 
@@ -96,21 +105,15 @@ contains
 
     character(str_def) :: name
 
-    integer(i_def)            :: mesh_id
-
-    type(function_space_type), pointer :: w2_fs    => null(), fs => null()
+    type(function_space_type), pointer :: fs => null()
     type(mesh_type),           pointer :: mesh_out => null()
 
     integer(i_def) :: err
     integer :: i, iface, iedge, lid, test_integer
     real(r_def) :: sum, min, max
 
-    ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
-    mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
-
     ! Make a field with a function space
-    w2_fs => function_space_collection%get_fs( mesh_id, element_order, W2 )
-    f1 = field_type( vector_space = w2_fs, name='f1' )
+    f1 = field_type( vector_space = this%w2_fs, name='f1' )
 
     ! Get  and check the the name of the field
     name = f1%get_name()
@@ -127,7 +130,7 @@ contains
 
     ! Check the get function space returns W2 by comparing undf
     fs => f1%get_function_space()
-    @assertEqual( fs%get_undf(), w2_fs%get_undf() )
+    @assertEqual( fs%get_undf(), this%w2_fs%get_undf() )
 
     !Initialise field data
     do i=1,f1_p%vspace%get_undf()
@@ -135,7 +138,7 @@ contains
     end do
 
     ! Make a second field, identical to the first
-    f2 = field_type( vector_space = w2_fs )
+    f2 = field_type( vector_space = this%w2_fs )
     f2_p = f2%get_proxy()
     do i=1,f2_p%vspace%get_undf()
       f2_p%data(i)=real(i)
@@ -209,7 +212,33 @@ contains
     test_integer = mesh_out%get_edge_on_cell(iedge, lid)
     @assertEqual ( 32, test_integer )
 
-  end subroutine test_all
+  end subroutine test_field
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test( npes=[1] )
+  subroutine test_field_pointer( this )
+
+    use field_mod,             only: field_type, field_pointer_type
+
+    implicit none
+
+    class(field_test_type), intent(inout) :: this
+
+    type(field_type), target  :: f1
+    type(field_type), pointer :: f1_ptr
+    type(field_pointer_type)  :: field_pointer
+
+    ! Create a field and a pointer to it
+    f1 = field_type( vector_space = this%w2_fs, name='f1' )
+    f1_ptr => f1
+
+    ! Make a field pointer object based on the above field
+    field_pointer = field_pointer_type( f1_ptr )   
+
+    ! Check that the pointer held in the object is the same as the original
+    @assertEqual ( .true., associated( field_pointer%field_ptr, f1_ptr ) )
+
+  end subroutine test_field_pointer
 
 end module field_mod_test
 !-------------------------------------------------------------------------------

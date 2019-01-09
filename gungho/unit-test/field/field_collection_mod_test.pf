@@ -94,28 +94,46 @@ contains
     implicit none
 
     class(field_collection_test_type), intent(inout) :: this
-    type(field_type) :: test_field1, test_field2
-    type(field_proxy_type) :: test_field1_p, test_field2_p
-    type(field_collection_type) :: test_field_collection
+    type(field_type) :: test_field1
+    type(field_proxy_type) :: test_field1_p
+    type(field_type), pointer :: returned_field1
+    type(field_type), pointer :: returned_field2
+    type(field_proxy_type) :: returned_field1_p
+    type(field_proxy_type) :: returned_field2_p
+    type(field_collection_type) :: test_field_collection1
+    type(field_collection_type) :: test_field_collection2
     real(r_def), parameter :: tol = 1.0e-6_r_def
 
     ! Create field with the name 'test_field' into test_field1
     ! and put 99.0 in the first dof
-    test_field1 = field_type( this%w0_fs, name='test_field' )
+    test_field1 = field_type( this%w0_fs, name='test_field1' )
     test_field1_p = test_field1%get_proxy()
     test_field1_p%data(1)=99.0
 
     ! Create a field_collection and put test_field1 in it
-    test_field_collection = field_collection_type()
-    call test_field_collection%add_field(test_field1)
+    test_field_collection1 = field_collection_type()
+    call test_field_collection1%add_field(test_field1)
 
     ! Extract the field called 'test_field' into test_field2
-    test_field2 = test_field_collection%get_field('test_field')
-    test_field2_p = test_field2%get_proxy()
+    returned_field1 => test_field_collection1%get_field('test_field1')
+    returned_field1_p = returned_field1%get_proxy()
     
     ! Check that test_field2 has 99.0 in the first dof
-    @assertEqual(99.0, test_field2_p%data(1), tol)
-    
+    @assertEqual(99.0, returned_field1_p%data(1), tol)
+
+    ! Create a second field_collection and put a reference to the field
+    ! that is stored in the first field_collection into it
+    test_field_collection2 = field_collection_type()
+    call test_field_collection2%add_reference_to_field(returned_field1)
+
+    ! Change the data in the original field
+    returned_field1_p%data(1)=999.0
+
+    ! Check that the reference to that field has been updated    
+    returned_field2 => test_field_collection2%get_field('test_field1')
+    returned_field2_p = returned_field2%get_proxy()
+    @assertEqual(999.0, returned_field2_p%data(1), tol)
+
   end subroutine test_all
 
 end module field_collection_mod_test

@@ -3,7 +3,6 @@
 ' should have received as part of this distribution.
 
 abstract class field_mod::field_parent_type {
-  {abstract} get_proxy() : field_proxy_type
 }
 
 class field_mod::field_type {
@@ -60,6 +59,11 @@ class field_mod::field_proxy_type {
   +is_dirty( <<in>>depth: integer ) : logical
   +set_dirty()
   +set_clean( <<in>>depth: integer )
+}
+
+class field_mod::field_pointer_type {
+  +field_ptr: field_type <<pointer>>
+
 }
 
 field_mod::field_proxy_type -> field_mod::field_type : field accessor
