@@ -61,6 +61,12 @@ module advection_alg_mod
   use timestepping_config_mod,        only: time_method => method, &
                                             timestepping_method_rk  
   use strong_curl_kernel_mod,         only: strong_curl_kernel_type
+  use cosmic_threed_alg_mod,          only: cosmic_threed_transport_step
+  use calc_dep_pts_alg_mod,           only: calc_dep_pts
+  use transport_config_mod,           only: scheme, &
+                                            transport_scheme_cosmic_3D, &
+                                            transport_scheme_method_of_lines
+
   implicit none
 
   private
@@ -193,6 +199,10 @@ contains
   type(field_type), pointer :: u => null() ,theta => null(), rho  => null()
   type(field_type)          :: r_xi, mass_flux, r_rho, rho_adv, mf, &
                                theta_adv, r_theta, u_grad_theta
+
+  type(field_type)          :: dep_pts_x, dep_pts_y, dep_pts_z
+  type(field_type)          :: wind_divergence
+
   type(field_type), allocatable :: rrho_prediction(:), rtheta_prediction(:)
 
   type(function_space_type), pointer :: xi_fs => null(), u_fs => null(), &
@@ -219,7 +229,13 @@ contains
   ! Advective time integrated mass flux = rho*u
   mass_flux = field_type( vector_space = u_fs  )
 
-  
+  if (scheme == transport_scheme_cosmic_3D) then
+    dep_pts_x       = field_type( vector_space = u_fs )
+    dep_pts_y       = field_type( vector_space = u_fs )
+    dep_pts_z       = field_type( vector_space = u_fs )
+    wind_divergence = field_type( vector_space = rho_fs )
+  end if
+
   r_rho     = field_type( vector_space = rho_fs )
   r_theta   = field_type( vector_space = theta_fs)
 
@@ -365,12 +381,22 @@ contains
 
   ! 5) Advection update for the continuity equation divergence of mass flux: 
   !    M3^-1(div(F))
-  call log_event( "Computing advective density increment...", LOG_LEVEL_INFO)
-  call invoke( name = "Compute advective density increment",     &
-               setval_c(r_rho, 0.0_r_def),                       &
-               matrix_vector_kernel_type(r_rho, mass_flux, div), &
-               inc_a_times_X(minus_one, r_rho),                  &
-               dg_matrix_vector_kernel_type(advection(igh_d), r_rho, mm_w3_inv) )
+  if (scheme == transport_scheme_method_of_lines) then
+
+    call log_event( "Computing advective density increment...", LOG_LEVEL_INFO)
+    call invoke( name = "Compute advective density increment",     &
+                 setval_c(r_rho, 0.0_r_def),                       &
+                 matrix_vector_kernel_type(r_rho, mass_flux, div), &
+                 inc_a_times_X(minus_one, r_rho),                  &
+                 dg_matrix_vector_kernel_type(advection(igh_d), r_rho, mm_w3_inv) )
+
+  elseif (scheme == transport_scheme_cosmic_3D) then
+
+    call calc_dep_pts( dep_pts_x, dep_pts_y, dep_pts_z, wind_divergence, advecting_wind, chi )
+    call cosmic_threed_transport_step( advection(igh_d), rho, dep_pts_x, dep_pts_y, dep_pts_z )
+    call invoke( inc_a_times_X(-1.0_r_def, advection(igh_d)) )
+
+  end if
 
   ! 6) Advection update for the equation of state, since this is diagnostic the
   ! increment is always zero

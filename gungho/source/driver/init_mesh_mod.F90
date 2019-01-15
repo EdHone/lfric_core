@@ -42,7 +42,8 @@ module init_mesh_mod
                                         fv_advective_order,               &
                                         transport_operators_fv,           &
                                         transport_scheme_horz_cosmic,     &
-                                        transport_scheme_yz_bip_cosmic
+                                        transport_scheme_yz_bip_cosmic,   &
+                                        transport_scheme_cosmic_3D
 
   use ugrid_2d_mod,               only: ugrid_2d_type
   use ugrid_file_mod,             only: ugrid_file_type
@@ -222,7 +223,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, shif
   end if
 
   if (scheme == transport_scheme_yz_bip_cosmic .or. &
-      scheme == transport_scheme_horz_cosmic) then
+      scheme == transport_scheme_horz_cosmic   .or. &
+      scheme == transport_scheme_cosmic_3D   ) then
     max_stencil_depth = max(max_stencil_depth,      &
                             dep_pt_stencil_extent + &
                             rho_approximation_stencil_extent)
