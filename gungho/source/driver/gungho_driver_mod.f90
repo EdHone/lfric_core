@@ -349,7 +349,7 @@ contains
           stop
         end select
         call write_density_diagnostic(rho, timestep)
-        call conservation_algorithm(timestep, rho, u, theta, exner, xi)
+        if ( write_diag ) call conservation_algorithm(timestep, rho, u, theta, exner, xi)
       else
         select case( method )
           case( timestepping_method_semi_implicit )  ! Semi-Implicit
@@ -358,7 +358,7 @@ contains
               call runge_kutta_init()
               call iter_alg_init(mesh_id, u, rho, theta, exner, mr, &
                                  twod_fields)
-              call conservation_algorithm(timestep, rho, u, theta, exner, xi)
+              if ( write_diag ) call conservation_algorithm(timestep, rho, u, theta, exner, xi)
             end if
             call iter_alg_step(u, rho, theta, exner, mr, moist_dyn, xi,      &
                                derived_fields, cloud_fields, twod_fields,    &
@@ -369,7 +369,7 @@ contains
             if (timestep == timestep_start) then
               call runge_kutta_init()
               call rk_alg_init(mesh_id, u, rho, theta, exner)
-              call conservation_algorithm(timestep, rho, u, theta, exner, xi)
+              if ( write_diag ) call conservation_algorithm(timestep, rho, u, theta, exner, xi)
             end if
             call rk_alg_step(u, rho, theta, moist_dyn, exner, xi)
           case default
@@ -378,7 +378,7 @@ contains
             stop
         end select
 
-        call conservation_algorithm(timestep, rho, u, theta, exner, xi)
+        if ( write_diag ) call conservation_algorithm(timestep, rho, u, theta, exner, xi)
 
         if(write_minmax_tseries) call minmax_tseries(u, 'u', mesh_id)
 
