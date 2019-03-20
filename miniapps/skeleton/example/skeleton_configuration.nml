@@ -39,8 +39,8 @@ l_multigrid=.false.,
 
 
 &io
-  diag_stem_name            = 'diagDynamo'
-  checkpoint_stem_name      = "restartSkeleton"
+  diag_stem_name            = 'diagSkeleton'
+  checkpoint_stem_name      = 'restartSkeleton'
   use_xios_io               = .false.
   write_diag                = .true.
   diagnostic_frequency      = 1
@@ -70,5 +70,10 @@ rd=287.05,
 scaling_factor=125.0,
 /
 
-
-
+&child
+radiation_code='none',
+boundary_layer_code='none',
+convection_code='none',
+microphysics_code='none',
+cloud_code='none'
+/

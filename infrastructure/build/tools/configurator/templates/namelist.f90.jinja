@@ -10,10 +10,11 @@
 !>
 module {{listname}}_config_mod
 
-  use constants_mod, only : {{all_kinds | sort | join( ', &\n' + ' '*28 )}}
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: {{all_kinds | sort | join( ', &\n' + ' '*27 )}}
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -91,7 +92,8 @@ contains
   !>
   integer(i_native) function {{name}}_from_key( key )
 
-    use constants_mod, only: emdi
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     character(*), intent(in) :: key
@@ -101,7 +103,9 @@ contains
     if (key == emdi) then
       write( log_scratch_space, '(A)') &
           'Missing key for {{name}} enumeration in {{listname}} namelist.'
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      {{name}}_from_key = int(imdi,i_native)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      return
     end if
 
     key_index = 1
@@ -129,6 +133,8 @@ contains
   !>
   character(str_def) function key_from_{{name}}( value )
 
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     integer(i_native), intent(in) :: value
@@ -137,7 +143,10 @@ contains
 
     value_index = 1
     do
-      if ({{name}}_value(value_index) == value) then
+      if ({{name}}_value(value_index) == int(imdi,i_native)) then
+        key_from_{{name}} = emdi
+        return
+      else if ({{name}}_value(value_index) == value) then
         key_from_{{name}} = {{name}}_key(value_index)
         return
       else
@@ -197,7 +206,7 @@ contains
 
 {%- for module, symbols in use_from | dictsort %}
 {%-   if loop.first %}{{'\n'}}{% endif %}
-    use {{module}}, only : {{symbols | sort | join(', ')}}
+    use {{module}}, only: {{symbols | sort | join(', ')}}
 {%- endfor %}
 
     implicit none
@@ -306,7 +315,16 @@ contains
 
 {% for name, parameter in parameters | dictsort %}
 {%-   if parameter.get_configure_type() == 'computed' %}
+{%-     if parameter.dereferenced_list_vars %}
+    if ( any([{{ parameter.dereferenced_list_vars | join(', ') }}] == imdi) .or. &
+         any([{{ parameter.dereferenced_list_vars | join(', ') }}] == rmdi) ) then
+      {{parameter.name}} = {{parameter.get_missing_data_indicator()}}
+    else
+      {{parameter.name}} = {{parameter.computation}}
+    end if
+{%-     else %}
     {{parameter.name}} = {{parameter.computation}}
+{%-     endif %}
 {%-   endif %}
 {%- endfor %}
 
@@ -329,7 +347,7 @@ contains
 
 {%- for module, symbols in use_from | dictsort %}
 {%-   if loop.first %}{{'\n'}}{% endif %}
-    use {{module}}, only : {{symbols | sort | join(', ')}}
+    use {{module}}, only: {{symbols | sort | join(', ')}}
 {%- endfor %}
 
     implicit none

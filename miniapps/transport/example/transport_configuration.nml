@@ -31,8 +31,8 @@ u0=38.61073731e-3,
 v0=0.0,
 /
 &io
-  diag_stem_name            = 'transport'
-  checkpoint_stem_name      = "restartTransport"
+  diag_stem_name            = 'diagTransport'
+  checkpoint_stem_name      = 'restartTransport'
   use_xios_io               = .false.
   write_diag                = .true.
   diagnostic_frequency      = 32
@@ -107,4 +107,12 @@ planar_domain_max_x=1.0,
 planar_domain_max_y=1.0,
 planar_domain_min_x=-1.0,
 planar_domain_min_y=-1.0,
+/
+
+&child
+radiation_code='none',
+boundary_layer_code='none',
+convection_code='none',
+microphysics_code='none',
+cloud_code='none'
 /

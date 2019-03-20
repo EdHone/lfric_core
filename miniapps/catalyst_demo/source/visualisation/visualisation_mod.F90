@@ -18,7 +18,6 @@ module visualisation_mod
   use function_space_mod,            only: function_space_type
   use function_space_collection_mod, only: function_space_collection
   use project_output_mod,            only: project_output
-!   use nodal_output_alg_mod,          only: nodal_output_alg
   use diagnostic_alg_mod,            only: scalar_nodal_diagnostic_alg
   use runtime_constants_mod,         only: get_coordinates
   use log_mod,                       only: log_event,       &
@@ -189,7 +188,6 @@ subroutine catalyst_coprocess(timestep, time, vis_fields, mesh_id)
   type(field_type)                   :: nodal_output(3), nodal_coordinates(3)
   type(field_type)                   :: level
   type(field_type), allocatable      :: projected_field(:)
-  !character(len=*)                   :: field_name(:)
   character(len=:), allocatable      :: field_name
   type(function_space_type), pointer :: output_field_fs => null()
   type(field_type), pointer          :: chi(:) => null(), field => null()

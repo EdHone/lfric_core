@@ -18,10 +18,11 @@ module initial_cloud_kernel_mod
     use constants_mod,                 only: r_def, i_def
     use kernel_mod,                    only: kernel_type
 
-    !physics routines
-    use physics_config_mod,          only :cloud_scheme, &
-                                           physics_cloud_scheme_smith
-    use cloud_um_config_mod,         only :rh_crit
+    ! Physics routines
+    use child_config_mod,    only: cloud_code, child_cloud_code_um
+    use cloud_um_config_mod, only: scheme,                &
+                                   cloud_um_scheme_smith, &
+                                   rh_crit
 
     implicit none
 
@@ -96,7 +97,8 @@ contains
           cf_liq(map_wth(1) + k)  = 0.0_r_def
           cf_bulk(map_wth(1) + k) = 0.0_r_def
         end do
-        if (cloud_scheme == physics_cloud_scheme_smith) then
+        if ( cloud_code == child_cloud_code_um .and. &
+             scheme == cloud_um_scheme_smith ) then
           ! can only initialise rh_crit if the cloud namelist has been read
           rh_crit_wth(map_wth(1)) = rh_crit(1)
           do k = 1, nlayers

@@ -124,7 +124,7 @@
 {%-   set label =  TARGET_TECHNICAL_COMPILER | lower + '_fast-debug' %}
 {%-   if 'cleanliness' in TECHNICAL_DEVELOPER_TESTS %}
             export_source => compile_{{projectName}}_with_{{label}}
-
+            export_source => validate_{{projectName}}_rose-meta
 {#- The following line removed due to a bug brought to light by #730. #}
 {#- Ticket #762 has been created to fix this.                         #}
 {#-         compile_{{projectName}}_with_{{label}} => check_for_unused_source #}

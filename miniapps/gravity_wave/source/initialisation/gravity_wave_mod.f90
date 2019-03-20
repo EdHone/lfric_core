@@ -38,15 +38,14 @@ contains
     character(*), intent(in) :: filename
 
     character(*), parameter :: &
-                            required_configuration(9) = ['base_mesh             ', &
-                                                          'planet                ', &
-                                                          'extrusion             ', &
-                                                          'initial_temperature   ', &
-                                                          'initial_wind          ', &
-                                                          'timestepping          ', &
-                                                          'multigrid             ', &
-                                                          'gravity_wave_constants', &
-                                                          'domain_size           ']
+                            required_configuration(8) = ['base_mesh             ', &
+                                                         'planet                ', &
+                                                         'extrusion             ', &
+                                                         'initial_temperature   ', &
+                                                         'initial_wind          ', &
+                                                         'timestepping          ', &
+                                                         'multigrid             ', &
+                                                         'gravity_wave_constants']
 
     logical              :: okay
     logical, allocatable :: success_map(:)

@@ -16,6 +16,13 @@ module iter_timestep_alg_mod
                                        LOG_LEVEL_ERROR
 
   ! Configuration options
+  use child_config_mod,          only: cloud_code,                   &
+                                       boundary_layer_code,          &
+                                       radiation_code,               &
+                                       child_cloud_code_um,          &
+                                       child_boundary_layer_code_um, &
+                                       child_radiation_code_socrates
+
   use formulation_config_mod,    only: use_moisture, use_physics, dlayer_on, &
                                        use_wavedynamics,          &
                                        dry_static_adjust,         &
@@ -100,17 +107,13 @@ module iter_timestep_alg_mod
   use mixing_config_mod,          only: viscosity, smagorinsky, mix_factor
 
   ! Physics settings
-  use physics_config_mod,         only: cloud_scheme,                     &
-                                        physics_cloud_scheme_none,        &
-                                        radiation_placement,              &
-                                        physics_radiation_placement_none, &
-                                        blayer_placement,                 &
-                                        physics_blayer_placement_none
 
 #ifdef UM_PHYSICS
   use um_init_mod,                only: um_init
   use socrates_init_mod,          only: socrates_init
   use cld_alg_mod,                only: cld_alg_step
+  use cloud_um_config_mod,        only: scheme, &
+                                        cloud_um_scheme_smith
 #endif
 
   use timer_mod,                  only: timer
@@ -260,7 +263,7 @@ contains
 
 #ifdef UM_PHYSICS
     if ( use_physics ) then
-      if (radiation_placement /= physics_radiation_placement_none) then
+      if (radiation_code == child_radiation_code_socrates) then
         ! Initialisation for the Socrates radiation scheme
         call socrates_init()
       end if
@@ -650,7 +653,8 @@ contains
 
 #ifdef UM_PHYSICS
     if (use_physics) then
-     if (cloud_scheme /= physics_cloud_scheme_none) then
+     if ( cloud_code == child_cloud_code_um .and. &
+          scheme == cloud_um_scheme_smith ) then
       if (use_moisture) then
 
         call log_event( 'iter timestep: Running Cloud Scheme', LOG_LEVEL_INFO )
@@ -694,16 +698,16 @@ contains
     if ( smagorinsky ) then
       !  Tracer mixing:
       call log_event( 'Applying Smagorinsky mixing', LOG_LEVEL_INFO )
-      if ( blayer_placement /= physics_blayer_placement_none ) then
+      if ( boundary_layer_code == child_boundary_layer_code_um ) then
         ! Use blended BL-Smag diffusion coefficient
-      	call log_event( 'Using blended BL-Smagorinsky coefficient', LOG_LEVEL_INFO )
+        call log_event( 'Using blended BL-Smagorinsky coefficient', LOG_LEVEL_INFO )
         call invoke( tracer_smagorinsky_diff_kernel_type( inc(igh_t),        &
                                                           state(igh_t), 1,   &
                                                           visc_h_blend,      &
                                                           chi  ) )
       else
         ! Calculate visc_h_blend as (mix_factor * delta)**2 * shear
-      	call log_event( 'Using non-blended Smagorinsky coefficient', LOG_LEVEL_INFO )
+        call log_event( 'Using non-blended Smagorinsky coefficient', LOG_LEVEL_INFO )
         visc_h_blend = delta
         call invoke( inc_a_times_X(mix_factor, visc_h_blend),                & 
                      inc_X_powint_n (visc_h_blend, 2),                       &  

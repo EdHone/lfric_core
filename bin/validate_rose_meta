@@ -1,0 +1,154 @@
+#!/bin/sh
+#-----------------------------------------------------------------------------
+# (c) Crown copyright 2018 Met Office. All rights reserved.
+# The file LICENCE, distributed with this code, contains details of the terms
+# under which the code may be used.
+#-----------------------------------------------------------------------------
+#
+# Script to run through the projects/apps to check/validate
+# rose metadata and rose app configurations
+#
+# Usage: validate_rose_meta [-? | app_name ... ]
+#
+#   -?        Gives user a list of available keyword arguments
+#
+#   app_name  Keyword argument for each app to check
+#
+# Script will validate all default apps if no arguments provided
+#
+#-----------------------------------------------------------------------------
+
+project_names=( gungho lfric_atm mesh_tools \
+                skeleton                    \
+                gravity_wave                \
+                io_dev                      \
+                solver_miniapp              \
+                transport )
+
+project_folders=( gungho lfric_atm mesh_tools \
+                  miniapps/skeleton           \
+                  miniapps/gravity_wave       \
+                  miniapps/io_dev             \
+                  miniapps/solver_miniapp     \
+                  miniapps/transport )
+
+app_names=( gungho lfric_atm mesh \
+            skeleton              \
+            gravity_wave          \
+            io_dev                \
+            solver_miniapp        \
+            transport )
+
+while getopts "?" OPTION; do
+  case $OPTION in
+  ?)
+    echo
+    echo Available project keywords:
+    printf '  %s\n' "${project_names[@]}"
+    echo
+    exit 0
+    ;;
+  esac
+done
+
+current_dir=`pwd`
+root_dir="$( cd "$( dirname "$0" )/.." && pwd )"
+
+if [ ${current_dir} != ${root_dir} ] ; then
+  echo Moving to working copy root directory.
+  cd ${root_dir}
+fi
+
+
+
+if [ "$#" == 0 ] ; then
+  projects_to_check=${project_names[@]}
+else
+  projects_to_check="$@"
+fi
+
+declare -A project_app_validation_results
+declare -A project_check_metadata_results
+declare -A project_app_location
+
+
+err=0
+for project in ${projects_to_check}
+  do
+  valid_key='false'
+  i=0
+  while [ $i -lt ${#project_names[@]} ]
+    do
+    if  [ ${project} == ${project_names[$i]} ] ; then
+      valid_key='true'
+      echo =============================================================
+      echo Project ${project_names[$i]}
+      echo =============================================================
+
+      echo [INFO] Checking project metadata ...
+      MetaDir=${project_folders[$i]}/rose-meta/lfric-${project_names[$i]}/HEAD
+      rose metadata-check --verbose -C ${MetaDir}
+      if [ $? == 0 ] ; then
+        project_check_metadata_results[${project}]='[INFO]    PASS, ['${project}]
+      else
+        project_check_metadata_results[${project}]='[INFO]    FAIL, ['${project}]:${MetaDir}/rose-meta.conf
+        err=1
+      fi
+
+      echo [INFO] Validating ${app_names[$i]} app configurations ...
+      rose macro --validate -M ./ -C ${project_folders[$i]}/rose-stem/app/${app_names[$i]}
+      if [ $? == 0 ] ; then
+        project_app_validation_results[${project}]='[INFO]    PASS, ['${project}]
+      else
+        project_app_validation_results[${project}]='[INFO]    FAIL, ['${project}]:${project_folders[$i]}/rose-stem/app/${app_names[$i]}
+        err=2
+      fi
+      project_app_location[${project}]=${project_folders[$i]}/rose-stem/app/${app_names[$i]}
+      echo
+
+    fi
+    # Increment the i = i + 1 
+    i=`expr $i + 1` 
+  done
+  if [ ${valid_key} == 'false' ] ; then
+    echo
+    echo ERROR: Invalid project keyword: ${project}
+    echo
+    echo Available project keywords:
+    printf '  %s\n' "${project_names[@]}"
+    echo
+    exit 2
+  fi
+done
+
+echo
+echo =============================================================
+echo Summary
+echo =============================================================
+echo Rose Metadata validation
+echo --------------------------
+for project in ${projects_to_check[@]} ; do
+  echo ${project_check_metadata_results[$project]}
+done
+echo ''
+echo Rose App validation
+echo --------------------------
+for project in ${projects_to_check[@]} ; do
+  echo ${project_app_validation_results[$project]}
+done
+echo =============================================================
+echo NOTE: CHECK YOUR APPS IN THE ROSE EDITOR
+echo '(from working copy rootdir)'
+echo
+for project in ${projects_to_check[@]} ; do
+  echo '  'rose edit -M ./ -C ${project_app_location[$project]}
+done
+echo
+echo =============================================================
+
+if [ ${current_dir} != ${root_dir} ] ; then
+  echo Returning to local path.
+  cd ${current_dir}
+fi
+
+exit $err

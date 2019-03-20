@@ -13,6 +13,8 @@ module init_physics_mod
                                              checkpoint_write_interface, &
                                              checkpoint_read_interface
   use finite_element_config_mod,      only : element_order
+  use formulation_config_mod,         only : transport_only, &
+                                             use_moisture
   use function_space_collection_mod,  only : function_space_collection
   use field_collection_mod,           only : field_collection_type
   use fs_continuity_mod,              only : W0, W1, W2, W3, Wtheta
@@ -22,10 +24,6 @@ module init_physics_mod
   use log_mod,                        only : log_event,         &
                                              LOG_LEVEL_INFO,         &
                                              LOG_LEVEL_ERROR
-  use formulation_config_mod,         only : transport_only, &
-                                             use_moisture
-
-
   use transport_config_mod,           only : scheme, &
                                              operators, &
                                              transport_scheme_method_of_lines, &
@@ -140,7 +138,6 @@ contains
     !========================================================================
     ! Here we create some cloud fields
     !========================================================================
-
     cloud_fields = field_collection_type(name='cloud_fields')
     vector_space=>function_space_collection%get_fs(mesh_id, 0, Wtheta)
     checkpoint_restart_flag = .true.

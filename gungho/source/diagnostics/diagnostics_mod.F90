@@ -140,7 +140,7 @@ subroutine write_hydbal_diagnostic(theta_field, moist_dyn_field, exner_field,  &
   type(field_type), intent(in)    :: exner_field
   integer(i_def),   intent(in)    :: mesh_id
 
-  real(r_def)                     :: l2_norm
+  real(r_def)                     :: l2_norm = 0.0_r_def
 
   call hydbal_diagnostic_alg(l2_norm, theta_field, moist_dyn_field,            &
                              exner_field, mesh_id)

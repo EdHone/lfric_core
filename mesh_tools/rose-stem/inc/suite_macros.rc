@@ -18,6 +18,7 @@
 {%-     set label = compiler | lower + '_' + build | lower%}
 {%-     set perform_run = TARGET_PERFORM_RUN %}
             export_source => compile_{{projectName}}_with_{{label}}
+            export_source => validate_{{projectName}}_rose-meta
 {%-     if publish %}
             compile_{{projectName}}_with_{{label}}:finish => publish_{{label}}_compile
 {%-     endif %}

@@ -85,10 +85,10 @@ type, extends(linked_list_data_type), public :: function_space_type
   !> Number of degrees of freedom located on cell volume entities.
   integer(i_def) :: ndof_vol
 
-  !> Integer value for dynamo functions spaces, e.g. W0 would be 1
+  !> Integer value for Gungho functions spaces, e.g. W0 would be 1
   integer(i_def) :: fs
 
-  !> Element base-order of dynamo function space
+  !> Element base-order of Gungho function space
   integer(i_def) :: element_order
 
   ! Function space polynomial order? dynamics is still to provide us
@@ -361,7 +361,7 @@ contains
 !> @param[in] mesh           The mesh upon which to base this function space
 !> @param[in] element_order  The element order for this function space, 0 being 
 !>                           the lowest element order for function spaces defined
-!>                           for dynamo.
+!>                           for Gungho.
 !>                           @b Note: This is not necessarily the same as the
 !>                           order of the function space
 !> @param[in] lfric_fs       The integer number indicating which of the function

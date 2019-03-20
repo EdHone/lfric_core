@@ -128,7 +128,7 @@ if __name__ == "__main__":
         config, datapath, fields, timesteps, plotpath, plotlevel \
             = sys.argv[1:7]
     except ValueError:
-        print("Usage: {0} <config> <datapath> <fields_list> <timestep_list>"
+        print("Usage: {0} <file_stem_name> <datapath> <fields_list> <timestep_list>"
               "<plotpath> <plotlevel>".format(sys.argv[0]))
         exit(1)
 

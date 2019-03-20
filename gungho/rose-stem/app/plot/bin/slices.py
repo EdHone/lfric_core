@@ -150,7 +150,7 @@ if __name__ == "__main__":
   try:
     config, datapath, fields, timesteps, plotlong, plotlat, plotlevel, plotpath = sys.argv[1:9]
   except ValueError:
-    print("Usage: {0} <datapath> <field_names> <timestep_list> <plotlong> <plotlat> <plotlevel> <plotpath>".format(sys.argv[0]))
+    print("Usage: {0} <file_stem_name> <datapath> <field_names> <timestep_list> <plotlong> <plotlat> <plotlevel> <plotpath>".format(sys.argv[0]))
     exit(1)
 
   # Split out the list of fields

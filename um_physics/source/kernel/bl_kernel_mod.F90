@@ -11,10 +11,10 @@ module bl_kernel_mod
                                      GH_FIELD, GH_READ, GH_WRITE,  &
                                      GH_READWRITE, CELLS, GH_INC,  &
                                      GH_INTEGER, ANY_SPACE_1
+  use child_config_mod,       only : cloud_code, child_cloud_code_um
   use constants_mod,          only : i_def, i_um, r_def, r_um
   use fs_continuity_mod,      only : W3, Wtheta
   use kernel_mod,             only : kernel_type
-  use physics_config_mod,     only : cloud_scheme, physics_cloud_scheme_none
   use blayer_um_config_mod,   only : fixed_flux_e, fixed_flux_h
   use mixing_config_mod,      only : smagorinsky
   use timestepping_config_mod, only: outer_iterations
@@ -907,8 +907,8 @@ contains
 
     ! update cloud fractions only if using cloud scheme and only on last
     ! dynamics iteration
-    if (cloud_scheme /= physics_cloud_scheme_none .and. &
-         outer == outer_iterations) then
+    if ( cloud_code == child_cloud_code_um .and. &
+         outer == outer_iterations ) then
       do k = 1, nlayers
         cf_bulk(map_wth(1) + k) = bulk_cloud_fraction(1,1,k)
         cf_ice(map_wth(1) + k)  = cloud_fraction_frozen(1,1,k)

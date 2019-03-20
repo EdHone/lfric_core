@@ -40,7 +40,7 @@ contains
     character(*), intent(in) :: filename
 
     character(*), parameter :: &
-                  required_configuration(21) = ['finite_element             ', &
+                  required_configuration(13) = ['finite_element             ', &
                                                 'formulation                ', &
                                                 'base_mesh                  ', &
                                                 'initial_wind               ', &
@@ -48,19 +48,11 @@ contains
                                                 'solver                     ', &
                                                 'mixed_solver               ', &
                                                 'helmholtz_solver           ', &
-                                                'subgrid                    ', &
                                                 'timestepping               ', &
-                                                'biperiodic_deppt           ', &
                                                 'extrusion                  ', &
                                                 'transport                  ', &
-                                                'domain_size                ', &
-                                                'mixing                     ', &
                                                 'multigrid                  ', &
-                                                'orography                  ', &
-                                                'orography_agnesi_cartesian ', &
-                                                'orography_agnesi_spherical ', &
-                                                'orography_schar_cartesian  ', &
-                                                'orography_schar_spherical  ']
+                                                'orography                  ']
 
     logical              :: okay
     logical, allocatable :: success_map(:)

@@ -2,6 +2,7 @@
 {%- set projectName = 'solver_miniapp' %}
 {%- set projectDir  = 'solver_miniapp' %}
 {%- set miniappFlag = True %}
+{%- set appDiagStemName = 'diagSolverApi' %}
 
 {%- set application_configurations = { 'solver_miniapp' : ['cg','bicgstab','gmres','default'] } %}
 

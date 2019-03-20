@@ -103,7 +103,7 @@ def make_hovmoller_figure(datapath, plotpath, field, component):
   for t in range(0,nt):
 
     timestep = "T"+str(36*t).zfill(6)
-    filestem =  datapath + "/diagDynamo_nodal_" + field + "_" + timestep + "*"
+    filestem =  datapath + "/diagGungho_nodal_" + field + "_" + timestep + "*"
 
     data = read_nodal_data(filestem, 1, 1)
     levels = data.level.unique()
@@ -165,9 +165,9 @@ def make_hovmoller_figure(datapath, plotpath, field, component):
 if __name__ == "__main__":
 
   try:
-    datapath, fields, timesteps, plotpath = sys.argv[1:5]
+    config, datapath, fields, timesteps, plotpath = sys.argv[1:6]
   except ValueError:
-    print("Usage: {0} <datapath> <field_names> <timestep_list> <plotpath>".format(sys.argv[0]))
+    print("Usage: {0} <file_stem_name> <datapath> <field_names> <timestep_list> <plotpath>".format(sys.argv[0]))
     exit(1)
 
   # Split out the list of fields
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     for ts in ts_list:
 
 
-      filestem =  datapath + "/diagDynamo_nodal_" + field + "_" + ts + "*"
+      filestem =  datapath + "/" + config + "_nodal_" + field + "_" + ts + "*"
 
       data = read_nodal_data(filestem, 1, 1)
       levels = data.level.unique()

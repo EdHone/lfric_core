@@ -183,9 +183,9 @@ def make_figure(plotpath, nx, ny, field, component, timestep, small):
 if __name__ == "__main__":
 
     try:
-        datapath, nx, ny, fields, timesteps, plotpath, small = sys.argv[1:8]
+        config, datapath, nx, ny, fields, timesteps, plotpath, small = sys.argv[1:9]
     except ValueError:
-        print("Usage: {0} <datapath> <nx> <ny> <field_names> <small>"
+        print("Usage: {0} <file_stem_name> <datapath> <nx> <ny> <field_names> <small>"
               "<timestep_list> <plotpath>".format(sys.argv[0]))
         exit(1)
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
         for ts in ts_list:
 
-            filestem = datapath + "/diagDynamo_nodal_" + \
+            filestem = datapath + "/" + config + "_nodal_" + \
                 field + "_" + ts + "*"
             data = read_nodal_data(filestem, 1, 1)
 

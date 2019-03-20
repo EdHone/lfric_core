@@ -10,6 +10,7 @@
 module gungho_driver_mod
 
   use checksum_alg_mod,           only : checksum_alg
+  use child_config_mod,           only : cloud_code, child_cloud_code_um
   use conservation_algorithm_mod, only : conservation_algorithm
   use constants_mod,              only : i_def, imdi, str_def, str_short
   use derived_config_mod,         only : set_derived_config
@@ -67,8 +68,6 @@ module gungho_driver_mod
                                          minmax_tseries_init, &
                                          minmax_tseries_final
   use mr_indices_mod,             only : nummr, mr_names
-  use physics_config_mod,         only : cloud_scheme, &
-                                         physics_cloud_scheme_none
   use moist_dyn_mod,              only : num_moist_factors, gas_law, &
                                          total_mass, water
   use rk_alg_timestep_mod,        only : rk_alg_init, &
@@ -90,6 +89,7 @@ module gungho_driver_mod
   use mpi_mod,                    only : initialise_comm, store_comm, &
                                          finalise_comm, &
                                          get_comm_size, get_comm_rank
+
 
   implicit none
 
@@ -276,35 +276,35 @@ contains
         ! Moisture fields
         if (use_moisture) then
           do i=1,nummr
-            call write_scalar_diagnostic(trim(mr_names(i)), mr(i), ts_init, mesh_id, nodal_output_on_w3)
+            call write_scalar_diagnostic( trim(mr_names(i)), mr(i), &
+                                          ts_init, mesh_id, nodal_output_on_w3 )
           end do
         end if
 
         ! Cloud fields
-        if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
+        if (use_physics .and. cloud_code == child_cloud_code_um) then
 
           iterator = cloud_fields%get_iterator()
           do
             if ( .not.iterator%has_next() ) exit
               field_ptr => iterator%next()
               name = trim(adjustl( field_ptr%get_name() ))
-              call write_scalar_diagnostic(trim(name), field_ptr, ts_init, mesh_id, nodal_output_on_w3)
+              call write_scalar_diagnostic( trim(name), field_ptr, &
+                                            ts_init, mesh_id, nodal_output_on_w3 )
           end do
           field_ptr => null()
 
         end if
 
-       ! Other derived diagnostics with special pre-processing
-       call write_divergence_diagnostic(u, ts_init, mesh_id)
-       call write_hydbal_diagnostic(theta, moist_dyn, exner, mesh_id)
+        ! Other derived diagnostics with special pre-processing
+        call write_divergence_diagnostic(u, ts_init, mesh_id)
+        call write_hydbal_diagnostic(theta, moist_dyn, exner, mesh_id)
 
       end if
 
       if (write_minmax_tseries) then
-
-         call minmax_tseries_init('u', mesh_id)
-         call minmax_tseries(u, 'u', mesh_id)
-
+        call minmax_tseries_init('u', mesh_id)
+        call minmax_tseries(u, 'u', mesh_id)
       end if
 
     end if
@@ -344,7 +344,7 @@ contains
             end if
             call rk_transport_step( u, rho, theta)
           case default
-          call log_event("Dynamo: Incorrect transport option chosen, "// &
+          call log_event("Gungho: Incorrect transport option chosen, "// &
                           "stopping program! ",LOG_LEVEL_ERROR)
           stop
         end select
@@ -373,7 +373,7 @@ contains
             end if
             call rk_alg_step(u, rho, theta, moist_dyn, exner, xi)
           case default
-            call log_event("Dynamo: Incorrect time stepping option chosen, "// &
+            call log_event("Gungho: Incorrect time stepping option chosen, "// &
                             "stopping program! ",LOG_LEVEL_ERROR)
             stop
         end select
@@ -410,28 +410,29 @@ contains
         call write_vector_diagnostic('xi', u, timestep, mesh_id, nodal_output_on_w3)
 
         ! Moisture fields
-        if (use_moisture)then
+        if (use_moisture) then
           do i=1,nummr
-            call write_scalar_diagnostic(trim(mr_names(i)), mr(i), timestep, mesh_id, nodal_output_on_w3)
+            call write_scalar_diagnostic( trim(mr_names(i)), mr(i), &
+                                          timestep, mesh_id, nodal_output_on_w3 )
           end do
         end if
 
         ! Cloud fields
-        if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none) then
+        if ( use_physics .and. cloud_code == child_cloud_code_um ) then
 
           iterator = cloud_fields%get_iterator()
           do
             if ( .not.iterator%has_next() ) exit
               field_ptr => iterator%next()
               name = trim(adjustl( field_ptr%get_name() ))
-              call write_scalar_diagnostic(trim(name), field_ptr, timestep, mesh_id, nodal_output_on_w3)
+              call write_scalar_diagnostic( trim(name), field_ptr, &
+                                            timestep, mesh_id, nodal_output_on_w3 )
           end do
           field_ptr => null()
 
         end if
 
         ! Other derived diagnostics with special pre-processing
-
         call write_divergence_diagnostic(u, timestep, mesh_id)
         call write_hydbal_diagnostic(theta, moist_dyn, exner, mesh_id)
 
@@ -457,7 +458,7 @@ contains
     call u%log_field(     LOG_LEVEL_DEBUG, 'u' )
 
     ! Write checksums to file
-    if (use_moisture)then
+    if (use_moisture) then
       call checksum_alg('gungho', rho, 'rho', theta, 'theta', u, 'u', &
          field_bundle=mr, bundle_name='mr')
     else
@@ -470,8 +471,7 @@ contains
 
        call write_checkpoint(prognostic_fields, timestep_end)
 
-       if (use_moisture)then
-
+       if (use_moisture) then
          do i=1,nummr
            write(name, '(A,A)') 'checkpoint_',trim(mr_names(i))
            write(log_scratch_space,'(A,A,A,I6)') "Checkpointing ",  trim(name), " at ts ",timestep_end
@@ -479,19 +479,14 @@ contains
            call mr(i)%write_checkpoint(trim(name), trim(ts_fname(checkpoint_stem_name,"", &
                             trim(mr_names(i)), timestep_end,"")))
          end do
-
        end if
 
-       if (use_physics .and. cloud_scheme /= physics_cloud_scheme_none)then
-
+       if (use_physics .and. cloud_code == child_cloud_code_um) then
          call write_checkpoint(cloud_fields, timestep_end)
-
        endif
 
-       if (use_physics)then
-
+       if (use_physics) then
          call write_checkpoint(twod_fields, timestep_end)
-
        endif
 
     end if

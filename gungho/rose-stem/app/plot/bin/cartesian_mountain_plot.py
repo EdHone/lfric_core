@@ -580,10 +580,10 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
 if __name__ == "__main__":
 
     try:
-        datapath, fields, component, timesteps, plotlevel_x, plotlevel_y, \
-            case, zoom, cntrs, plotpath = sys.argv[1:11]
+         config, datapath, fields, component, timesteps, plotlevel_x, plotlevel_y, \
+            case, zoom, cntrs, plotpath = sys.argv[1:12]
     except ValueError:
-        print("Usage: {0} <datapath> <field_names> <component> "
+        print("Usage: {0} <file_stem_name> <datapath> <field_names> <component> "
               "<timestep_list> <plotlevel_x> <plotlevel_y> <case> "
               "<zoom> <cntrs> <plotpath>".format(sys.argv[0]))
         exit(1)
@@ -603,7 +603,7 @@ if __name__ == "__main__":
                 exit(1)
         if field in ('theta', 'm_cl', 'rho'):
             # Create initial data for theta
-            filestem = datapath + "/diagDynamo_nodal_" + \
+            filestem = datapath + "/" + config + "_nodal_" + \
                 field + "_T000000" + "*"
             data0 = read_nodal_data(filestem, 1, component)
 
@@ -617,7 +617,7 @@ if __name__ == "__main__":
 
         for i, field in enumerate(field_list):
 
-            filestem = datapath + "/diagDynamo_nodal_" + \
+            filestem = datapath + "/" + config + "_nodal_" + \
                 field + "_" + ts + "*"
 
             if field in ['u', 'w3projection_u1',

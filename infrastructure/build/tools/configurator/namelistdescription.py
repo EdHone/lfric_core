@@ -167,10 +167,12 @@ class _Scalar(_Property):
 ##############################################################################
 class _Computed(_Scalar):
 
-    def __init__(self, name, configure_type, configure_kind, computation):
+    def __init__(self, name, configure_type, configure_kind, computation,
+                                             dereferenced_list_vars=None ):
 
         super(_Computed, self).__init__(name, configure_type, configure_kind)
         self.computation = computation[0]
+        self.dereferenced_list_vars = dereferenced_list_vars
 
     def get_configure_type(self):
         return 'computed'
@@ -270,7 +272,7 @@ class NamelistDescription(object):
         new_parameter = _String(name, configure_string_length)
 
         if bounds:
-            bounds[0] = self._dereference_expression(bounds[0])
+            bounds[0], dereferenced_list_vars = self._dereference_expression(bounds[0])
             self._parameters[name] = _Array(name, new_parameter, bounds)
         else:
             self._parameters[name] = new_parameter
@@ -283,7 +285,7 @@ class NamelistDescription(object):
         new_parameter = _Scalar(name, configure_type, configure_kind)
 
         if bounds:
-            bounds[0] = self._dereference_expression(bounds[0])
+            bounds[0], dereferenced_list_vars = self._dereference_expression(bounds[0])
             self._parameters[name] = _Array(name, new_parameter, bounds)
         else:
             self._parameters[name] = new_parameter
@@ -293,9 +295,10 @@ class NamelistDescription(object):
         '''Add a variable the namelist module which is derived from an
            expression provided as a string variable'''
 
-        calculation[0] = self._dereference_expression(calculation[0])
+        calculation[0], dereferenced_list_vars = self._dereference_expression(calculation[0])
         self._parameters[name] = _Computed(name, configure_type,
-                                           configure_kind, calculation)
+                                           configure_kind, calculation,
+                                           dereferenced_list_vars )
 
     def get_parameters(self):
         return self._parameters.values()
@@ -356,23 +359,34 @@ class NamelistDescription(object):
                                  'moduleSuffix':  ''}}
         result = string
 
-        for value in str_dict.values():
+        dereferenced_list_vars = []
+
+        for key, value in str_dict.items():
 
             use_variables = re.findall(value['regexString'], result)
             if use_variables is not None:
                 n_vars = len(use_variables)
+
                 for i_var in range(0, n_vars):
+
+                    list_name = use_variables[i_var][0]
+                    var_name  = use_variables[i_var][1]
+
                     if use_variables[i_var][0] != self._listname:
                         module_name = '{}{}'.format(
-                            use_variables[i_var][0],
+                            list_name,
                             value['moduleSuffix'])
-                        var_name = use_variables[i_var][1]
-
                         self.add_usage(var_name, module=module_name)
+
+                    if key == 'namelist':
+                        dereferenced_list_vars.append(var_name)
 
             result = re.sub(value['removalString'], '', result)
 
-        return result
+        if len(dereferenced_list_vars) == 0:
+            dereferenced_list_vars = None
+
+        return result, dereferenced_list_vars
 
     def add_member(self, member_name, meta_dict):
 

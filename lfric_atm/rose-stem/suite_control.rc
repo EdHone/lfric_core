@@ -1,6 +1,7 @@
 {%- set projectName = 'lfric_atm' %}
 {%- set projectDir  = 'lfric_atm' %}
 {%- set miniappFlag = False %}
+{%- set appDiagStemName = 'diagLfricAtm' %}
 
 {%- set application_configurations = { 'lfric_atm' : ['dry_conv_bl_scm',
                                                       'wet_conv_bl_scm',
@@ -41,7 +42,7 @@
     'run_application("lfric_atm", "robert-moist-smag",
                      resolutions=[("BiP50x4-20x20",2.5)] , 
                      env={"crun":2, "nrun":100}, 
-                     plotstr="robert_plot.py $NODAL_DATA_DIR 50 4 theta:w3projection_xi2:m_v T000000:T000100:T000200 $PLOT_DIR")',
+                     plotstr="robert_plot.py ' + appDiagStemName + ' $NODAL_DATA_DIR 50 4 theta:w3projection_xi2:m_v T000000:T000100:T000200 $PLOT_DIR")',
     'check_compilers("lfric_atm", "dry_conv_bl_scm", "fast-debug",
                      resolution=("BiP4x4-10000x10000",600.0))',
     'canned_test("lfric_atm")',

@@ -123,20 +123,20 @@ subroutine lw_code(nlayers,         &
     co2_mix_ratio, n2o_mix_ratio, ch4_mix_ratio, &
     cfc11_mix_ratio, cfc12_mix_ratio,            &
     cfc113_mix_ratio, hcfc22_mix_ratio, hfc134a_mix_ratio
-  use radiation_config_mod, only:                             &
-    l_planet_grey_surface, planet_emissivity,                 &
-    i_cloud_ice_type_lw, i_cloud_liq_type_lw,                 &
-    cloud_representation, cloud_overlap, cloud_inhomogeneity, &
-    radiation_cloud_representation_no_cloud,                  &
-    radiation_cloud_representation_liquid_and_ice,            &
-    radiation_cloud_representation_conv_strat_liq_ice,        &
-    radiation_cloud_overlap_maximum_random,                   &
-    radiation_cloud_overlap_random,                           &
-    radiation_cloud_overlap_exponential_random,               &
-    radiation_cloud_inhomogeneity_homogeneous,                &
-    radiation_cloud_inhomogeneity_scaling,                    &
-    radiation_cloud_inhomogeneity_mcica,                      &
-    radiation_cloud_inhomogeneity_cairns
+  use radiation_socrates_config_mod, only:                      &
+    l_planet_grey_surface, planet_emissivity,                   &
+    i_cloud_ice_type_lw, i_cloud_liq_type_lw,                   &
+    cloud_representation, cloud_overlap, cloud_inhomogeneity,   &
+    radiation_socrates_cloud_representation_no_cloud,           &
+    radiation_socrates_cloud_representation_liquid_and_ice,     &
+    radiation_socrates_cloud_representation_conv_strat_liq_ice, &
+    radiation_socrates_cloud_overlap_maximum_random,            &
+    radiation_socrates_cloud_overlap_random,                    &
+    radiation_socrates_cloud_overlap_exponential_random,        &
+    radiation_socrates_cloud_inhomogeneity_homogeneous,         &
+    radiation_socrates_cloud_inhomogeneity_scaling,             &
+    radiation_socrates_cloud_inhomogeneity_mcica,               &
+    radiation_socrates_cloud_inhomogeneity_cairns
   use set_thermodynamic_mod, only: set_thermodynamic
   use set_cloud_top_mod, only: set_cloud_top
   use socrates_runes, only: runes, ip_source_thermal,                       &
@@ -184,33 +184,33 @@ subroutine lw_code(nlayers,         &
 
   ! Properties of clouds
   select case (cloud_representation)
-  case (radiation_cloud_representation_no_cloud)
+  case (radiation_socrates_cloud_representation_no_cloud)
     i_cloud_representation = ip_cloud_representation_off
-  case (radiation_cloud_representation_liquid_and_ice)
+  case (radiation_socrates_cloud_representation_liquid_and_ice)
     i_cloud_representation = ip_cloud_representation_ice_water
-  case (radiation_cloud_representation_conv_strat_liq_ice)
+  case (radiation_socrates_cloud_representation_conv_strat_liq_ice)
     i_cloud_representation = ip_cloud_representation_csiw
   case default
     i_cloud_representation = ip_cloud_representation_off
   end select
   select case (cloud_overlap)
-  case (radiation_cloud_overlap_maximum_random)
+  case (radiation_socrates_cloud_overlap_maximum_random)
     i_overlap = ip_overlap_max_random
-  case (radiation_cloud_overlap_random)
+  case (radiation_socrates_cloud_overlap_random)
     i_overlap = ip_overlap_random
-  case (radiation_cloud_overlap_exponential_random)
+  case (radiation_socrates_cloud_overlap_exponential_random)
     i_overlap = ip_overlap_exponential_random
   case default
     i_overlap = ip_overlap_max_random
   end select
   select case (cloud_inhomogeneity)
-  case (radiation_cloud_inhomogeneity_homogeneous)
+  case (radiation_socrates_cloud_inhomogeneity_homogeneous)
     i_inhom = ip_inhom_homogeneous
-  case (radiation_cloud_inhomogeneity_scaling)
+  case (radiation_socrates_cloud_inhomogeneity_scaling)
     i_inhom = ip_inhom_scaling
-  case (radiation_cloud_inhomogeneity_mcica)
+  case (radiation_socrates_cloud_inhomogeneity_mcica)
     i_inhom = ip_inhom_mcica
-  case (radiation_cloud_inhomogeneity_cairns)
+  case (radiation_socrates_cloud_inhomogeneity_cairns)
     i_inhom = ip_inhom_cairns
   case default
     i_inhom = ip_inhom_homogeneous

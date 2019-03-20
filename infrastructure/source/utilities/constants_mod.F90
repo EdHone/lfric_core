@@ -21,7 +21,7 @@ module constants_mod
             c_def, c_native, str_short, str_def, str_long, str_max_filename, &
             LARGE_REAL_POSITIVE, LARGE_REAL_NEGATIVE, cache_block, EPS, PI,  &
             degrees_to_radians, radians_to_degrees, RMDI, IMDI, CMDI, EMDI,  &
-            real_type, integer_type, logical_type, r_ncdf
+            EIMDI, real_type, integer_type, logical_type, r_ncdf
 
   ! Define default application-defined kinds for all intrinsic data types
 
@@ -126,10 +126,11 @@ module constants_mod
 
   !> @}
   ! Missing data indicators
-  real     (r_def),     parameter :: RMDI = -huge(0.0_r_def)        !< Missing data indicator value for real numbers
-  integer  (i_def),     parameter :: IMDI = -huge(0_i_def)          !< Missing data indicator value for integer numbers
-  character(str_short), parameter :: CMDI = 'unset'                 !< Missing data indicator value for characters
-  character(str_short), parameter :: EMDI = ''                      !< Missing data indicator value for namelist enumerations
+  real     (r_def),     parameter :: RMDI  = -huge(0.0_r_def)     !< Value for real numbers
+  integer  (i_def),     parameter :: IMDI  = -huge(0_i_def)       !< Value for integer numbers
+  character(str_short), parameter :: CMDI  = 'unset'              !< Value for characters
+  character(str_short), parameter :: EMDI  = 'missing data'       !< Chararater value for namelist enumerations
+  integer  (i_native),  parameter :: EIMDI = int(IMDI, i_native)  !< Integer value for namelist enumerations
   !> @}
 
 end module constants_mod

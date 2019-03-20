@@ -84,51 +84,47 @@
     [[[job]]]
       batch system = {{TARGET_BATCHER}}
 
-{%- set publish_destination = '$CYLC_SUITE_SHARE_DIR/publish-' + TARGET_OPT %}
-  [[PUBLISH]]
-    [[[environment]]]
-      DESTINATION = {{publish_destination}}
 
+
+{# PRELIMINARIES #}
 ##############################################################################
-{%- if 'housekeeping' not in rose_suite_gui_headers %}
-{%-   do rose_suite_gui_headers.append('housekeeping') %}
-    [[HOUSEKEEPING]]
+
+{%- if 'preliminaries' not in rose_suite_gui_headers %}
+{%-   do rose_suite_gui_headers.append('preliminaries') %}
+    [[PRELIMINARIES]]
 {%- endif %}
 
 {%- if 'export_source' in scheduledTasks %}
   [[export_source]]
-    inherit = HOUSEKEEPING, LOCAL
-    script = """
-             TMP_SOURCE_DIR={{SOURCE_LFRIC}}/{{projectName}}
-             TMP_TARGET_DIR=$SOURCE_ROOT/{{projectName}}
+    inherit = PRELIMINARIES, LOCAL
+    script  = """
+              mkdir -p `dirname $SOURCE_ROOT`
+              svn export --force {{SOURCE_LFRIC}} $SOURCE_ROOT
 
-             mkdir -p `dirname $TMP_TARGET_DIR/source`
-             mkdir -p `dirname $TMP_TARGET_DIR/config-meta`
-             mkdir -p `dirname $TMP_TARGET_DIR/unit-test`
-             mkdir -p `dirname $TMP_TARGET_DIR/integration-test`
-             mkdir -p `dirname $TMP_TARGET_DIR/documentation`
-             mkdir -p `dirname $TMP_TARGET_DIR/build`
+              HOST={{TARGET_HOST}}
+              RELATIVE_SOURCE_DIRECTORY=`echo $SOURCE_DIRECTORY | sed "s|$HOME/||"`
+              ssh $HOST mkdir -p $RELATIVE_SOURCE_DIRECTORY
+              rsync -avz $SOURCE_DIRECTORY/ $HOST:$RELATIVE_SOURCE_DIRECTORY/
+              sleep 5
+              """
 
-             svn export --force $TMP_SOURCE_DIR/source           $TMP_TARGET_DIR/source
-             svn export --force $TMP_SOURCE_DIR/config-meta      $TMP_TARGET_DIR/config-meta
-             svn export --force $TMP_SOURCE_DIR/unit-test        $TMP_TARGET_DIR/unit-test
-             svn export --force $TMP_SOURCE_DIR/integration-test $TMP_TARGET_DIR/integration-test
-             svn export --force $TMP_SOURCE_DIR/documentation    $TMP_TARGET_DIR/documentation
-             svn export --force $TMP_SOURCE_DIR/build            $TMP_TARGET_DIR/build
-             svn export --force $TMP_SOURCE_DIR/Makefile         $TMP_TARGET_DIR
-
-             HOST={{TARGET_HOST}}
-             RELATIVE_SOURCE_DIRECTORY=`echo $SOURCE_DIRECTORY | sed "s|$HOME/||"`
-             ssh $HOST mkdir -p $RELATIVE_SOURCE_DIRECTORY
-             rsync -avz $SOURCE_DIRECTORY/ $HOST:$RELATIVE_SOURCE_DIRECTORY/
-
-             unset TMP_SOURCE_DIR
-             unset TMP_TARGET_DIR
-             sleep 5
-             """
     [[[environment]]]
       SOURCE_DIRECTORY = $SOURCE_ROOT
 {%- endif %}
+
+{%- if 'validate_' + projectName + '_rose-meta' in scheduledTasks %}
+    [[validate_{{projectName}}_rose-meta]]
+       inherit = PRELIMINARIES, LOCAL
+       script = $SOURCE_ROOT/bin/validate_rose_meta {{projectName}}
+{%- endif %}
+
+
+
+##############################################################################
+{%- set publish_destination = '$CYLC_SUITE_SHARE_DIR/publish-' + TARGET_OPT %}
+  [[PUBLISH]]
+    [[[environment]]]
+      DESTINATION = {{publish_destination}}
 
 {%- if 'publish_nothing' in scheduledTasks %}
   # This task exists purely to ensure that the PUBLISH family has something in it.

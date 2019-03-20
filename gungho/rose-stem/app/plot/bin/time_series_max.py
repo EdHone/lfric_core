@@ -37,24 +37,23 @@ python2.7 time_series_max.py datapath plotpath plot_ref num_proc
 if __name__ == "__main__":
 
     try:
-        datapath, plotpath, plot_ref, num_proc = sys.argv[1:5]
+        config, datapath, plotpath, plot_ref, num_proc = sys.argv[1:6]
     except ValueError:
-        print("Usage: {0} <datapath> <plotpath> <plot_ref> "
+        print("Usage: {0} <file_stem_name> <datapath> <plotpath> <plot_ref> "
               "<num_proc>".format(sys.argv[0]))
         exit(1)
 
     fig = plt.figure(figsize=(30, 8))
 
     if num_proc == '1':
-        data_u = np.genfromtxt(datapath + "/diagDynamo_nodal_minmax_u.m")
+        data_u = np.genfromtxt(datapath + "/" + config + "_nodal_minmax_u.m")
     else:
         data_u = np.genfromtxt(datapath +
-                               "/diagDynamo_nodal_minmax_u.Rank000000.m")
+                               "/" + config + "_nodal_minmax_u.Rank000000.m")
         for n in range(1, int(num_proc)):  # works up to 10 cores only!
             data_u = \
                 np.concatenate((data_u, np.genfromtxt(datapath +
-                                                      "/diagDynamo_nodal_"
-                                                      "minmax_u.Rank00000"
+                                                      "/" + config + "_nodal_minmax_u.Rank00000"
                                                       + str(n) + ".m")),
                                axis=1)
 
@@ -95,10 +94,10 @@ if __name__ == "__main__":
         # Plotting reference data
 
         if num_proc == '1':
-            data_u = np.genfromtxt(datapath + "/diagDynamo_nodal_minmax_u"
+            data_u = np.genfromtxt(datapath + "/" + config + "_nodal_minmax_u"
                                               "_ref.m")
         else:
-            data_u = np.genfromtxt(datapath + "/diagDynamo_nodal_minmax_u"
+            data_u = np.genfromtxt(datapath + "/" + config + "_nodal_minmax_u"
                                               ".Rank000000_ref.m")
 
         zvel_min_ref = data_u[::3, -1]

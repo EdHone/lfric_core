@@ -7,20 +7,20 @@
 
 module um_init_mod
 
+  use blayer_um_config_mod,  only : flux_bc_opt_in => flux_bc_opt
   use constants_mod,         only : i_def, i_um, r_def, r_um
+  use child_config_mod,      only : cloud_code,      child_cloud_code_um, &
+                                    convection_code, child_convection_code_um
+  use cloud_um_config_mod,   only : cloud_scheme => scheme, &
+                                    cloud_um_scheme_smith,  &
+                                    rh_crit
   use extrusion_config_mod,  only : domain_top
   use field_collection_mod,  only : field_collection_type
-  use physics_config_mod,    only : cloud_scheme,                       &
-                                    physics_cloud_scheme_none,          &
-                                    physics_cloud_scheme_smith,         &
-                                    convection_placement,               &
-                                    physics_convection_placement_fast
-  use blayer_um_config_mod,  only : flux_bc_opt_in => flux_bc_opt
-  use cloud_um_config_mod,   only : rh_crit
-  use mixing_config_mod,     only : smagorinsky
   use log_mod,               only : log_event,         &
                                     log_scratch_space, &
                                     LOG_LEVEL_ERROR
+  use mixing_config_mod,     only : smagorinsky
+
   implicit none
 
 contains
@@ -169,11 +169,11 @@ contains
     puns             = 0.5_r_um
     pstb             = 2.0_r_um
     nl_bl_levels     = bl_levels
-    if (convection_placement == physics_convection_placement_fast) non_local_bl = 0
+    if (convection_code == child_convection_code_um) non_local_bl = 0
     flux_bc_opt      = flux_bc_opt_in
 
     ! Convection namelist options - should be moved to namelist in future
-    if (convection_placement == physics_convection_placement_fast) l_param_conv = .true.
+    if (convection_code == child_convection_code_um) l_param_conv = .true.
     icvdiag         = 1
     cvdiag_inv      = 0
     cvdiag_sh_wtest = 0.02_r_um
@@ -187,16 +187,19 @@ contains
     w_cape_limit    = 0.3_r_um
 
     ! Cloud namelist options - should be moved to namelist in future
-    select case (cloud_scheme)
-      case(physics_cloud_scheme_none) 
-        i_cld_vn = 0
-      case(physics_cloud_scheme_smith) 
-        i_cld_vn = 1
-      case default
-        write( log_scratch_space, '(A,I3)' )  &
-          'Invalid cloud scheme option, stopping', cloud_scheme 
-        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end select
+    if ( cloud_code == child_cloud_code_um ) then
+      select case (cloud_scheme)
+        case(cloud_um_scheme_smith) 
+          i_cld_vn = 1
+        case default
+          write( log_scratch_space, '(A,I3)' )  &
+            'Invalid cloud scheme option, stopping', cloud_scheme 
+          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      end select
+    else
+      i_cld_vn = 0
+    end if
+
     i_rhcpt               = 0
     forced_cu             = 0
     i_cld_area            = 0
@@ -207,10 +210,14 @@ contains
     cff_spread_rate       = 1.0e-3_r_um
     l_subgrid_qv          = .true.
     ice_width             = 0.02_r_um
+
     ! Set rhcrit to the profile provided in the physics namelist.
     ! rhcrit is used throughout the UM and its value needs setting 
     ! here.
-    rhcrit = real(rh_crit, r_um)
+    if ( cloud_code == child_cloud_code_um .and. &
+         cloud_scheme == cloud_um_scheme_smith ) then
+      rhcrit = real(rh_crit, r_um)
+    end if
 
     ! Microphysics namelist options - should be moved to namelist in future
     ai             = 2.5700e-2_r_um

@@ -2,6 +2,7 @@
 {%- set projectName = 'skeleton' %}
 {%- set projectDir  = 'skeleton' %}
 {%- set miniappFlag = True %}
+{%- set appDiagStemName = 'diagSkeleton' %}
 
 {%- set application_configurations = { 'skeleton' : ['default'] } %}
 

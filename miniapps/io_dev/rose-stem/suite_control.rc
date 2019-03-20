@@ -2,6 +2,7 @@
 {%- set projectName = 'io_dev' %}
 {%- set projectDir  = 'io_dev' %}
 {%- set miniappFlag = True %}
+{%- set appDiagStemName = 'diagIoDev' %}
 
 {%- set application_configurations = { 'io_dev' : ['default'] } %}
 

@@ -123,6 +123,7 @@
       [[[R1]]]
 {%-   set label =  TARGET_TECHNICAL_COMPILER | lower + '_fast-debug' %}
             export_source => compile_{{projectName}}_with_{{label}}
+            export_source => validate_{{projectName}}_rose-meta
 {%-   if 'cleanliness' in TECHNICAL_DEVELOPER_TESTS %}
 
 {#- The following line removed due to a bug brought to light by #730. #}

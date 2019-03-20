@@ -52,19 +52,20 @@ class NamelistMetaTest(unittest.TestCase):
 !>
 module test_config_mod
 
-  use constants_mod, only : i_def, &
-                            i_long, &
-                            i_native, &
-                            i_short, &
-                            l_def, &
-                            r_def, &
-                            r_double, &
-                            r_single, &
-                            str_def, &
-                            str_max_filename
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_def, &
+                           i_long, &
+                           i_native, &
+                           i_short, &
+                           l_def, &
+                           r_def, &
+                           r_double, &
+                           r_single, &
+                           str_def, &
+                           str_max_filename
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -113,7 +114,8 @@ contains
   !>
   integer(i_native) function enum_from_key( key )
 
-    use constants_mod, only: emdi
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     character(*), intent(in) :: key
@@ -123,7 +125,9 @@ contains
     if (key == emdi) then
       write( log_scratch_space, '(A)') &
           'Missing key for enum enumeration in test namelist.'
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      enum_from_key = int(imdi,i_native)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      return
     end if
 
     key_index = 1
@@ -151,6 +155,8 @@ contains
   !>
   character(str_def) function key_from_enum( value )
 
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     integer(i_native), intent(in) :: value
@@ -159,7 +165,10 @@ contains
 
     value_index = 1
     do
-      if (enum_value(value_index) == value) then
+      if (enum_value(value_index) == int(imdi,i_native)) then
+        key_from_enum = emdi
+        return
+      else if (enum_value(value_index) == value) then
         key_from_enum = enum_key(value_index)
         return
       else
@@ -198,7 +207,7 @@ contains
   subroutine read_namelist( file_unit, local_rank, &
                             dummy_enum )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -309,7 +318,7 @@ contains
   !>
   subroutine postprocess_test_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -406,11 +415,12 @@ end module test_config_mod
 !>
 module test_config_mod
 
-  use constants_mod, only : i_def, &
-                            i_native
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_def, &
+                           i_native
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -446,7 +456,7 @@ contains
   !
   subroutine read_namelist( file_unit, local_rank )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -486,7 +496,7 @@ contains
   !>
   subroutine postprocess_test_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -548,12 +558,13 @@ end module test_config_mod
 !>
 module test_config_mod
 
-  use constants_mod, only : i_def, &
-                            i_native, &
-                            r_def
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_def, &
+                           i_native, &
+                           r_def
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -590,7 +601,7 @@ contains
   !
   subroutine read_namelist( file_unit, local_rank )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -636,7 +647,7 @@ contains
   !>
   subroutine postprocess_test_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -717,11 +728,12 @@ end module test_config_mod
 !>
 module enum_config_mod
 
-  use constants_mod, only : i_native, &
-                            str_def
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_native, &
+                           str_def
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -758,7 +770,8 @@ contains
   !>
   integer(i_native) function value_from_key( key )
 
-    use constants_mod, only: emdi
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     character(*), intent(in) :: key
@@ -768,7 +781,9 @@ contains
     if (key == emdi) then
       write( log_scratch_space, '(A)') &
           'Missing key for value enumeration in enum namelist.'
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      value_from_key = int(imdi,i_native)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      return
     end if
 
     key_index = 1
@@ -796,6 +811,8 @@ contains
   !>
   character(str_def) function key_from_value( value )
 
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     integer(i_native), intent(in) :: value
@@ -804,7 +821,10 @@ contains
 
     value_index = 1
     do
-      if (value_value(value_index) == value) then
+      if (value_value(value_index) == int(imdi,i_native)) then
+        key_from_value = emdi
+        return
+      else if (value_value(value_index) == value) then
         key_from_value = value_key(value_index)
         return
       else
@@ -843,7 +863,7 @@ contains
   subroutine read_namelist( file_unit, local_rank, &
                             dummy_value )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -888,7 +908,7 @@ contains
   !>
   subroutine postprocess_enum_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -961,11 +981,12 @@ end module enum_config_mod
 !>
 module twoenum_config_mod
 
-  use constants_mod, only : i_native, &
-                            str_def
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_native, &
+                           str_def
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -1015,7 +1036,8 @@ contains
   !>
   integer(i_native) function first_from_key( key )
 
-    use constants_mod, only: emdi
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     character(*), intent(in) :: key
@@ -1025,7 +1047,9 @@ contains
     if (key == emdi) then
       write( log_scratch_space, '(A)') &
           'Missing key for first enumeration in twoenum namelist.'
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      first_from_key = int(imdi,i_native)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      return
     end if
 
     key_index = 1
@@ -1053,6 +1077,8 @@ contains
   !>
   character(str_def) function key_from_first( value )
 
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     integer(i_native), intent(in) :: value
@@ -1061,7 +1087,10 @@ contains
 
     value_index = 1
     do
-      if (first_value(value_index) == value) then
+      if (first_value(value_index) == int(imdi,i_native)) then
+        key_from_first = emdi
+        return
+      else if (first_value(value_index) == value) then
         key_from_first = first_key(value_index)
         return
       else
@@ -1084,7 +1113,8 @@ contains
   !>
   integer(i_native) function second_from_key( key )
 
-    use constants_mod, only: emdi
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     character(*), intent(in) :: key
@@ -1094,7 +1124,9 @@ contains
     if (key == emdi) then
       write( log_scratch_space, '(A)') &
           'Missing key for second enumeration in twoenum namelist.'
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      second_from_key = int(imdi,i_native)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      return
     end if
 
     key_index = 1
@@ -1122,6 +1154,8 @@ contains
   !>
   character(str_def) function key_from_second( value )
 
+    use constants_mod, only: emdi, imdi
+
     implicit none
 
     integer(i_native), intent(in) :: value
@@ -1130,7 +1164,10 @@ contains
 
     value_index = 1
     do
-      if (second_value(value_index) == value) then
+      if (second_value(value_index) == int(imdi,i_native)) then
+        key_from_second = emdi
+        return
+      else if (second_value(value_index) == value) then
         key_from_second = second_key(value_index)
         return
       else
@@ -1171,7 +1208,7 @@ contains
                             dummy_first, &
                             dummy_second )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -1223,7 +1260,7 @@ contains
   !>
   subroutine postprocess_twoenum_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
 
     implicit none
 
@@ -1298,11 +1335,12 @@ end module twoenum_config_mod
 !>
 module teapot_config_mod
 
-  use constants_mod, only : i_native, &
-                            r_def
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_native, &
+                           r_def
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -1311,7 +1349,9 @@ module teapot_config_mod
             teapot_is_loadable, teapot_is_loaded, teapot_final
 
   real(r_def), public, protected :: bar
+  real(r_def), public, protected :: bif
   real(r_def), public, protected :: foo
+  real(r_def), public, protected :: fum
 
   logical :: namelist_loaded = .false.
 
@@ -1339,21 +1379,25 @@ contains
   !
   subroutine read_namelist( file_unit, local_rank )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
+    use fridge_config_mod, only: milk
 
     implicit none
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
 
-    real(r_def) :: buffer_real_r_def(1)
+    real(r_def) :: buffer_real_r_def(2)
 
-    namelist /teapot/ foo
+    namelist /teapot/ foo, &
+                      fum
 
     integer(i_native) :: condition
 
     bar = rmdi
+    bif = rmdi
     foo = rmdi
+    fum = rmdi
 
     if (local_rank == 0) then
 
@@ -1365,13 +1409,21 @@ contains
     end if
 
     buffer_real_r_def(1) = foo
+    buffer_real_r_def(2) = fum
 
-    call broadcast( buffer_real_r_def, 1, 0 )
+    call broadcast( buffer_real_r_def, 2, 0 )
 
     foo = buffer_real_r_def(1)
+    fum = buffer_real_r_def(2)
 
 
     bar = foo ** 2
+    if ( any([fum, foo, milk] == imdi) .or. &
+         any([fum, foo, milk] == rmdi) ) then
+      bif = rmdi
+    else
+      bif = fum + (foo ** 2) / milk
+    end if
 
     namelist_loaded = .true.
 
@@ -1381,7 +1433,8 @@ contains
   !>
   subroutine postprocess_teapot_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
+    use fridge_config_mod, only: milk
 
     implicit none
 
@@ -1425,7 +1478,9 @@ contains
     implicit none
 
     bar = real(rmdi,r_def)
+    bif = real(rmdi,r_def)
     foo = real(rmdi,r_def)
+    fum = real(rmdi,r_def)
 
     return
   end subroutine teapot_final
@@ -1438,7 +1493,9 @@ end module teapot_config_mod
 
         uut = description.NamelistDescription('teapot')
         uut.add_value('foo', 'real', 'default')
+        uut.add_value('fum', 'real', 'default')
         uut.add_computed('bar', 'real', 'default', calculation=['foo ** 2'])
+        uut.add_computed('bif', 'real', 'default', calculation=['namelist:teapot=fum + (namelist:teapot=foo ** 2) / namelist:fridge=milk'])
         uut.write_module(output_file)
 
         self.assertMultiLineEqual(expected_source + '\n',
@@ -1456,11 +1513,12 @@ end module teapot_config_mod
 !>
 module cheese_config_mod
 
-  use constants_mod, only : i_native, &
-                            r_def
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_native, &
+                           r_def
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -1497,7 +1555,7 @@ contains
   !
   subroutine read_namelist( file_unit, local_rank )
 
-    use constants_mod, only : cmdi, emdi, FUDGE, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, FUDGE, imdi, rmdi
 
     implicit none
 
@@ -1539,7 +1597,7 @@ contains
   !>
   subroutine postprocess_cheese_namelist()
 
-    use constants_mod, only : cmdi, emdi, FUDGE, imdi, rmdi
+    use constants_mod, only: cmdi, emdi, FUDGE, imdi, rmdi
 
     implicit none
 
@@ -1616,13 +1674,14 @@ end module cheese_config_mod
 !>
 module aerial_config_mod
 
-  use constants_mod, only : i_def, &
-                            i_native, &
-                            r_def, &
-                            str_def
-  use log_mod,       only : log_event, log_scratch_space, LOG_LEVEL_ERROR
-  use mpi_mod,       only : broadcast
-  use mpi,           only : MPI_SUCCESS
+  use constants_mod, only: i_def, &
+                           i_native, &
+                           r_def, &
+                           str_def
+  use log_mod,       only: log_event, log_scratch_space &
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+  use mpi_mod,       only: broadcast
+  use mpi,           only: MPI_SUCCESS
 
   implicit none
 
@@ -1664,8 +1723,8 @@ contains
   !
   subroutine read_namelist( file_unit, local_rank )
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
-    use wibble_mod, only : esize
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
+    use wibble_mod, only: esize
 
     implicit none
 
@@ -1737,8 +1796,8 @@ contains
   !>
   subroutine postprocess_aerial_namelist()
 
-    use constants_mod, only : cmdi, emdi, imdi, rmdi
-    use wibble_mod, only : esize
+    use constants_mod, only: cmdi, emdi, imdi, rmdi
+    use wibble_mod, only: esize
 
     implicit none
 
@@ -2022,6 +2081,9 @@ length=:
 [namelist:teapot=foo]
 type=real
 
+[namelist:teapot=fum]
+type=real
+
 [!namelist:teapot=bar]
 type=real
 expression=namelist:teapot=foo ** 2
@@ -2029,6 +2091,10 @@ expression=namelist:teapot=foo ** 2
 [!namelist:teapot=baz]
 type=real
 expression=source:constants_mod=PI * foo
+
+[!namelist:teapot=dosh]
+type=real
+expression=namelist:fridge=milk + (namelist:teapot=foo ** 2) - (source:constants_mod=PI * namelist:teapot=fum)
 ''')
         input_file.seek(0)
 
@@ -2045,8 +2111,10 @@ expression=source:constants_mod=PI * foo
             uut.process_config(self.nml_config_file))
 
         self.assertEqual({'teapot': {'foo': ['real', 'r_def'],
+                                     'fum': ['real', 'r_def'],
                                      'bar': ['real', 'r_def', 'foo ** 2'],
-                                     'baz': ['real', 'r_def', 'PI * foo']}},
+                                     'baz': ['real', 'r_def', 'PI * foo'],
+                                     'dosh': ['real', 'r_def', 'milk + (foo ** 2) - (PI * fum)'] }},
                          result)
 
 
