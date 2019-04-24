@@ -21,10 +21,10 @@ module held_suarez_kernel_mod_test
                                             feign_planet_config, &
                                             feign_timestepping_config, &
                                             feign_physics_config
-  use physics_config_mod,            only : physics_radiation_placement_slow,  &
-                                            physics_blayer_placement_fast,     &
-                                            physics_convection_placement_fast, &
-                                            physics_microphysics_placement_slow
+  use physics_config_mod,            only : radiation_placement_slow,  &
+                                            blayer_placement_fast,     &
+                                            convection_placement_fast, &
+                                            microphysics_placement_slow
   use pFUnit_Mod
   use quadrature_xyoz_mod,           only: quadrature_xyoz_type, &
                                            quadrature_xyoz_proxy_type
@@ -72,11 +72,11 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : base_mesh_geometry_planar, &
-                                          base_mesh_partitioner_planar
-    use timestepping_config_mod,   only : timestepping_method_semi_implicit, &
-                                          timestepping_runge_kutta_method_ssp3
-    use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+    use base_mesh_config_mod,      only : geometry_planar, &
+                                          partitioner_planar
+    use timestepping_config_mod,   only : method_semi_implicit, &
+                                          runge_kutta_method_ssp3
+    use finite_element_config_mod, only : cellshape_quadrilateral
     use function_space_mod,        only : function_space_type
     use mesh_mod,                  only : PLANE_BI_PERIODIC, PLANE
 
@@ -101,20 +101,21 @@ contains
     ! Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo', prime_mesh_name='unit_test', &
-                                 geometry=base_mesh_geometry_planar,          &
-                                 partitioner=base_mesh_partitioner_planar,    &
+    call feign_base_mesh_config( filename='foo',                 &
+                                 prime_mesh_name='unit_test',    &
+                                 geometry=geometry_planar,       &
+                                 partitioner=partitioner_planar, &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
                               rd=rd, cp=cp, p_zero=p_zero,                 &
                               scaling_factor=scaling )
 
-    call feign_timestepping_config(method=timestepping_method_semi_implicit,          &
+    call feign_timestepping_config(method=method_semi_implicit,                       &
                                    dt=dt, alpha=0.5_r_def, tau_u=0.5_r_def,           &
                                    tau_t=0.5_r_def, tau_r=0.5_r_def,                  &
                                    outer_iterations=1_i_def, inner_iterations=1_i_def,&
-                                   runge_kutta_method=timestepping_runge_kutta_method_ssp3,    &
+                                   runge_kutta_method=runge_kutta_method_ssp3,        &
                                    spinup_period=0.0_r_def, spinup_alpha=.false.,     &
                                    spinup_winds=.false.    )
 
@@ -238,13 +239,13 @@ contains
     nlayers = theta_proxy%vspace%get_nlayers()
 
 
-    call feign_physics_config(                                        &
-        blayer_placement       = physics_blayer_placement_fast,       &
-        radiation_placement    = physics_radiation_placement_slow,    &
-        convection_placement   = physics_convection_placement_fast,   &
-        microphysics_placement = physics_microphysics_placement_slow, &
-        heldsuarez_thermo_placement = -1,                             &
-        heldsuarez_wind_placement   = -1,                             &
+    call feign_physics_config(                                &
+        blayer_placement       = blayer_placement_fast,       &
+        radiation_placement    = radiation_placement_slow,    &
+        convection_placement   = convection_placement_fast,   &
+        microphysics_placement = microphysics_placement_slow, &
+        heldsuarez_thermo_placement = -1,                     &
+        heldsuarez_wind_placement   = -1,                     &
         hs_random                   = .false. )
 
 

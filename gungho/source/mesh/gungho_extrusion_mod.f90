@@ -20,10 +20,10 @@
 
 module gungho_extrusion_mod
 
-  use base_mesh_config_mod, only : geometry,                  &
-                                   key_from_geometry,         &
-                                   base_mesh_geometry_planar, &
-                                   base_mesh_geometry_spherical
+  use base_mesh_config_mod, only : geometry,          &
+                                   key_from_geometry, &
+                                   geometry_planar,   &
+                                   geometry_spherical
   use constants_mod,        only : r_def, i_def
   use extrusion_mod,        only : extrusion_type,                             &
                                    uniform_extrusion_type,                     &
@@ -34,12 +34,13 @@ module gungho_extrusion_mod
                                    shifted_quadratic_extrusion_type,           &
                                    shifted_geometric_extrusion_type,           &
                                    shifted_dcmip_extrusion_type
-  use extrusion_config_mod, only : method, key_from_method,                    &
-                                   extrusion_method_uniform,                   &
-                                   extrusion_method_quadratic,                 &
-                                   extrusion_method_geometric,                 &
-                                   extrusion_method_dcmip,                     &
-                                   domain_top,                                 &
+  use extrusion_config_mod, only : method,           &
+                                   key_from_method,  &
+                                   method_uniform,   &
+                                   method_quadratic, &
+                                   method_geometric, &
+                                   method_dcmip,     &
+                                   domain_top,       &
                                    number_of_layers
   use log_mod,              only : log_event,       &
                                    log_level_error, &
@@ -69,9 +70,9 @@ contains
     if (allocated(new)) deallocate(new)
 
     select case (geometry)
-      case (base_mesh_geometry_planar)
+      case (geometry_planar)
         atmosphere_bottom = 0.0_r_def
-      case (base_mesh_geometry_spherical)
+      case (geometry_spherical)
         atmosphere_bottom = scaled_radius
       case default
         write( log_scratch_space,                      &
@@ -81,19 +82,19 @@ contains
     end select
 
     select case (method)
-      case (extrusion_method_uniform)
+      case (method_uniform)
         allocate( new, source=uniform_extrusion_type( atmosphere_bottom, &
                                                       domain_top,        &
                                                       number_of_layers ) )
-      case (extrusion_method_quadratic)
+      case (method_quadratic)
         allocate( new, source=quadratic_extrusion_type( atmosphere_bottom, &
                                                         domain_top,        &
                                                         number_of_layers ) )
-      case (extrusion_method_geometric)
+      case (method_geometric)
         allocate( new, source=geometric_extrusion_type( atmosphere_bottom, &
                                                         domain_top,        &
                                                         number_of_layers ) )
-      case (extrusion_method_dcmip)
+      case (method_dcmip)
         allocate( new, source=dcmip_extrusion_type( atmosphere_bottom, &
                                                     domain_top,        &
                                                     number_of_layers ) )
@@ -124,9 +125,9 @@ contains
     if (allocated(new)) deallocate(new)
 
     select case (geometry)
-      case (base_mesh_geometry_planar)
+      case (geometry_planar)
         atmosphere_bottom = 0.0_r_def
-      case (base_mesh_geometry_spherical)
+      case (geometry_spherical)
         atmosphere_bottom = scaled_radius
       case default
         write( log_scratch_space,                      &
@@ -136,19 +137,19 @@ contains
     end select
 
     select case (method)
-      case (extrusion_method_uniform)
+      case (method_uniform)
         allocate( new, source=shifted_uniform_extrusion_type( atmosphere_bottom, &
                                                               domain_top,        &
                                                               nlayers_plus_one ) )
-      case (extrusion_method_quadratic)
+      case (method_quadratic)
         allocate( new, source=shifted_quadratic_extrusion_type( atmosphere_bottom, &
                                                                 domain_top,        &
                                                                 nlayers_plus_one ) )
-      case (extrusion_method_geometric)
+      case (method_geometric)
         allocate( new, source=shifted_geometric_extrusion_type( atmosphere_bottom, &
                                                                 domain_top,        &
                                                                 nlayers_plus_one ) )
-      case (extrusion_method_dcmip)
+      case (method_dcmip)
         allocate( new, source=shifted_dcmip_extrusion_type( atmosphere_bottom, &
                                                             domain_top,        &
                                                             nlayers_plus_one ) )

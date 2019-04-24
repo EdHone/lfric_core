@@ -30,12 +30,12 @@ module subgrid_coeffs_kernel_mod
   use constants_mod,      only : r_def, i_def
   use fs_continuity_mod,  only : W3
   use kernel_mod,         only : kernel_type
-  use subgrid_config_mod, only :                                             &
-                             subgrid_rho_approximation_constant_subgrid,     &
-                             subgrid_rho_approximation_constant_positive,    &
-                             subgrid_rho_approximation_ppm_no_limiter,       &
-                             subgrid_rho_approximation_ppm_positive_only,    &
-                             subgrid_rho_approximation_ppm_positive_monotone
+  use subgrid_config_mod, only :                                  &
+                             rho_approximation_constant_subgrid,  &
+                             rho_approximation_constant_positive, &
+                             rho_approximation_ppm_no_limiter,    &
+                             rho_approximation_ppm_positive_only, &
+                             rho_approximation_ppm_positive_monotone
 
   implicit none
 
@@ -150,17 +150,17 @@ subroutine subgrid_coeffs_code(                                               &
       end do
 
       select case(subgridrho_option)
-        case (subgrid_rho_approximation_constant_subgrid)
+        case (rho_approximation_constant_subgrid)
           a0(stencil_map(1,1)+k) = rho(stencil_map(1,1)+k)
           a1(stencil_map(1,1)+k) = 0.0_r_def
           a2(stencil_map(1,1)+k) = 0.0_r_def
 
-        case (subgrid_rho_approximation_constant_positive)
+        case (rho_approximation_constant_positive)
           a0(stencil_map(1,1)+k) = max(rho(stencil_map(1,1)+k),0.0_r_def)
           a1(stencil_map(1,1)+k) = 0.0_r_def
           a2(stencil_map(1,1)+k) = 0.0_r_def
 
-        case (subgrid_rho_approximation_ppm_no_limiter)
+        case (rho_approximation_ppm_no_limiter)
           positive=.false.
           monotone=.false.
           call second_order_coeffs(rho_local,coeffs,positive,monotone)
@@ -168,11 +168,11 @@ subroutine subgrid_coeffs_code(                                               &
           a1(stencil_map(1,1)+k) = coeffs(2)
           a2(stencil_map(1,1)+k) = coeffs(3)
 
-        case (subgrid_rho_approximation_ppm_positive_only, &
-              subgrid_rho_approximation_ppm_positive_monotone)
+        case (rho_approximation_ppm_positive_only, &
+              rho_approximation_ppm_positive_monotone)
           positive=.true.
           monotone=.false.
-          if ( subgridrho_option == subgrid_rho_approximation_ppm_positive_monotone) monotone=.true.
+          if ( subgridrho_option == rho_approximation_ppm_positive_monotone) monotone=.true.
           call second_order_coeffs(rho_local,coeffs,positive,monotone)
           a0(stencil_map(1,1)+k) = coeffs(1)
           a1(stencil_map(1,1)+k) = coeffs(2)

@@ -28,8 +28,8 @@ use argument_mod,            only: arg_type, func_type,             &
 use fs_continuity_mod,       only: W2
 
 use coordinate_jacobian_mod, only: coordinate_jacobian
-use base_mesh_config_mod,    only: geometry,                     &
-                                   base_mesh_geometry_spherical, &
+use base_mesh_config_mod,    only: geometry,           &
+                                   geometry_spherical, &
                                    f_lat
 use rotation_vector_mod,     only: rotation_vector_fplane,  &
                                    rotation_vector_sphere
@@ -154,7 +154,7 @@ subroutine compute_coriolis_matrix_code(cell, nlayers, ncell_3d,     &
      end do
 
     ! Calculate rotation vector Omega = (0, 2*cos(lat), 2*sin(lat)) and Jacobian
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
       call rotation_vector_sphere(ndf_chi, nqp_h, nqp_v, chi1_e, chi2_e,       &
                                   chi3_e, basis_chi, rotation_vector)
     else

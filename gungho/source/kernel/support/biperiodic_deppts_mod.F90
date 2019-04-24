@@ -11,9 +11,9 @@ module biperiodic_deppts_mod
 
 use constants_mod, only : r_def, i_def
 use log_mod,       only : log_event, LOG_LEVEL_ERROR, log_scratch_space
-use biperiodic_deppt_config_mod, only : biperiodic_deppt_method_euler,       &
-                                        biperiodic_deppt_method_midpoint,    &
-                                        biperiodic_deppt_method_trapezoidal
+use biperiodic_deppt_config_mod, only : method_euler,       &
+                                        method_midpoint,    &
+                                        method_trapezoidal
 
 implicit none
 
@@ -81,13 +81,13 @@ contains
 
     select case (method)
 
-    case(biperiodic_deppt_method_euler) ! Euler's method
+    case(method_euler) ! Euler's method
 
       u_arrival = calc_u_at_x(x_arrival,nCellEdges,u_np1)
       x_departure = x_arrival - deltaT*u_arrival
       call test_value_in_limits(x_departure,left_limit,right_limit)
 
-    case(biperiodic_deppt_method_trapezoidal) ! Trapezoidal
+    case(method_trapezoidal) ! Trapezoidal
 
       u_arrival = calc_u_at_x(x_arrival,nCellEdges,u_np1)
       x_departure = x_arrival - deltaT*u_arrival
@@ -99,7 +99,7 @@ contains
         call test_value_in_limits(x_departure,left_limit,right_limit)
       end do
 
-    case(biperiodic_deppt_method_midpoint) ! Mid-point
+    case(method_midpoint) ! Mid-point
 
       u_arrival = calc_u_at_x(x_arrival,nCellEdges,u_np1)
       x_departure = x_arrival - deltaT*u_arrival

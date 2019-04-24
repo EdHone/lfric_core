@@ -26,10 +26,9 @@ module schar_orography_cartesian_mod
 
   use constants_mod,          only : r_def, i_def
   use analytic_orography_mod, only : analytic_orography_type
-  use orography_schar_cartesian_config_mod, only :                     &
-                                orography_schar_cartesian_direction_x, &
-                                orography_schar_cartesian_direction_y, &
-                                orography_schar_cartesian_direction_xy
+  use orography_schar_cartesian_config_mod, only : direction_x, &
+                                                   direction_y, &
+                                                   direction_xy
   use log_mod,                only : log_event,         &
                                      log_scratch_space, &
                                      LOG_LEVEL_ERROR
@@ -185,17 +184,17 @@ contains
     ! chisurf_arg(1) is Exponential function argument,
     ! chisurf_arg(2) is Cosine function argument
     select case(self%direction)
-      case (orography_schar_cartesian_direction_x)
+      case (direction_x)
         ! Exponential function argument
         chisurf_arg(1) = chi_1_per/self%half_width_x
         ! Cosine function argument    
         chisurf_arg(2) = PI*chi_1_per/self%wavelength
-      case (orography_schar_cartesian_direction_y)
+      case (direction_y)
         ! Exponential function argument
         chisurf_arg(1) = chi_2_per/self%half_width_y
         ! Cosine function argument    
         chisurf_arg(2) = PI*chi_2_per/self%wavelength
-      case (orography_schar_cartesian_direction_xy)
+      case (direction_xy)
         ! Exponential function argument
         chisurf_arg(1) = sqrt((chi_1_per/self%half_width_x)**2 + (chi_2_per/self%half_width_y)**2)
         ! Cosine function argument

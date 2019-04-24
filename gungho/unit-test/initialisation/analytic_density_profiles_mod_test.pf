@@ -111,7 +111,7 @@ contains
   subroutine yz_cosine_hill_test( this )
 
     use analytic_density_profiles_mod, only : analytic_density
-    use idealised_config_mod,          only : idealised_test_yz_cosine_hill
+    use idealised_config_mod,          only : test_yz_cosine_hill
 
     implicit none
 
@@ -124,7 +124,7 @@ contains
     tol=10.0E-12_r_def
 
     chi = (/ 2.0_r_def,3.25_r_def,4.5_r_def /)
-    rho = analytic_density(chi , idealised_test_yz_cosine_hill, 0.0_r_def)
+    rho = analytic_density(chi , test_yz_cosine_hill, 0.0_r_def)
     @assertEqual(0.407826538399892_r_def, rho, tol)
 
 

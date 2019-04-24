@@ -102,34 +102,34 @@ contains
                                              compute_q_operator_init
     use mesh_mod,                      only: mesh_type
     use mesh_collection_mod,           only: mesh_collection
-    use mixed_solver_config_mod,       only: si_maximum_iterations,                      &
-                                             si_tolerance,                               &
-                                             si_method,                                  &
-                                             mixed_gcrk => gcrk,                         &
-                                             mixed_solver_si_method_cg,                  &
-                                             mixed_solver_si_method_bicgstab,            &
-                                             mixed_solver_si_method_gmres,               &
-                                             mixed_solver_si_method_fgmres,              &
-                                             mixed_solver_si_method_gcr,                 &
-                                             mixed_solver_si_method_prec_only,           &
-                                             si_preconditioner,                          &
-                                             mixed_solver_si_preconditioner_pressure,    &
-                                             mixed_solver_si_preconditioner_diagonal,    &
-                                             mixed_solver_si_preconditioner_none
+    use mixed_solver_config_mod,       only: si_maximum_iterations,      &
+                                             si_tolerance,               &
+                                             si_method,                  &
+                                             mixed_gcrk => gcrk,         &
+                                             si_method_cg,               &
+                                             si_method_bicgstab,         &
+                                             si_method_gmres,            &
+                                             si_method_fgmres,           &
+                                             si_method_gcr,              &
+                                             si_method_prec_only,        &
+                                             si_preconditioner,          &
+                                             si_preconditioner_pressure, &
+                                             si_preconditioner_diagonal, &
+                                             si_preconditioner_none
 
     use helmholtz_solver_config_mod,   only: si_pressure_maximum_iterations,             &
                                              helmholtz_gcrk => gcrk,                     &
                                              si_pressure_tolerance,                      &
                                              helmholtz_method => method,                 &
-                                             helmholtz_solver_method_cg,                 &
-                                             helmholtz_solver_method_bicgstab,           &
-                                             helmholtz_solver_method_gmres,              &
-                                             helmholtz_solver_method_fgmres,             &
-                                             helmholtz_solver_method_gcr,                &
-                                             helmholtz_solver_method_prec_only,          &
+                                             method_cg,                                  &
+                                             method_bicgstab,                            &
+                                             method_gmres,                               &
+                                             method_fgmres,                              &
+                                             method_gcr,                                 &
+                                             method_prec_only,                           &
                                              helmholtz_preconditioner => preconditioner, &
-                                             helmholtz_solver_preconditioner_none,       &
-                                             helmholtz_solver_preconditioner_tridiagonal
+                                             preconditioner_none,                        &
+                                             preconditioner_tridiagonal
     implicit none
 
     ! Mesh
@@ -182,26 +182,26 @@ contains
     ! *** Allocate polymorphic solver- and preconditioner objects ***
 
     ! Allocate pressure solver of correct type
-    if (helmholtz_method == HELMHOLTZ_SOLVER_METHOD_BICGSTAB) then
+    if (helmholtz_method == METHOD_BICGSTAB) then
        allocate ( bicgstab_type :: gw_pressure_solver )
-    else if (helmholtz_method == HELMHOLTZ_SOLVER_METHOD_CG) then
+    else if (helmholtz_method == METHOD_CG) then
        allocate ( conjugate_gradient_type :: gw_pressure_solver )
-    else if (helmholtz_method == HELMHOLTZ_SOLVER_METHOD_GMRES) then
+    else if (helmholtz_method == METHOD_GMRES) then
        allocate ( gmres_type :: gw_pressure_solver )
-    else if (helmholtz_method == HELMHOLTZ_SOLVER_METHOD_FGMRES) then
+    else if (helmholtz_method == METHOD_FGMRES) then
        allocate ( fgmres_type :: gw_pressure_solver )
-    else if (helmholtz_method == HELMHOLTZ_SOLVER_METHOD_GCR) then
+    else if (helmholtz_method == METHOD_GCR) then
        allocate ( gcr_type :: gw_pressure_solver )
-    else if (helmholtz_method == HELMHOLTZ_SOLVER_METHOD_PREC_ONLY) then
+    else if (helmholtz_method == METHOD_PREC_ONLY) then
        allocate ( precondition_only_type :: gw_pressure_solver )
     else
        call log_event("Unknown pressure solver specified",LOG_LEVEL_ERROR)
     end if
 
     ! Allocate pressure preconditioner preconditioner of correct type
-    if (helmholtz_preconditioner == HELMHOLTZ_SOLVER_PRECONDITIONER_NONE) then
+    if (helmholtz_preconditioner == PRECONDITIONER_NONE) then
        allocate ( null_preconditioner_type :: gw_pressure_preconditioner)
-    else if (helmholtz_preconditioner == HELMHOLTZ_SOLVER_PRECONDITIONER_TRIDIAGONAL) then
+    else if (helmholtz_preconditioner == PRECONDITIONER_TRIDIAGONAL) then
        allocate ( gw_pressure_preconditioner_type :: gw_pressure_preconditioner)
     else
        call log_event( "Unknown pressure preconditioner specified", &
@@ -209,28 +209,28 @@ contains
     end if
 
     ! Allocate mixed preconditioner of correct type
-    if (si_preconditioner == MIXED_SOLVER_SI_PRECONDITIONER_PRESSURE) then
+    if (si_preconditioner == SI_PRECONDITIONER_PRESSURE) then
        allocate ( gw_mixed_schur_preconditioner_type :: gw_mixed_preconditioner)
-    else if (si_preconditioner == MIXED_SOLVER_SI_PRECONDITIONER_DIAGONAL) then
+    else if (si_preconditioner == SI_PRECONDITIONER_DIAGONAL) then
        allocate ( gw_mixed_diag_preconditioner_type :: gw_mixed_preconditioner)
-    else if (si_preconditioner == MIXED_SOLVER_SI_PRECONDITIONER_NONE) then
+    else if (si_preconditioner == SI_PRECONDITIONER_NONE) then
        allocate ( null_preconditioner_type :: gw_mixed_preconditioner)
     else
        call log_event("Unknown mixed preconditioner specified",LOG_LEVEL_ERROR)
     end if
 
     ! Allocate mixed solver of correct type
-    if (si_method == MIXED_SOLVER_SI_METHOD_BICGSTAB) then
+    if (si_method == SI_METHOD_BICGSTAB) then
       allocate ( bicgstab_type :: gw_mixed_solver )
-    else if (si_method == MIXED_SOLVER_SI_METHOD_CG) then
+    else if (si_method == SI_METHOD_CG) then
       allocate ( conjugate_gradient_type :: gw_mixed_solver )
-    else if (si_method == MIXED_SOLVER_SI_METHOD_GMRES) then
+    else if (si_method == SI_METHOD_GMRES) then
       allocate ( gmres_type :: gw_mixed_solver )
-    else if (si_method == MIXED_SOLVER_SI_METHOD_FGMRES) then
+    else if (si_method == SI_METHOD_FGMRES) then
       allocate ( fgmres_type :: gw_mixed_solver )
-    else if (si_method == MIXED_SOLVER_SI_METHOD_GCR) then
+    else if (si_method == SI_METHOD_GCR) then
       allocate ( gcr_type :: gw_mixed_solver )
-    else if (si_method == MIXED_SOLVER_SI_METHOD_PREC_ONLY) then
+    else if (si_method == SI_METHOD_PREC_ONLY) then
       allocate ( precondition_only_type :: gw_mixed_solver )
     else
        call log_event("Unknown mixed solver specified",LOG_LEVEL_ERROR)

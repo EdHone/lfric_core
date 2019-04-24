@@ -57,15 +57,15 @@ contains
   subroutine setUp(this)
 
     use agnesi_orography_cartesian_mod, only : agnesi_cartesian_type
-    use finite_element_config_mod,      only : finite_element_cellshape_quadrilateral
-    use base_mesh_config_mod,           only : base_mesh_geometry_planar, &
-                                               base_mesh_partitioner_planar
+    use finite_element_config_mod,      only : cellshape_quadrilateral
+    use base_mesh_config_mod,           only : geometry_planar, &
+                                               partitioner_planar
     use gungho_feign_config_mod,        only :                    &
                                         feign_base_mesh_config,   &
                                         feign_domain_size_config, &
                                         feign_orography_agnesi_cartesian_config
     use orography_agnesi_cartesian_config_mod, only : &
-                                        orography_agnesi_cartesian_direction_x
+                                        direction_x
 
     implicit none
 
@@ -81,12 +81,12 @@ contains
     mesh_collection = mesh_collection_type()
 
     ! Set mesh configuration
-    call feign_base_mesh_config(                                         &
-                         filename        = filename,                     &
-                         prime_mesh_name = mesh_name,                    &
-                         geometry        = base_mesh_geometry_planar,    &
-                         partitioner     = base_mesh_partitioner_planar, &
-                         fplane          = .false.,                      &
+    call feign_base_mesh_config(                               &
+                         filename        = filename,           &
+                         prime_mesh_name = mesh_name,          &
+                         geometry        = geometry_planar,    &
+                         partitioner     = partitioner_planar, &
+                         fplane          = .false.,            &
                          f_lat_deg       = 0.0_r_def )
 
     ! Set domain size
@@ -102,14 +102,14 @@ contains
     this%half_width_y    = 10.0_r_def
     this%x_centre        = -10.0_r_def
     this%y_centre        = 20.0_r_def
-    this%direction       = int(orography_agnesi_cartesian_direction_x, i_def)
+    this%direction       = int(direction_x, i_def)
     call feign_orography_agnesi_cartesian_config(      &
                mountain_height = this%mountain_height, &
                half_width_x    = this%half_width_x,    &
                half_width_y    = this%half_width_y,    &
                x_centre        = this%x_centre,        &
                y_centre        = this%y_centre,        &
-               direction       = orography_agnesi_cartesian_direction_x )
+               direction       = direction_x )
 
     ! Initialise Witch-of-Agnesi Cartesian orography type
     allocate( orography_profile,                                    &

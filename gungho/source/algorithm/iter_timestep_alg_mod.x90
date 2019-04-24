@@ -16,12 +16,12 @@ module iter_timestep_alg_mod
                                        LOG_LEVEL_ERROR
 
   ! Configuration options
-  use section_choice_config_mod, only: cloud,                            &
-                                       boundary_layer,                   &
-                                       radiation,                        &
-                                       section_choice_cloud_um,          &
-                                       section_choice_boundary_layer_um, &
-                                       section_choice_radiation_socrates
+  use section_choice_config_mod, only: boundary_layer,     &
+                                       boundary_layer_um,  &
+                                       radiation,          &
+                                       radiation_socrates, &
+                                       cloud,              &
+                                       cloud_um
 
   use formulation_config_mod,    only: use_moisture, use_physics, dlayer_on, &
                                        use_wavedynamics,          &
@@ -113,7 +113,7 @@ module iter_timestep_alg_mod
   use socrates_init_mod,          only: socrates_init
   use cld_alg_mod,                only: cld_alg_step
   use cloud_um_config_mod,        only: scheme, &
-                                        cloud_um_scheme_smith
+                                        scheme_smith
 #endif
 
   use timer_mod,                  only: timer
@@ -263,7 +263,7 @@ contains
 
 #ifdef UM_PHYSICS
     if ( use_physics ) then
-      if (radiation == section_choice_radiation_socrates) then
+      if (radiation == radiation_socrates) then
         ! Initialisation for the Socrates radiation scheme
         call socrates_init()
       end if
@@ -653,8 +653,8 @@ contains
 
 #ifdef UM_PHYSICS
     if (use_physics) then
-     if ( cloud == section_choice_cloud_um .and. &
-          scheme == cloud_um_scheme_smith ) then
+     if ( cloud == cloud_um .and. &
+          scheme == scheme_smith ) then
       if (use_moisture) then
 
         call log_event( 'iter timestep: Running Cloud Scheme', LOG_LEVEL_INFO )
@@ -698,7 +698,7 @@ contains
     if ( smagorinsky ) then
       !  Tracer mixing:
       call log_event( 'Applying Smagorinsky mixing', LOG_LEVEL_INFO )
-      if ( boundary_layer == section_choice_boundary_layer_um ) then
+      if ( boundary_layer == boundary_layer_um ) then
         ! Use blended BL-Smag diffusion coefficient
         call log_event( 'Using blended BL-Smagorinsky coefficient', LOG_LEVEL_INFO )
         call invoke( tracer_smagorinsky_diff_kernel_type( inc(igh_t),        &

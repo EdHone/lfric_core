@@ -44,10 +44,10 @@ module transport_driver_mod
                                             finalise_comm,                    &
                                             get_comm_size, get_comm_rank
   use mod_wait,                       only: init_wait
-  use transport_config_mod,           only: scheme,                           &
-                                            transport_scheme_yz_bip_cosmic,   &
-                                            transport_scheme_cosmic_3D,       &
-                                            transport_scheme_horz_cosmic
+  use transport_config_mod,           only: scheme,               &
+                                            scheme_yz_bip_cosmic, &
+                                            scheme_cosmic_3D,     &
+                                            scheme_horz_cosmic
   use mass_conservation_alg_mod,      only: mass_conservation
   use yz_bip_cosmic_alg_mod,          only: yz_bip_cosmic_step
   use cusph_cosmic_transport_alg_mod, only: set_winds,      &
@@ -233,13 +233,13 @@ contains
       if ( subroutine_timers ) call timer( 'cosmic step' )
 
       select case( scheme )
-        case ( transport_scheme_yz_bip_cosmic )
+        case ( scheme_yz_bip_cosmic )
           call yz_bip_cosmic_step( increment, density, dep_pts_y, dep_pts_z,  &
                                                                    detj_at_w2 )
-        case ( transport_scheme_horz_cosmic )
+        case ( scheme_horz_cosmic )
           call cusph_cosmic_transport_step( increment, density, dep_pts_x,    &
                                                         dep_pts_y, detj_at_w2 )
-        case ( transport_scheme_cosmic_3D )
+        case ( scheme_cosmic_3D )
           call cosmic_threed_transport_step( increment, density, dep_pts_x,   &
                                              dep_pts_y, dep_pts_z, detj_at_w2 )
         case default

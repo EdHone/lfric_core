@@ -130,11 +130,11 @@ contains
     use initial_temperature_config_mod,     only: bvf_square  
     use timestepping_config_mod,            only: dt, alpha
     use enforce_bc_kernel_mod,              only: enforce_bc_kernel_type
-    use gravity_wave_constants_config_mod,  only: cs_square,                      &
-                                                  b_space,                        &
-                                                  gravity_wave_constants_b_space_w0,&
-                                                  gravity_wave_constants_b_space_w3,&
-                                                  gravity_wave_constants_b_space_wtheta
+    use gravity_wave_constants_config_mod,  only: cs_square,  &
+                                                  b_space,    &
+                                                  b_space_w0, &
+                                                  b_space_w3, &
+                                                  b_space_wtheta
 
     implicit none
 
@@ -149,11 +149,11 @@ contains
     real(kind=r_def)             :: const1, const2, const3
     
     select case(b_space)
-    case(gravity_wave_constants_b_space_w0)  
+    case(b_space_w0)  
        mm_wt => get_mass_matrix(w0_id)
-    case(gravity_wave_constants_b_space_w3)  
+    case(b_space_w3)  
        mm_wt => get_mass_matrix(w3_id)
-    case(gravity_wave_constants_b_space_wtheta)  
+    case(b_space_wtheta)  
        mm_wt => get_mass_matrix(wt_id)
     end select
 

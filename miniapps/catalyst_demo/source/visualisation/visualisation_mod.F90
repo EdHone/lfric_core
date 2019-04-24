@@ -9,9 +9,9 @@ module visualisation_mod
                                            radius_scale_factor
   use field_mod,                     only: field_type, field_proxy_type
   use finite_element_config_mod,     only: cellshape, &
-                                           finite_element_cellshape_quadrilateral
+                                           cellshape_quadrilateral
   use base_mesh_config_mod,          only: geometry, &
-                                           base_mesh_geometry_spherical
+                                           geometry_spherical
   use fs_continuity_mod,             only: W0, W3
   use mesh_mod,                      only: mesh_type
   use mesh_collection_mod,           only: mesh_collection 
@@ -214,7 +214,7 @@ subroutine catalyst_coprocess(timestep, time, vis_fields, mesh_id)
   end interface
 
   ! Only quads are supported at this point (although VTK supports other elements)
-  if ( cellshape /= finite_element_cellshape_quadrilateral ) then
+  if ( cellshape /= cellshape_quadrilateral ) then
     call log_event( "catalyst_coprocess: Element shape is restricted to QUAD.", &
                     LOG_LEVEL_ERROR )
   end if
@@ -280,7 +280,7 @@ subroutine catalyst_coprocess(timestep, time, vis_fields, mesh_id)
         end do
 
         ! Transform vector field components from spherical to cartesian
-        if ( ndims == 3 .and. geometry == base_mesh_geometry_spherical .and. &
+        if ( ndims == 3 .and. geometry == geometry_spherical .and. &
              .not. vis_llr_projection ) then
           call vector_spherical2cartesian(mesh_id, nodal_output, &
                                           nodal_coordinates)
@@ -385,7 +385,7 @@ subroutine create_vtk_grid(mesh_id)
   ! convert result to lon, lat, rad if requested
   chi => get_coordinates()
   call invoke_nodal_coordinates_kernel(coord_output, chi)
-  if ( geometry == base_mesh_geometry_spherical .and. vis_llr_projection ) then
+  if ( geometry == geometry_spherical .and. vis_llr_projection ) then
      call invoke_pointwise_convert_xyz2llr(coord_output)
   end if
   nullify(chi)
@@ -417,19 +417,19 @@ subroutine create_vtk_grid(mesh_id)
   ! Shift meridian to enable detection of periodic boundary and scale radius
   ! if lon lat rad coordinates are used, and normalise xyz coordinates in
   ! spherical case
-  if (  geometry == base_mesh_geometry_spherical .and. vis_llr_projection ) then
+  if (  geometry == geometry_spherical .and. vis_llr_projection ) then
     do idof = 1, ndofs_annexed
       point_coords(3*idof-2) = point_coords(3*idof-2) - real(PI, kind=c_double)
       point_coords(3*idof) = point_coords(3*idof) * &
                              real(radius_scale_factor, kind=c_double)
     end do
-  elseif ( geometry == base_mesh_geometry_spherical ) then
+  elseif ( geometry == geometry_spherical ) then
     point_coords(:) = point_coords(:) * real(radius_scale_factor, kind=c_double)
   end if
 
   ! Ask Catalyst adaptor to mirror points at domain boundaries if boundaries are
   ! periodic, not needed in spherical case with Cartesian coordinates
-  if ( geometry == base_mesh_geometry_spherical .and. &
+  if ( geometry == geometry_spherical .and. &
        .not. vis_llr_projection ) then
     check_periodic = 0_c_short
   else

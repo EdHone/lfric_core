@@ -14,31 +14,31 @@ use log_mod,                    only : log_event,                &
                                        log_scratch_space,        &
                                        LOG_LEVEL_ERROR
 use coord_transform_mod,        only : xyz2llr, central_angle
-use idealised_config_mod,       only : idealised_test_cold_bubble_x,           &
-                                       idealised_test_cold_bubble_y,           &
-                                       idealised_test_warm_bubble,             &
-                                       idealised_test_warm_bubble_3d,          &
-                                       idealised_test_gaussian_hill,           &
-                                       idealised_test_cosine_hill,             &
-                                       idealised_test_yz_cosine_hill,          &
-                                       idealised_test_slotted_cylinder,        &
-                                       idealised_test_constant_field,          &
-                                       idealised_test_cosine_stripe,           &
-                                       idealised_test_vortex_field,            &
-                                       idealised_test_hadley_like_dcmip,       &
-                                       idealised_test_gravity_wave,            &
-                                       idealised_test_solid_body_rotation,     &
-                                       idealised_test_solid_body_rotation_alt, &
-                                       idealised_test_deep_baroclinic_wave,    &
-                                       idealised_test_isentropic,              &
-                                       idealised_test_isot_atm,                &
-                                       idealised_test_isot_cold_atm,           &
-                                       idealised_test_const_lapse_rate,        &
-                                       idealised_test_dry_cbl
+use idealised_config_mod,       only : test_cold_bubble_x,           &
+                                       test_cold_bubble_y,           &
+                                       test_warm_bubble,             &
+                                       test_warm_bubble_3d,          &
+                                       test_gaussian_hill,           &
+                                       test_cosine_hill,             &
+                                       test_yz_cosine_hill,          &
+                                       test_slotted_cylinder,        &
+                                       test_constant_field,          &
+                                       test_cosine_stripe,           &
+                                       test_vortex_field,            &
+                                       test_hadley_like_dcmip,       &
+                                       test_gravity_wave,            &
+                                       test_solid_body_rotation,     &
+                                       test_solid_body_rotation_alt, &
+                                       test_deep_baroclinic_wave,    &
+                                       test_isentropic,              &
+                                       test_isot_atm,                &
+                                       test_isot_cold_atm,           &
+                                       test_const_lapse_rate,        &
+                                       test_dry_cbl
 use initial_density_config_mod, only : r1, x1, y1, z1, r2, x2, y2, z2, &
                                        tracer_max, tracer_background
 use base_mesh_config_mod,       only : geometry, &
-                                       base_mesh_geometry_spherical
+                                       geometry_spherical
 use planet_config_mod,          only : p_zero, Rd, kappa, scaled_radius
 use reference_profile_mod,      only : reference_profile
 use analytic_temperature_profiles_mod, only: analytic_temperature
@@ -131,7 +131,7 @@ contains
 
     integer                      :: id
 
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
       call xyz2llr(chi(1), chi(2), chi(3), long, lat, radius)
       call central_angle(long, lat, x1, y1, l1)
       call central_angle(long, lat, x2, y2, l2)
@@ -143,13 +143,13 @@ contains
     end if 
 
     select case( choice )   
-    case (idealised_test_gravity_wave, idealised_test_isentropic, &
-          idealised_test_isot_atm, idealised_test_isot_cold_atm,  &
-          idealised_test_const_lapse_rate)
+    case (test_gravity_wave, test_isentropic, &
+          test_isot_atm, test_isot_cold_atm,  &
+          test_const_lapse_rate)
       call reference_profile(pressure, density, temperature, chi, choice)
  
-    case (idealised_test_cold_bubble_x, idealised_test_cold_bubble_y ) 
-      if (choice == idealised_test_cold_bubble_x ) then
+    case (test_cold_bubble_x, test_cold_bubble_y ) 
+      if (choice == test_cold_bubble_x ) then
         id = 1
       else
         id = 2
@@ -164,15 +164,15 @@ contains
  
     !> No perturbation needed for warm bubble tests so just use background
     !> (isentropic) value
-    case (idealised_test_warm_bubble, idealised_test_warm_bubble_3d ) 
+    case (test_warm_bubble, test_warm_bubble_3d ) 
       call reference_profile(pressure, density, temperature, chi, choice)
 
-    case (idealised_test_GAUSSIAN_HILL)
+    case (test_GAUSSIAN_HILL)
       h1 = tracer_max*exp( -(l1/r1)**2 )
       h2 = tracer_max*exp( -(l2/r2)**2 )
       pressure = h1 +h2
 
-    case (idealised_test_cosine_hill)
+    case (test_cosine_hill)
       if ( l1 < r1 ) then
         h1 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
       else
@@ -185,7 +185,7 @@ contains
       end if
       pressure = h1+h2
 
-    case (idealised_test_slotted_cylinder)
+    case (test_slotted_cylinder)
       ! Cylinder 1
       if ( l1 < r1 ) then
         if (abs(long-x1) > r1/6.0_r_def) then
@@ -216,10 +216,10 @@ contains
       end if
       pressure = h1 + h2
 
-    case (idealised_test_constant_field)
+    case (test_constant_field)
       pressure = tracer_background
 
-    case (idealised_test_cosine_stripe)
+    case (test_cosine_stripe)
       l1 = sqrt((long-x1)**2)
       if ( l1 < r1 ) then
         pressure = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
@@ -227,26 +227,26 @@ contains
         pressure = tracer_background
       end if
   
-    case (idealised_test_vortex_field)
+    case (test_vortex_field)
       pressure = vortex_field(lat,long,radius,time)
   
-    case( idealised_test_yz_cosine_hill, &
-          idealised_test_hadley_like_dcmip )
+    case( test_yz_cosine_hill, &
+          test_hadley_like_dcmip )
       ! This case is for transport of tracers and density only so it is not
       ! calculated here.
 
-    case (idealised_test_solid_body_rotation, &
-          idealised_test_solid_body_rotation_alt)
+    case (test_solid_body_rotation, &
+          test_solid_body_rotation_alt)
       t0 = 280.0_r_def
       temperature = analytic_temperature(chi, choice)
       pressure = t0/temperature
       density = p_zero/(Rd*temperature) * pressure**( (1.0_r_def - kappa )/ kappa )
 
-    case (idealised_test_deep_baroclinic_wave)
+    case (test_deep_baroclinic_wave)
       call deep_baroclinic_wave(long, lat, radius-scaled_radius, &
                                 pressure, temperature, density, &
                                 u, v, w) 
-    case(idealised_test_dry_cbl)
+    case(test_dry_cbl)
       call reference_profile(pressure, density, temperature, chi, choice)
 
     case default

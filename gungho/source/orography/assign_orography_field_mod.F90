@@ -10,7 +10,7 @@ module assign_orography_field_mod
 
   use constants_mod,                  only : r_def, i_def
   use base_mesh_config_mod,           only : geometry, &
-                                             base_mesh_geometry_spherical
+                                             geometry_spherical
   use mesh_collection_mod,            only : mesh_collection
   use coord_transform_mod,            only : xyz2llr, llr2xyz
   use orography_helper_functions_mod, only : z2eta_linear, eta2z_linear
@@ -106,7 +106,7 @@ contains
       domain_top = mesh%get_domain_top() + domain_surface
 
       ! Point to appropriate procedure to assign orography
-      if ( geometry == base_mesh_geometry_spherical ) then
+      if ( geometry == geometry_spherical ) then
         assign_orography => assign_orography_spherical
       else
         assign_orography => assign_orography_cartesian

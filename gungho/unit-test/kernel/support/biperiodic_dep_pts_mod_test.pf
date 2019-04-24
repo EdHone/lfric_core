@@ -147,9 +147,9 @@ contains
     use pFUnit_Mod
     use constants_mod,               only: r_def, i_def
     use biperiodic_deppts_mod,       only: calc_dep_point
-    use biperiodic_deppt_config_mod, only: biperiodic_deppt_method_euler,    &
-                                           biperiodic_deppt_method_midpoint, &
-                                           biperiodic_deppt_method_trapezoidal
+    use biperiodic_deppt_config_mod, only: method_euler,    &
+                                           method_midpoint, &
+                                           method_trapezoidal
 
     implicit none
 
@@ -171,15 +171,15 @@ contains
     n_dep_pt_iterations = 1
 
     x_departure =  calc_dep_point( x_arrival,nCellEdges,u_n,u_np1,deltaT,     &
-                                    biperiodic_deppt_method_euler, n_dep_pt_iterations )
+                                    method_euler, n_dep_pt_iterations )
     @assertEqual(1.28_r_def, x_departure,tol)
 
     x_departure =  calc_dep_point( x_arrival,nCellEdges,u_n,u_np1,deltaT,     &
-                                    biperiodic_deppt_method_midpoint, n_dep_pt_iterations )
+                                    method_midpoint, n_dep_pt_iterations )
     @assertEqual(1.152_r_def, x_departure,tol)
 
     x_departure =  calc_dep_point( x_arrival,nCellEdges,u_n,u_np1,deltaT,     &
-                                    biperiodic_deppt_method_trapezoidal, n_dep_pt_iterations )
+                                    method_trapezoidal, n_dep_pt_iterations )
     @assertEqual(1.152_r_def, x_departure,tol)
 
     deallocate(u_n)

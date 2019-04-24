@@ -65,10 +65,10 @@ contains
   !> @return self the constructed preconditioner object
   function gw_mixed_diag_preconditioner_constructor(state) result(self)
     
-    use gravity_wave_constants_config_mod, only: b_space, &
-                                                 gravity_wave_constants_b_space_w0, &
-                                                 gravity_wave_constants_b_space_w3, &
-                                                 gravity_wave_constants_b_space_wtheta
+    use gravity_wave_constants_config_mod, only: b_space,    &
+                                                 b_space_w0, &
+                                                 b_space_w3, &
+                                                 b_space_wtheta
     use runtime_constants_mod,             only: get_mass_matrix_diagonal, &  
                                                  w0_id, w2_id, w3_id, wt_id
 
@@ -83,11 +83,11 @@ contains
     self%mm_diagonal_u = get_mass_matrix_diagonal(w2_id)
     self%mm_diagonal_p = get_mass_matrix_diagonal(w3_id)
     select case(b_space)
-      case(gravity_wave_constants_b_space_w0)
+      case(b_space_w0)
         self%mm_diagonal_b = get_mass_matrix_diagonal(w0_id)
-      case(gravity_wave_constants_b_space_w3)  
+      case(b_space_w3)  
         self%mm_diagonal_b = get_mass_matrix_diagonal(w3_id)
-      case(gravity_wave_constants_b_space_wtheta)  
+      case(b_space_wtheta)  
         self%mm_diagonal_b = get_mass_matrix_diagonal(wt_id)
     end select   
 

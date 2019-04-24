@@ -9,14 +9,14 @@
 module init_mesh_mod
 
   use base_mesh_config_mod,       only: filename, prime_mesh_name, geometry, &
-                                        base_mesh_geometry_spherical
+                                        geometry_spherical
   use constants_mod,              only: i_def, str_def, l_def, r_def
   use extrusion_mod,              only: extrusion_type, uniform_extrusion_type
   use extrusion_config_mod,       only: domain_top
-  use finite_element_config_mod,  only: cellshape,                         &
-                                        key_from_cellshape,                &
-                                        finite_element_cellshape_triangle, &
-                                        finite_element_cellshape_quadrilateral
+  use finite_element_config_mod,  only: cellshape,          &
+                                        key_from_cellshape, &
+                                        cellshape_triangle, &
+                                        cellshape_quadrilateral
   use global_mesh_mod,            only: global_mesh_type
   use global_mesh_collection_mod, only: global_mesh_collection
   use gungho_extrusion_mod,       only: create_extrusion, create_shifted_extrusion
@@ -38,12 +38,13 @@ module init_mesh_mod
   use partitioning_config_mod,    only: auto, panel_xproc, panel_yproc
   use subgrid_config_mod,         only: dep_pt_stencil_extent, &
                                         rho_approximation_stencil_extent
-  use transport_config_mod,       only: scheme, operators, fv_flux_order, &
-                                        fv_advective_order,               &
-                                        transport_operators_fv,           &
-                                        transport_scheme_horz_cosmic,     &
-                                        transport_scheme_yz_bip_cosmic,   &
-                                        transport_scheme_cosmic_3D
+  use transport_config_mod,       only: scheme, operators,    &
+                                        fv_flux_order,        &
+                                        fv_advective_order,   &
+                                        operators_fv,         &
+                                        scheme_horz_cosmic,   &
+                                        scheme_yz_bip_cosmic, &
+                                        scheme_cosmic_3D
 
   use ugrid_2d_mod,               only: ugrid_2d_type
   use ugrid_file_mod,             only: ugrid_file_type
@@ -123,13 +124,13 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, shif
   call log_event( "Setting up partition mesh(es)", LOG_LEVEL_INFO )
 
   ! Currently only quad elements are fully functional
-  if (cellshape /= finite_element_cellshape_quadrilateral) then
+  if (cellshape /= cellshape_quadrilateral) then
     call log_event( "Reference_element must be QUAD for now...", &
                     LOG_LEVEL_ERROR )
   end if
 
   ! Setup the partitioning strategy
-  if (geometry == base_mesh_geometry_spherical) then
+  if (geometry == geometry_spherical) then
 
     npanels = 6
     if (total_ranks == 1 .or. mod(total_ranks,6) == 0) then
@@ -142,7 +143,7 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, shif
     end if
 
     if (total_ranks == 1) then
-      if (scheme == transport_scheme_horz_cosmic) then
+      if (scheme == scheme_horz_cosmic) then
         call log_event( "For Cosmic the total number of processors must be "// &
                         "greater than 1 and a multiple of 6 for a          "// &
                         "cubed-sphere domain.", &
@@ -215,16 +216,16 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, shif
 
   ! Determine max_stencil_depth
   max_stencil_depth = 1
-  if (operators == transport_operators_fv) then
+  if (operators == operators_fv) then
     ! Need larger haloes for fv operators
     max_fv_stencil = &
         int(real(max(fv_flux_order,fv_advective_order)+1)/2.0,i_def)
     max_stencil_depth = max(max_stencil_depth,max_fv_stencil)
   end if
 
-  if (scheme == transport_scheme_yz_bip_cosmic .or. &
-      scheme == transport_scheme_horz_cosmic   .or. &
-      scheme == transport_scheme_cosmic_3D   ) then
+  if (scheme == scheme_yz_bip_cosmic .or. &
+      scheme == scheme_horz_cosmic   .or. &
+      scheme == scheme_cosmic_3D   ) then
     max_stencil_depth = max(max_stencil_depth,      &
                             dep_pt_stencil_extent + &
                             rho_approximation_stencil_extent)

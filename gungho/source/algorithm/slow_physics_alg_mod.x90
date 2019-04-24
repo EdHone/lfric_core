@@ -7,22 +7,22 @@
 !>@brief Calls to the slow physics schemes
 module slow_physics_alg_mod
 
-  use section_choice_config_mod, only: microphysics,                   &
-                                       section_choice_microphysics_um, &
-                                       radiation,                      &
-                                       section_choice_radiation_socrates
+  use section_choice_config_mod, only: microphysics,    &
+                                       microphysics_um, &
+                                       radiation,       &
+                                       radiation_socrates
 
   use constants_mod,    only: i_def,r_def
   use log_mod,          only: log_event,                         &
                               LOG_LEVEL_WARNING, LOG_LEVEL_INFO, &
                               LOG_LEVEL_ERROR
 
-  use physics_config_mod, only: heldsuarez_thermo_placement,         &
-                                heldsuarez_wind_placement,           &
-                                microphysics_placement,              &
-                                radiation_placement,                 &
-                                physics_microphysics_placement_slow, &
-                                physics_radiation_placement_slow
+  use physics_config_mod, only: heldsuarez_thermo_placement, &
+                                heldsuarez_wind_placement,   &
+                                microphysics_placement,      &
+                                radiation_placement,         &
+                                microphysics_placement_slow, &
+                                radiation_placement_slow
   ! PsyKAl PSYClone kernels
   use held_suarez_fv_kernel_mod,      only: held_suarez_fv_kernel_type
   use held_suarez_fv_wind_kernel_mod, only: held_suarez_fv_wind_kernel_type
@@ -144,8 +144,8 @@ contains
     end if
 
 #ifdef UM_PHYSICS
-    if ( microphysics == section_choice_microphysics_um .and. &
-         microphysics_placement == physics_microphysics_placement_slow) then
+    if ( microphysics == microphysics_um .and. &
+         microphysics_placement == microphysics_placement_slow) then
       if (use_moisture) then
         ! Algorithm which calls the UM microphysics scheme
         call log_event( 'slow_physics: Running Microphysics', LOG_LEVEL_INFO )
@@ -178,8 +178,8 @@ contains
 
     end if   ! microphysics placement slow
 
-    if (radiation == section_choice_radiation_socrates .and. &
-        radiation_placement == physics_radiation_placement_slow) then
+    if (radiation == radiation_socrates .and. &
+        radiation_placement == radiation_placement_slow) then
       call log_event( 'slow_physics: Running Radiation', LOG_LEVEL_INFO )
       dtheta_rad = field_type( vector_space = theta%get_function_space() )
       call radiation_alg_step(dtheta_rad, theta, exner, mr_n,            &

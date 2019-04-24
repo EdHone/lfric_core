@@ -18,7 +18,7 @@ module io_mod
                                            field_collection_iterator_type
   use finite_element_config_mod,     only: element_order
   use base_mesh_config_mod,          only: geometry, &
-                                           base_mesh_geometry_spherical
+                                           geometry_spherical
   use fs_continuity_mod,             only: W0, W1, W2, W3, Wtheta, W2H, &
                                            name_from_functionspace
   use mesh_mod,                      only: mesh_type
@@ -315,7 +315,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi)
   real(r_def)                :: r2d
 
 
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
    r2d = radians_to_degrees
   else
    r2d = 1.0_r_def
@@ -487,7 +487,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi)
   call invoke_nodal_coordinates_kernel(coord_output, chi)
 
   ! If spherical geometry convert the coordinate field to (longitude, latitude, radius)
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
      call invoke_pointwise_convert_xyz2llr(coord_output) 
   end if
 
@@ -574,7 +574,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi)
   call invoke_nodal_coordinates_kernel(coord_output, chi)
 
   ! If spherical geometry convert the coordinate field to (longitude, latitude, radius)
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
      call invoke_pointwise_convert_xyz2llr(coord_output) 
   end if
 
@@ -629,7 +629,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi)
   call invoke_nodal_coordinates_kernel(coord_output, chi)
 
   ! If spherical geometry convert the coordinate field to (longitude, latitude, radius)
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
      call invoke_pointwise_convert_xyz2llr(coord_output) 
   end if
 
@@ -772,7 +772,7 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   real(r_def) :: r2d
 
 
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
    r2d = radians_to_degrees
   else
    r2d = 1.0_r_def
@@ -806,7 +806,7 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   call invoke_nodal_coordinates_kernel(coord_output, chi)
 
   ! If spherical geometry convert the coordinate field to (longitude, latitude, radius)
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
     call invoke_pointwise_convert_xyz2llr(coord_output) 
   end if
 
@@ -999,7 +999,7 @@ subroutine calc_xios_domain_coords(local_mesh, nodal_coords, chi, &
       end do
 
       ! Convert to lat-lon in degrees if required
-      if ( geometry == base_mesh_geometry_spherical ) then
+      if ( geometry == geometry_spherical ) then
 
         r2d = radians_to_degrees
 

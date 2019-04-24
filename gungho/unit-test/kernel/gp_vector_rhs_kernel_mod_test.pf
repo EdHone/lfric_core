@@ -40,8 +40,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,    only : base_mesh_geometry_planar, &
-                                        base_mesh_partitioner_planar
+    use base_mesh_config_mod,    only : geometry_planar, &
+                                        partitioner_planar
     use gungho_feign_config_mod, only : feign_base_mesh_config
 
     implicit none
@@ -59,9 +59,10 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo', prime_mesh_name='unit_test', &
-                                 geometry=base_mesh_geometry_planar,          &
-                                 partitioner=base_mesh_partitioner_planar,    &
+    call feign_base_mesh_config( filename='foo',                 &
+                                 prime_mesh_name='unit_test',    &
+                                 geometry=geometry_planar,       &
+                                 partitioner=partitioner_planar, &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
     qr = quadrature_xyoz_type(3, quadrature_rule)

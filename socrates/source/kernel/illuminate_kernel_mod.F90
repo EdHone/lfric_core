@@ -97,9 +97,9 @@ subroutine illuminate_code(nlayers,                    &
   use timestepping_config_mod, only: dt
   use star_config_mod, only: stellar_constant
   use orbit_config_mod, only:                                                &
-    elements, orbit_elements_user, orbit_elements_earth_fixed,               &
-    orbit_elements_earth_secular_variation,                                  &
-    spin, orbit_spin_user, orbit_spin_earth_day, orbit_spin_fixed_sun,       &
+    elements, elements_user, elements_earth_fixed,                           &
+    elements_earth_secular_variation,                                        &
+    spin, spin_user, spin_earth_day, spin_fixed_sun,                         &
     epoch, eccentricity, eccentricity_inc, arg_periapsis, arg_periapsis_inc, &
     obliquity, obliquity_inc, semimajor_axis, semimajor_axis_inc,            &
     mean_anomaly, mean_anomaly_inc, hour_angle, hour_angle_inc,              &
@@ -158,11 +158,11 @@ subroutine illuminate_code(nlayers,                    &
 
   ! Set orbital elements
   select case (elements)
-  case (orbit_elements_user)
+  case (elements_user)
     i_elements = ip_elements_user
-  case (orbit_elements_earth_fixed)
+  case (elements_earth_fixed)
     i_elements = ip_elements_earth_fixed
-  case (orbit_elements_earth_secular_variation)
+  case (elements_earth_secular_variation)
     i_elements = ip_elements_earth_secular_variation
   case default
     i_elements = ip_elements_earth_fixed
@@ -170,11 +170,11 @@ subroutine illuminate_code(nlayers,                    &
 
   ! Set motion of sun across the sky
   select case (spin)
-  case (orbit_spin_user)
+  case (spin_user)
     i_spin = ip_spin_user
-  case (orbit_spin_earth_day)
+  case (spin_earth_day)
     i_spin = ip_spin_earth_day
-  case (orbit_spin_fixed_sun)
+  case (spin_fixed_sun)
     i_spin = ip_spin_fixed_sun
   case default
     i_spin = ip_spin_earth_day

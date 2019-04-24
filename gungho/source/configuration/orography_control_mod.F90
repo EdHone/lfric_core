@@ -13,14 +13,14 @@
 module orography_control_mod
 
   use constants_mod,          only : i_def, str_short, str_max_filename
-  use base_mesh_config_mod,   only : geometry, &
-                                     base_mesh_geometry_planar, &
-                                     base_mesh_geometry_spherical
-  use orography_config_mod,   only : profile,                  &
-                                     orography_profile_schar,  & 
-                                     orography_profile_agnesi, &
-                                     orography_profile_bell,   &
-                                     orography_profile_dcmip200
+  use base_mesh_config_mod,   only : geometry,        &
+                                     geometry_planar, &
+                                     geometry_spherical
+  use orography_config_mod,   only : profile,        &
+                                     profile_schar,  & 
+                                     profile_agnesi, &
+                                     profile_bell,   &
+                                     profile_dcmip200
   use log_mod,                only : log_event,         &
                                      log_scratch_space, &
                                      LOG_LEVEL_INFO
@@ -56,8 +56,8 @@ contains
     ! ----------- Read orography namelist and set orography type --------------!
     select case( profile )
       ! Witch-of-Agnesi orography
-      case( orography_profile_agnesi )    
-        if ( geometry == base_mesh_geometry_spherical ) then
+      case( profile_agnesi )    
+        if ( geometry == geometry_spherical ) then
           ! Read parameters for Witch-of-Agnesi mountain in spherical 
           ! coordinates and initialise the corresponding type
            call set_orography_agnesi_spherical() 
@@ -67,8 +67,8 @@ contains
           call set_orography_agnesi_cartesian()
         end if 
       ! Schar orography 
-      case( orography_profile_schar )   
-        if ( geometry == base_mesh_geometry_spherical ) then
+      case( profile_schar )   
+        if ( geometry == geometry_spherical ) then
           ! Read parameters for Schar mountain in spherical coordinates and 
           ! initialise the corresponding type
            call set_orography_schar_spherical()
@@ -78,15 +78,15 @@ contains
            call set_orography_schar_cartesian()
         end if
       ! DCMIP200 orography
-      case( orography_profile_dcmip200 )
-        if ( geometry == base_mesh_geometry_spherical ) then
+      case( profile_dcmip200 )
+        if ( geometry == geometry_spherical ) then
           ! Read parameters for dcmip200 mountain in spherical
           ! coordinates and initialise the corresponding type
           call set_orography_dcmip200_spherical()
         end if
       ! Bell-shaped orography
-      case( orography_profile_bell )
-        if ( geometry == base_mesh_geometry_planar ) then
+      case( profile_bell )
+        if ( geometry == geometry_planar ) then
           ! Read parameters for bell-shaped mountain in Cartesian
           ! coordinates and initialise the corresponding type
           call set_orography_bell_cartesian()

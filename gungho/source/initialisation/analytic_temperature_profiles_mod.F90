@@ -14,22 +14,22 @@ use log_mod,                      only : log_event,                &
                                          log_scratch_space,        &
                                          LOG_LEVEL_ERROR
 use coord_transform_mod,          only : xyz2llr, central_angle
-use idealised_config_mod,         only : idealised_test_cold_bubble_x,           &
-                                         idealised_test_cold_bubble_y,           &
-                                         idealised_test_gaussian_hill,           &
-                                         idealised_test_cosine_hill,             &
-                                         idealised_test_slotted_cylinder,        &
-                                         idealised_test_gravity_wave,            &
-                                         idealised_test_warm_bubble,             &
-                                         idealised_test_warm_bubble_3d,          &
-                                         idealised_test_solid_body_rotation,     &
-                                         idealised_test_solid_body_rotation_alt, &
-                                         idealised_test_deep_baroclinic_wave,    &
-                                         idealised_test_dry_cbl
+use idealised_config_mod,         only : test_cold_bubble_x,           &
+                                         test_cold_bubble_y,           &
+                                         test_gaussian_hill,           &
+                                         test_cosine_hill,             &
+                                         test_slotted_cylinder,        &
+                                         test_gravity_wave,            &
+                                         test_warm_bubble,             &
+                                         test_warm_bubble_3d,          &
+                                         test_solid_body_rotation,     &
+                                         test_solid_body_rotation_alt, &
+                                         test_deep_baroclinic_wave,    &
+                                         test_dry_cbl
 use initial_density_config_mod,    only : r1, x1, y1, r2, x2, y2,     &
                                           tracer_max, tracer_background
 use base_mesh_config_mod,          only : geometry, &
-                                          base_mesh_geometry_spherical
+                                          geometry_spherical
 use planet_config_mod,             only : p_zero, Rd, kappa, scaled_radius, &
                                           scaled_omega, gravity, cp
 use reference_profile_mod,         only : reference_profile
@@ -76,7 +76,7 @@ function analytic_temperature(chi, choice) result(temperature)
   real(kind=r_def)             :: r_on_a
   real(kind=r_def)             :: u, v, w 
  
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
     call xyz2llr(chi(1),chi(2),chi(3),long,lat,radius)
     call central_angle(long,lat,x1,y1,l1)
     call central_angle(long,lat,x2,y2,l2)
@@ -93,8 +93,8 @@ function analytic_temperature(chi, choice) result(temperature)
 
   select case( choice ) 
   
-  case ( idealised_test_gravity_wave )
-    if ( geometry == base_mesh_geometry_spherical ) then      
+  case ( test_gravity_wave )
+    if ( geometry == geometry_spherical ) then      
       temperature = temperature &
                   +  generate_global_gw_pert(long,lat,radius-scaled_radius)
     else
@@ -102,21 +102,21 @@ function analytic_temperature(chi, choice) result(temperature)
                             / ( 1.0_r_def + ( chi(1) - XC )**2/A**2 )
     end if  
   
-  case ( idealised_test_cold_bubble_x ) 
+  case ( test_cold_bubble_x ) 
     l = sqrt( ((chi(1)-XC)/XR)**2 + ((chi(3)-ZC_cold)/ZR)**2 )
     if ( l <= 1.0_r_def ) then
       dt =  15.0_r_def/2.0_r_def*(cos(PI*l)+1.0_r_def)
       temperature = temperature - dt/pressure
     end if
 
-  case ( idealised_test_cold_bubble_y ) 
+  case ( test_cold_bubble_y ) 
     l = sqrt( ((chi(2)-XC)/XR)**2 + ((chi(3)-ZC_cold)/ZR)**2 )
     if ( l <= 1.0_r_def ) then
       dt =  15.0_r_def/2.0_r_def*(cos(PI*l)+1.0_r_def)
       temperature = temperature - dt/pressure
     end if
 
-  case( idealised_test_warm_bubble )
+  case( test_warm_bubble )
     l = sqrt( ((chi(1)-XC))**2 + ((chi(3)-ZC_hot))**2 )
     if ( l <= 50.0_r_def ) then
       dt = 0.5_r_def
@@ -126,7 +126,7 @@ function analytic_temperature(chi, choice) result(temperature)
     temperature = temperature + dt
 
   !> Test from Kelly & Giraldo
-  case( idealised_test_warm_bubble_3d )  
+  case( test_warm_bubble_3d )  
     l = sqrt( (chi(1)-XC)**2 + (chi(2)-YC)**2 + (chi(3)-ZC_3d)**2 )
 
     if ( abs(l) <= 250.0_r_def ) then
@@ -136,12 +136,12 @@ function analytic_temperature(chi, choice) result(temperature)
     end if
     temperature = temperature + dt
 
-  case( idealised_test_GAUSSIAN_HILL )
+  case( test_GAUSSIAN_HILL )
     h1 = tracer_max*exp( -(l1/r1)**2 )
     h2 = tracer_max*exp( -(l2/r2)**2 )
     temperature = h1 +h2
 
-  case( idealised_test_cosine_hill )
+  case( test_cosine_hill )
     if ( l1 < r1 ) then
       h1 = (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
     else
@@ -154,7 +154,7 @@ function analytic_temperature(chi, choice) result(temperature)
     end if
     temperature = h1+h2
 
-  case( idealised_test_slotted_cylinder )
+  case( test_slotted_cylinder )
     ! Cylinder 1
     if ( l1 < r1 ) then
       if (abs(long-x1) > r1/6.0_r_def) then
@@ -185,7 +185,7 @@ function analytic_temperature(chi, choice) result(temperature)
     end if
     temperature = h1 + h2
 
-  case ( idealised_test_solid_body_rotation ) 
+  case ( test_solid_body_rotation ) 
     t0   = 280.0_r_def
     s    = (radius / scaled_radius) *                                          &
            ( cos(lat) * cos(sbr_angle_lat * pi) +                              &
@@ -195,7 +195,7 @@ function analytic_temperature(chi, choice) result(temperature)
     temperature = t0 * exp(gravity * (radius - scaled_radius) / ( cp * t0 ) )  &
                      * exp(-kappa * f_sb)  
 
-  case ( idealised_test_solid_body_rotation_alt ) 
+  case ( test_solid_body_rotation_alt ) 
     ! See Staniforth & White (2007) (rotated pole version of example of
     ! Section 5.3 with m = 1, A = 0, n therefore arbitrary, Phi0 = 0).    
     ! In shallow geometry the r/a factor is replaced by 1, see Section 6 of 
@@ -219,12 +219,12 @@ function analytic_temperature(chi, choice) result(temperature)
     temperature = t0 * exp(  gravity * (radius - scaled_radius)                &
                            / (cp * t0 * r_on_a) )                              &
                      * exp(-kappa * f_sb) 
-  case( idealised_test_deep_baroclinic_wave )
+  case( test_deep_baroclinic_wave )
     call deep_baroclinic_wave(long, lat, radius-scaled_radius, &
                               pressure, temperature, density, &
                               u, v, w)
 
-  case( idealised_test_dry_cbl )
+  case( test_dry_cbl )
     ! For the time being this is a fixed profile for the dry cbl
     ! but to be read in and made generic later
     if (z<= 1000.0)then

@@ -18,7 +18,7 @@
 program cma_test
 
   use base_mesh_config_mod,           only : geometry, &
-                                             base_mesh_geometry_spherical
+                                             geometry_spherical
   use cma_test_algorithm_mod,         only : cma_test_init,                  &
                                              test_cma_apply_mass_p,          &
                                              test_cma_apply_mass_v,          &
@@ -244,7 +244,7 @@ program cma_test
   ncells_2d_local = mesh%get_ncells_2d()
 
   ! Ensure that a spherical geometry is used (otherwise tests are too simple)
-  if (geometry /= base_mesh_geometry_spherical) then
+  if (geometry /= geometry_spherical) then
      call log_event( "Geometry has to be spherical", &
                      LOG_LEVEL_ERROR )
   end if

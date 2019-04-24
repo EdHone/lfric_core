@@ -15,7 +15,7 @@ module get_height_kernel_mod
                                   GH_BASIS,                            &
                                   CELLS, GH_EVALUATOR
   use base_mesh_config_mod, only: geometry, &
-                                  base_mesh_geometry_spherical
+                                  geometry_spherical
   use constants_mod,        only: r_def
   use fs_continuity_mod,    only: W0, W2, W3
   use kernel_mod,           only: kernel_type
@@ -113,7 +113,7 @@ subroutine get_height_code(nlayers,                         &
         xyz(2) = xyz(2) + chi_2(map_chi(df_chi)+k)*basis_chi(1,df_chi,df_x)
         xyz(3) = xyz(3) + chi_3(map_chi(df_chi)+k)*basis_chi(1,df_chi,df_x)
       end do
-      if (geometry == base_mesh_geometry_spherical) then
+      if (geometry == geometry_spherical) then
         r = sqrt(xyz(1)**2 + xyz(2)**2 + xyz(3)**2)
         ! NB This will result in the height above 
         ! the spherical representation of the planet

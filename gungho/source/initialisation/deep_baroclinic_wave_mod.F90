@@ -13,7 +13,7 @@ module deep_baroclinic_wave_mod
                                            scaled_omega, kappa, p_zero
   use formulation_config_mod,       only : shallow
   use initial_wind_config_mod,      only : profile, &
-                                           initial_wind_profile_deep_baroclinic_perturbed
+                                           profile_deep_baroclinic_perturbed
   implicit none
 
   private
@@ -156,7 +156,7 @@ contains
 !-----------------------------------------------------------------------
 !    perturbation on velocity field (streamfunction type)
 !-----------------------------------------------------------------------
-    if ( profile == initial_wind_profile_deep_baroclinic_perturbed ) then
+    if ( profile == profile_deep_baroclinic_perturbed ) then
       u = u - 1.0_r_def / (2.0_r_def * dxepsilon) *             &
           ( evaluate_streamfunction(lon, lat + dxepsilon, z)    &
           - evaluate_streamfunction(lon, lat - dxepsilon, z))

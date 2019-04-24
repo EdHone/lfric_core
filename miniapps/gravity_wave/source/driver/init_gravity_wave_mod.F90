@@ -23,10 +23,10 @@ module init_gravity_wave_mod
   use log_mod,                        only : log_event, log_scratch_space, &
                                              LOG_LEVEL_INFO, &
                                              LOG_LEVEL_ERROR
-  use gravity_wave_constants_config_mod,only : b_space,                           &
-                                               gravity_wave_constants_b_space_w0, &
-                                               gravity_wave_constants_b_space_w3, &
-                                               gravity_wave_constants_b_space_wtheta
+  use gravity_wave_constants_config_mod,only : b_space,    &
+                                               b_space_w0, &
+                                               b_space_w3, &
+                                               b_space_wtheta
   use runtime_constants_mod,          only : create_runtime_constants
   use io_config_mod,                  only : write_diag,       &
                                              use_xios_io,      &
@@ -99,13 +99,13 @@ module init_gravity_wave_mod
 
     ! Create prognostic fields
     select case(b_space)
-      case(gravity_wave_constants_b_space_w0)
+      case(b_space_w0)
         buoyancy_space = W0
         call log_event( 'gravity_wave: Using W0 for buoyancy', LOG_LEVEL_INFO )
-      case(gravity_wave_constants_b_space_w3)
+      case(b_space_w3)
         buoyancy_space = W3
         call log_event( 'gravity_wave: Using W3 for buoyancy', LOG_LEVEL_INFO )
-      case(gravity_wave_constants_b_space_wtheta)
+      case(b_space_wtheta)
         buoyancy_space = Wtheta
         call log_event( 'gravity_wave: Using Wtheta for buoyancy', LOG_LEVEL_INFO )
       case default

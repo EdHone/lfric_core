@@ -14,7 +14,7 @@ module compute_geopotential_kernel_mod
                                      ANY_SPACE_9, GH_BASIS,       &
                                      CELLS, GH_EVALUATOR
   use base_mesh_config_mod,   only : geometry, &
-                                     base_mesh_geometry_spherical
+                                     geometry_spherical
   use constants_mod,          only : r_def, i_def
   use coord_transform_mod,    only : xyz2llr
   use formulation_config_mod, only : shallow
@@ -106,7 +106,7 @@ subroutine compute_geopotential_code(nlayers, phi,               &
   real(kind=r_def), dimension(ndf_chi)             :: chi_1_e, chi_2_e, chi_3_e
 
 
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
     if ( shallow ) then
       s = 1.0_r_def
     else

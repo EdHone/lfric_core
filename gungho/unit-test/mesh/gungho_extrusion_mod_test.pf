@@ -71,9 +71,9 @@ contains
   @Test( npes=[1] )
   subroutine test_planar( this )
 
-    use base_mesh_config_mod, only : base_mesh_geometry_planar, &
-                                     base_mesh_partitioner_planar
-    use extrusion_config_mod, only : extrusion_method_uniform
+    use base_mesh_config_mod, only : geometry_planar, &
+                                     partitioner_planar
+    use extrusion_config_mod, only : method_uniform
 
     implicit none
 
@@ -81,15 +81,15 @@ contains
 
     class(extrusion_type), allocatable :: unit_under_test
 
-    call feign_base_mesh_config(                       &
-             filename='/foo.nc',                       &
-             prime_mesh_name='unit_test',              &
-             geometry=base_mesh_geometry_planar,       &
-             partitioner=base_mesh_partitioner_planar, &
-             fplane=.false.,                           &
+    call feign_base_mesh_config(             &
+             filename='/foo.nc',             &
+             prime_mesh_name='unit_test',    &
+             geometry=geometry_planar,       &
+             partitioner=partitioner_planar, &
+             fplane=.false.,                 &
              f_lat_deg=0.0_r_def )
-    call feign_extrusion_config( domain_top=13.5_r_def,           &
-                                 method=extrusion_method_uniform, &
+    call feign_extrusion_config( domain_top=13.5_r_def, &
+                                 method=method_uniform, &
                                  number_of_layers=7_i_def )
     call feign_planet_config( gravity=9.98_r_def,       &
                               radius=637100.0_r_def,    &
@@ -114,9 +114,9 @@ contains
   @Test( npes=[1] )
   subroutine test_spherical( this )
 
-    use base_mesh_config_mod, only : base_mesh_geometry_spherical, &
-                                     base_mesh_partitioner_cubedsphere
-    use extrusion_config_mod, only : extrusion_method_geometric
+    use base_mesh_config_mod, only : geometry_spherical, &
+                                     partitioner_cubedsphere
+    use extrusion_config_mod, only : method_geometric
 
     implicit none
 
@@ -124,16 +124,16 @@ contains
 
     class(extrusion_type), allocatable :: unit_under_test
 
-    call feign_base_mesh_config(                            &
-             filename='/foo.nc',                            &
-             prime_mesh_name='prime',                       &
-             geometry=base_mesh_geometry_spherical,         &
-             partitioner=base_mesh_partitioner_cubedsphere, &
-             fplane=.false.,                                &
+    call feign_base_mesh_config(                  &
+             filename='/foo.nc',                  &
+             prime_mesh_name='prime',             &
+             geometry=geometry_spherical,         &
+             partitioner=partitioner_cubedsphere, &
+             fplane=.false.,                      &
              f_lat_deg=0.0_r_def )
 
-    call feign_extrusion_config( method=extrusion_method_geometric, &
-                                 domain_top=600000.0_r_def,         &
+    call feign_extrusion_config( method=method_geometric,   &
+                                 domain_top=600000.0_r_def, &
                                  number_of_layers=7_i_def )
     call feign_planet_config( gravity=9.98_r_def,       &
                               radius=637100.0_r_def,    &

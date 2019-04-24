@@ -9,7 +9,7 @@
 module assign_coordinate_field_mod
 
   use base_mesh_config_mod, only : geometry, &
-                                   base_mesh_geometry_spherical
+                                   geometry_spherical
   use constants_mod,        only : r_def, i_def, i_native
   use log_mod,              only : log_event, LOG_LEVEL_ERROR
   use planet_config_mod,    only : scaled_radius
@@ -149,7 +149,7 @@ contains
     ! Compute the representation of the coordinate field
     do k = 0, nlayers-1
        vertex_local_coords(:,:) = column_coords(:,:,k+1)
-       if (  geometry /= base_mesh_geometry_spherical ) then
+       if (  geometry /= geometry_spherical ) then
          ! Check if point cell is on right or bottom boundary,
          ! assumes a monotonic coordinate field
          if ( column_coords(1,SEB,k+1) < column_coords(1,SWB,k+1)) then
@@ -184,7 +184,7 @@ contains
           end do
           ! For spherical domains we need to project x,y,z back onto 
           ! spherical shells
-          if ( geometry == base_mesh_geometry_spherical ) then
+          if ( geometry == geometry_spherical ) then
              radius_correction = scaled_radius + &
                                  sum(dz(1:k)) + chi_hat_node(3,df)*dz(k+1)
              radius_correction = radius_correction/sqrt(x*x + y*y + z*z)

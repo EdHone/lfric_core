@@ -36,15 +36,15 @@ module gw_si_solver_alg_mod
                                      si_tolerance,                             &
                                      si_preconditioner,                        &
                                      si_postconditioner,                       &
-                                     mixed_solver_si_preconditioner_none,      &
-                                     mixed_solver_si_preconditioner_diagonal,  &
-                                     mixed_solver_si_preconditioner_pressure,  &
-                                     mixed_solver_si_postconditioner_pressure, &
-                                     mixed_solver_si_postconditioner_none,     &
-                                     mixed_solver_si_postconditioner_diagonal, &
+                                     si_preconditioner_none,                   &
+                                     si_preconditioner_diagonal,               &
+                                     si_preconditioner_pressure,               &
+                                     si_postconditioner_pressure,              &
+                                     si_postconditioner_none,                  &
+                                     si_postconditioner_diagonal,              &
                                      gcrk,                                     &
-                                     mixed_solver_si_method_gmres,             &
-                                     mixed_solver_si_method_jacobi,            &
+                                     si_method_gmres,                          &
+                                     si_method_jacobi,                         &
                                      si_method
 
   use timestepping_config_mod, only: dt
@@ -89,9 +89,9 @@ contains
     type(field_type),             intent(in) :: x0(bundle_size)
     integer                                  :: iter
 
-    if ( si_preconditioner  == mixed_solver_si_preconditioner_pressure .or.  &
-         si_postconditioner == mixed_solver_si_postconditioner_pressure .or. &
-         si_method == mixed_solver_si_method_jacobi )                        &
+    if ( si_preconditioner  == si_preconditioner_pressure .or.  &
+         si_postconditioner == si_postconditioner_pressure .or. &
+         si_method == si_method_jacobi )                        &
       call gw_pressure_solver_init(x0)
 
     allocate( dx         (bundle_size), &
@@ -160,9 +160,9 @@ contains
     call rhs0(igw_b)%log_minmax(LOG_LEVEL_INFO,'max/min r_b = ')
 
     select case ( si_method )
-      case ( mixed_solver_si_method_jacobi )
+      case ( si_method_jacobi )
         call jacobi(x0, rhs0, si_maximum_iterations)
-      case ( mixed_solver_si_method_gmres )
+      case ( si_method_gmres )
         call gmres(x0, rhs0)
       case default
         call log_event( 'Invalid option for gravity wave mixed solver', LOG_LEVEL_ERROR )
@@ -376,8 +376,8 @@ contains
     integer(kind=i_def), intent(in)    :: option
     integer(kind=i_def)                :: i
 
-    if (  option == mixed_solver_si_preconditioner_pressure .or.           &
-          option == mixed_solver_si_postconditioner_pressure ) then
+    if (  option == si_preconditioner_pressure .or. &
+          option == si_postconditioner_pressure ) then
       call set_bundle_scalar(0.0_r_def, y, bundle_size)
       call gw_pressure_solver_alg(y, x)
     else
@@ -385,8 +385,8 @@ contains
         call invoke_copy_field_data( x(i), y(i) )
         ! call invoke( setval_X( y(i), x(i) ) )
       end do
-      if ( option == mixed_solver_si_preconditioner_diagonal .or.          &
-           option == mixed_solver_si_postconditioner_diagonal) then
+      if ( option == si_preconditioner_diagonal .or. &
+           option == si_postconditioner_diagonal) then
         call bundle_divide(y, mm, bundle_size)
       end if
     end if

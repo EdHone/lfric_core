@@ -18,7 +18,7 @@ module compute_dl_matrix_kernel_mod
                                        ANY_SPACE_9,             &
                                        GH_BASIS, GH_DIFF_BASIS, &
                                        CELLS, GH_QUADRATURE_XYoZ
-  use base_mesh_config_mod,      only: geometry, base_mesh_geometry_spherical
+  use base_mesh_config_mod,      only: geometry, geometry_spherical
   use constants_mod,             only: i_def, r_def, PI
   use coord_transform_mod,       only: xyz2llr
   use damping_layer_config_mod,  only: dl_base, dl_str
@@ -166,7 +166,7 @@ contains
                 chi3_at_quad = chi3_at_quad + chi3_e(dfc)*basis_chi(1,dfc,qp1,qp2)
               end do
 
-              if(geometry == base_mesh_geometry_spherical) then
+              if(geometry == geometry_spherical) then
                 call xyz2llr(chi1_at_quad,chi2_at_quad,chi3_at_quad,long_at_quad,lat_at_quad,r_at_quad)
                 mu_at_quad = damping_layer_func(r_at_quad-radius, dl_str, dl_base, domain_top)
               else

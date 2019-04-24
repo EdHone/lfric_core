@@ -19,10 +19,10 @@ module runtime_constants_mod
   use finite_element_config_mod,         only: element_order
   use formulation_config_mod,            only: dlayer_on, &
                                                rotating
-  use transport_config_mod,              only: scheme,                         &
-                                               transport_scheme_horz_cosmic,   &
-                                               transport_scheme_yz_bip_cosmic, &
-                                               transport_scheme_cosmic_3D
+  use transport_config_mod,              only: scheme,               &
+                                               scheme_horz_cosmic,   &
+                                               scheme_yz_bip_cosmic, &
+                                               scheme_cosmic_3D
   use mixing_config_mod,                 only: smagorinsky
   use timestepping_config_mod,           only: dt
 
@@ -217,9 +217,9 @@ contains
 
     !=================== Create cell orientation field ========================!
 
-    if (scheme == transport_scheme_yz_bip_cosmic .or. &
-        scheme == transport_scheme_horz_cosmic   .or. &
-        scheme == transport_scheme_cosmic_3D   ) then
+    if (scheme == scheme_yz_bip_cosmic .or. &
+        scheme == scheme_horz_cosmic   .or. &
+        scheme == scheme_cosmic_3D   ) then
 
       temp_w2_field = field_type( vector_space = w2_fs )
       cell_orientation = field_type( vector_space = w3_fs )
@@ -439,7 +439,7 @@ contains
       max_diff_wtheta = delta_at_wtheta
       call invoke( inc_X_powint_n (max_diff_wtheta, iconst),  & 
                    inc_a_times_X(const, max_diff_wtheta)      &
-                   )	
+                   )    
 
     end if
 
@@ -509,9 +509,9 @@ contains
     implicit none
     type(field_type), pointer :: orientation
 
-    if (scheme == transport_scheme_yz_bip_cosmic .or. &
-        scheme == transport_scheme_horz_cosmic   .or. &
-        scheme == transport_scheme_cosmic_3D   ) then
+    if (scheme == scheme_yz_bip_cosmic .or. &
+        scheme == scheme_horz_cosmic   .or. &
+        scheme == scheme_cosmic_3D   ) then
       orientation => cell_orientation
     else
       call log_event( "Cell orientation variable has not been created", LOG_LEVEL_ERROR )

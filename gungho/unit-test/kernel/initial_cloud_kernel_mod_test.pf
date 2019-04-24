@@ -42,15 +42,15 @@ contains
                                         feign_cloud_um_config,       &
                                         feign_extrusion_config
 
-    use extrusion_config_mod, only: extrusion_method_uniform
-    use cloud_um_config_mod,  only: cloud_um_scheme_smith
-    use section_choice_config_mod, only: section_choice_boundary_layer_none, &
-                                         section_choice_cloud_um,            &
-                                         section_choice_convection_none,     &
-                                         section_choice_dynamics_none,       &
-                                         section_choice_land_surface_none,   &
-                                         section_choice_microphysics_none,   &
-                                         section_choice_radiation_none
+    use extrusion_config_mod, only: method_uniform
+    use cloud_um_config_mod,  only: scheme_smith
+    use section_choice_config_mod, only: boundary_layer_none, &
+                                         cloud_um,            &
+                                         convection_none,     &
+                                         dynamics_none,       &
+                                         land_surface_none,   &
+                                         microphysics_none,   &
+                                         radiation_none
 
     implicit none
 
@@ -69,20 +69,20 @@ contains
     undf_wth  = 1_i_def
     nlayers  = 3_i_def
 
-    call feign_section_choice_config(                             &
-             boundary_layer = section_choice_boundary_layer_none, &
-             cloud = section_choice_cloud_um,                     &
-             convection = section_choice_convection_none,         &
-             dynamics = section_choice_dynamics_none,             &
-             microphysics = section_choice_microphysics_none,     &
-             land_surface = section_choice_land_surface_none,     &
-             radiation = section_choice_radiation_none )
+    call feign_section_choice_config(              &
+             boundary_layer = boundary_layer_none, &
+             cloud = cloud_um,                     &
+             convection = convection_none,         &
+             dynamics = dynamics_none,             &
+             microphysics = microphysics_none,     &
+             land_surface = land_surface_none,     &
+             radiation = radiation_none )
 
-    call feign_extrusion_config( method=extrusion_method_uniform, &
-                                 domain_top=1000.0_r_def,         &
+    call feign_extrusion_config( method=method_uniform,   &
+                                 domain_top=1000.0_r_def, &
                                  number_of_layers=nlayers )
 
-    call feign_cloud_um_config( scheme = cloud_um_scheme_smith, &
+    call feign_cloud_um_config( scheme = scheme_smith, &
                                 rh_crit=[0.96_r_def,0.9_r_def,0.8_r_def])
 
     allocate( this%answer_cfarea(undf_wth + nlayers) )

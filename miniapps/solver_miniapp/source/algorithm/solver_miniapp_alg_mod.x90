@@ -28,10 +28,14 @@ module solver_miniapp_alg_mod
                                              conjugate_gradient_type,        &
                                              bicgstab_type,                  &
                                              gmres_type
-  use solver_config_mod,              only : method, tolerance, maximum_iterations, preconditioner, &
-                                             method, solver_method_cg, solver_method_bicgstab, &
-                                             solver_method_gmres, &
-                                             solver_preconditioner_diagonal, &
+  use solver_config_mod,              only : tolerance,               &
+                                             maximum_iterations,      &
+                                             method,                  &
+                                             method_cg,               &
+                                             method_bicgstab,         &
+                                             method_gmres,            &
+                                             preconditioner,          &
+                                             preconditioner_diagonal, &
                                              gcrk
 
   implicit none
@@ -65,7 +69,7 @@ contains
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     select case ( preconditioner )
-    case ( solver_preconditioner_diagonal )
+    case ( preconditioner_diagonal )
        allocate( diagonal_preconditioner_type :: prec)
        allocate( dense_operator_type :: op )
 
@@ -100,7 +104,7 @@ contains
     end select
 
     select case ( method )
-    case( solver_method_cg )
+    case( method_cg )
 
        call log_event("setting solver to CG", LOG_LEVEL_INFO)
        allocate( conjugate_gradient_type :: solver )
@@ -112,7 +116,7 @@ contains
          ! Catch type error
           call log_event("solver_miniapp_alg: solver type failure: Should be Conjugate Gradient",LOG_LEVEL_ERROR)
        end select
-    case( solver_method_bicgstab )
+    case( method_bicgstab )
        call log_event("setting solver to BiCGstab", LOG_LEVEL_INFO )
        allocate( bicgstab_type :: solver )
        select type( solver )
@@ -122,7 +126,7 @@ contains
          ! Catch type error
           call log_event("solver_miniapp_alg: solver type failure: Should be BiCGstab",LOG_LEVEL_ERROR)
        end select
-    case( solver_method_gmres )
+    case( method_gmres )
        call log_event("setting solver to GMRES", LOG_LEVEL_INFO )
        allocate( gmres_type :: solver )
        select type( solver )

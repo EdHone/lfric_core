@@ -15,10 +15,10 @@
 module mesh_mod
 
   use base_mesh_config_mod,  only : geometry, &
-                                    base_mesh_geometry_spherical
+                                    geometry_spherical
   use constants_mod,         only : i_def, i_native, r_def, l_def, pi, imdi
   use extrusion_mod,         only : extrusion_type
-  use extrusion_config_mod,  only : extrusion_method_uniform
+  use extrusion_config_mod,  only : method_uniform
   use global_mesh_mod,       only : global_mesh_type
   use global_mesh_collection_mod, only : global_mesh_collection
   use global_mesh_map_mod,   only : global_mesh_map_type
@@ -435,7 +435,7 @@ contains
     allocate( self%cell_lid_gid_map(self%ncells_2d_with_ghost) )
 
     allocate( vert_on_cell_2d_gid (self%nverts_per_2d_cell, self%ncells_2d_with_ghost) )
-    if ( geometry == base_mesh_geometry_spherical .and. &
+    if ( geometry == geometry_spherical .and. &
          partition%get_total_ranks() == 1 ) then
 
       ! Note: For a single partition, the global ids should be the same

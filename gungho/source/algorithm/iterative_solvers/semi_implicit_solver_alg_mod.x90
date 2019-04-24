@@ -70,35 +70,35 @@ contains
   !> @details Initialisation procedure for the semi-implicit solver 
   !> @param[in] state Prognostic state for the solver
   subroutine semi_implicit_solver_alg_init(state)
-    use mixed_solver_config_mod,       only: si_maximum_iterations,                      &
-                                             si_tolerance,                               &
-                                             si_method,                                  &
-                                             mixed_gcrk => gcrk,                         &
-                                             mixed_solver_si_method_cg,                  &
-                                             mixed_solver_si_method_bicgstab,            &
-                                             mixed_solver_si_method_gmres,               &
-                                             mixed_solver_si_method_fgmres,              &
-                                             mixed_solver_si_method_gcr,                 &
-                                             mixed_solver_si_method_prec_only,           &
-                                             si_preconditioner,                          &
-                                             mixed_solver_si_preconditioner_pressure,    &
-                                             mixed_solver_si_preconditioner_diagonal,    &
-                                             mixed_solver_si_preconditioner_none
+    use mixed_solver_config_mod,       only: si_maximum_iterations,         &
+                                             si_tolerance,                  &
+                                             si_method,                     &
+                                             mixed_gcrk => gcrk,            &
+                                             si_method_cg,                  &
+                                             si_method_bicgstab,            &
+                                             si_method_gmres,               &
+                                             si_method_fgmres,              &
+                                             si_method_gcr,                 &
+                                             si_method_prec_only,           &
+                                             si_preconditioner,             &
+                                             si_preconditioner_pressure,    &
+                                             si_preconditioner_diagonal,    &
+                                             si_preconditioner_none
 
-    use helmholtz_solver_config_mod,   only: si_pressure_maximum_iterations,             &
-                                             helmholtz_gcrk => gcrk,                     &
-                                             si_pressure_tolerance,                      &
-                                             helmholtz_method => method,                 &
-                                             helmholtz_solver_method_cg,                 &
-                                             helmholtz_solver_method_bicgstab,           &
-                                             helmholtz_solver_method_gmres,              &
-                                             helmholtz_solver_method_fgmres,             &
-                                             helmholtz_solver_method_gcr,                &
-                                             helmholtz_solver_method_prec_only,          &
+    use helmholtz_solver_config_mod,   only: si_pressure_maximum_iterations, &
+                                             helmholtz_gcrk => gcrk,         &
+                                             si_pressure_tolerance,          &
+                                             helmholtz_method => method,     &
+                                             method_cg,                      &
+                                             method_bicgstab,                &
+                                             method_gmres,                   &
+                                             method_fgmres,                  &
+                                             method_gcr,                     &
+                                             method_prec_only,               &
                                              helmholtz_preconditioner => preconditioner, &
-                                             helmholtz_solver_preconditioner_none,       &
-                                             helmholtz_solver_preconditioner_diagonal,   &
-                                             helmholtz_solver_preconditioner_tridiagonal
+                                             preconditioner_none,            &
+                                             preconditioner_diagonal,        &
+                                             preconditioner_tridiagonal
     implicit none
 
     ! Prognostic fields    
@@ -108,17 +108,17 @@ contains
 
     ! Allocate pressure solver of correct type
     select case( helmholtz_method )
-    case (HELMHOLTZ_SOLVER_METHOD_BICGSTAB)
+    case (METHOD_BICGSTAB)
        allocate ( bicgstab_type :: pressure_solver )
-    case(HELMHOLTZ_SOLVER_METHOD_CG)
+    case(METHOD_CG)
        allocate ( conjugate_gradient_type :: pressure_solver )
-    case(HELMHOLTZ_SOLVER_METHOD_GMRES)
+    case(METHOD_GMRES)
        allocate ( gmres_type :: pressure_solver )
-    case(HELMHOLTZ_SOLVER_METHOD_FGMRES)
+    case(METHOD_FGMRES)
        allocate ( fgmres_type :: pressure_solver )
-    case(HELMHOLTZ_SOLVER_METHOD_GCR)
+    case(METHOD_GCR)
        allocate ( gcr_type :: pressure_solver )
-    case(HELMHOLTZ_SOLVER_METHOD_PREC_ONLY)
+    case(METHOD_PREC_ONLY)
        allocate ( precondition_only_type :: pressure_solver )
 
     case default
@@ -127,11 +127,11 @@ contains
 
     ! Allocate pressure preconditioner preconditioner of correct type
     select case(helmholtz_preconditioner)
-    case(HELMHOLTZ_SOLVER_PRECONDITIONER_NONE)
+    case(PRECONDITIONER_NONE)
        allocate ( null_preconditioner_type :: pressure_preconditioner)
-    case(HELMHOLTZ_SOLVER_PRECONDITIONER_DIAGONAL)
+    case(PRECONDITIONER_DIAGONAL)
        allocate ( pressure_diag_preconditioner_type :: pressure_preconditioner)
-    case(HELMHOLTZ_SOLVER_PRECONDITIONER_TRIDIAGONAL)
+    case(PRECONDITIONER_TRIDIAGONAL)
        allocate ( pressure_preconditioner_type :: pressure_preconditioner)
     case default
        call log_event( "Unknown pressure preconditioner specified", &
@@ -140,9 +140,9 @@ contains
 
     ! Allocate mixed preconditioner of correct type
     select case(si_preconditioner)
-    case(MIXED_SOLVER_SI_PRECONDITIONER_PRESSURE)
+    case(SI_PRECONDITIONER_PRESSURE)
        allocate ( mixed_schur_preconditioner_type :: mixed_preconditioner)
-    case(MIXED_SOLVER_SI_PRECONDITIONER_NONE)
+    case(SI_PRECONDITIONER_NONE)
        allocate ( null_preconditioner_type :: mixed_preconditioner)
     case default
        call log_event("Unknown mixed preconditioner specified",LOG_LEVEL_ERROR)
@@ -150,17 +150,17 @@ contains
 
     ! Allocate mixed solver of correct type
     select case(si_method)
-    case(MIXED_SOLVER_SI_METHOD_BICGSTAB)
+    case(SI_METHOD_BICGSTAB)
       allocate ( bicgstab_type :: mixed_solver )
-    case(MIXED_SOLVER_SI_METHOD_CG)
+    case(SI_METHOD_CG)
       allocate ( conjugate_gradient_type :: mixed_solver )
-    case(MIXED_SOLVER_SI_METHOD_GMRES)
+    case(SI_METHOD_GMRES)
       allocate ( gmres_type :: mixed_solver )
-    case(MIXED_SOLVER_SI_METHOD_FGMRES)
+    case(SI_METHOD_FGMRES)
       allocate ( fgmres_type :: mixed_solver )
-    case(MIXED_SOLVER_SI_METHOD_GCR)
+    case(SI_METHOD_GCR)
       allocate ( gcr_type :: mixed_solver )
-    case(MIXED_SOLVER_SI_METHOD_PREC_ONLY)
+    case(SI_METHOD_PREC_ONLY)
        allocate ( precondition_only_type :: mixed_solver )
     case default
        call log_event("Unknown mixed solver specified",LOG_LEVEL_ERROR)

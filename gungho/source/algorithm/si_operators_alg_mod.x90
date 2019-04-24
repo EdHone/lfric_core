@@ -15,7 +15,7 @@ module si_operators_alg_mod
                                        LOG_LEVEL_ERROR
   use helmholtz_solver_config_mod, &
                                  only: preconditioner,                              &
-                                       helmholtz_solver_preconditioner_tridiagonal, &
+                                       preconditioner_tridiagonal, &
                                        normalise
   use io_config_mod,             only: subroutine_timers 
   use timer_mod,                 only: timer
@@ -93,7 +93,7 @@ contains
 
     rho_at_u  = field_type(vector_space = w2_fs)
 
-    if ( preconditioner == helmholtz_solver_preconditioner_tridiagonal ) then
+    if ( preconditioner == preconditioner_tridiagonal ) then
       if ( element_order /= 0 ) then
         call log_event( "tridiagonal precon only valid for order 0", &
                         LOG_LEVEL_ERROR )
@@ -274,11 +274,11 @@ contains
                  inc_X_powint_n(Hb_lumped_inv, imone) )
 
     ! Compute terms for tridiagonal preconditioner
-    if ( preconditioner == helmholtz_solver_preconditioner_tridiagonal ) then
+    if ( preconditioner == preconditioner_tridiagonal ) then
       call invoke( compute_tri_precon_kernel_type(tri_precon, theta, rho, exner, chi) )
     end if
     if ( normalise ) then
-      if ( preconditioner == helmholtz_solver_preconditioner_tridiagonal) then
+      if ( preconditioner == preconditioner_tridiagonal) then
         Helm_diag = tri_precon(1)
         ! PSyclone does not currently support raising field to an integer power
         call invoke( name = "Normalise tridiagonal preconditioner", &

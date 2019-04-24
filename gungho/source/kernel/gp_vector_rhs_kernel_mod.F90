@@ -14,7 +14,7 @@ module gp_vector_rhs_kernel_mod
                                       GH_BASIS, GH_DIFF_BASIS,   &
                                       CELLS, GH_QUADRATURE_XYoZ
   use base_mesh_config_mod,    only : geometry, &
-                                      base_mesh_geometry_spherical
+                                      geometry_spherical
   use constants_mod,           only : r_def
   use coordinate_jacobian_mod, only : coordinate_jacobian, &
                                       coordinate_jacobian_inverse
@@ -195,7 +195,7 @@ subroutine gp_vector_rhs_code(nlayers, &
             u_at_quad(:) = matmul(transpose(jacobian_inv(:,:,qp1,qp2)),u_at_quad(:))
           end if
           ! Compute physical coordinate of quadrature point
-          if ( geometry == base_mesh_geometry_spherical ) then
+          if ( geometry == geometry_spherical ) then
             x_at_quad(:) = 0.0_r_def
             do df2 = 1,ndf_chi
               x_at_quad(1) = x_at_quad(1) + chi_1_cell(df2)*chi_basis(1,df2,qp1,qp2)

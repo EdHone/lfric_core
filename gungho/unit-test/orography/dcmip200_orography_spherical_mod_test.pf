@@ -64,9 +64,9 @@ contains
   subroutine setUp(this)
 
     use dcmip200_orography_spherical_mod, only : dcmip200_spherical_type
-    use finite_element_config_mod,        only : finite_element_cellshape_quadrilateral
-    use base_mesh_config_mod,             only : base_mesh_geometry_spherical, &
-                                                 base_mesh_partitioner_cubedsphere
+    use finite_element_config_mod,        only : cellshape_quadrilateral
+    use base_mesh_config_mod,             only : geometry_spherical, &
+                                                 partitioner_cubedsphere
     use gungho_feign_config_mod,          only :                  &
                                           feign_base_mesh_config, &
                                           feign_planet_config,    &
@@ -89,12 +89,12 @@ contains
     mesh_collection = mesh_collection_type()
 
     ! Set mesh configuration
-    call feign_base_mesh_config(                                              &
-                         filename        = filename,                          & 
-                         prime_mesh_name = mesh_name,                         &
-                         geometry        = base_mesh_geometry_spherical,      &
-                         partitioner     = base_mesh_partitioner_cubedsphere, &
-                         fplane          = .false.,                           &
+    call feign_base_mesh_config(                                    &
+                         filename        = filename,                & 
+                         prime_mesh_name = mesh_name,               &
+                         geometry        = geometry_spherical,      &
+                         partitioner     = partitioner_cubedsphere, &
+                         fplane          = .false.,                 &
                          f_lat_deg       = 0.0_r_def )
 
     ! Set planet parameters
@@ -159,7 +159,7 @@ contains
     use partition_mod,        only : partition_type,        &
                                      partitioner_interface, &
                                      partitioner_cubedsphere_serial
-    use extrusion_config_mod, only : extrusion_method_uniform
+    use extrusion_config_mod, only : method_uniform
 
     implicit none
     ! Arguments

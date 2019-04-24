@@ -10,7 +10,7 @@
 module gungho_driver_mod
 
   use checksum_alg_mod,           only : checksum_alg
-  use section_choice_config_mod,  only : cloud, section_choice_cloud_um
+  use section_choice_config_mod,  only : cloud, cloud_um
   use conservation_algorithm_mod, only : conservation_algorithm
   use constants_mod,              only : i_def, imdi, str_def, str_short
   use derived_config_mod,         only : set_derived_config
@@ -80,10 +80,10 @@ module gungho_driver_mod
   use runtime_constants_mod,      only : final_runtime_constants
   use timer_mod,                  only : timer, output_timer
   use timestepping_config_mod,    only : method, dt, &
-                                         timestepping_method_semi_implicit, &
-                                         timestepping_method_rk
+                                         method_semi_implicit, &
+                                         method_rk
   use transport_config_mod,       only : scheme, &
-                                         transport_scheme_method_of_lines
+                                         scheme_method_of_lines
   use xios
   use count_mod,                  only : count_type, halo_calls
   use mpi_mod,                    only : initialise_comm, store_comm, &
@@ -282,7 +282,7 @@ contains
         end if
 
         ! Cloud fields
-        if (use_physics .and. cloud == section_choice_cloud_um) then
+        if (use_physics .and. cloud == cloud_um) then
 
           iterator = cloud_fields%get_iterator()
           do
@@ -336,7 +336,7 @@ contains
       if ( transport_only ) then
 
         select case( scheme )
-          case ( transport_scheme_method_of_lines )
+          case ( scheme_method_of_lines )
             if (timestep == timestep_start) then
               ! Initialise and output initial conditions on first timestep
               call runge_kutta_init()
@@ -352,7 +352,7 @@ contains
         if ( write_diag ) call conservation_algorithm(timestep, rho, u, theta, exner, xi)
       else
         select case( method )
-          case( timestepping_method_semi_implicit )  ! Semi-Implicit
+          case( method_semi_implicit )  ! Semi-Implicit
             ! Initialise and output initial conditions on first timestep
             if (timestep == timestep_start) then
               call runge_kutta_init()
@@ -364,7 +364,7 @@ contains
                                derived_fields, cloud_fields, twod_fields,    &
                                physics_incs, timestep)
 
-          case( timestepping_method_rk )             ! RK
+          case( method_rk )             ! RK
             ! Initialise and output initial conditions on first timestep
             if (timestep == timestep_start) then
               call runge_kutta_init()
@@ -418,7 +418,7 @@ contains
         end if
 
         ! Cloud fields
-        if ( use_physics .and. cloud == section_choice_cloud_um ) then
+        if ( use_physics .and. cloud == cloud_um ) then
 
           iterator = cloud_fields%get_iterator()
           do
@@ -481,7 +481,7 @@ contains
          end do
        end if
 
-       if (use_physics .and. cloud == section_choice_cloud_um) then
+       if (use_physics .and. cloud == cloud_um) then
          call write_checkpoint(cloud_fields, timestep_end)
        endif
 
@@ -492,7 +492,7 @@ contains
     end if
 
     ! Call timestep finalizers
-    if ( transport_only .and. scheme == transport_scheme_method_of_lines) then
+    if ( transport_only .and. scheme == scheme_method_of_lines) then
       call rk_transport_final( rho, theta)
     end if
 

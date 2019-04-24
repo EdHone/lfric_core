@@ -75,9 +75,9 @@ module test_config_mod
             read_test_namelist, postprocess_test_namelist, &
             test_is_loadable, test_is_loaded, test_final
 
-  integer(i_native), public, parameter :: test_enum_one = 135
-  integer(i_native), public, parameter :: test_enum_three = 763
-  integer(i_native), public, parameter :: test_enum_two = 847
+  integer(i_native), public, parameter :: enum_one = 135
+  integer(i_native), public, parameter :: enum_three = 763
+  integer(i_native), public, parameter :: enum_two = 847
 
   integer(i_def), public, protected :: dint
   logical(l_def), public, protected :: dlog
@@ -743,9 +743,9 @@ module enum_config_mod
             read_enum_namelist, postprocess_enum_namelist, &
             enum_is_loadable, enum_is_loaded, enum_final
 
-  integer(i_native), public, parameter :: enum_value_one = 135
-  integer(i_native), public, parameter :: enum_value_three = 763
-  integer(i_native), public, parameter :: enum_value_two = 847
+  integer(i_native), public, parameter :: value_one = 135
+  integer(i_native), public, parameter :: value_three = 763
+  integer(i_native), public, parameter :: value_two = 847
 
   integer(i_native), public, protected :: value
 
@@ -997,12 +997,12 @@ module twoenum_config_mod
             read_twoenum_namelist, postprocess_twoenum_namelist, &
             twoenum_is_loadable, twoenum_is_loaded, twoenum_final
 
-  integer(i_native), public, parameter :: twoenum_first_one = 135
-  integer(i_native), public, parameter :: twoenum_first_three = 763
-  integer(i_native), public, parameter :: twoenum_first_two = 847
-  integer(i_native), public, parameter :: twoenum_second_ay = 256
-  integer(i_native), public, parameter :: twoenum_second_bee = 495
-  integer(i_native), public, parameter :: twoenum_second_see = 449
+  integer(i_native), public, parameter :: first_one = 135
+  integer(i_native), public, parameter :: first_three = 763
+  integer(i_native), public, parameter :: first_two = 847
+  integer(i_native), public, parameter :: second_ay = 256
+  integer(i_native), public, parameter :: second_bee = 495
+  integer(i_native), public, parameter :: second_see = 449
 
   integer(i_native), public, protected :: first
   integer(i_native), public, protected :: second

@@ -22,7 +22,7 @@ contains
                                            r_def,                              &
                                            i_def
     use finite_element_config_mod,   only: cellshape,                          &
-                                           finite_element_cellshape_triangle,  &
+                                           cellshape_triangle,                 &
                                            element_order,                      &
                                            rehabilitate,                       &
                                            coordinate_order
@@ -40,18 +40,18 @@ contains
                                            p_zero,                             &
                                            scaling_factor
     use timestepping_config_mod,     only: method,                             &
-                                           timestepping_method_semi_implicit,  &
+                                           method_semi_implicit,               &
                                            dt,                                 &
                                            alpha,                              &
                                            outer_iterations,                   &
                                            inner_iterations
     use base_mesh_config_mod,        only: geometry,                           &
-                                           base_mesh_geometry_spherical,       &
-                                           base_mesh_geometry_planar
+                                           geometry_spherical,                 &
+                                           geometry_planar
     use transport_config_mod,        only: scheme,                             &
-                                           transport_scheme_horz_cosmic,       &
+                                           scheme_horz_cosmic,                 &
                                            operators,                          &
-                                           transport_operators_fv,             &
+                                           operators_fv,                       &
                                            consistent_metric
     use mixing_config_mod,           only: viscosity,                          &
                                            viscosity_mu
@@ -59,17 +59,17 @@ contains
                                            dl_str
     use extrusion_config_mod,        only: domain_top
     use orography_config_mod,        only: profile,                            &
-                                           orography_profile_none
+                                           profile_none
     use mixed_solver_config_mod,     only: reference_reset_freq
     use helmholtz_solver_config_mod, only:                                     &
                             helmholtz_solver_preconditioner => preconditioner, &
-                            helmholtz_solver_preconditioner_tridiagonal
+                            preconditioner_tridiagonal
     implicit none
 
       call log_event( 'Checking gungho configuration...', LOG_LEVEL_INFO )
 
       ! Check the options in the finite element namelist
-      if ( cellshape == finite_element_cellshape_triangle ) then
+      if ( cellshape == cellshape_triangle ) then
         write( log_scratch_space, '(A)' ) 'Triangular elements are unsupported'
         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
@@ -87,7 +87,7 @@ contains
           coordinate_order, ' must be non-negative'
         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
-      if ( geometry == base_mesh_geometry_planar .and.  coordinate_order == 0 ) then
+      if ( geometry == geometry_planar .and.  coordinate_order == 0 ) then
         write( log_scratch_space, '(A)' ) 'Coordinate order must be positive for planar geometries'
          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
@@ -154,7 +154,7 @@ contains
           dt 
         call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       end if
-      if ( method == timestepping_method_semi_implicit ) then
+      if ( method == method_semi_implicit ) then
         if( alpha < 0.5_r_def ) then
           write( log_scratch_space, '(A,E16.8)' ) 'alpha < 1/2 likely to be unstable: ',&
             alpha
@@ -177,18 +177,18 @@ contains
       end if
 
       ! Check the transport namelist
-      if ( geometry == base_mesh_geometry_spherical .and.  consistent_metric) then
+      if ( geometry == geometry_spherical .and.  consistent_metric) then
         write( log_scratch_space, '(A)' ) 'Consistent metric option only valid for planar geometries'
         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
-      if ( (scheme == transport_scheme_horz_cosmic) .and. &
+      if ( (scheme == scheme_horz_cosmic) .and. &
             .not. transport_only ) then
         write( log_scratch_space, '(A)' ) 'COSMIC scheme only implemented for transport only algorithms'
         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if 
 
       ! Check the mixing namelist
-      if ( viscosity .and. geometry == base_mesh_geometry_spherical ) then
+      if ( viscosity .and. geometry == geometry_spherical ) then
         write( log_scratch_space, '(A)' ) 'Viscosity might not work in spherical domains'
         call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       end if
@@ -212,7 +212,7 @@ contains
        
       ! Check for options that are invalid with higher order elements
       if ( element_order > 0 ) then
-        if ( operators == transport_operators_fv ) then
+        if ( operators == operators_fv ) then
           write( log_scratch_space, '(A)' ) 'FV transport operators only valid for element_order = 0' 
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
         end if
@@ -220,7 +220,7 @@ contains
           write( log_scratch_space, '(A)' ) 'Viscosity only valid for element_order = 0'
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
         end if
-        if ( helmholtz_solver_preconditioner == helmholtz_solver_preconditioner_tridiagonal ) then
+        if ( helmholtz_solver_preconditioner == preconditioner_tridiagonal ) then
           write( log_scratch_space, '(A)' ) 'Tridiagonal helmholtz preconditioner only valid for  element_order = 0'
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
         end if
@@ -230,12 +230,12 @@ contains
         end if
       end if
 
-      if ( profile /= orography_profile_none .and. abs(alpha - 0.5_r_def) < EPS ) then
+      if ( profile /= profile_none .and. abs(alpha - 0.5_r_def) < EPS ) then
         write( log_scratch_space, '(A)' ) 'Orography with alpha = 1/2 produces noisy results'
         call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       end if 
 
-      if ( method == timestepping_method_semi_implicit ) then
+      if ( method == method_semi_implicit ) then
         ! Check the mixed solver namelist
         if ( reference_reset_freq > outer_iterations*inner_iterations ) then
           write( log_scratch_space, '(A)' ) 'reference_reset_freq greater than total number of si iterations' 

@@ -12,8 +12,8 @@ module compute_tri_precon_kernel_mod_test
   use get_unit_test_m3x3_dofmap_mod,       only : get_w0_m3x3_dofmap, &
                                                   get_w3_m3x3_dofmap
   use get_unit_test_w3nodal_basis_mod,     only : get_w0_w3nodal_diff_basis
-  use timestepping_config_mod,             only : timestepping_runge_kutta_method_ssp4, &
-                                                  timestepping_method_semi_implicit
+  use timestepping_config_mod,             only : runge_kutta_method_ssp4, &
+                                                  method_semi_implicit
   use pFUnit_Mod
   use yaxt,                                only : xt_initialize, xt_finalize
   use mpi_mod,                             only : store_comm, clear_comm
@@ -42,8 +42,8 @@ module compute_tri_precon_kernel_mod_test
   real(r_def), parameter :: cp       = 1000.0_r_def
   real(r_def), parameter :: scaling  = 1.0_r_def
 
-  integer(i_def), parameter :: method    = timestepping_method_semi_implicit
-  integer(i_def), parameter :: rk_method = timestepping_runge_kutta_method_ssp4
+  integer(i_def), parameter :: method    = method_semi_implicit
+  integer(i_def), parameter :: rk_method = runge_kutta_method_ssp4
   real(r_def),    parameter :: dt = 10.0_r_def
   real(r_def), parameter    :: alpha   = 0.5_r_def
   real(r_def), parameter    :: tau_u   = 0.5_r_def
@@ -60,9 +60,9 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : base_mesh_geometry_planar, &
-                                          base_mesh_partitioner_planar
-    use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+    use base_mesh_config_mod,      only : geometry_planar, &
+                                          partitioner_planar
+    use finite_element_config_mod, only : cellshape_quadrilateral
     use gungho_feign_config_mod,   only : feign_base_mesh_config,           &
                                           feign_planet_config,              &
                                           feign_timestepping_config
@@ -75,9 +75,10 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo', prime_mesh_name='unit_test', &
-                                 geometry=base_mesh_geometry_planar,          &
-                                 partitioner=base_mesh_partitioner_planar,    &
+    call feign_base_mesh_config( filename='foo',                 &
+                                 prime_mesh_name='unit_test',    &
+                                 geometry=geometry_planar,       &
+                                 partitioner=partitioner_planar, &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &

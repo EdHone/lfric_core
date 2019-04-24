@@ -47,11 +47,11 @@ contains
                                               feign_initial_temperature_config, &
                                               feign_idealised_config,       &
                                               feign_initial_wind_config
-    use initial_wind_config_mod, only : initial_wind_profile_none
+    use initial_wind_config_mod, only : profile_none
 
-    use base_mesh_config_mod, only : base_mesh_geometry_spherical, &
-                                     base_mesh_partitioner_cubedsphere
-    use idealised_config_mod,  only: idealised_test_gravity_wave
+    use base_mesh_config_mod, only : geometry_spherical, &
+                                     partitioner_cubedsphere
+    use idealised_config_mod,  only: test_gravity_wave
 
     implicit none
 
@@ -64,24 +64,25 @@ contains
 
     call feign_initial_temperature_config( bvf_square=bvf_square, &
                                            theta_surf=theta_surf )
-    call feign_idealised_config( test=idealised_test_gravity_wave )
+    call feign_idealised_config( test=test_gravity_wave )
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
                               rd=rd, cp=cp, p_zero=p_zero,                 &
                               scaling_factor=scaling )
 
-    call feign_base_mesh_config                               &
-             ( filename='foo', prime_mesh_name='unit_test',   &
-               geometry=base_mesh_geometry_spherical,         &
-               partitioner=base_mesh_partitioner_cubedsphere, &
+    call feign_base_mesh_config                     &
+             ( filename='foo',                      &
+               prime_mesh_name='unit_test',         &
+               geometry=geometry_spherical,         &
+               partitioner=partitioner_cubedsphere, &
                fplane=.false., f_lat_deg=0.0_r_def )
 
-    call feign_initial_wind_config( profile=initial_wind_profile_none, &
-                                    sbr_angle_lat=0.0_r_def,           &
-                                    sbr_angle_lon=0.0_r_def,           &
-                                    u0=0.0_r_def,                      &
-                                    v0=0.0_r_def,                      &
-                                    nl_constant=0.0_r_def,             &
-                                    wind_time_period=0.0_r_def,        &
+    call feign_initial_wind_config( profile=profile_none,       &
+                                    sbr_angle_lat=0.0_r_def,    &
+                                    sbr_angle_lon=0.0_r_def,    &
+                                    u0=0.0_r_def,               &
+                                    v0=0.0_r_def,               &
+                                    nl_constant=0.0_r_def,      &
+                                    wind_time_period=0.0_r_def, &
                                     smp_init_wind=.false. )
 
   end subroutine setUp
@@ -110,7 +111,7 @@ contains
     use planet_config_mod,              only: scaled_radius, gravity
     use generate_global_gw_fields_mod,  only: generate_global_gw_pert
     use reference_profile_mod,          only: reference_profile
-    use idealised_config_mod,           only: idealised_test_gravity_wave
+    use idealised_config_mod,           only: test_gravity_wave
     use coord_transform_mod,            only: xyz2llr
     implicit none
 

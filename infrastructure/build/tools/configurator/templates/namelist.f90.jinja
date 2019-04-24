@@ -29,7 +29,7 @@ module {{listname}}_config_mod
 {%- for name in enumerations | sort %}
 {%-   if loop.first %}{{'\n'}}{%- endif %}
 {%-   for key, value in parameters[name].mapping | dictsort %}
-  integer(i_native), public, parameter :: {{listname}}_{{name}}_{{key}} = {{value}}
+  integer(i_native), public, parameter :: {{name}}_{{key}} = {{value}}
 {%-   endfor %}
 {%- endfor %}
 

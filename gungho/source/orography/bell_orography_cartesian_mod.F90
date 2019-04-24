@@ -27,10 +27,9 @@ module bell_orography_cartesian_mod
 
   use constants_mod,          only : r_def, i_def, i_native
   use analytic_orography_mod, only : analytic_orography_type
-  use orography_bell_cartesian_config_mod, only :                      &
-                                 orography_bell_cartesian_direction_x, &
-                                 orography_bell_cartesian_direction_y, &
-                                 orography_bell_cartesian_direction_xy
+  use orography_bell_cartesian_config_mod, only : direction_x, &
+                                                  direction_y, &
+                                                  direction_xy
   use log_mod,                only : log_event,         &
                                      log_scratch_space, &
                                      LOG_LEVEL_ERROR
@@ -176,11 +175,11 @@ contains
     ! chisurf_arg(1) is function argument in x direction,
     ! chisurf_arg(2) is function argument in y direction.
     select case(self%direction)
-      case (orography_bell_cartesian_direction_x)
+      case (direction_x)
         chisurf_arg(1) = chi_1_per/self%half_width_x
-      case (orography_bell_cartesian_direction_y)
+      case (direction_y)
         chisurf_arg(2) = chi_2_per/self%half_width_y
-      case (orography_bell_cartesian_direction_xy)
+      case (direction_xy)
         chisurf_arg(1) = chi_1_per/self%half_width_x
         chisurf_arg(2) = chi_2_per/self%half_width_y
       case default

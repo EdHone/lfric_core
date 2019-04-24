@@ -44,11 +44,11 @@ module advection_alg_mod
   use w2_vorticity_advection_kernel_mod, &
                                       only: w2_vorticity_advection_kernel_type
 
-  use transport_config_mod,           only: operators,              &
-                                            fv_flux_order,          &
-                                            fv_advective_order,     &
-                                            transport_operators_fv, &
-                                            transport_operators_fem
+  use transport_config_mod,           only: operators,          &
+                                            fv_flux_order,      &
+                                            fv_advective_order, &
+                                            operators_fv,       &
+                                            operators_fem
   use log_mod,                        only: log_event,         &
                                             LOG_LEVEL_ERROR,   &
                                             LOG_LEVEL_INFO
@@ -59,13 +59,13 @@ module advection_alg_mod
   use io_config_mod,                  only: subroutine_timers 
   use timer_mod,                      only: timer
   use timestepping_config_mod,        only: time_method => method, &
-                                            timestepping_method_rk  
+                                            method_rk  
   use strong_curl_kernel_mod,         only: strong_curl_kernel_type
   use cosmic_threed_alg_mod,          only: cosmic_threed_transport_step
   use calc_dep_pts_alg_mod,           only: calc_dep_pts
   use transport_config_mod,           only: scheme, &
-                                            transport_scheme_cosmic_3D, &
-                                            transport_scheme_method_of_lines
+                                            scheme_cosmic_3D, &
+                                            scheme_method_of_lines
   use runtime_constants_mod,          only: get_detj_at_w2
 
   implicit none
@@ -107,7 +107,7 @@ contains
 
     type(mesh_type), pointer :: mesh => null()
 
-    if ( time_method == timestepping_method_rk ) then
+    if ( time_method == method_rk ) then
       ! If using explicit timestepping then advection is called once per stage,
       ! therefore no further sub stages are needed, setting number of stages = 1
       ! and coeffs = 1 short cuts the rk advection scheme
@@ -120,7 +120,7 @@ contains
       ak_adv = ak
     end if
 
-    if ( operators == transport_operators_fv ) then
+    if ( operators == operators_fv ) then
       if ( element_order == 0 ) then
         mesh => mesh_collection%get_mesh( mesh_id )
         call sample_poly_flux_init(fv_flux_order, mesh%get_nlayers())
@@ -231,7 +231,7 @@ contains
   ! Advective time integrated mass flux = rho*u
   mass_flux = field_type( vector_space = u_fs  )
 
-  if (scheme == transport_scheme_cosmic_3D) then
+  if (scheme == scheme_cosmic_3D) then
     dep_pts_x       = field_type( vector_space = u_fs )
     dep_pts_y       = field_type( vector_space = u_fs )
     dep_pts_z       = field_type( vector_space = u_fs )
@@ -329,8 +329,8 @@ contains
   ! used to update the theta_adv field.
   ! For RK timestepping with FV operators the full equation is solved in a
   ! pointwise fashion and so nothing needs to be done
-  if ( operators == transport_operators_fv ) then   
-    if ( time_method == timestepping_method_rk ) then
+  if ( operators == operators_fv ) then   
+    if ( time_method == method_rk ) then
       ! Solve equation in pointwise form (fully fv equation)
       call invoke( setval_X(advection(igh_t), u_grad_theta) )
     else
@@ -385,7 +385,7 @@ contains
 
   ! 5) Advection update for the continuity equation divergence of mass flux: 
   !    M3^-1(div(F))
-  if (scheme == transport_scheme_method_of_lines) then
+  if (scheme == scheme_method_of_lines) then
 
     call log_event( "Computing advective density increment...", LOG_LEVEL_INFO)
     call invoke( name = "Compute advective density increment",     &
@@ -394,7 +394,7 @@ contains
                  inc_a_times_X(minus_one, r_rho),                  &
                  dg_matrix_vector_kernel_type(advection(igh_d), r_rho, mm_w3_inv) )
 
-  elseif (scheme == transport_scheme_cosmic_3D) then
+  elseif (scheme == scheme_cosmic_3D) then
 
     call calc_dep_pts( dep_pts_x, dep_pts_y, dep_pts_z, wind_divergence, advecting_wind, detj_at_w2, chi )
     call cosmic_threed_transport_step( advection(igh_d), rho, dep_pts_x, dep_pts_y, dep_pts_z, detj_at_w2 )
@@ -499,7 +499,7 @@ contains
   u_fs     => wind%get_function_space()
 
   select case(operators)
-    case(transport_operators_fv)
+    case(operators_fv)
      ! Use pointwise fv operators compute mass flux with high-order polynomial
      ! interpolation of density
      call invoke_sample_poly_flux( mass_flux, wind, density, &
@@ -508,7 +508,7 @@ contains
      !call invoke( sample_poly_flux_kernel_type( mass_flux, wind, density, &
      !                                           flux_stencil_extent ) )
 
-    case(transport_operators_fem)  
+    case(operators_fem)  
       ! Project density*wind into the mass flux space    
       qr = quadrature_xyoz_type(element_order+3, quadrature_rule)
 
@@ -552,7 +552,7 @@ contains
   mt_lumped_inv => get_inverse_lumped_mass_matrix(theta_space_id)
 
   select case(operators)
-    case(transport_operators_fv)
+    case(operators_fv)
      ! Use pointwise fv operators compute u.grad(theta) with high-order 
      ! polynomial interpolation of theta
       chi => get_coordinates()
@@ -565,7 +565,7 @@ contains
       !                                          chi(1),chi_stencil_extent, chi(2),chi(3)&
       !                                          ) )
          
-    case(transport_operators_fem)
+    case(operators_fem)
      ! Use project u.grad(theta) into the theta function space
       qr = quadrature_xyoz_type(element_order+3, quadrature_rule)
       mesh              => rtheta%get_mesh()

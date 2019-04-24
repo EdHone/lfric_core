@@ -78,9 +78,9 @@ module gw_mixed_schur_preconditioner_alg_mod
   use timestepping_config_mod,         only: dt
   use gravity_wave_constants_config_mod, only: cs_square,                       &
                                                b_space,                         &
-                                               gravity_wave_constants_b_space_w0, &
-                                               gravity_wave_constants_b_space_w3, &
-                                               gravity_wave_constants_b_space_wtheta
+                                               b_space_w0, &
+                                               b_space_w3, &
+                                               b_space_wtheta
   use operator_mod,                    only: operator_type
   use preconditioner_mod,              only: abstract_preconditioner_type
   use iterative_solver_mod,            only: abstract_iterative_solver_type
@@ -229,11 +229,11 @@ contains
     M_lumped      = field_type(vector_space = wb)
     self%Mb_lumped_inv = field_type(vector_space = wb)
     select case(b_space)
-    case(gravity_wave_constants_b_space_w0)  
+    case(b_space_w0)  
        Mb => get_mass_matrix(w0_id)
-    case(gravity_wave_constants_b_space_w3)  
+    case(b_space_w3)  
        Mb => get_mass_matrix(w3_id)
-    case(gravity_wave_constants_b_space_wtheta)  
+    case(b_space_wtheta)  
        Mb => get_mass_matrix(wt_id)
     end select
     call invoke( setval_c( ones,     1.0_r_def ),               &

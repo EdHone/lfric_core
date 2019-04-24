@@ -79,10 +79,10 @@ contains
   function getParameters() result( parameters )
 
     use subgrid_config_mod, &
-                       only : subgrid_rho_approximation_constant_subgrid,     &
-                              subgrid_rho_approximation_ppm_no_limiter,       &
-                              subgrid_rho_approximation_ppm_positive_only,    &
-                              subgrid_rho_approximation_ppm_positive_monotone
+                       only : rho_approximation_constant_subgrid,     &
+                              rho_approximation_ppm_no_limiter,       &
+                              rho_approximation_ppm_positive_only,    &
+                              rho_approximation_ppm_positive_monotone
     use flux_direction_mod, only : x_direction, y_direction
 
     implicit none
@@ -90,73 +90,73 @@ contains
     type(rho_parameter_type) :: parameters(11)
 
     parameters &
-     = [ rho_parameter_type( subgrid_rho_approximation_constant_subgrid,      &
+     = [ rho_parameter_type( rho_approximation_constant_subgrid,              &
                  (/ 3.0_r_def, 2.0_r_def, 4.0_r_def, 1.0_r_def, 5.0_r_def /), &
                              (/ 3.0_r_def, 0.0_r_def, 0.0_r_def /),           &
                  (/ 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def /), &
                                                                 x_direction), &
-         rho_parameter_type( subgrid_rho_approximation_constant_subgrid,      &
+         rho_parameter_type( rho_approximation_constant_subgrid,              &
                  (/ 3.0_r_def, 2.0_r_def, 4.0_r_def, 1.0_r_def, 5.0_r_def /), &
                              (/ 3.0_r_def, 0.0_r_def, 0.0_r_def /),           &
                  (/ 3.0_r_def, 3.0_r_def, 3.0_r_def, 3.0_r_def, 3.0_r_def /), &
                                                                 y_direction), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 9.0_r_def+5.0_r_def/6.0_r_def,  &
               13.0_r_def+5.0_r_def/6.0_r_def, 10.0_r_def+5.0_r_def/6.0_r_def, &
               18.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def /), &
                                                                 x_direction), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 9.0_r_def+5.0_r_def/6.0_r_def,  &
               13.0_r_def+5.0_r_def/6.0_r_def, 10.0_r_def+5.0_r_def/6.0_r_def, &
               18.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 2.0_r_def, 2.0_r_def, 2.0_r_def, 2.0_r_def, 2.0_r_def /), &
                                                                x_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 13.0_r_def+5.0_r_def/6.0_r_def, &
                9.0_r_def+5.0_r_def/6.0_r_def, 18.0_r_def+5.0_r_def/6.0_r_def, &
               10.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 3.0_r_def, 3.0_r_def, 3.0_r_def, 3.0_r_def, 3.0_r_def /), &
                                                                x_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 9.0_r_def+5.0_r_def/6.0_r_def,  &
               13.0_r_def+5.0_r_def/6.0_r_def, 10.0_r_def+5.0_r_def/6.0_r_def, &
               18.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 4.0_r_def, 4.0_r_def, 4.0_r_def, 4.0_r_def, 4.0_r_def /), &
                                                                y_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 9.0_r_def+5.0_r_def/6.0_r_def,  &
               13.0_r_def+5.0_r_def/6.0_r_def, 10.0_r_def+5.0_r_def/6.0_r_def, &
               18.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 4.0_r_def, 4.0_r_def, 4.0_r_def, 4.0_r_def, 4.0_r_def /), &
                                                                y_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 13.0_r_def+5.0_r_def/6.0_r_def, &
               9.0_r_def+5.0_r_def/6.0_r_def, 18.0_r_def+5.0_r_def/6.0_r_def,  &
               10.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 2.0_r_def, 2.0_r_def, 2.0_r_def, 2.0_r_def, 2.0_r_def /), &
                                                                y_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_no_limiter,        &
+         rho_parameter_type( rho_approximation_ppm_no_limiter,                &
            (/ 10.0_r_def+5.0_r_def/6.0_r_def, 9.0_r_def+5.0_r_def/6.0_r_def,  &
               13.0_r_def+5.0_r_def/6.0_r_def, 10.0_r_def+5.0_r_def/6.0_r_def, &
               18.0_r_def+5.0_r_def/6.0_r_def /),                              &
                              (/ 10.0_r_def, 1.0_r_def, 1.0_r_def /),          &
                  (/ 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def /), &
                                                                y_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_positive_only,     &
+         rho_parameter_type( rho_approximation_ppm_positive_only,             &
            (/ 1.0_r_def/30.0_r_def, 1.0_r_def/30.0_r_def,                     &
               2.0_r_def+1.0_r_def/30.0_r_def, 2.0_r_def+1.0_r_def/30.0_r_def, &
               6.0_r_def+1.0_r_def/30.0_r_def /),                              &
                              (/ 0.0_r_def, -1.2_r_def, 1.9_r_def /) ,         &
                  (/ 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def, 1.0_r_def /), &
                                                                x_direction ), &
-         rho_parameter_type( subgrid_rho_approximation_ppm_positive_monotone, &
+         rho_parameter_type( rho_approximation_ppm_positive_monotone,         &
            (/ 1.0_r_def/30.0_r_def, 1.0_r_def/30.0_r_def,                     &
               2.0_r_def+1.0_r_def/30.0_r_def, 2.0_r_def+1.0_r_def/30.0_r_def, &
               6.0_r_def+1.0_r_def/30.0_r_def /),                              &

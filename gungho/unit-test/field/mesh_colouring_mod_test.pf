@@ -48,7 +48,7 @@ contains
 !-------------------------------------------------------------------------------
 subroutine setUp(this)
 
-  use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+  use finite_element_config_mod, only : cellshape_quadrilateral
 
   implicit none
 
@@ -97,7 +97,7 @@ subroutine test_compute_colours_cubedsphere(this)
   use partition_mod,        only : partition_type, &
                                    partitioner_interface, &
                                    partitioner_cubedsphere_serial
-  use extrusion_config_mod, only : extrusion_method_uniform
+  use extrusion_config_mod, only : method_uniform
 
   implicit none
 
@@ -189,7 +189,7 @@ end subroutine test_compute_colours_cubedsphere
 @Test( npes=[1] )
 subroutine test_compute_colours_biperiodic(this)
 
-  use extrusion_config_mod, only : extrusion_method_uniform
+  use extrusion_config_mod, only : method_uniform
   use mesh_mod,             only : mesh_type
   use partition_mod,        only : partition_type, &
                                    partitioner_interface, &
@@ -290,7 +290,7 @@ subroutine test_compute_colours_generic(this)
   use partition_mod,        only : partition_type, &
                                    partitioner_interface, &
                                    partitioner_cubedsphere_serial
-  use extrusion_config_mod, only : extrusion_method_uniform
+  use extrusion_config_mod, only : method_uniform
 
   implicit none
 

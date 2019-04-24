@@ -59,15 +59,15 @@ contains
   subroutine setUp( this )
 
 
-    use base_mesh_config_mod,      only : base_mesh_geometry_planar, &
-                                          base_mesh_partitioner_planar
-    use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+    use base_mesh_config_mod,      only : geometry_planar, &
+                                          partitioner_planar
+    use finite_element_config_mod, only : cellshape_quadrilateral
     use gungho_feign_config_mod,   only : feign_base_mesh_config,           &
                                           feign_idealised_config,           &
                                           feign_initial_density_config,     &
                                           feign_initial_temperature_config, &
                                           feign_planet_config
-    use idealised_config_mod,      only : idealised_test_gravity_wave
+    use idealised_config_mod,      only : test_gravity_wave
 
     implicit none
 
@@ -78,12 +78,13 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo', prime_mesh_name='unit_test', &
-                                 geometry=base_mesh_geometry_planar,          &
-                                 partitioner=base_mesh_partitioner_planar,    &
+    call feign_base_mesh_config( filename='foo',                 &
+                                 prime_mesh_name='unit_test',    &
+                                 geometry=geometry_planar,       &
+                                 partitioner=partitioner_planar, &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
-    call feign_idealised_config( test=idealised_test_gravity_wave )
+    call feign_idealised_config( test=test_gravity_wave )
     call feign_initial_density_config( tracer_background=tracer_background,   &
                                        tracer_max=tracer_max,                 &
                                        r1=0.0_r_def, x1=0.0_r_def,            &

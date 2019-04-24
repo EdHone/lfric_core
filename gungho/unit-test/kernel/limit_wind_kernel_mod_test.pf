@@ -49,14 +49,14 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : base_mesh_geometry_planar, &
-                                          base_mesh_partitioner_planar
+    use base_mesh_config_mod,      only : geometry_planar, &
+                                          partitioner_planar
     use gungho_feign_config_mod,   only : feign_base_mesh_config, &
                                           feign_timestepping_config, &
                                           feign_checks_config
-    use timestepping_config_mod,   only : timestepping_method_semi_implicit, &
-                                          timestepping_runge_kutta_method_ssp3
-    use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+    use timestepping_config_mod,   only : method_semi_implicit, &
+                                          runge_kutta_method_ssp3
+    use finite_element_config_mod, only : cellshape_quadrilateral
     use function_space_mod,        only : function_space_type
     use mesh_mod,                  only : PLANE_BI_PERIODIC, PLANE
 
@@ -76,19 +76,20 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo', prime_mesh_name='unit_test', &
-                                 geometry=base_mesh_geometry_planar,          &
-                                 partitioner=base_mesh_partitioner_planar,    &
+    call feign_base_mesh_config( filename='foo',                 &
+                                 prime_mesh_name='unit_test',    &
+                                 geometry=geometry_planar,       &
+                                 partitioner=partitioner_planar, &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
     call feign_checks_config( limit_cfl=.true., max_cfl=MAX_CFL )
 
     call feign_timestepping_config(                                   &
-             method=timestepping_method_semi_implicit,                &
+             method=method_semi_implicit,                             &
              dt=dt, alpha=0.5_r_def, tau_u=0.5_r_def,                 &
              tau_t=0.5_r_def, tau_r=0.5_r_def,                        &
              outer_iterations=1_i_def, inner_iterations=1_i_def,      &
-             runge_kutta_method=timestepping_runge_kutta_method_ssp3, &
+             runge_kutta_method=runge_kutta_method_ssp3,              &
              spinup_period=0.0_r_def, spinup_alpha=.false.,           &
              spinup_winds=.false.    )
 

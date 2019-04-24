@@ -124,20 +124,20 @@ subroutine sw_code(nlayers,            &
 
   use well_mixed_gases_config_mod, only: &
     co2_mix_ratio, n2o_mix_ratio, ch4_mix_ratio, o2_mix_ratio
-  use radiation_socrates_config_mod, only:                              &
-    l_planet_grey_surface, planet_albedo, l_rayleigh_sw,                &
-    i_cloud_ice_type_sw, i_cloud_liq_type_sw,                           &
-    cloud_representation, cloud_overlap, cloud_inhomogeneity,           &
-    radiation_socrates_cloud_representation_no_cloud,                   &
-    radiation_socrates_cloud_representation_liquid_and_ice,             &
-    radiation_socrates_cloud_representation_conv_strat_liq_ice,         &
-    radiation_socrates_cloud_overlap_maximum_random,                    &
-    radiation_socrates_cloud_overlap_random,                            &
-    radiation_socrates_cloud_overlap_exponential_random,                &
-    radiation_socrates_cloud_inhomogeneity_homogeneous,                 &
-    radiation_socrates_cloud_inhomogeneity_scaling,                     &
-    radiation_socrates_cloud_inhomogeneity_mcica,                       &
-    radiation_socrates_cloud_inhomogeneity_cairns
+  use radiation_socrates_config_mod, only:                    &
+    l_planet_grey_surface, planet_albedo, l_rayleigh_sw,      &
+    i_cloud_ice_type_sw, i_cloud_liq_type_sw,                 &
+    cloud_representation, cloud_overlap, cloud_inhomogeneity, &
+    cloud_representation_no_cloud,                            &
+    cloud_representation_liquid_and_ice,                      &
+    cloud_representation_conv_strat_liq_ice,                  &
+    cloud_overlap_maximum_random,                             &
+    cloud_overlap_random,                                     &
+    cloud_overlap_exponential_random,                         &
+    cloud_inhomogeneity_homogeneous,                          &
+    cloud_inhomogeneity_scaling,                              &
+    cloud_inhomogeneity_mcica,                                &
+    cloud_inhomogeneity_cairns
   use set_thermodynamic_mod, only: set_thermodynamic
   use set_cloud_top_mod, only: set_cloud_top
   use socrates_runes, only: runes, ip_source_illuminate,                    &
@@ -184,33 +184,33 @@ subroutine sw_code(nlayers,            &
 
   ! Properties of clouds
   select case (cloud_representation)
-  case (radiation_socrates_cloud_representation_no_cloud)
+  case (cloud_representation_no_cloud)
     i_cloud_representation = ip_cloud_representation_off
-  case (radiation_socrates_cloud_representation_liquid_and_ice)
+  case (cloud_representation_liquid_and_ice)
     i_cloud_representation = ip_cloud_representation_ice_water
-  case (radiation_socrates_cloud_representation_conv_strat_liq_ice)
+  case (cloud_representation_conv_strat_liq_ice)
     i_cloud_representation = ip_cloud_representation_csiw
   case default
     i_cloud_representation = ip_cloud_representation_off
   end select
   select case (cloud_overlap)
-  case (radiation_socrates_cloud_overlap_maximum_random)
+  case (cloud_overlap_maximum_random)
     i_overlap = ip_overlap_max_random
-  case (radiation_socrates_cloud_overlap_random)
+  case (cloud_overlap_random)
     i_overlap = ip_overlap_random
-  case (radiation_socrates_cloud_overlap_exponential_random)
+  case (cloud_overlap_exponential_random)
     i_overlap = ip_overlap_exponential_random
   case default
     i_overlap = ip_overlap_max_random
   end select
   select case (cloud_inhomogeneity)
-  case (radiation_socrates_cloud_inhomogeneity_homogeneous)
+  case (cloud_inhomogeneity_homogeneous)
     i_inhom = ip_inhom_homogeneous
-  case (radiation_socrates_cloud_inhomogeneity_scaling)
+  case (cloud_inhomogeneity_scaling)
     i_inhom = ip_inhom_scaling
-  case (radiation_socrates_cloud_inhomogeneity_mcica)
+  case (cloud_inhomogeneity_mcica)
     i_inhom = ip_inhom_mcica
-  case (radiation_socrates_cloud_inhomogeneity_cairns)
+  case (cloud_inhomogeneity_cairns)
     i_inhom = ip_inhom_cairns
   case default
     i_inhom = ip_inhom_homogeneous

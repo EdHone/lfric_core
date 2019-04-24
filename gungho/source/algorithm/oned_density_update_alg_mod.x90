@@ -19,7 +19,7 @@ module oned_density_update_alg_mod
   use psykal_lite_mod,                   only: invoke_subgrid_coeffs,      &
                                                invoke_fv_mass_fluxes
   use transport_config_mod,              only: scheme, &
-                                               transport_scheme_horz_cosmic
+                                               scheme_horz_cosmic
   use cusph_density_update_alg_mod,      only: cusph_density_update_alg
   use operator_mod,                      only: operator_type
   use dg_matrix_vector_kernel_mod,       only: dg_matrix_vector_kernel_type

@@ -15,11 +15,11 @@ use log_mod,                      only : log_event,                &
                                          LOG_LEVEL_ERROR
 use coord_transform_mod,           only : xyz2llr
 use base_mesh_config_mod,          only : geometry, &
-                                          base_mesh_geometry_spherical
+                                          geometry_spherical
 use planet_config_mod,             only : scaled_radius, gravity
 use generate_global_gw_fields_mod, only : generate_global_gw_pert
 use reference_profile_mod,         only : reference_profile
-use idealised_config_mod,          only : idealised_test_gravity_wave
+use idealised_config_mod,          only : test_gravity_wave
 
 implicit none
 
@@ -42,9 +42,9 @@ function analytic_buoyancy(chi) result(buoyancy)
   real(kind=r_def)             :: pressure, density
   real(kind=r_def)             :: theta_0, theta_p
           
-  if ( geometry == base_mesh_geometry_spherical ) then
+  if ( geometry == geometry_spherical ) then
     call xyz2llr(chi(1),chi(2),chi(3),long,lat,radius)
-    call reference_profile(pressure, density, theta_0, chi, idealised_test_gravity_wave)
+    call reference_profile(pressure, density, theta_0, chi, test_gravity_wave)
     theta_p = generate_global_gw_pert(long,lat,radius-scaled_radius)
 
     buoyancy = theta_p/theta_0 * gravity

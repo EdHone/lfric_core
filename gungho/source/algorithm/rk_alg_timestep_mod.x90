@@ -33,7 +33,7 @@ module rk_alg_timestep_mod
                                        get_coordinates, &
                                        get_coriolis 
   use transport_config_mod,      only: operators, &
-                                       transport_operators_fv
+                                       operators_fv
   use mixing_config_mod,         only: viscosity
   
   ! PsyKAl-lite kernels
@@ -229,7 +229,7 @@ contains
       end do
 
       ! Invert mass matrices
-      if ( operators == transport_operators_fv) then
+      if ( operators == operators_fv) then
         ! Equation is in pointwise form already so dont need to do any mass
         ! matrix inversions
         call invoke( setval_X(inc(igh_t), rhs(igh_t)) )

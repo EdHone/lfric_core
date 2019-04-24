@@ -36,11 +36,11 @@ module gw_pressure_operator_alg_mod
                                                 LOG_LEVEL_ERROR, &
                                                 LOG_LEVEL_INFO,  &
                                                 log_scratch_space
-  use gravity_wave_constants_config_mod,  only: cs_square,                       &
-                                                b_space,                         &
-                                                gravity_wave_constants_b_space_w0, &
-                                                gravity_wave_constants_b_space_w3, &
-                                                gravity_wave_constants_b_space_wtheta
+  use gravity_wave_constants_config_mod,  only: cs_square,  &
+                                                b_space,    &
+                                                b_space_w0, &
+                                                b_space_w3, &
+                                                b_space_wtheta
 
   implicit none
 
@@ -129,11 +129,11 @@ contains
     M_lumped      = field_type(vector_space = wb)
     Mb_lumped_inv = field_type(vector_space = wb)
     select case(b_space)
-      case(gravity_wave_constants_b_space_w0)  
+      case(b_space_w0)  
         Mb => get_mass_matrix(w0_id)
-      case(gravity_wave_constants_b_space_w3)  
+      case(b_space_w3)  
         Mb => get_mass_matrix(w3_id)
-      case(gravity_wave_constants_b_space_wtheta)  
+      case(b_space_wtheta)  
         Mb => get_mass_matrix(wt_id)
     end select
     call invoke( setval_c( ones,     1.0_r_def ),               &

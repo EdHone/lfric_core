@@ -26,8 +26,8 @@ module init_physics_mod
                                              LOG_LEVEL_ERROR
   use transport_config_mod,           only : scheme, &
                                              operators, &
-                                             transport_scheme_method_of_lines, &
-                                             transport_operators_fv
+                                             scheme_method_of_lines, &
+                                             operators_fv
   use mr_indices_mod,                 only : nummr
   use runtime_constants_mod,          only : create_runtime_constants
 

@@ -11,22 +11,22 @@ module analytic_wind_profiles_mod
 
 use constants_mod,      only : r_def, pi
 use initial_wind_config_mod, only : &
-                               initial_wind_profile_none,                      &
-                               initial_wind_profile_solid_body_rotation,       &
-                               initial_wind_profile_solid_body_rotation_alt,   &
-                               initial_wind_profile_constant_uv,               &
-                               initial_wind_profile_constant_shear_uv,         &
-                               initial_wind_profile_dcmip301,                  &
-                               initial_wind_profile_deep_baroclinic_steady,    &
-                               initial_wind_profile_deep_baroclinic_perturbed, &
-                               initial_wind_profile_vortex,                    &
-                               initial_wind_profile_xy_NL_case_1,              &
-                               initial_wind_profile_yz_NL_case_1,              &
-                               initial_wind_profile_NL_case_1,                 &
-                               initial_wind_profile_NL_case_2,                 &
-                               initial_wind_profile_NL_case_3,                 &
-                               initial_wind_profile_NL_case_4,                 &
-                               initial_wind_profile_hadley_like_dcmip
+                               profile_none,                      &
+                               profile_solid_body_rotation,       &
+                               profile_solid_body_rotation_alt,   &
+                               profile_constant_uv,               &
+                               profile_constant_shear_uv,         &
+                               profile_dcmip301,                  &
+                               profile_deep_baroclinic_steady,    &
+                               profile_deep_baroclinic_perturbed, &
+                               profile_vortex,                    &
+                               profile_xy_NL_case_1,              &
+                               profile_yz_NL_case_1,              &
+                               profile_NL_case_1,                 &
+                               profile_NL_case_2,                 &
+                               profile_NL_case_3,                 &
+                               profile_NL_case_4,                 &
+                               profile_hadley_like_dcmip
 
 use planet_config_mod,  only : scaled_radius
 use log_mod,            only : log_event,                &
@@ -362,13 +362,13 @@ function analytic_wind(chi, time, choice, num_options, option_arg) result(u)
 
   select case ( choice )
 
-    case ( initial_wind_profile_none )
+    case ( profile_none )
       u(:) = 0.0_r_def
-    case ( initial_wind_profile_solid_body_rotation,                           & 
-           initial_wind_profile_dcmip301)      
+    case ( profile_solid_body_rotation,                           & 
+           profile_dcmip301)      
       s = 0.5_r_def*(chi(3)/scaled_radius + 1.0_r_def)
       ! No height variation for the dcmip test
-      if ( choice == initial_wind_profile_dcmip301) then
+      if ( choice == profile_dcmip301) then
         s = 1.0_r_def 
       else
         s = 0.5_r_def * (chi(3) / scaled_radius + 1.0_r_def)
@@ -381,7 +381,7 @@ function analytic_wind(chi, time, choice, num_options, option_arg) result(u)
               - cos(lat_pole) * cos(chi(1)-lon_pole) * sin(chi(2)) )
       u(2) = s * option(1) * cos(lat_pole) * sin(chi(1)-lon_pole)
       u(3) = 0.0_r_def
-    case ( initial_wind_profile_solid_body_rotation_alt)      
+    case ( profile_solid_body_rotation_alt)      
       ! Rotated pole version of equation (74) of Staniforth & White (2007)
       ! with m=1, A=0, n therefore arbitrary.
       ! In shallow geometry the r/a factor is replaced by 1 (see section 6
@@ -398,34 +398,34 @@ function analytic_wind(chi, time, choice, num_options, option_arg) result(u)
               - cos(lat_pole) * cos(chi(1)-lon_pole) * sin(chi(2)) )
       u(2) = r_on_a * option(1) * cos(lat_pole) * sin(chi(1)-lon_pole)
       u(3) = 0.0_r_def
-    case ( initial_wind_profile_constant_uv )
+    case ( profile_constant_uv )
       u(1) = option(1)
       u(2) = option(2)
       u(3) = 0.0_r_def
-    case ( initial_wind_profile_constant_shear_uv )
+    case ( profile_constant_shear_uv )
       u(1) = option(1)*chi(3)/option(3)
       u(2) = option(2)*chi(3)/option(3)
       u(3) = 0.0_r_def 
-    case ( initial_wind_profile_deep_baroclinic_steady, &
-           initial_wind_profile_deep_baroclinic_perturbed)
+    case ( profile_deep_baroclinic_steady, &
+           profile_deep_baroclinic_perturbed)
       call deep_baroclinic_wave(chi(1), chi(2), chi(3)-scaled_radius, &
                                 pressure, temperature, density, &
                                 u(1), u(2), u(3)) 
-    case ( initial_wind_profile_vortex )
+    case ( profile_vortex )
       u = vortex_wind(chi(2),chi(1),chi(3))
-    case ( initial_wind_profile_NL_case_1 )
+    case ( profile_NL_case_1 )
       u = NL_wind_case_1(chi(1),chi(2),time)
-    case ( initial_wind_profile_NL_case_2 )
+    case ( profile_NL_case_2 )
       u = NL_wind_case_2(chi(1),chi(2),time)
-    case ( initial_wind_profile_NL_case_3 )
+    case ( profile_NL_case_3 )
       u = NL_wind_case_3(chi(1),chi(2),time)
-    case ( initial_wind_profile_NL_case_4 )
+    case ( profile_NL_case_4 )
       u = NL_wind_case_4(chi(1),chi(2),time)
-    case ( initial_wind_profile_xy_NL_case_1 )
+    case ( profile_xy_NL_case_1 )
       u = xy_NL_wind_case_1(chi(1),chi(2),time)
-    case ( initial_wind_profile_yz_NL_case_1 )
+    case ( profile_yz_NL_case_1 )
       u = yz_NL_wind_case_1(chi(2),chi(3),time)
-    case ( initial_wind_profile_hadley_like_dcmip )
+    case ( profile_hadley_like_dcmip )
       u = hadley_like_dcmip(chi(2),chi(3),time)
 
     case default

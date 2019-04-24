@@ -63,15 +63,15 @@ contains
                                            tolerance,                          &
                                            method,                             &
                                            gcrk,                               &
-                                           solver_method_cg,                   &
-                                           solver_method_bicgstab,             &
-                                           solver_method_gmres,                &
-                                           solver_method_fgmres,               &
-                                           solver_method_gcr,                  &
-                                           solver_method_prec_only,            &
+                                           method_cg,                          &
+                                           method_bicgstab,                    &
+                                           method_gmres,                       &
+                                           method_fgmres,                      &
+                                           method_gcr,                         &
+                                           method_prec_only,                   &
                                            preconditioner,                     &
-                                           solver_preconditioner_diagonal,     &
-                                           solver_preconditioner_none
+                                           preconditioner_diagonal,            &
+                                           preconditioner_none
     use runtime_constants_mod,       only: get_mass_matrix,                    &
                                            get_mass_matrix_diagonal,           &
                                            w0_id, w1_id, w2_id,                &
@@ -122,17 +122,17 @@ contains
 
       ! Allocate pressure solver of correct type
       select case( method )
-      case (SOLVER_METHOD_BICGSTAB)
+      case (METHOD_BICGSTAB)
          allocate ( bicgstab_type :: mass_matrix_solver )
-      case(SOLVER_METHOD_CG)
+      case(METHOD_CG)
          allocate ( conjugate_gradient_type :: mass_matrix_solver )
-      case(SOLVER_METHOD_GMRES)
+      case(METHOD_GMRES)
          allocate ( gmres_type :: mass_matrix_solver )
-      case(SOLVER_METHOD_FGMRES)
+      case(METHOD_FGMRES)
          allocate ( fgmres_type :: mass_matrix_solver )
-      case(SOLVER_METHOD_GCR)
+      case(METHOD_GCR)
          allocate ( gcr_type :: mass_matrix_solver )
-      case(SOLVER_METHOD_PREC_ONLY)
+      case(METHOD_PREC_ONLY)
          allocate ( precondition_only_type :: mass_matrix_solver )
       case default
          call log_event("Unknown mass matrix solver specified",LOG_LEVEL_ERROR)
@@ -140,9 +140,9 @@ contains
 
       ! Allocate pressure preconditioner preconditioner of correct type
       select case(preconditioner)
-      case(SOLVER_PRECONDITIONER_NONE)
+      case(PRECONDITIONER_NONE)
          allocate ( null_preconditioner_type :: mass_matrix_preconditioner)
-      case(SOLVER_PRECONDITIONER_DIAGONAL)
+      case(PRECONDITIONER_DIAGONAL)
          allocate ( diagonal_preconditioner_type :: mass_matrix_preconditioner)
       case default
          call log_event( "Unknown mass matrix preconditioner specified", &

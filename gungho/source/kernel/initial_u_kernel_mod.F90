@@ -98,7 +98,7 @@ subroutine initial_u_code(nlayers, &
 
   use analytic_wind_profiles_mod, only : analytic_wind
   use base_mesh_config_mod,       only : geometry, &
-                                         base_mesh_geometry_spherical
+                                         geometry_spherical
   use coordinate_jacobian_mod,    only : coordinate_jacobian
   use coord_transform_mod,        only : sphere2cart_vector, xyz2llr
 
@@ -160,7 +160,7 @@ subroutine initial_u_code(nlayers, &
           xyz(2) = xyz(2) + chi_2_cell(df)*chi_basis(1,df,qp1,qp2)
           xyz(3) = xyz(3) + chi_3_cell(df)*chi_basis(1,df,qp1,qp2)
         end do
-        if ( geometry == base_mesh_geometry_spherical ) then
+        if ( geometry == geometry_spherical ) then
           call xyz2llr(xyz(1), xyz(2), xyz(3), llr(1), llr(2), llr(3))
           u_spherical = analytic_wind(llr, time, profile, 3, optionset3)
           u_physical = sphere2cart_vector(u_spherical,llr) 

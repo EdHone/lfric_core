@@ -35,11 +35,11 @@ contains
     use gungho_feign_config_mod,   only : feign_transport_config,   &
                                           feign_timestepping_config
 
-    use timestepping_config_mod,   only : timestepping_method_semi_implicit, &
-                                          timestepping_runge_kutta_method_ssp3
+    use timestepping_config_mod,   only : method_semi_implicit, &
+                                          runge_kutta_method_ssp3
 
-    use transport_config_mod,      only : transport_scheme_method_of_lines, &
-                                          transport_operators_fv
+    use transport_config_mod,      only : scheme_method_of_lines, &
+                                          operators_fv
     implicit none
 
     class(sample_poly_adv_test_type), intent(inout) :: this
@@ -49,20 +49,20 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_transport_config(scheme = transport_scheme_method_of_lines, &
-                                operators = transport_operators_fv,        &
-                                fv_flux_order = 0,                         &
-                                fv_advective_order = 1,                    &
-                                consistent_metric = .true.,                &
+    call feign_transport_config(scheme = scheme_method_of_lines, &
+                                operators = operators_fv,        &
+                                fv_flux_order = 0,               &
+                                fv_advective_order = 1,          &
+                                consistent_metric = .true.,      &
                                 enforce_monotonicity = .false. )
 
     ! Set dt to dummy value - it should not be used by kernel for enforce_monotonicity = .false.
-    call feign_timestepping_config(method=timestepping_method_semi_implicit,          &
-                                   dt=-1.0_r_def, alpha=0.5_r_def, tau_u=0.5_r_def,   &
-                                   tau_t=0.5_r_def, tau_r=0.5_r_def,                  &
-                                   outer_iterations=1_i_def, inner_iterations=1_i_def,&
-                                   runge_kutta_method=timestepping_runge_kutta_method_ssp3,    &
-                                   spinup_period=0.0_r_def, spinup_alpha=.false.,     &
+    call feign_timestepping_config(method=method_semi_implicit,                        &
+                                   dt=-1.0_r_def, alpha=0.5_r_def, tau_u=0.5_r_def,    &
+                                   tau_t=0.5_r_def, tau_r=0.5_r_def,                   &
+                                   outer_iterations=1_i_def, inner_iterations=1_i_def, &
+                                   runge_kutta_method=runge_kutta_method_ssp3,         &
+                                   spinup_period=0.0_r_def, spinup_alpha=.false.,      &
                                    spinup_winds=.false.    )
 
   end subroutine setUp

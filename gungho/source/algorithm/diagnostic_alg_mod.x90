@@ -9,7 +9,7 @@ module diagnostic_alg_mod
    use constants_mod,                 only: i_def, r_def, str_max_filename
    use finite_element_config_mod,     only: element_order
    use base_mesh_config_mod,          only: geometry, &
-                                            base_mesh_geometry_spherical    
+                                            geometry_spherical    
    use mesh_mod,                      only: mesh_type
    use mesh_collection_mod,           only: mesh_collection 
    use function_space_collection_mod, only: function_space_collection
@@ -272,7 +272,7 @@ contains
 
     ! Convert to standard SI units (m/s) in orthogonal directions
 
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
         call invoke_convert_cart2sphere_vector(physical_wind, physical_chi)       
     end if
 
@@ -364,7 +364,7 @@ contains
 
     ! If in spherical geometry,
     ! convert the coordinate field to (longitude, latitude, radius)
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
       call invoke_pointwise_convert_xyz2llr(nodal_coordinates) 
     end if
 
@@ -454,7 +454,7 @@ contains
     ! Convert the vector spaces to standard SI units
     ! (m/s) in orthogonal directions and, if in spherical geometry,
     !  convert the coordinate field to (longitude, latitude, radius)
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
       if ( output_fs == W1 .or. output_fs == W2) then
         call invoke_convert_cart2sphere_vector(output_field, nodal_coordinates)         
       end if

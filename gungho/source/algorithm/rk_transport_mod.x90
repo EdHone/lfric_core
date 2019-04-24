@@ -27,11 +27,11 @@ module rk_transport_mod
                                                wt_id, theta_space_id,          &
                                                get_coordinates
 
-  use transport_config_mod,              only: operators,              &
-                                               fv_flux_order,          &
-                                               fv_advective_order,     &
-                                               transport_operators_fv, &
-                                               transport_operators_fem
+  use transport_config_mod,              only: operators,          &
+                                               fv_flux_order,      &
+                                               fv_advective_order, &
+                                               operators_fv,       &
+                                               operators_fem
 
   ! PsyKAl-lite kernels
   use psykal_lite_mod,                   only: invoke_sample_poly_flux, &
@@ -138,7 +138,7 @@ contains
 
     call invoke( setval_c(mass_flux, 0.0_r_def) )
 
-    if ( operators == transport_operators_fv ) then
+    if ( operators == operators_fv ) then
       if ( element_order == 0 ) then
         mesh => mesh_collection%get_mesh( mesh_id )
         call sample_poly_flux_init(fv_flux_order, mesh%get_nlayers())
@@ -218,13 +218,13 @@ contains
       ! Compute advection terms
       ! mass flux ( F = rho * u )
       select case(operators)
-        case(transport_operators_fv)
+        case(operators_fv)
           ! Use polynomial reconstruction
           call invoke_sample_poly_flux( mass_flux, u, rho, &
                                         flux_stencil_extent )
           call invoke_sample_poly_adv( rt_prediction(stage), theta, u, mt_lumped_inv, &
                                        chi, advective_stencil_extent )
-        case(transport_operators_fem)      
+        case(operators_fem)      
           ! Use FEM projection
           ! Initialise fields
           call invoke( name = "Initialise fields",                &
@@ -265,10 +265,10 @@ contains
 
       ! Theta
       select case(operators)
-        case(transport_operators_fv) ! theta in Wtheta
+        case(operators_fv) ! theta in Wtheta
           call invoke( inc_X_divideby_Y(r_theta, mt_lumped), &
                        X_minus_bY(theta, theta_n, dt, r_theta) )
-        case(transport_operators_fem)
+        case(operators_fem)
           call mass_matrix_solver_alg( theta_inc, r_theta)
           call invoke( X_minus_bY(theta, theta_n, dt, theta_inc) )
       end select

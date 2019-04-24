@@ -9,23 +9,23 @@
 module reference_profile_mod
 
 use base_mesh_config_mod,           only : geometry, &
-                                           base_mesh_geometry_spherical
+                                           geometry_spherical
 use constants_mod,                  only : r_def, i_def
 use coord_transform_mod,            only : xyz2llr
 use generate_global_gw_fields_mod,  only : generate_global_gw_fields
-use idealised_config_mod,           only : idealised_test_cold_bubble_x,    &
-                                           idealised_test_cold_bubble_y,    &
-                                           idealised_test_const_lapse_rate, &
-                                           idealised_test_cosine_hill,      &
-                                           idealised_test_dry_cbl,          &
-                                           idealised_test_gravity_wave,     &
-                                           idealised_test_held_suarez,      &
-                                           idealised_test_isentropic,       &
-                                           idealised_test_isot_atm,         &
-                                           idealised_test_isot_cold_atm,    &
-                                           idealised_test_warm_bubble,      &
-                                           idealised_test_warm_bubble_3d,   &
-                                           idealised_test_yz_cosine_hill
+use idealised_config_mod,           only : test_cold_bubble_x,    &
+                                           test_cold_bubble_y,    &
+                                           test_const_lapse_rate, &
+                                           test_cosine_hill,      &
+                                           test_dry_cbl,          &
+                                           test_gravity_wave,     &
+                                           test_held_suarez,      &
+                                           test_isentropic,       &
+                                           test_isot_atm,         &
+                                           test_isot_cold_atm,    &
+                                           test_warm_bubble,      &
+                                           test_warm_bubble_3d,   &
+                                           test_yz_cosine_hill
 use initial_temperature_config_mod, only : bvf_square, theta_surf
 use planet_config_mod,              only : scaled_radius, gravity, Cp, Rd, &
                                            kappa, p_zero
@@ -62,7 +62,7 @@ real(kind=r_def), parameter :: exner_surf     = 1.0_r_def
 real(kind=r_def), parameter :: lapse_rate     = 0.0065_r_def
 real(kind=r_def)            :: nsq_over_g, z, u_s(3), lat, lon, r, lon_surf, lat_surf, r_surf
 
-if ( geometry == base_mesh_geometry_spherical ) then  ! SPHERICAL DOMAIN
+if ( geometry == geometry_spherical ) then  ! SPHERICAL DOMAIN
 
   ! Gravity wave test only for now
   call xyz2llr(x(1),x(2),x(3),lon,lat,r)
@@ -75,29 +75,29 @@ else                     ! BIPERIODIC PLANE DOMAIN
 
   ! Calculate theta and exner for each biperiodic test
   select case( itest_option )
-    case( idealised_test_gravity_wave, &
-          idealised_test_held_suarez,  &
-          idealised_test_isot_atm )
+    case( test_gravity_wave, &
+          test_held_suarez,  &
+          test_isot_atm )
       nsq_over_g = bvf_square/gravity
       theta_s = theta_surf * exp ( nsq_over_g * z )
       exner_s = exner_surf - gravity**2/(Cp*theta_surf*bvf_square)   &
                    * (1.0_r_def - exp ( - nsq_over_g * z ))
-    case( idealised_test_isot_cold_atm)
+    case( test_isot_cold_atm)
       theta_s = theta_surf * exp ( gravity / (theta_surf * cp) * z )
       exner_s = exner_surf * exp ( - gravity / (theta_surf * cp) * z )
-    case( idealised_test_warm_bubble,    &
-          idealised_test_cold_bubble_x,  &
-          idealised_test_cold_bubble_y,  &   ! Density current test
-          idealised_test_warm_bubble_3d, &
-          idealised_test_isentropic )
+    case( test_warm_bubble,    &
+          test_cold_bubble_x,  &
+          test_cold_bubble_y,  &   ! Density current test
+          test_warm_bubble_3d, &
+          test_isentropic )
       theta_s = theta_surf
       exner_s = exner_surf - gravity/(Cp*theta_surf)*z
-    case( idealised_test_const_lapse_rate )
+    case( test_const_lapse_rate )
       theta_s = theta_surf * ((1.0_r_def - lapse_rate/theta_surf * z) &
                   **(1.0_r_def-gravity/(Cp*lapse_rate)))
       exner_s = exner_surf * ((1.0_r_def - lapse_rate/theta_surf * z) &
                   **(gravity/(Cp*lapse_rate)))
-    case( idealised_test_dry_cbl )   ! Dry convective boundary layer
+    case( test_dry_cbl )   ! Dry convective boundary layer
       if (z<=1000.0_r_def) then
         ! Isentropic
         theta_s = theta_surf
@@ -113,8 +113,8 @@ else                     ! BIPERIODIC PLANE DOMAIN
     !>       this risked unexpected divide by zero errors. These errors are
     !>       avoided by setting to one. This keeps the trunk working but
     !>       these numbers have no scientific value.
-    case (idealised_test_cosine_hill, &
-          idealised_test_yz_cosine_hill)
+    case (test_cosine_hill, &
+          test_yz_cosine_hill)
       theta_s = 1.0_r_def
       exner_s = 1.0_r_def
     case default

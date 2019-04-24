@@ -18,11 +18,11 @@ contains
 subroutine runge_kutta_init
 
   use constants_mod,           only: r_def, i_def
-  use timestepping_config_mod, only: runge_kutta_method, &
-                                     timestepping_runge_kutta_method_ssp2, &
-                                     timestepping_runge_kutta_method_ssp3, &
-                                     timestepping_runge_kutta_method_ssp4, &
-                                     timestepping_runge_kutta_method_ssp5
+  use timestepping_config_mod, only: runge_kutta_method,      &
+                                     runge_kutta_method_ssp2, &
+                                     runge_kutta_method_ssp3, &
+                                     runge_kutta_method_ssp4, &
+                                     runge_kutta_method_ssp5
   use log_mod,                 only: log_event,         &
                                      log_scratch_space, &
                                      LOG_LEVEL_ERROR
@@ -30,20 +30,20 @@ implicit none
 
   select case(runge_kutta_method)
 
-    case(timestepping_runge_kutta_method_ssp2)
+    case(runge_kutta_method_ssp2)
       num_rk_stage = 2
       allocate ( ak (num_rk_stage,num_rk_stage) )
       ak(1,:) = (/ 1.0_r_def, 0.0_r_def /)
       ak(2,:) = (/ 0.5_r_def, 0.5_r_def /)
 
-    case(timestepping_runge_kutta_method_ssp3)
+    case(runge_kutta_method_ssp3)
       num_rk_stage = 3
       allocate ( ak (num_rk_stage,num_rk_stage) )
       ak(1,:) = (/ 1.0_r_def,  0.0_r_def,  0.0_r_def /)
       ak(2,:) = (/ 0.25_r_def, 0.25_r_def, 0.0_r_def /)
       ak(3,:) = (/ 1.0_r_def,  1.0_r_def,  4.0_r_def /)/6.0_r_def  
  
-    case(timestepping_runge_kutta_method_ssp4)
+    case(runge_kutta_method_ssp4)
       num_rk_stage = 4
       allocate ( ak (num_rk_stage,num_rk_stage) )
       ak(1,:) = (/ 0.5_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def /)
@@ -51,7 +51,7 @@ implicit none
       ak(3,:) = (/ 1.0_r_def, 1.0_r_def, 1.0_r_def, 0.0_r_def /)/6.0_r_def
       ak(4,:) = (/ 1.0_r_def, 1.0_r_def, 1.0_r_def, 3.0_r_def /)/6.0_r_def
 
-    case(timestepping_runge_kutta_method_ssp5)
+    case(runge_kutta_method_ssp5)
       num_rk_stage = 5
       allocate ( ak (num_rk_stage,num_rk_stage) )
       ak(1,:) = (/ 0.37727_r_def, 0.0_r_def,     0.0_r_def,     0.0_r_def,     0.0_r_def     /)

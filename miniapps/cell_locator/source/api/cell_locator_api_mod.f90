@@ -11,9 +11,9 @@ module cell_locator_api_mod
   use constants_mod,                 only: i_def, l_def, r_def, PI
   use field_mod,                     only: field_type, field_proxy_type
   use finite_element_config_mod,     only: cellshape, &
-                                      finite_element_cellshape_quadrilateral
+                                           cellshape_quadrilateral
   use base_mesh_config_mod,          only: geometry, &
-                                           base_mesh_geometry_spherical
+                                           geometry_spherical
   use fs_continuity_mod,             only: W0, W3
   use mesh_mod,                      only: mesh_type
   use mesh_collection_mod,           only: mesh_collection 
@@ -287,7 +287,7 @@ module cell_locator_api_mod
     end do
     nullify( map_f )
 
-    if (  geometry == base_mesh_geometry_spherical ) then
+    if (  geometry == geometry_spherical ) then
 
       ! Convert to spherical geometry and compute min/max of elevation. In principle we 
       ! could have used "call invoke_pointwise_convert_xyz2llr( coord_output )" to convert

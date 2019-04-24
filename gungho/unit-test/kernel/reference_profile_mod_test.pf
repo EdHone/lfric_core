@@ -42,9 +42,9 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : base_mesh_geometry_planar, &
-                                          base_mesh_partitioner_planar
-    use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+    use base_mesh_config_mod,      only : geometry_planar, &
+                                          partitioner_planar
+    use finite_element_config_mod, only : cellshape_quadrilateral
     use gungho_feign_config_mod,   only : feign_base_mesh_config,           &
                                           feign_initial_temperature_config, &
                                           feign_planet_config,              &
@@ -59,9 +59,10 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo', prime_mesh_name='unit_test', &
-                                 geometry=base_mesh_geometry_planar,          &
-                                 partitioner=base_mesh_partitioner_planar,    &
+    call feign_base_mesh_config( filename='foo',                 &
+                                 prime_mesh_name='unit_test',    &
+                                 geometry=geometry_planar,       &
+                                 partitioner=partitioner_planar, &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
     call feign_initial_temperature_config( bvf_square=bvf_square, &
@@ -71,10 +72,10 @@ contains
                               rd=rd, cp=cp, p_zero=p_zero,                 &
                               scaling_factor=scaling )
 
-    call feign_finite_element_config(                                      &
-         cellshape = finite_element_cellshape_quadrilateral,               &
-         element_order = 0, coordinate_order = 0,                          & 
-         rehabilitate = .true.,                                            &
+    call feign_finite_element_config(                       &
+         cellshape = cellshape_quadrilateral,               &
+         element_order = 0, coordinate_order = 0,           & 
+         rehabilitate = .true.,                             &
          supg = .false., vorticity_in_w1 =.false. )
 
   end subroutine setUp
@@ -102,7 +103,7 @@ contains
   @Test( npes=[1] )
   subroutine test_all( this )
 
-    use idealised_config_mod,  only : idealised_test_gravity_wave
+    use idealised_config_mod,  only : test_gravity_wave
     use reference_profile_mod, only : reference_profile
 
     implicit none
@@ -119,7 +120,7 @@ contains
 
     ! Test the reference profile (exner, rho, theta) computation for 
     ! the gravity wave test at the point x
-    call reference_profile(exner, rho, theta, x, idealised_test_gravity_wave)
+    call reference_profile(exner, rho, theta, x, test_gravity_wave)
 
     theta_exact = 300.0_r_def * exp ( bvf_square/gravity*x(3))
     exner_exact = 1.0_r_def - gravity**2/(Cp*300.0_r_def*bvf_square)   &

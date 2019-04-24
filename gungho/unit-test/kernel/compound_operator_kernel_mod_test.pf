@@ -37,7 +37,7 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use finite_element_config_mod, only : finite_element_cellshape_quadrilateral
+    use finite_element_config_mod, only : cellshape_quadrilateral
     use gungho_feign_config_mod,   only : feign_finite_element_config
     use mesh_mod,                  only : PLANE_BI_PERIODIC
 
@@ -50,9 +50,9 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_finite_element_config(                   &
-      cellshape=finite_element_cellshape_quadrilateral, &
-      coordinate_order=0, element_order=1,              &
+    call feign_finite_element_config(      &
+      cellshape=cellshape_quadrilateral,   &
+      coordinate_order=0, element_order=1, &
       rehabilitate=.true., supg=.false., vorticity_in_w1=.false. )
 
   end subroutine setUp

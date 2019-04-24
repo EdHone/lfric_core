@@ -9,12 +9,12 @@ module um_init_mod
 
   use blayer_um_config_mod,  only : flux_bc_opt_in => flux_bc_opt
   use constants_mod,         only : i_def, i_um, r_def, r_um
-  use section_choice_config_mod, only : cloud,                   &
-                                        section_choice_cloud_um, &
-                                        convection,              &
-                                        section_choice_convection_um
-  use cloud_um_config_mod,   only : cloud_scheme => scheme, &
-                                    cloud_um_scheme_smith,  &
+  use section_choice_config_mod, only : cloud,      &
+                                        cloud_um,   &
+                                        convection, &
+                                        convection_um
+  use cloud_um_config_mod,   only : scheme,       &
+                                    scheme_smith, &
                                     rh_crit
   use extrusion_config_mod,  only : domain_top
   use field_collection_mod,  only : field_collection_type
@@ -171,11 +171,11 @@ contains
     puns             = 0.5_r_um
     pstb             = 2.0_r_um
     nl_bl_levels     = bl_levels
-    if (convection == section_choice_convection_um) non_local_bl = 0
+    if (convection == convection_um) non_local_bl = 0
     flux_bc_opt      = flux_bc_opt_in
 
     ! Convection namelist options - should be moved to namelist in future
-    if (convection == section_choice_convection_um) l_param_conv = .true.
+    if (convection == convection_um) l_param_conv = .true.
     icvdiag         = 1
     cvdiag_inv      = 0
     cvdiag_sh_wtest = 0.02_r_um
@@ -189,13 +189,13 @@ contains
     w_cape_limit    = 0.3_r_um
 
     ! Cloud namelist options - should be moved to namelist in future
-    if ( cloud == section_choice_cloud_um ) then
-      select case (cloud_scheme)
-        case(cloud_um_scheme_smith) 
+    if ( cloud == cloud_um ) then
+      select case (scheme)
+        case(scheme_smith) 
           i_cld_vn = 1
         case default
           write( log_scratch_space, '(A,I3)' )  &
-            'Invalid cloud scheme option, stopping', cloud_scheme 
+            'Invalid cloud scheme option, stopping', scheme 
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end select
     else
@@ -216,8 +216,8 @@ contains
     ! Set rhcrit to the profile provided in the physics namelist.
     ! rhcrit is used throughout the UM and its value needs setting 
     ! here.
-    if ( cloud == section_choice_cloud_um .and. &
-         cloud_scheme == cloud_um_scheme_smith ) then
+    if ( cloud == cloud_um .and. &
+         scheme == scheme_smith ) then
       rhcrit = real(rh_crit, r_um)
     end if
 

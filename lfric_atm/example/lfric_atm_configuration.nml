@@ -300,9 +300,9 @@
 /
 
 &section_choice
-radiation='none',
-boundary_layer='um',
-convection='none',
-microphysics='um',
-cloud='um'
+    radiation='none',
+    boundary_layer='um',
+    convection='none',
+    microphysics='um',
+    cloud='um'
 /

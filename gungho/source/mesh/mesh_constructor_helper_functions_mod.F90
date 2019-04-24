@@ -8,7 +8,7 @@
 module mesh_constructor_helper_functions_mod
 
 use base_mesh_config_mod,   only : geometry, &
-                                   base_mesh_geometry_spherical
+                                   geometry_spherical
 use domain_size_config_mod, only : planar_domain_min_x, &
                                    planar_domain_max_x, &
                                    planar_domain_min_y, &
@@ -195,7 +195,7 @@ contains
       end do
     end do
 
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
 
       ! Convert (long,lat,r) -> (x,y,z)
       ! long,lat in radians
@@ -497,7 +497,7 @@ contains
     integer(i_def),         intent(in)  :: nverts
     real(r_def),            intent(in)  :: vertex_coords(3,nverts)
 
-    if ( geometry == base_mesh_geometry_spherical ) then
+    if ( geometry == geometry_spherical ) then
       domain_size%minimum%x   =  0.0_r_def
       domain_size%maximum%x   =  2.0_r_def*PI
       domain_size%minimum%y   = -0.5_r_def*PI
@@ -539,7 +539,7 @@ contains
     real(r_def) :: base_z
 
     ! Set base surface height
-    if( geometry == base_mesh_geometry_spherical )then
+    if( geometry == geometry_spherical )then
       !> @todo We shouldn't be using earth_radius here - it should be
       !!       some form of scaled planet radius - but that is a much
       !!       bigger change for a different ticket.

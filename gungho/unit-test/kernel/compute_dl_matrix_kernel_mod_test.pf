@@ -51,10 +51,10 @@ contains
                                          feign_finite_element_config, &
                                          feign_planet_config
 
-    use timestepping_config_mod,   only: timestepping_method_semi_implicit, &
-                                         timestepping_runge_kutta_method_ssp3
-    use extrusion_config_mod,      only: extrusion_method_uniform
-    use finite_element_config_mod, only: finite_element_cellshape_quadrilateral
+    use timestepping_config_mod,   only: method_semi_implicit, &
+                                         runge_kutta_method_ssp3
+    use extrusion_config_mod,      only: method_uniform
+    use finite_element_config_mod, only: cellshape_quadrilateral
 
     implicit none
 
@@ -67,25 +67,25 @@ contains
 
     call feign_damping_layer_config( dl_base=800.0_r_def, dl_str=0.015_r_def )
 
-    call feign_extrusion_config( domain_top=6000.0_r_def,         &
-                                 method=extrusion_method_uniform, &
+    call feign_extrusion_config( domain_top=6000.0_r_def, &
+                                 method=method_uniform,   &
                                  number_of_layers=3_i_def )
 
-    call feign_timestepping_config(                                   &
-             method=timestepping_method_semi_implicit,                &
-             dt=1.0_r_def, alpha=0.5_r_def, tau_u=0.5_r_def,          &
-             tau_t=0.5_r_def, tau_r=0.5_r_def,                        &
-             outer_iterations=4_i_def, inner_iterations=1_i_def,      &
-             runge_kutta_method=timestepping_runge_kutta_method_ssp3, &
-             spinup_period=0.0_r_def, spinup_alpha=.false.,           &
+    call feign_timestepping_config(                              &
+             method=method_semi_implicit,                        &
+             dt=1.0_r_def, alpha=0.5_r_def, tau_u=0.5_r_def,     &
+             tau_t=0.5_r_def, tau_r=0.5_r_def,                   &
+             outer_iterations=4_i_def, inner_iterations=1_i_def, &
+             runge_kutta_method=runge_kutta_method_ssp3,         &
+             spinup_period=0.0_r_def, spinup_alpha=.false.,      &
              spinup_winds=.false. )
 
-    call feign_finite_element_config(                          &
-             cellshape=finite_element_cellshape_quadrilateral, &
-             coordinate_order=0_i_def,                         &
-             element_order=0_i_def,                            &
-             rehabilitate=.true.,                              &
-             supg=.false.,                                     &
+    call feign_finite_element_config(           &
+             cellshape=cellshape_quadrilateral, &
+             coordinate_order=0_i_def,          &
+             element_order=0_i_def,             &
+             rehabilitate=.true.,               &
+             supg=.false.,                      &
              vorticity_in_w1=.false. )
 
     call feign_planet_config( cp=1000.0_r_def,        &
