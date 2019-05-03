@@ -21,9 +21,9 @@ module initial_cloud_kernel_mod
     ! Physics routines
     use section_choice_config_mod,     only: cloud, &
                                              cloud_um
-    use cloud_um_config_mod, only: scheme,       &
-                                   scheme_smith, &
-                                   rh_crit
+    use cloud_config_mod, only: scheme,       &
+                                scheme_smith, &
+                                rh_crit
 
     implicit none
 

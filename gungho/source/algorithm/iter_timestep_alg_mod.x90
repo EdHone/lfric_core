@@ -112,7 +112,7 @@ module iter_timestep_alg_mod
   use um_init_mod,                only: um_init
   use socrates_init_mod,          only: socrates_init
   use cld_alg_mod,                only: cld_alg_step
-  use cloud_um_config_mod,        only: scheme, &
+  use cloud_config_mod,           only: scheme, &
                                         scheme_smith
 #endif
 

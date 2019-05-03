@@ -44,9 +44,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use finite_element_config_mod, &
-      only : cellshape_quadrilateral
-    use feign_config_mod,        only : feign_finite_element_config
+    use finite_element_config_mod, only : cellshape_quadrilateral
+    use feign_config_mod,          only : feign_finite_element_config
 
     implicit none
 

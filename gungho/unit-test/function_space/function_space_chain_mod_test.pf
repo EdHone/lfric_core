@@ -88,8 +88,8 @@ use base_mesh_config_mod,      only: geometry_spherical,      &
                                      partitioner_cubedsphere
 use extrusion_mod,             only: uniform_extrusion_type
 use finite_element_config_mod, only: cellshape_quadrilateral
-use feign_config_mod,          only: feign_base_mesh_config,            &
-                                     feign_planet_config,               &
+use feign_config_mod,          only: feign_base_mesh_config,  &
+                                     feign_planet_config,     &
                                      feign_extrusion_config
 
 implicit none

@@ -15,7 +15,7 @@ contains
 
 subroutine socrates_init()
 
-  use radiation_socrates_config_mod,  only:                            &
+  use radiation_config_mod,  only:                                     &
     spectral_file_sw, spectral_file_lw,                                &
     l_h2o_sw, l_co2_sw, l_o3_sw, l_n2o_sw, l_ch4_sw, l_o2_sw,          &
     l_h2o_lw, l_co2_lw, l_o3_lw, l_n2o_lw, l_ch4_lw

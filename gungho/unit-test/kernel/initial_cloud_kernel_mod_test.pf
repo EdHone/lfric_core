@@ -39,11 +39,11 @@ contains
   subroutine setUp( this )
 
     use feign_config_mod,        only : feign_section_choice_config, &
-                                        feign_cloud_um_config,       &
+                                        feign_cloud_config,          &
                                         feign_extrusion_config
 
     use extrusion_config_mod, only: method_uniform
-    use cloud_um_config_mod,  only: scheme_smith
+    use cloud_config_mod,     only: scheme_smith
     use section_choice_config_mod, only: boundary_layer_none, &
                                          cloud_um,            &
                                          convection_none,     &
@@ -82,8 +82,8 @@ contains
                                  domain_top=1000.0_r_def, &
                                  number_of_layers=nlayers )
 
-    call feign_cloud_um_config( scheme = scheme_smith, &
-                                rh_crit=[0.96_r_def,0.9_r_def,0.8_r_def])
+    call feign_cloud_config( scheme = scheme_smith, &
+                             rh_crit=[0.96_r_def,0.9_r_def,0.8_r_def])
 
     allocate( this%answer_cfarea(undf_wth + nlayers) )
     allocate( this%answer_cfliq(undf_wth + nlayers) )

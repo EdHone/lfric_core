@@ -123,7 +123,7 @@ subroutine lw_code(nlayers,         &
     co2_mix_ratio, n2o_mix_ratio, ch4_mix_ratio, &
     cfc11_mix_ratio, cfc12_mix_ratio,            &
     cfc113_mix_ratio, hcfc22_mix_ratio, hfc134a_mix_ratio
-  use radiation_socrates_config_mod, only:    &
+  use radiation_config_mod, only:             &
     l_planet_grey_surface, planet_emissivity, &
     i_cloud_ice_type_lw, i_cloud_liq_type_lw, &
     cloud_representation, cloud_overlap,      &

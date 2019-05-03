@@ -7,13 +7,13 @@
 
 module um_init_mod
 
-  use blayer_um_config_mod,  only : flux_bc_opt_in => flux_bc_opt
-  use constants_mod,         only : i_def, i_um, r_def, r_um
+  use blayer_config_mod,    only : flux_bc_opt_in => flux_bc_opt
+  use constants_mod,        only : i_def, i_um, r_def, r_um
   use section_choice_config_mod, only : cloud,      &
                                         cloud_um,   &
                                         convection, &
                                         convection_um
-  use cloud_um_config_mod,   only : scheme,       &
+  use cloud_config_mod,      only : scheme,       &
                                     scheme_smith, &
                                     rh_crit
   use extrusion_config_mod,  only : domain_top

@@ -76,8 +76,8 @@ module gw_mixed_schur_preconditioner_alg_mod
                                              w3inv_id, wt_id
   use initial_temperature_config_mod,  only: bvf_square  
   use timestepping_config_mod,         only: dt
-  use gravity_wave_constants_config_mod, only: cs_square,                       &
-                                               b_space,                         &
+  use gravity_wave_constants_config_mod, only: cs_square,  &
+                                               b_space,    &
                                                b_space_w0, &
                                                b_space_w3, &
                                                b_space_wtheta

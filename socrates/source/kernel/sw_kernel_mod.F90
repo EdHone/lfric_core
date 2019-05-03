@@ -124,7 +124,7 @@ subroutine sw_code(nlayers,            &
 
   use well_mixed_gases_config_mod, only: &
     co2_mix_ratio, n2o_mix_ratio, ch4_mix_ratio, o2_mix_ratio
-  use radiation_socrates_config_mod, only:                    &
+  use radiation_config_mod, only:                             &
     l_planet_grey_surface, planet_albedo, l_rayleigh_sw,      &
     i_cloud_ice_type_sw, i_cloud_liq_type_sw,                 &
     cloud_representation, cloud_overlap, cloud_inhomogeneity, &

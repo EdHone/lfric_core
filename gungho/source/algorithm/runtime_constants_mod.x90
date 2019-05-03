@@ -11,7 +11,7 @@
 !>         throughout the algorithm layers
 module runtime_constants_mod
 
-  use constants_mod,                     only: i_def, r_def  
+  use constants_mod,                     only: i_def, r_def
   use log_mod,                           only: log_event, &
                                                LOG_LEVEL_INFO, &
                                                LOG_LEVEL_ERROR
@@ -58,16 +58,16 @@ module runtime_constants_mod
   use w2_normalisation_kernel_mod,           only: w2_normalisation_kernel_type
   use compute_coriolis_matrix_kernel_mod,    only: compute_coriolis_matrix_kernel_type
   use compute_mass_matrix_kernel_w2_mod,     only: compute_mass_matrix_kernel_w2_type
-  use io_config_mod,                         only: subroutine_timers 
+  use io_config_mod,                         only: subroutine_timers
   use timer_mod,                             only: timer
   implicit none
 
   private
 
   ! Variables private to this module that can only be accessed by public
-  ! functions returning pointers to them 
+  ! functions returning pointers to them
 
-  type(field_type), target              :: mm0_diag 
+  type(field_type), target              :: mm0_diag
   type(field_type), target              :: mm1_diag
   type(field_type), target              :: mm2_diag
   type(field_type), target              :: mm3_diag
@@ -173,8 +173,8 @@ contains
     type(function_space_type), pointer :: w2v_fs    => null()
     type(function_space_type), pointer :: w3_fs     => null()
     type(function_space_type), pointer :: wtheta_fs => null()
-    type(function_space_type), pointer :: wth_k0_fs => null() ! lowest order wth fs 
-    type(function_space_type), pointer :: w3_k0_fs  => null() ! lowest order w3 fs 
+    type(function_space_type), pointer :: wth_k0_fs => null() ! lowest order wth fs
+    type(function_space_type), pointer :: w3_k0_fs  => null() ! lowest order w3 fs
     type(field_type)                   :: ones
     type(field_type)                   :: dx_at_w2
 
@@ -326,7 +326,7 @@ contains
                  inc_X_powint_n(mt_lumped_inv, i_minus_one) )
 
     !================= Create a height field =====================!
-    ! Note that these fields represent the height relative to 
+    ! Note that these fields represent the height relative to
     ! the surface as represented by a sphere.  With the current
     ! representation of chi, this will result in the lowest
     ! levels being -ve. This should be reviewed with ticket #562
@@ -337,7 +337,7 @@ contains
 
     !=== Create multiplicity for horizontally continuous fields ===!
     ! NB most of the time we want 1/multiplicity
-    
+
     nodal_multiplicity_w1  = field_type( vector_space = w1_fs )
     nodal_multiplicity_w2  = field_type( vector_space = w2_fs )
     if ( present(shifted_mesh_id) ) then
@@ -574,7 +574,7 @@ contains
   function get_mass_matrix(i) result(mm)
     implicit none
     integer(i_def), intent(in) :: i
-    type(operator_type), pointer :: mm 
+    type(operator_type), pointer :: mm
 
     select case (i)
       case (w0_id)
@@ -613,7 +613,7 @@ contains
   function get_mass_matrix_diagonal(i) result(mmd)
     implicit none
     integer(i_def), intent(in) :: i
-    type(field_type), pointer :: mmd  
+    type(field_type), pointer :: mmd
 
     select case (i)
       case (w0_id)
@@ -703,7 +703,7 @@ contains
 
   !> @brief Function to return a pointer to a inverse lumped mass matrix
   !> @param[in] i Index of the desired lumped mass matrix inverse field
-  !> @return The lumped inverse mass matrix 
+  !> @return The lumped inverse mass matrix
   function get_inverse_lumped_mass_matrix(i) result(mm)
     implicit none
     integer(i_def), intent(in) :: i
@@ -793,12 +793,12 @@ contains
 
     implicit none
 
-    call mm0_diag%field_final() 
-    call mm1_diag%field_final() 
-    call mm2_diag%field_final() 
-    call mm3_diag%field_final() 
-    call eye%field_final() 
-    call mmtheta_diag%field_final() 
+    call mm0_diag%field_final()
+    call mm1_diag%field_final()
+    call mm2_diag%field_final()
+    call mm3_diag%field_final()
+    call eye%field_final()
+    call mmtheta_diag%field_final()
     call mm_w0%operator_final()
     call mm_w1%operator_final()
     call mm_w2%operator_final()
@@ -807,26 +807,26 @@ contains
     call mm_w3_inv%operator_final()
     call mm_wtheta%operator_final()
     call mm_dl%operator_final()
-    call geopotential%field_final() 
-    call temp_w2_field%field_final() 
-    call cell_orientation%field_final() 
+    call geopotential%field_final()
+    call temp_w2_field%field_final()
+    call cell_orientation%field_final()
     call detj_at_w2%field_final()
     call detj_at_w2_shifted%field_final()
-    call dA_at_w2%field_final() 
+    call dA_at_w2%field_final()
     call grad%operator_final()
     call curl%operator_final()
     call div%operator_final()
     call broken_div%operator_final()
     call qr%quadrature_final()
-    call m0_lumped_inv%field_final() 
-    call m1_lumped_inv%field_final() 
-    call mt_lumped_inv%field_final() 
+    call m0_lumped_inv%field_final()
+    call m1_lumped_inv%field_final()
+    call mt_lumped_inv%field_final()
     call height_wth%field_final()
-    call height_w3%field_final() 
-    call nodal_rmultiplicity_w1%field_final() 
-    call nodal_rmultiplicity_w2%field_final() 
-    call nodal_rmultiplicity_w2h%field_final() 
-    call nodal_rmultiplicity_w0%field_final() 
+    call height_w3%field_final()
+    call nodal_rmultiplicity_w1%field_final()
+    call nodal_rmultiplicity_w2%field_final()
+    call nodal_rmultiplicity_w2h%field_final()
+    call nodal_rmultiplicity_w0%field_final()
     call w2_normalisation%field_final()
 
     nullify(coords)

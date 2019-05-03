@@ -16,7 +16,7 @@ module bl_kernel_mod
   use constants_mod,          only : i_def, i_um, r_def, r_um
   use fs_continuity_mod,      only : W3, Wtheta
   use kernel_mod,             only : kernel_type
-  use blayer_um_config_mod,   only : fixed_flux_e, fixed_flux_h
+  use blayer_config_mod,      only : fixed_flux_e, fixed_flux_h
   use mixing_config_mod,      only : smagorinsky
   use timestepping_config_mod, only: outer_iterations
 
