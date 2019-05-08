@@ -276,6 +276,41 @@ module iterative_solver_mod
      end subroutine
   end interface
 
+  !! ---  Jacobi type declaration and interfaces --- !!
+  
+  type, public, extends(abstract_iterative_solver_type) :: jacobi_type
+     private
+   contains
+     procedure :: apply => jacobi_solve
+     procedure :: jacobi_solve
+  end type jacobi_type
+
+  ! overload the default structure constructor
+  interface jacobi_type
+     module procedure jacobi_constructor
+  end interface
+
+  ! the constructor will be in a submodule
+  interface 
+     module function jacobi_constructor( lin_op, prec, r_tol, a_tol, max_iter) & 
+          result(self)
+       class(abstract_linear_operator_type), target, intent(in) :: lin_op
+       class(abstract_preconditioner_type),  target, intent(in) :: prec
+       real(kind=r_def),                             intent(in) :: r_tol
+       real(kind=r_def),                             intent(in) :: a_tol
+       integer(kind=i_def),                          intent(in) :: max_iter
+       type(jacobi_type) :: self
+     end function
+  end interface
+  
+  interface 
+     module subroutine jacobi_solve(self, x, b)
+       class(jacobi_type), intent(inout) :: self
+       class(abstract_vector_type),    intent(inout) :: x
+       class(abstract_vector_type),    intent(inout) :: b
+     end subroutine
+  end interface
+
 end module iterative_solver_mod
 
 !  Submodule with procedures for conjugate gradient !!
@@ -1156,3 +1191,93 @@ contains
   end subroutine precondition_only_solve
 
 end submodule precondition_only_smod
+
+!  Submodule with procedures for Jacobi solver !!
+submodule(iterative_solver_mod) jacobi_smod
+contains
+  !> constructs a <code>Jacobi</code> solver
+  !! sets the values for the solver such as the residual (r_tol) and
+  !! points the linear operator and preconditioner at those passed in.
+  !> @param[in] lin_op The linear operator the solver will use
+  !> @param[in] prec The preconditioner the solver will use
+  !> @param[in] r_tol real, the relative tolerance halting condition
+  !> @param[in] a_tol real, the absolute tolerance halting condition
+  !> @param[in] max_inter, integer the maximum number of iterations
+  !> @return the constructed jacobi solver
+  module function jacobi_constructor(lin_op, prec, r_tol, a_tol, max_iter) result(self)
+    implicit none
+    class(abstract_linear_operator_type), target, intent(in) :: lin_op
+    class(abstract_preconditioner_type),  target, intent(in) :: prec
+    real(kind=r_def),                             intent(in) :: r_tol
+    real(kind=r_def),                             intent(in) :: a_tol
+    integer(kind=i_def),                          intent(in) :: max_iter
+    type(jacobi_type) :: self
+    
+    self%lin_op   => lin_op
+    self%prec     => prec
+    self%r_tol    = r_tol
+    self%a_tol    = a_tol
+    self%max_iter = max_iter
+
+  end function
+
+  !> Jacobi solve. Over-rides the abstract interface to do the actual solve.
+  !> @param[inout] b an abstract vector which will be an actual vector of unkown extended type
+  !! This the "RHS" or boundary conditions,
+  !> @param[inout] x an abstract vector which is the solution
+  !> @param[self] The solver which has pointers to the lin_op and preconditioner
+  module subroutine jacobi_solve(self, x, b)
+    implicit none
+    class(jacobi_type),          intent(inout) :: self
+    class(abstract_vector_type), intent(inout) :: x
+    class(abstract_vector_type), intent(inout) :: b
+
+    ! written in terms of abstract types
+    integer(kind=i_def) :: iter
+    real(kind=r_def)    :: r_nrm, r_nrm_0
+    logical             :: converged
+    
+    ! temporary vectors 
+    class(abstract_vector_type), allocatable :: r
+    class(abstract_vector_type), allocatable :: z
+
+    real(kind=r_def), parameter :: const = -0.5_r_def
+
+    call b%duplicate(r)
+    call b%duplicate(z)
+    call r%set_scalar(0.0_r_def)
+    call z%set_scalar(0.0_r_def)
+
+    converged=.false.
+
+    ! Solve Ax = b
+    do iter=1, self%max_iter
+      call self%lin_op%apply(x, r) ! r = Ax
+      call r%axpy(-1.0_r_def, b) ! r = r - b = Ax - b
+
+      ! Check for convergence
+      r_nrm = r%norm()
+      if ( iter == 1 ) r_nrm_0 = r_nrm 
+      if (      ( r_nrm/r_nrm_0 <= self%r_tol ) &
+           .or. ( r_nrm <= self%a_tol ) ) then
+         converged=.true.
+         exit
+      end if
+
+      call self%prec%apply(r, z) ! z = P^{-1}.r = P^{-1}.(Ax - b)
+      call x%axpy(const, z) ! x = x + const*z = x + const*P^{-1}(Ax - b)
+
+    end do
+    if (converged) then
+       write(log_scratch_space, &
+            '("jacobi converged after ",I6," iterations")') iter
+       call log_event(log_scratch_space,LOG_LEVEL_INFO)
+    else
+       write(log_scratch_space, &
+            '("jacobi failed to converge after ",I6," iterations")') iter
+       call log_event(log_scratch_space,LOG_LEVEL_ERROR)
+    end if
+
+  end subroutine jacobi_solve
+
+end submodule jacobi_smod

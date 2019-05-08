@@ -27,14 +27,11 @@ module solver_miniapp_alg_mod
   use iterative_solver_mod,           only : abstract_iterative_solver_type, &
                                              conjugate_gradient_type,        &
                                              bicgstab_type,                  &
-                                             gmres_type
-  use solver_config_mod,              only : tolerance,               &
-                                             maximum_iterations,      &
-                                             method,                  &
-                                             method_cg,               &
-                                             method_bicgstab,         &
-                                             method_gmres,            &
-                                             preconditioner,          &
+                                             gmres_type,                     &
+                                             jacobi_type
+  use solver_config_mod,              only : method, tolerance, maximum_iterations, preconditioner, &
+                                             method, method_cg, method_bicgstab, &
+                                             method_gmres, method_jacobi, &
                                              preconditioner_diagonal, &
                                              gcrk
 
@@ -136,6 +133,17 @@ contains
          ! Catch type error
           call log_event("solver_miniapp_alg: solver type failure: Should be GMRES",LOG_LEVEL_ERROR)
        end select       
+    case( method_jacobi )
+       call log_event("setting solver to Jacobi", LOG_LEVEL_INFO)
+       allocate( jacobi_type :: solver )
+       select type( solver )
+       type is ( jacobi_type )        
+          solver = jacobi_type( op, prec, tolerance, tolerance, maximum_iterations )
+
+       class default
+         ! Catch type error
+          call log_event("solver_miniapp_alg: solver type failure: Should be Jacobi",LOG_LEVEL_ERROR)
+       end select
     case default
        write(log_scratch_space,'(A, I0)') "solver_miniapp_alg: solver choice not supported, exiting: ", method
        call log_event(log_scratch_space, LOG_LEVEL_ERROR)

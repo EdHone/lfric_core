@@ -102,7 +102,7 @@ contains
       tri_precon(2) = field_type(vector_space = w3_fs)
       tri_precon(3) = field_type(vector_space = w3_fs)
     end if
-    helm_diag     = field_type(vector_space = w3_fs)
+    Helm_diag     = field_type(vector_space = w3_fs)
     Hb_lumped_inv = field_type(vector_space = w2_fs)
 
     nullify( w2_fs, w3_fs, wt_fs )
@@ -148,7 +148,6 @@ contains
     use weighted_proj_theta2_vert_kernel_mod, &
                                          only: weighted_proj_theta2_vert_kernel_type
     use compound_operator_kernel_mod,    only: compound_operator_kernel_type
-    use compute_tri_precon_kernel_mod,   only: compute_tri_precon_kernel_type
     use sample_flux_kernel_mod,          only: sample_flux_kernel_type
     use psykal_lite_mod,                 only: invoke_weighted_div_bd_kernel_type,         &
                                                invoke_weighted_div_bd_kernel_type,         &
@@ -171,6 +170,8 @@ contains
     use mesh_mod,                        only: mesh_type
     use matrix_vector_kernel_mod,        only: matrix_vector_kernel_type
     use formulation_config_mod,          only: dlayer_on
+    use compute_p0_vert_precon_kernel_mod, &
+                                         only: compute_p0_vert_precon_kernel_type
 
     implicit none
 
@@ -188,7 +189,7 @@ contains
     type(function_space_type),     pointer :: u_fs => null()
     real(r_def)                            :: const1, const2
     integer(i_def), parameter              :: imone = -1_i_def
-    real(r_def), parameter                 :: one   = 1_i_def
+    real(r_def), parameter                 :: one   = 1_r_def
     class(reference_element_type), pointer :: reference_element =>null()
     type(mesh_type),               pointer :: mesh => null()
     type(operator_type),           pointer :: m2 => null()
@@ -275,20 +276,25 @@ contains
 
     ! Compute terms for tridiagonal preconditioner
     if ( preconditioner == preconditioner_tridiagonal ) then
-      call invoke( compute_tri_precon_kernel_type(tri_precon, theta, rho, exner, chi) )
-    end if
-    if ( normalise ) then
-      if ( preconditioner == preconditioner_tridiagonal) then
-        Helm_diag = tri_precon(1)
-        ! PSyclone does not currently support raising field to an integer power
-        call invoke( name = "Normalise tridiagonal preconditioner", &
-                     inc_X_powint_n(Helm_diag, imone),              &
-                     inc_X_times_Y(tri_precon(1), Helm_diag),       &
-                     inc_X_times_Y(tri_precon(2), Helm_diag),       &
-                     inc_X_times_Y(tri_precon(3), Helm_diag) )
+      ! Build using the FEM helmholtz operator, only valid for lowest order
+      if ( element_order == 0 ) then 
+        call invoke( compute_p0_vert_precon_kernel_type(tri_precon,                               &
+                                                        div_star, hb_lumped_inv, u_normalisation, &
+                                                        t_normalisation, compound_div, p3theta,   &
+                                                        ptheta2v,                                 &
+                                                        m3_exner_star,  m3_inv) )
       else
-        call invoke( setval_c(Helm_diag, 1.0_r_def) )
+        call log_event( "Gungho: tridiagonal preconditioner invalid for element_order > 0", LOG_LEVEL_ERROR )
       end if
+    end if
+    if ( normalise .and. &
+         preconditioner == preconditioner_tridiagonal ) then
+      Helm_diag = tri_precon(1)
+      call invoke( name = "Normalise tridiagonal preconditioner", &
+                   inc_X_powint_n(Helm_diag, imone),              &
+                   inc_X_times_Y(tri_precon(1), Helm_diag),       &
+                   inc_X_times_Y(tri_precon(2), Helm_diag),       &
+                   inc_X_times_Y(tri_precon(3), Helm_diag) )
     else
       call invoke( setval_c(Helm_diag, 1.0_r_def) )
     end if

@@ -119,8 +119,8 @@ contains
     use helmholtz_solver_config_mod,     only: normalise
     implicit none
     class(pressure_operator_type), intent(inout) :: self
-    class(abstract_vector_type), intent(in)      :: x
-    class(abstract_vector_type), intent(inout)   :: y
+    class(abstract_vector_type),   intent(in)    :: x
+    class(abstract_vector_type),   intent(inout) :: y
 
     type(operator_type), pointer :: m3_exner_star => null(),   &
                                     div_star => null(),        &

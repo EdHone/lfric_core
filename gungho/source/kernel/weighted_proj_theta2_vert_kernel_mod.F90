@@ -114,16 +114,16 @@ subroutine weighted_proj_theta2_vert_code(cell, nlayers, ncell_3d,              
   real(kind=r_def), dimension(nqp_v), intent(in) ::  wqp_v
 
   ! Internal variables
-  integer(kind=i_def) :: df, k, ik, dft, df2, ndf_w2v
+  integer(kind=i_def) :: df, k, ik, dft, df2, ndf_w2h
   integer(kind=i_def) :: qp1, qp2
   
   real(kind=r_def), dimension(ndf_wtheta) :: theta_e
   real(kind=r_def) :: grad_theta_at_quad(3)
   real(kind=r_def) :: integrand, i1(3), i2
 
-  ! First index of vertical component of W2 space
+  ! Last index of horizontal component of W2 space
   ! Assumes dofs in W2 are ordered (uv,w)
-  ndf_w2v = ndf_w2/3 + 1  
+  ndf_w2h = 2*ndf_w2/3 
 
   do k = 0, nlayers-1
     ik = k + 1 + (cell-1)*nlayers
@@ -139,7 +139,7 @@ subroutine weighted_proj_theta2_vert_code(cell, nlayers, ncell_3d,              
                                 + theta_e(df)*wtheta_diff_basis(:,df,qp1,qp2)
         end do
         i1 = scalar*grad_theta_at_quad*wqp_h(qp1)*wqp_v(qp2)
-        do df2 = ndf_w2v,ndf_w2
+        do df2 = ndf_w2h+1,ndf_w2
           i2 = dot_product(i1,w2_basis(:,df2,qp1,qp2))
           do dft = 1,ndf_wtheta
             integrand = wtheta_basis(1,dft,qp1,qp2)*i2

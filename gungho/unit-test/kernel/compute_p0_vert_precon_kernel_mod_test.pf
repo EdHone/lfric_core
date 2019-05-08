@@ -1,0 +1,174 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2019 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!> Test the vertical preconditioner
+!>
+module compute_p0_vert_precon_kernel_mod_test
+
+  use constants_mod, only : i_def, r_def
+  use pFUnit_Mod
+
+  implicit none
+
+  private
+  public :: test_all
+
+  @TestCase
+  type, extends(TestCase), public :: compute_p0_vert_precon_test_type
+    private
+  contains
+    procedure test_all
+  end type compute_p0_vert_precon_test_type
+
+contains
+
+  @test
+  subroutine test_all( this )
+
+    use compute_p0_vert_precon_kernel_mod, only : compute_p0_vert_precon_code
+
+    implicit none
+
+    class(compute_p0_vert_precon_test_type), intent(inout) :: this
+
+    real(r_def), parameter :: tol = 1.0e-12_r_def
+
+    ! Mesh information
+    integer(i_def), parameter :: ncell = 1
+    integer(i_def), parameter :: nlayers = 3
+    integer(i_def), parameter :: ncell3d = ncell*nlayers
+    real(r_def),    parameter :: dv = 8.0_r_def 
+    real(r_def),    parameter :: dL = 2.0_r_def 
+
+    real(r_def),    parameter :: Nsq = 0.001_r_def
+    real(r_def),    parameter :: p_ref = 1.1_r_def 
+    ! Function space information
+    integer(i_def), parameter :: ndf_w3 = 1
+    integer(i_def), parameter :: ndf_w2h = 4
+    integer(i_def), parameter :: ndf_w2v = 2
+    integer(i_def), parameter :: ndf_w2 = ndf_w2h + ndf_w2v
+    integer(i_def), parameter :: ndf_wt = 2
+    integer(i_def), parameter :: undf_w3 = nlayers*ndf_w3*ncell
+    integer(i_def), parameter :: undf_w2 = nlayers*ndf_w2h*ncell &
+                                         + (nlayers+1)*ncell
+    integer(i_def), parameter :: undf_wt = (nlayers+1)*ncell
+
+    integer(i_def), dimension(ndf_w3) :: map_w3
+    integer(i_def), dimension(ndf_w2) :: map_w2
+    integer(i_def), dimension(ndf_wt) :: map_wt
+
+    ! Operators to build the preconditioner
+    real(r_def), dimension(ndf_w2, ndf_w3, ncell3d) :: div_star
+    real(r_def), dimension(ndf_w3, ndf_w2, ncell3d) :: compound_div
+    real(r_def), dimension(ndf_w3, ndf_wt, ncell3d) :: p3theta
+    real(r_def), dimension(ndf_wt, ndf_w2, ncell3d) :: ptheta2v
+    real(r_def), dimension(ndf_w3, ndf_w3, ncell3d) :: m3_exner_star
+    real(r_def), dimension(ndf_w3, ndf_w3, ncell3d) :: m3_inv
+
+    ! Fields to  build the preconditioner
+    real(r_def), dimension(undf_w2) :: hb_lumped_inv, &
+                                       u_normalisation
+    real(r_def), dimension(undf_wt) :: t_normalisation, t
+
+    ! Fields to store the preconditioner
+    real(r_def), dimension(undf_w3) :: tri_0, tri_p, tri_m
+
+    integer(i_def) :: df, cell, k
+
+    real(kind=r_def)                    :: answer
+    real(kind=r_def), dimension(ndf_w2) :: grad_p, grad_p_bc
+
+    ! Set dofmaps
+    map_w3(1) = 1_i_def
+    do df = 1,ndf_w2h
+      map_w2(df) = 1_i_def + (df-1_i_def)*nlayers
+    end do
+    do df = ndf_w2h+1,ndf_w2
+      map_w2(df) = ndf_w2h*nlayers + (df-ndf_w2h)
+    end do
+    map_wt(:) =(/ 1_i_def, 2_i_def /)
+
+    ! Fill operators with indicative values
+    ptheta2v(:,:,:) = 0.0_r_def
+    do cell = 1, ncell3d
+      m3_inv(1,1,cell) = 1.0_r_def/dV
+      m3_exner_star(1,1,cell) = dV/p_ref
+      div_star(:,1,cell) = (/ -1.0_r_def, 1.0_r_def, 1.0_r_def, -1.0_r_def, -1.0_r_def, 1.0_r_def /)
+      compound_div(1,:,cell) = -(/ -1.0_r_def, 1.0_r_def, 1.0_r_def, -1.0_r_def, -1.0_r_def, 1.0_r_def /)
+      p3theta(1,:,cell) = dV*(/ 0.5_r_def, 0.5_r_def /)   
+      ptheta2v(1,5,cell) = 0.5_r_def
+      ptheta2v(2,6,cell) = 0.5_r_def
+    end do
+
+    ! Fields to build the preconditioner
+    t_normalisation(:) = 1.0_r_def/dV
+    u_normalisation(:) = dL
+    hb_lumped_inv(:)   = (1.0_r_def + Nsq)/dL
+ 
+    call compute_p0_vert_precon_code(1_i_def,                 &
+                                     nlayers,                 &
+                                     tri_0, tri_p, tri_m,     &
+                                     ncell3d,                 &
+                                     div_star,                &
+                                     hb_lumped_inv,           &
+                                     u_normalisation,         &
+                                     t_normalisation,         &
+                                     ncell3d,                 &
+                                     compound_div,            &
+                                     ncell3d,                 &
+                                     p3theta,                 &
+                                     ncell3d,                 &
+                                     ptheta2v,                &
+                                     ncell3d,                 &
+                                     m3_exner_star,           &
+                                     ncell3d,                 &
+                                     m3_inv,                  &
+                                     ndf_w3, undf_w3, map_w3, &
+                                     ndf_w2, undf_w2, map_w2, &
+                                     ndf_wt, undf_wt, map_wt)
+
+    do df = 1, ndf_w2
+      grad_p(df) = div_star(df,1,1)*(1.0_r_def + Nsq)
+    end do
+
+    do k = 0, nlayers-2
+      answer = (compound_div(1,6,1) + p3theta(1,2,1)/dV)*grad_p(5)/dV
+      @assertEqual( answer, tri_p(map_w3(1)+k), tol )
+    end do
+    @assertEqual( 0.0_r_def, tri_p(map_w3(1)+nlayers-1) )
+    @assertEqual( 0.0_r_def, tri_m(map_w3(1)) )
+    do k = 1, nlayers-1
+      answer = (compound_div(1,5,1) + p3theta(1,1,1)/dV)*grad_p(6)/dV
+      @assertEqual( answer, tri_m(map_w3(1)+k), tol )
+    end do
+
+    ! Apply pointwise mapping of grad_p to t
+    t = 0.0_r_def
+    do k = 0,nlayers-1
+      grad_p_bc = grad_p
+      if ( k == 0 )         grad_p_bc(5) = 0.0_r_def
+      if ( k == nlayers-1 ) grad_p_bc(6) = 0.0_r_def
+      t(k)   = t(k)   + ptheta2v(1,5,1)*grad_p_bc(5)
+      t(k+1) = t(k+1) + ptheta2v(2,6,1)*grad_p_bc(6)
+    end do
+
+    do k = 1,nlayers-1
+      ! Include boundary conditions in grad_p
+      grad_p_bc = grad_p
+      if ( k == 0 )         grad_p_bc(5) = 0.0_r_def
+      if ( k == nlayers-1 ) grad_p_bc(6) = 0.0_r_def
+      answer = 1.0_r_def/p_ref
+      do df = 1,ndf_w2
+        answer = answer + compound_div(1,df,1)/dV*grad_p_bc(df)
+      end do
+
+      answer = answer + p3theta(1,1,1)*t(k) + p3theta(1,2,1)*t(k+1)
+      @assertEqual( answer, tri_0(map_w3(1)+k), tol )
+    end do
+
+  end subroutine test_all
+
+end module compute_p0_vert_precon_kernel_mod_test

@@ -39,7 +39,8 @@ module mass_matrix_solver_alg_mod
                                                 fgmres_type,                    &
                                                 gcr_type,                       &
                                                 conjugate_gradient_type,        &
-                                                precondition_only_type
+                                                precondition_only_type,         &
+                                                jacobi_type
 
 
   use io_config_mod,                      only: subroutine_timers
@@ -69,6 +70,7 @@ contains
                                            method_fgmres,                      &
                                            method_gcr,                         &
                                            method_prec_only,                   &
+                                           method_jacobi,                      &
                                            preconditioner,                     &
                                            preconditioner_diagonal,            &
                                            preconditioner_none
@@ -134,6 +136,8 @@ contains
          allocate ( gcr_type :: mass_matrix_solver )
       case(METHOD_PREC_ONLY)
          allocate ( precondition_only_type :: mass_matrix_solver )
+      case(METHOD_JACOBI)
+         allocate ( jacobi_type :: mass_matrix_solver )
       case default
          call log_event("Unknown mass matrix solver specified",LOG_LEVEL_ERROR)
       end select
@@ -235,6 +239,12 @@ contains
                                                       mass_matrix_preconditioner, &
                                                       tolerance,                  &
                                                       solver_a_tol)
+      type is ( jacobi_type )        
+         mass_matrix_solver = jacobi_type( mass_matrix_operator,       &
+                                           mass_matrix_preconditioner, &
+                                           tolerance,                  &
+                                           solver_a_tol,               &
+                                           maximum_iterations)
       class default
          call log_event("Can not initialise mass matrix solver",LOG_LEVEL_ERROR)
       end select
