@@ -5,6 +5,7 @@
 @startuml
 
 !include look.iuml
+!include mesh/mesh_collection_mod.iuml
 !include mesh/global_mesh_collection_mod.iuml
 
 class mesh_mod::mesh_type {

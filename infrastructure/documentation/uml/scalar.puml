@@ -2,8 +2,9 @@
 ' For further details please refer to the file LICENCE.original which you
 ' should have received as part of this distribution.
 
-set namespaceSeparator ::
+@startuml
 
-skinparam shadowing false
-skinparam classAttributeIconSize 0
-hide class circle
+!include look.iuml
+!include field/scalar_mod.iuml
+
+@enduml

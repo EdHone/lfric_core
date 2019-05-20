@@ -5,9 +5,7 @@
 @startuml
 
 !include look.iuml
-!include mesh/extrusion_mod.iuml
-!include mesh/global_mesh_mod.iuml
-!include mesh/partition_mod.iuml
+!include mesh/mesh_mod.iuml
 
 mesh_mod::mesh_type o-> partition_mod::partition_type
 mesh_mod::mesh_type -> extrusion_mod::extrusion_type

@@ -13,7 +13,6 @@ module field_vector_mod
   use field_mod,                     only : field_type
   use function_space_collection_mod, only : function_space_collection
   use fs_continuity_mod
-  use finite_element_config_mod,     only : element_order
   use log_mod,                       only : log_event, LOG_LEVEL_ERROR, &
                                             log_scratch_space
 
