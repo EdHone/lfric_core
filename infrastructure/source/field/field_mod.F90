@@ -747,7 +747,8 @@ contains
   !!
   subroutine log_minmax( self, log_level, label )
 
-    use log_mod,    only : log_event, log_scratch_space, LOG_LEVEL_DEBUG
+    use log_mod,    only : log_event, log_scratch_space,     &
+                           application_log_level => log_level
     use scalar_mod, only : scalar_type
     implicit none
 
@@ -756,6 +757,10 @@ contains
     character( * ),              intent(in) :: label
     integer(i_def)                          :: undf
     type(scalar_type)                       :: fmin, fmax
+
+    ! If we aren't going to log the min and max then we don't need to
+    ! do any further work here.
+    if ( log_level < application_log_level() ) return
 
     undf = self%vspace%get_last_dof_owned()
     fmin = scalar_type( minval( self%data(1:undf) ) )
@@ -775,7 +780,8 @@ contains
   !!
   subroutine log_absmax( self, log_level, label )
 
-    use log_mod,    only : log_event, log_scratch_space, LOG_LEVEL_DEBUG
+    use log_mod,    only : log_event, log_scratch_space,     &
+                           application_log_level => log_level
     use scalar_mod, only : scalar_type
     implicit none
 
@@ -784,6 +790,10 @@ contains
     character( * ),              intent(in) :: label
     integer(i_def)                          :: undf
     type(scalar_type)                       :: fmax
+
+    ! If we aren't going to log the abs max then we don't need to
+    ! do any further work here.
+    if ( log_level < application_log_level() ) return
 
     undf = self%vspace%get_last_dof_owned()
     fmax = scalar_type( maxval( abs(self%data(1:undf)) ) )
