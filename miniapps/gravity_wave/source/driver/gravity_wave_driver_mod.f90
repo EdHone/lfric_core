@@ -22,20 +22,16 @@ module gravity_wave_driver_mod
   use field_mod,                      only: field_type
   use field_collection_mod,           only: field_collection_type
   use function_space_chain_mod,       only: function_space_chain_type
+  use gravity_wave_mod,               only: program_name
   use gw_init_fields_alg_mod,         only: gw_init_fields_alg
   use init_gravity_wave_mod,          only: init_gravity_wave
   use step_gravity_wave_mod,          only: step_gravity_wave
   use final_gravity_wave_mod,         only: final_gravity_wave
   use log_mod,                        only: log_event,          &
-                                            log_set_level,      &
                                             log_scratch_space,  &
-                                            initialise_logging, &
-                                            finalise_logging,   &
-                                            LOG_LEVEL_ERROR,    &
+                                            LOG_LEVEL_ALWAYS,   &
                                             LOG_LEVEL_INFO,     &
-                                            LOG_LEVEL_DEBUG,    &
-                                            LOG_LEVEL_TRACE,    &
-                                            log_scratch_space
+                                            LOG_LEVEL_TRACE
   use io_mod,                         only: read_checkpoint,    &
                                             write_checkpoint
   use io_config_mod,                  only: write_diag,           &
@@ -58,7 +54,6 @@ module gravity_wave_driver_mod
 
   public initialise, run, finalise
 
-  character(*), public, parameter   :: program_name = 'gravity_wave'
   character(*), public, parameter   :: xios_ctx = 'gravity_wave'
   character(*), public, parameter   :: xios_id  = 'lfric_client'
 
@@ -97,6 +92,8 @@ contains
 
   ! Initialise aspects of the infrastructure
   call initialise_infrastructure(comm, filename, program_name, xios_id)
+
+  call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
   if ( subroutine_timers ) call timer(program_name)
 
@@ -167,6 +164,8 @@ contains
 
   integer(i_def) :: timestep
 
+  call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
   !--------------------------------------------------------------------------
   ! Model step
   !--------------------------------------------------------------------------
@@ -215,7 +214,8 @@ contains
 
   !----------------------------------------------------------------------------
   ! Model finalise
-  !----------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
   call final_gravity_wave(prognostic_fields, program_name)
 
@@ -224,7 +224,6 @@ contains
     call write_checkpoint(prognostic_fields,timestep_end)
   end if
 
-  call log_event( program_name//': Miniapp run complete', LOG_LEVEL_INFO )
   if ( subroutine_timers ) then
     call timer(program_name)
     call output_timer()
@@ -235,6 +234,8 @@ contains
   !----------------------------------------------------------------------------
 
   call finalise_io()
+
+  call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
   call finalise_infrastructure()
 

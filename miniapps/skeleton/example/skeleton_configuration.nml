@@ -42,7 +42,6 @@ use_physics=.false.
 l_multigrid=.false.,
 /
 
-
 &io
   use_xios_io               = .true.
   write_diag                = .true.
@@ -53,6 +52,10 @@ l_multigrid=.false.,
   subroutine_counters       = .false.
   checkpoint_read           = .false.
   checkpoint_write          = .false.
+/
+
+&logging
+  run_log_level='info'
 /
 
 &time

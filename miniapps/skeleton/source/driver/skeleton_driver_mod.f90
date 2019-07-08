@@ -9,7 +9,8 @@
 !>
 module skeleton_driver_mod
 
-  use constants_mod,              only : i_def
+  use constants_mod,              only : i_def, i_native
+  use convert_to_upper_mod,       only : convert_to_upper
   use cli_mod,                    only : get_initial_filename
   use init_mesh_mod,              only : init_mesh
   use init_fem_mod,               only : init_fem
@@ -20,15 +21,19 @@ module skeleton_driver_mod
   use field_mod,                  only : field_type
   use skeleton_alg_mod,           only : skeleton_alg
   use configuration_mod,          only : final_configuration
-  use skeleton_mod,               only : load_configuration
+  use skeleton_mod,               only : load_configuration, program_name
   use derived_config_mod,         only : set_derived_config
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
                                          initialise_logging, &
                                          finalise_logging,   &
+                                         LOG_LEVEL_ALWAYS,   &
                                          LOG_LEVEL_ERROR,    &
-                                         LOG_LEVEL_INFO
+                                         LOG_LEVEL_WARNING,  &
+                                         LOG_LEVEL_INFO,     &
+                                         LOG_LEVEL_DEBUG,    &
+                                         LOG_LEVEL_TRACE
   use io_config_mod,              only : write_diag, &
                                          use_xios_io
   use diagnostics_io_mod,         only : write_scalar_diagnostic
@@ -61,6 +66,14 @@ contains
   !>
   subroutine initialise( filename )
 
+    use logging_config_mod, only: run_log_level,          &
+                                  key_from_run_log_level, &
+                                  RUN_LOG_LEVEL_ERROR,    &
+                                  RUN_LOG_LEVEL_INFO,     &
+                                  RUN_LOG_LEVEL_DEBUG,    &
+                                  RUN_LOG_LEVEL_TRACE,    &
+                                  RUN_LOG_LEVEL_WARNING
+
     implicit none
 
     character(:), intent(in), allocatable :: filename
@@ -71,6 +84,8 @@ contains
     integer(i_def) :: total_ranks, local_rank
     integer(i_def) :: comm = -999
     integer(i_def) :: dtime
+
+    integer(i_native) :: log_level
 
     ! Initialse mpi and create the default communicator: mpi_comm_world
     call initialise_comm(comm)
@@ -92,16 +107,37 @@ contains
     total_ranks = get_comm_size()
     local_rank  = get_comm_rank()
 
-    call initialise_logging(local_rank, total_ranks, "skeleton")
-
-    call log_event( 'skeleton: Running miniapp ...', LOG_LEVEL_INFO )
+    call initialise_logging(local_rank, total_ranks, program_name)
 
     call load_configuration( filename )
+
+    select case (run_log_level)
+    case( RUN_LOG_LEVEL_ERROR )
+      log_level = LOG_LEVEL_ERROR
+    case( RUN_LOG_LEVEL_WARNING )
+      log_level = LOG_LEVEL_WARNING
+    case( RUN_LOG_LEVEL_INFO )
+      log_level = LOG_LEVEL_INFO
+    case( RUN_LOG_LEVEL_DEBUG )
+      log_level = LOG_LEVEL_DEBUG
+    case( RUN_LOG_LEVEL_TRACE )
+      log_level = LOG_LEVEL_TRACE
+    end select
+
+    call log_set_level( log_level )
+
+    write(log_scratch_space,'(A)')                            &
+      'Runtime message logging severity set to log level: '// &
+      convert_to_upper(key_from_run_log_level(run_log_level))
+    call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
     call set_derived_config( .true. )
+
 
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
+    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     allocate( global_mesh_collection, &
               source = global_mesh_collection_type() )
@@ -156,6 +192,8 @@ contains
 
     implicit none
 
+    call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
     ! Call an algorithm
     call skeleton_alg(field_1)
 
@@ -182,11 +220,10 @@ contains
     !-----------------------------------------------------------------------------
     ! Model finalise
     !-----------------------------------------------------------------------------
+    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Write checksums to file
     call checksum_alg('skeleton', field_1, 'skeleton_field_1')
-
-    call log_event( 'skeleton: Miniapp completed', LOG_LEVEL_INFO )
 
     !-------------------------------------------------------------------------
     ! Driver layer finalise
@@ -208,6 +245,8 @@ contains
 
     ! Finalise mpi and release the communicator
     call finalise_comm()
+
+    call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
     ! Finalise the logging system
     call finalise_logging()

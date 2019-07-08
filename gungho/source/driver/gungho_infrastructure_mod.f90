@@ -8,13 +8,21 @@
 
 module gungho_infrastructure_mod
 
-  use constants_mod,                  only : i_def
+  use constants_mod,                  only : i_def, i_native
+  use convert_to_upper_mod,           only : convert_to_upper
   use mpi_mod,                        only : store_comm, &
                                              get_comm_size, get_comm_rank
-  use log_mod,                        only : log_event, &
+  use log_mod,                        only : log_event,          &
+                                             log_set_level,      &
+                                             log_scratch_space,  &
                                              initialise_logging, &
-                                             finalise_logging, &
-                                             LOG_LEVEL_INFO
+                                             finalise_logging,   &
+                                             LOG_LEVEL_ALWAYS,   &
+                                             LOG_LEVEL_ERROR,    &
+                                             LOG_LEVEL_WARNING,  &
+                                             LOG_LEVEL_INFO,     &
+                                             LOG_LEVEL_DEBUG,    &
+                                             LOG_LEVEL_TRACE
   use gungho_mod,                     only : load_configuration
   use configuration_mod,              only : final_configuration
   use derived_config_mod,             only : set_derived_config
@@ -40,6 +48,15 @@ contains
                                        filename, &
                                        program_name, &
                                        xios_id)
+
+    use logging_config_mod, only: run_log_level,          &
+                                  key_from_run_log_level, &
+                                  RUN_LOG_LEVEL_ERROR,    &
+                                  RUN_LOG_LEVEL_INFO,     &
+                                  RUN_LOG_LEVEL_DEBUG,    &
+                                  RUN_LOG_LEVEL_TRACE,    &
+                                  RUN_LOG_LEVEL_WARNING
+
     implicit none
 
     integer(i_def),     intent(inout) :: comm
@@ -48,6 +65,8 @@ contains
     character(*),       intent(in)    :: xios_id
 
     integer(i_def) :: total_ranks, local_rank
+
+    integer(i_native) :: log_level
 
     ! Initialise XIOS and get back the split mpi communicator
     call init_wait()
@@ -65,9 +84,28 @@ contains
 
     call initialise_logging(local_rank, total_ranks, program_name)
 
-    call log_event( program_name//': Running ...', LOG_LEVEL_INFO )
-
     call load_configuration( filename )
+
+    select case (run_log_level)
+    case( RUN_LOG_LEVEL_ERROR )
+      log_level = LOG_LEVEL_ERROR
+    case( RUN_LOG_LEVEL_WARNING )
+      log_level = LOG_LEVEL_WARNING
+    case( RUN_LOG_LEVEL_INFO )
+      log_level = LOG_LEVEL_INFO
+    case( RUN_LOG_LEVEL_DEBUG )
+      log_level = LOG_LEVEL_DEBUG
+    case( RUN_LOG_LEVEL_TRACE )
+      log_level = LOG_LEVEL_TRACE
+    end select
+
+    call log_set_level( log_level )
+
+    write(log_scratch_space,'(A)')                             &
+       'Runtime message logging severity set to log level: '// &
+       convert_to_upper(key_from_run_log_level(run_log_level))
+    call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
     call set_derived_config( .true. )
   
   end subroutine initialise_infrastructure

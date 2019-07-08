@@ -91,6 +91,10 @@
   checkpoint_write          = .true.
 /
 
+&logging
+  run_log_level='info'
+/
+
 &time
  timestep_start             = 1
  timestep_end               = 48

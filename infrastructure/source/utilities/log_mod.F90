@@ -31,6 +31,7 @@ module log_mod
   !> a break between level. Generally you will want to use these names.
   !>
   !> @{
+  integer, public, parameter :: LOG_LEVEL_ALWAYS  = 100000
   integer, public, parameter :: LOG_LEVEL_ERROR   = 200
   integer, public, parameter :: LOG_LEVEL_WARNING = 150
   integer, public, parameter :: LOG_LEVEL_INFO    = 100
@@ -154,7 +155,7 @@ contains
         write(error_unit,"('Cannot open logging file. iostat = ',i0)")ios
         stop EXIT_CODE_ON_ERROR
       end if
-      call log_event('LFRic Logging System Version 1.0',LOG_LEVEL_INFO)
+      call log_event('LFRic Logging System Version 1.0',LOG_LEVEL_ALWAYS)
     else
       is_parallel = .false.
     end if
@@ -200,6 +201,8 @@ contains
     character (10) :: time_string
     character (5)  :: zone_string
 
+    logical :: abort_run = .false.
+
     if (level >= logging_level) then
 
       select case (level)
@@ -215,9 +218,13 @@ contains
         case ( LOG_LEVEL_WARNING : LOG_LEVEL_ERROR - 1)
           unit = alert_unit
           tag  = 'WARN '
-        case ( LOG_LEVEL_ERROR : )
+        case ( LOG_LEVEL_ERROR : LOG_LEVEL_ALWAYS - 1)
           unit = alert_unit
           tag  = 'ERROR'
+          abort_run = .true. 
+        case ( LOG_LEVEL_ALWAYS : )
+          unit = info_unit
+          tag  = 'INFO'
       end select
 
       call date_and_time( date=date_string, time=time_string, zone=zone_string)
@@ -232,7 +239,7 @@ contains
       end if
 
       ! If the severity level of the event is serious enough, stop the code.
-      if ( level >= LOG_LEVEL_ERROR )then
+      if ( abort_run ) then
         stop EXIT_CODE_ON_ERROR
       end if
 

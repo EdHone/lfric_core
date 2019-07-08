@@ -12,6 +12,7 @@
 program solver_miniapp
 
   use constants_mod,                    only : i_def
+  use convert_to_upper_mod,             only : convert_to_upper               
   use cli_mod,                          only : get_initial_filename
   use init_mesh_mod,                    only : init_mesh
   use init_fem_mod,                     only : init_fem
@@ -26,14 +27,25 @@ program solver_miniapp
   use field_vector_mod,                 only : field_vector_type
   use solver_miniapp_alg_mod,           only : solver_miniapp_alg
   use configuration_mod,                only : final_configuration
-  use solver_miniapp_mod,               only : load_configuration
-  use log_mod,                          only : log_event,          &
-                                               log_set_level,      &
-                                               log_scratch_space,  &
-                                               initialise_logging, &
-                                               finalise_logging,   &
-                                               LOG_LEVEL_ERROR,    &
-                                               LOG_LEVEL_INFO
+  use solver_miniapp_mod,               only : load_configuration, program_name
+  use log_mod,                          only : log_event,            &
+                                               log_set_level,        &
+                                               log_scratch_space,    &
+                                               initialise_logging,   &
+                                               finalise_logging,     &
+                                               LOG_LEVEL_ALWAYS,     &
+                                               LOG_LEVEL_ERROR,      &
+                                               LOG_LEVEL_WARNING,    &
+                                               LOG_LEVEL_INFO,       &
+                                               LOG_LEVEL_DEBUG,      &
+                                               LOG_LEVEL_TRACE
+  use logging_config_mod,               only : run_log_level,          &
+                                               key_from_run_log_level, &
+                                               RUN_LOG_LEVEL_ERROR,    &
+                                               RUN_LOG_LEVEL_INFO,     &
+                                               RUN_LOG_LEVEL_DEBUG,    &
+                                               RUN_LOG_LEVEL_TRACE,    &
+                                               RUN_LOG_LEVEL_WARNING
   use diagnostics_io_mod,               only : write_scalar_diagnostic
   use checksum_alg_mod,                 only : checksum_alg
 
@@ -42,6 +54,7 @@ program solver_miniapp
   character(:), allocatable :: filename
 
   integer(i_def)     :: total_ranks, local_rank
+  integer(i_def)     :: log_level
   integer(i_def)     :: comm = -999
 
   integer(i_def)     :: mesh_id, twod_mesh_id
@@ -66,19 +79,36 @@ program solver_miniapp
   total_ranks = get_comm_size()
   local_rank  = get_comm_rank()
 
-  call initialise_logging(local_rank, total_ranks, 'solver_miniapp')
-
-    ! First call to log event must occur after the call to initialise_logging
-  call log_event( 'solver miniapp running...', LOG_LEVEL_INFO )
+  call initialise_logging(local_rank, total_ranks, program_name)
 
   call get_initial_filename( filename )
-
   call load_configuration( filename )
   deallocate( filename )
+
+  select case (run_log_level)
+  case( RUN_LOG_LEVEL_ERROR )
+    log_level = LOG_LEVEL_ERROR
+  case( RUN_LOG_LEVEL_WARNING )
+    log_level = LOG_LEVEL_WARNING
+  case( RUN_LOG_LEVEL_INFO )
+    log_level = LOG_LEVEL_INFO
+  case( RUN_LOG_LEVEL_DEBUG )
+    log_level = LOG_LEVEL_DEBUG
+  case( RUN_LOG_LEVEL_TRACE )
+    log_level = LOG_LEVEL_TRACE
+  end select
+
+  call log_set_level( log_level )
+
+  write(log_scratch_space,'(A)')                            &
+    'Runtime message logging severity set to log level: '// &
+    convert_to_upper(key_from_run_log_level(run_log_level))
+  call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
   !-----------------------------------------------------------------------------
   ! model init
   !-----------------------------------------------------------------------------
+  call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
   ! Create the mesh and function space collection
   allocate( global_mesh_collection, &
@@ -95,6 +125,8 @@ program solver_miniapp
 
   ! Create and initialise prognostic fields
   call init_solver_miniapp(mesh_id, twod_mesh_id, chi, fv_1)
+
+  call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
   ! Call an algorithm
   call solver_miniapp_alg(fv_1)
@@ -113,11 +145,10 @@ program solver_miniapp
   !-----------------------------------------------------------------------------
   ! model finalise
   !-----------------------------------------------------------------------------
+  call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
   ! Write checksums to file
   call checksum_alg('solver_miniapp', field_1, 'solver_field_1',field_2, 'solver_field_2')
-
-  call log_event( 'solver miniapp completed', LOG_LEVEL_INFO )
 
   !-----------------------------------------------------------------------------
   ! Driver layer finalise
@@ -131,6 +162,8 @@ program solver_miniapp
 
   ! Finalise MPI communications
   call finalise_comm()
+
+  call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
   ! Finalise the logging system
   call finalise_logging()

@@ -13,14 +13,15 @@ module solver_miniapp_mod
 
   use log_mod, only : log_event,         &
                       log_scratch_space, &
-                      LOG_LEVEL_ERROR,   &
-                      LOG_LEVEL_TRACE,   &
-                      LOG_LEVEL_DEBUG
+                      LOG_LEVEL_ALWAYS,  &
+                      LOG_LEVEL_ERROR
 
   implicit none
 
   private
-  public :: load_configuration
+  public :: load_configuration, program_name
+
+  character(*), parameter :: program_name = "solver_miniapp"
 
 contains
 
@@ -48,6 +49,9 @@ contains
     integer              :: i
 
     allocate( success_map(size(required_configuration)) )
+
+    call log_event( 'Loading '//program_name//' configuration ...', &
+                    LOG_LEVEL_ALWAYS )
 
     call read_configuration( filename )
 

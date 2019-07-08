@@ -11,14 +11,17 @@ module transport_mod
   use configuration_mod, only: read_configuration,    &
                                ensure_configuration
 
-  use log_mod, only: log_event,                                 &
-                     log_scratch_space,                         &
+  use log_mod, only: log_event,         &
+                     log_scratch_space, &
+                     LOG_LEVEL_ALWAYS,  &
                      LOG_LEVEL_ERROR
 
   implicit none
 
   private
-  public :: transport_load_configuration
+  public :: transport_load_configuration, program_name
+
+  character(*), parameter :: program_name = "transport"
 
 contains
 
@@ -44,6 +47,9 @@ contains
     integer                  :: i
 
     allocate( success_map(size(required_configuration)) )
+
+    call log_event( 'Loading '//program_name//' configuration ...', &
+                    LOG_LEVEL_ALWAYS )
 
     call read_configuration( filename )
 

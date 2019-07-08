@@ -64,7 +64,7 @@ module test_config_mod
                            str_def, &
                            str_max_filename
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -127,7 +127,7 @@ contains
       write( log_scratch_space, '(A)') &
           'Missing key for enum enumeration in test namelist.'
       enum_from_key = int(imdi,i_native)
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       return
     end if
 
@@ -419,7 +419,7 @@ module test_config_mod
   use constants_mod, only: i_def, &
                            i_native
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -563,7 +563,7 @@ module test_config_mod
                            i_native, &
                            r_def
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -732,7 +732,7 @@ module enum_config_mod
   use constants_mod, only: i_native, &
                            str_def
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -783,7 +783,7 @@ contains
       write( log_scratch_space, '(A)') &
           'Missing key for value enumeration in enum namelist.'
       value_from_key = int(imdi,i_native)
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       return
     end if
 
@@ -985,7 +985,7 @@ module twoenum_config_mod
   use constants_mod, only: i_native, &
                            str_def
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -1049,7 +1049,7 @@ contains
       write( log_scratch_space, '(A)') &
           'Missing key for first enumeration in twoenum namelist.'
       first_from_key = int(imdi,i_native)
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       return
     end if
 
@@ -1126,7 +1126,7 @@ contains
       write( log_scratch_space, '(A)') &
           'Missing key for second enumeration in twoenum namelist.'
       second_from_key = int(imdi,i_native)
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       return
     end if
 
@@ -1339,7 +1339,7 @@ module teapot_config_mod
   use constants_mod, only: i_native, &
                            r_def
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -1517,7 +1517,7 @@ module cheese_config_mod
   use constants_mod, only: i_native, &
                            r_def
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -1680,7 +1680,7 @@ module aerial_config_mod
                            r_def, &
                            str_def
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 

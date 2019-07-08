@@ -9,14 +9,16 @@
 module transport_driver_mod
 
   use checksum_alg_mod,               only: checksum_alg
-  use constants_mod,                  only: i_def, r_def
+  use constants_mod,                  only: i_def, r_def, i_native
+  use convert_to_upper_mod,           only: convert_to_upper
   use derived_config_mod,             only: set_derived_config
   use yaxt,                           only: xt_initialize, xt_finalize
   use field_mod,                      only: field_type
   use global_mesh_collection_mod,     only: global_mesh_collection,           &
                                             global_mesh_collection_type
   use configuration_mod,              only: final_configuration
-  use transport_mod,                  only: transport_load_configuration
+  use transport_mod,                  only: transport_load_configuration, &
+                                            program_name
   use init_fem_mod,                   only: init_fem
   use init_transport_mod,             only: init_transport
   use init_mesh_mod,                  only: init_mesh
@@ -25,11 +27,15 @@ module transport_driver_mod
                                             write_vector_diagnostic
   use diagnostics_calc_mod,           only: write_density_diagnostic
   use log_mod,                        only: log_event,                        &
+                                            log_set_level,                    &
                                             log_scratch_space,                &
                                             initialise_logging,               &
                                             finalise_logging,                 &
+                                            LOG_LEVEL_ALWAYS,                 &
                                             LOG_LEVEL_ERROR,                  &
+                                            LOG_LEVEL_WARNING,                &
                                             LOG_LEVEL_INFO,                   &
+                                            LOG_LEVEL_DEBUG,                  &
                                             LOG_LEVEL_TRACE
   use io_config_mod,                  only: diagnostic_frequency,             &
                                             nodal_output_on_w3,               &
@@ -67,8 +73,6 @@ module transport_driver_mod
 
   public :: initialise_transport, run_transport, finalise_transport
 
-  character(*), public, parameter :: program_name = 'transport'
-
   ! Prognostic fields
   type(field_type) :: wind
   type(field_type) :: density
@@ -101,6 +105,14 @@ contains
   !! @param[in] filename Configuration namelist file
   subroutine initialise_transport( filename )
 
+    use logging_config_mod, only: run_log_level,          &
+                                  key_from_run_log_level, &
+                                  RUN_LOG_LEVEL_ERROR,    &
+                                  RUN_LOG_LEVEL_INFO,     &
+                                  RUN_LOG_LEVEL_DEBUG,    &
+                                  RUN_LOG_LEVEL_TRACE,    &
+                                  RUN_LOG_LEVEL_WARNING
+
     implicit none
 
     character(*), intent(in) :: filename
@@ -111,6 +123,8 @@ contains
     integer(i_def) :: total_ranks, local_rank
     integer(i_def) :: comm = -999
     integer(i_def) :: timestep, ts_init, dtime
+
+    integer(i_native) :: log_level
 
     ! Initialse mpi and create the default communicator: mpi_comm_world
     call initialise_comm( comm )
@@ -131,20 +145,41 @@ contains
 
     call initialise_logging( local_rank, total_ranks, program_name )
 
-    call log_event( program_name//': Running transport miniapp ...', LOG_LEVEL_INFO )
-
-    call log_event( program_name//': Miniapp will run with default precision set as:', LOG_LEVEL_INFO )
-    write(log_scratch_space, '(I1)') kind(1.0_r_def)
-    call log_event( program_name//':        r_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
-    write(log_scratch_space, '(I1)') kind(1_i_def)
-    call log_event( program_name//':        i_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
-
     call transport_load_configuration( filename )
+
+    select case (run_log_level)
+    case( RUN_LOG_LEVEL_ERROR )
+      log_level = LOG_LEVEL_ERROR
+    case( RUN_LOG_LEVEL_WARNING )
+      log_level = LOG_LEVEL_WARNING
+    case( RUN_LOG_LEVEL_INFO )
+      log_level = LOG_LEVEL_INFO
+    case( RUN_LOG_LEVEL_DEBUG )
+      log_level = LOG_LEVEL_DEBUG
+    case( RUN_LOG_LEVEL_TRACE )
+      log_level = LOG_LEVEL_TRACE
+    end select
+
+    call log_set_level( log_level )
+
+    write(log_scratch_space,'(A)')                             &
+       'Runtime message logging severity set to log level: '// &
+       convert_to_upper(key_from_run_log_level(run_log_level))
+    call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
+    call log_event( program_name//': Runtime default precision set as:', LOG_LEVEL_ALWAYS )
+    write(log_scratch_space, '(I1)') kind(1.0_r_def)
+    call log_event( program_name//':        r_def kind = '//log_scratch_space , LOG_LEVEL_ALWAYS )
+    write(log_scratch_space, '(I1)') kind(1_i_def)
+    call log_event( program_name//':        i_def kind = '//log_scratch_space , LOG_LEVEL_ALWAYS )
+
     call set_derived_config( .true. )
 
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
+    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
     if ( subroutine_timers ) call timer( program_name )
 
     ! Mesh initialisation
@@ -212,6 +247,8 @@ contains
     implicit none
 
     integer(i_def) :: timestep
+
+    call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     !--------------------------------------------------------------------------
     ! Model step
@@ -295,10 +332,11 @@ contains
     !----------------------------------------------------------------------------
     ! Model finalise
     !----------------------------------------------------------------------------
+    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
     ! Write checksums to file
     call checksum_alg( program_name, density, 'density', wind, 'wind' )
 
-    call log_event( program_name//': Miniapp run complete', LOG_LEVEL_INFO )
     if ( subroutine_timers ) then
       call timer( program_name )
       call output_timer()
@@ -322,6 +360,8 @@ contains
 
     ! Finalise mpi and release the communicator
     call finalise_comm()
+
+    call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
     ! Finalise the logging system
     call finalise_logging()

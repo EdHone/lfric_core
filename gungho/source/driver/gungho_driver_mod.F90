@@ -68,9 +68,9 @@ module gungho_driver_mod
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
+                                         LOG_LEVEL_ALWAYS,   &
                                          LOG_LEVEL_ERROR,    &
                                          LOG_LEVEL_INFO,     &
-                                         LOG_LEVEL_DEBUG,    &
                                          LOG_LEVEL_TRACE
   use mesh_collection_mod,        only : mesh_collection
   use mr_indices_mod,             only : nummr
@@ -84,13 +84,13 @@ module gungho_driver_mod
   use xios
   use count_mod,                  only : count_type, halo_calls
   use mpi_mod,                    only : initialise_comm, finalise_comm
+  use gungho_mod,                 only : program_name
 
   implicit none
 
   private
   public initialise, run, finalise
 
-  character(*), public, parameter :: program_name = 'gungho'
   character(len=*), parameter :: xios_id   = "lfric_client"
   character(len=*), parameter :: xios_ctx  = "gungho_atm"
 
@@ -152,6 +152,8 @@ contains
     ! Model init
     !-------------------------------------------------------------------------
     if ( subroutine_timers ) call timer('gungho')
+
+    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     if ( subroutine_counters ) then
       allocate(halo_calls, source=count_type('halo_calls'))
@@ -348,6 +350,8 @@ contains
 
     integer(i_def) :: timestep
 
+    call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
     do timestep = timestep_start, timestep_end
 
       ! Update XIOS calendar if we are using it for diagnostic output or checkpoint
@@ -407,6 +411,8 @@ contains
 
     implicit none
 
+    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
     ! Write checkpoint files if required
     if( checkpoint_write ) then
        call write_checkpoint(prognostic_fields, timestep_end)
@@ -432,8 +438,6 @@ contains
       call halo_calls%output_counters()
     end if
 
-    call log_event( 'gungho completed', LOG_LEVEL_INFO )
-
     !-------------------------------------------------------------------------
     ! Driver layer finalise
     !-------------------------------------------------------------------------
@@ -449,6 +453,8 @@ contains
       call function_space_collection%clear()
       deallocate(function_space_collection)
     end if
+
+    call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
     ! Finalise infrastructure
     call finalise_infrastructure()

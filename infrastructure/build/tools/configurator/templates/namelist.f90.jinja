@@ -12,7 +12,7 @@ module {{listname}}_config_mod
 
   use constants_mod, only: {{all_kinds | sort | join( ', &\n' + ' '*27 )}}
   use log_mod,       only: log_event, log_scratch_space &
-                         , LOG_LEVEL_ERROR, LOG_LEVEL_INFO
+                         , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: broadcast
   use mpi,           only: MPI_SUCCESS
 
@@ -104,7 +104,7 @@ contains
       write( log_scratch_space, '(A)') &
           'Missing key for {{name}} enumeration in {{listname}} namelist.'
       {{name}}_from_key = int(imdi,i_native)
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       return
     end if
 

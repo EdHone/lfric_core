@@ -61,6 +61,10 @@ write_dump=.false.,
 write_minmax_tseries=.false.,
 /
 
+&logging
+run_log_level='info'
+/
+
 &time
 timestep_end=1,
 timestep_start=1,

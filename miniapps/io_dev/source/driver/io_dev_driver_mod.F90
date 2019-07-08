@@ -9,7 +9,8 @@
 !>
 module io_dev_driver_mod
 
-use constants_mod,              only: i_def
+use constants_mod,              only: i_def, i_native
+use convert_to_upper_mod,       only: convert_to_upper
 use derived_config_mod,         only: set_derived_config 
 use field_mod,                  only: field_type
 use finite_element_config_mod,  only: element_order
@@ -19,7 +20,7 @@ use init_io_dev_mod,            only: init_io_dev
 use init_fem_mod,               only: init_fem
 use init_mesh_mod,              only: init_mesh
 use configuration_mod,          only: final_configuration
-use io_dev_mod,                 only: load_configuration
+use io_dev_mod,                 only: load_configuration, program_name
 use io_mod,                     only: xios_domain_init
 use diagnostics_io_mod,         only: write_scalar_diagnostic, &
                                       write_vector_diagnostic
@@ -28,11 +29,12 @@ use log_mod,                    only: log_event,          &
                                       log_scratch_space,  &
                                       initialise_logging, &
                                       finalise_logging,   &
+                                      LOG_LEVEL_ALWAYS,   &
                                       LOG_LEVEL_ERROR,    &
+                                      LOG_LEVEL_WARNING,  &
                                       LOG_LEVEL_INFO,     &
                                       LOG_LEVEL_DEBUG,    &
-                                      LOG_LEVEL_TRACE,    &
-                                      log_scratch_space
+                                      LOG_LEVEL_TRACE
 use mod_wait
 use timestepping_config_mod,    only: dt
 use mpi_mod,                    only: initialise_comm, store_comm, &
@@ -47,7 +49,6 @@ private
 
 public initialise, run, finalise
 
-character(*), public, parameter :: program_name = 'io_dev'
 character(*), public, parameter :: xios_ctx = 'io_dev'
 character(*), public, parameter :: xios_id  = 'lfric_client'
 
@@ -71,6 +72,14 @@ contains
   !>@param[in] filename Name of the file containing the desired configuration 
   subroutine initialise( filename )
 
+  use logging_config_mod, only: run_log_level,          &
+                                key_from_run_log_level, &
+                                RUN_LOG_LEVEL_ERROR,    &
+                                RUN_LOG_LEVEL_INFO,     &
+                                RUN_LOG_LEVEL_DEBUG,    &
+                                RUN_LOG_LEVEL_TRACE,    &
+                                RUN_LOG_LEVEL_WARNING
+
   implicit none
 
   character(*), intent(in) :: filename
@@ -79,6 +88,7 @@ contains
   integer(i_def) :: comm = -999
 
   integer(i_def) :: dtime
+  integer(i_native) :: log_level
 
   ! Initialse mpi and create the default communicator: mpi_comm_world
   call initialise_comm(comm)
@@ -101,14 +111,35 @@ contains
 
   call initialise_logging(local_rank, total_ranks, program_name)
 
-  call log_event( program_name//': Running miniapp ...', LOG_LEVEL_INFO )
-
   call load_configuration( filename )
+
+  select case (run_log_level)
+  case( RUN_LOG_LEVEL_ERROR )
+    log_level = LOG_LEVEL_ERROR
+  case( RUN_LOG_LEVEL_WARNING )
+    log_level = LOG_LEVEL_WARNING
+  case( RUN_LOG_LEVEL_INFO )
+    log_level = LOG_LEVEL_INFO
+  case( RUN_LOG_LEVEL_DEBUG )
+    log_level = LOG_LEVEL_DEBUG
+  case( RUN_LOG_LEVEL_TRACE )
+    log_level = LOG_LEVEL_TRACE
+  end select
+
+  call log_set_level( log_level )
+
+  write(log_scratch_space,'(A)')                            &
+    'Runtime message logging severity set to log level: '// &
+    convert_to_upper(key_from_run_log_level(run_log_level))
+  call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
   call set_derived_config( .true. )
 
   !----------------------------------------------------------------------------
   ! Mesh init
   !----------------------------------------------------------------------------
+  call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
   allocate( global_mesh_collection, &
             source = global_mesh_collection_type() )
 
@@ -161,6 +192,8 @@ contains
 
   implicit none
 
+  call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
   !-----------------------------------------------------------------------------
   ! Model step 
   !-----------------------------------------------------------------------------
@@ -188,6 +221,8 @@ contains
 
   implicit none
 
+  call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+
   ! Finalise XIOS context
   call xios_context_finalize()
 
@@ -202,6 +237,8 @@ contains
 
   ! Finalise mpi and release the communicator
   call finalise_comm()
+
+  call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
   ! Finalise the logging system
   call finalise_logging()

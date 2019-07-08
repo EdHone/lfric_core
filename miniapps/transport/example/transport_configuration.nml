@@ -45,6 +45,9 @@ v0=0.0,
   checkpoint_read           = .false.
   checkpoint_write          = .false.
 /
+&logging
+  run_log_level='info'
+/
 &time
  timestep_start             = 1
  timestep_end               = 288
