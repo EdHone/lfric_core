@@ -305,9 +305,10 @@ contains
           advective_av_chi3 = field_type(vector_space = w1_fs )
           theta_metrics     = field_type(vector_space = wt_fs )
           chi3_at_wt        = field_type(vector_space = wt_fs )
-          call invoke( setval_c(wt_field, 0.0_r_def),       &
-                       multiplicity_kernel_type(wt_field),  &
-                       sample_field_kernel_type( chi3_at_wt, wt_field, chi(3)) )
+          call invoke( setval_c(wt_field,   0.0_r_def),       &
+                       setval_c(chi3_at_wt, 0.0_r_def),       &
+                       multiplicity_kernel_type(wt_field),    &
+                       sample_field_kernel_type(chi3_at_wt, wt_field, chi(3)) )
         end if
         !======================================================================!
       else

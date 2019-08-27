@@ -245,7 +245,7 @@
                              env={"crun":2, "nrun":1800,
                                    "directives":{"default":{"mpi_parts":256,
                                                             "threads":1,
-                                                            "wallclock":"01:30:00"} } },
+                                                            "wallclock":"01:45:00"} } },
                              plotstr="straka_plot_x.py ' + appDiagStemName + ' $NODAL_DATA_DIR 2048 4 theta T003600 $PLOT_DIR",
                              publish=True )',
             'run_application("gungho", "agnesi_hyd_cart",
