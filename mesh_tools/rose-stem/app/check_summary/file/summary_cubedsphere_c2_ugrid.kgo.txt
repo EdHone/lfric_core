@@ -1,0 +1,10 @@
+"dynamics":
+  Class:               sphere
+  Constructor inputs:  edge_cells=2;smooth_passes=0
+  Nodes:               26
+  Edges:               48
+  Faces:               24
+  Nodes per face:      4
+  Edges per face:      4
+  Nodes per edge:      2
+  Max. faces per node: 4

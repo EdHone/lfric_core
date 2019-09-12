@@ -30,8 +30,7 @@ program cubedsphere_mesh_generator
                                log_scratch_space, &
                                LOG_LEVEL_INFO, LOG_LEVEL_ERROR
   use ncdf_quad_mod,     only: ncdf_quad_type
-  use remove_duplicates_mod, &
-                         only: remove_duplicates
+  use remove_duplicates_mod, only: remove_duplicates
   use ugrid_2d_mod,      only: ugrid_2d_type
   use ugrid_file_mod,    only: ugrid_file_type
 
@@ -61,9 +60,9 @@ program cubedsphere_mesh_generator
   integer(i_def),     allocatable :: target_edge_cells(:)
   character(str_def), allocatable :: target_mesh_names(:)
 
-  integer(i_def),     pointer :: unique_target_edge_cells(:) => null()
-  character(str_def), pointer :: unique_mesh_names(:)        => null()
-  
+  integer(i_def),     allocatable :: unique_target_edge_cells(:)
+  character(str_def), allocatable :: unique_mesh_names(:)
+
   ! Switches
   logical(l_def) :: l_found = .false.
 
@@ -126,7 +125,7 @@ program cubedsphere_mesh_generator
   ! 5.0 Get the unique mesh_names list as meshes could appear more than
   !     once the chain
   !===================================================================
-  unique_mesh_names => remove_duplicates(mesh_names)
+  unique_mesh_names = remove_duplicates(mesh_names)
   n_unique_meshes = size(unique_mesh_names)
 
   allocate(unique_edge_cells(n_unique_meshes))
@@ -184,7 +183,7 @@ program cubedsphere_mesh_generator
         edge_cells(i), ',', edge_cells(i), ')'
     if (i==1) then
       tmp_str2 = trim(adjustl(tmp_str1))
-    else 
+    else
       tmp_str2 = trim(adjustl(tmp_str2))//'-'//trim(adjustl(tmp_str1))
     end if
   end do
@@ -216,7 +215,7 @@ program cubedsphere_mesh_generator
     cpp(i)    = unique_edge_cells(i)*unique_edge_cells(i)
     ncells(i) = cpp(i)*npanels
 
-    ! Only smooth this mesh if it is the mesh with the highest 
+    ! Only smooth this mesh if it is the mesh with the highest
     ! number of cells in the chain
     if (unique_edge_cells(i) == max_res) then
       nsmooth = smooth_passes
@@ -250,7 +249,7 @@ program cubedsphere_mesh_generator
       end do
 
 
-      unique_target_edge_cells => remove_duplicates(target_edge_cells)
+      unique_target_edge_cells = remove_duplicates(target_edge_cells)
       targets =size(unique_target_edge_cells)
       allocate(target_mesh_names(targets))
       target_mesh_names=''
@@ -271,7 +270,7 @@ program cubedsphere_mesh_generator
           trim(adjustl(target_mesh_names(j))) // '(' , unique_target_edge_cells(j), ')'
         if (j==1) then
           tmp_str2 = trim(adjustl(tmp_str1))
-        else 
+        else
           tmp_str2 = trim(adjustl(tmp_str2))//', '//trim(adjustl(tmp_str1))
         end if
       end do
@@ -284,7 +283,7 @@ program cubedsphere_mesh_generator
       write(log_scratch_space,'(A,I0)') '    Smoothing passes: ', nsmooth
       call log_event( trim(log_scratch_space), LOG_LEVEL_INFO)
 
-      csgen(i) = gencube_ps_type( mesh_name=unique_mesh_names(i),             & 
+      csgen(i) = gencube_ps_type( mesh_name=unique_mesh_names(i),             &
                                   edge_cells=unique_edge_cells(i),            &
                                   target_mesh_names=target_mesh_names,        &
                                   target_edge_cells=unique_target_edge_cells, &
@@ -294,7 +293,7 @@ program cubedsphere_mesh_generator
 
       ! Only 1 mesh requested, so it must be the prime mesh
       ! and so no optional target_ndivs required
-      csgen(i) = gencube_ps_type( mesh_name  = unique_mesh_names(i), & 
+      csgen(i) = gencube_ps_type( mesh_name  = unique_mesh_names(i), &
                                   edge_cells = unique_edge_cells(i), &
                                   nsmooth    = nsmooth )
 
@@ -343,9 +342,12 @@ program cubedsphere_mesh_generator
 
   call finalise_comm()
 
-  if ( allocated( ncells ) )   deallocate (ncells)
-  if ( allocated( cpp ) )      deallocate (cpp)
-  if ( allocated( csgen ) )    deallocate (csgen)
+  if ( allocated( ncells ) ) deallocate (ncells)
+  if ( allocated( cpp )    ) deallocate (cpp)
+  if ( allocated( csgen )  ) deallocate (csgen)
+
+  if ( allocated( unique_mesh_names) )        deallocate(unique_mesh_names)
+  if ( allocated( unique_target_edge_cells) ) deallocate(unique_target_edge_cells)
 
   ! Finalise the logging system
   call finalise_logging()

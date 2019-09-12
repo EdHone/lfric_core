@@ -5,7 +5,7 @@
 %include suite_control.rc
 
 {%- set rose_suite_gui_headers = [] -%}
-{%- set publish_destination = '$CYLC_SUITE_SHARE_DIR/publish-mesh_tools-' + PLATFORM_OPT %}
+{%- set publish_destination = '$CYLC_SUITE_SHARE_DIR/publish-mesh_tools-' + TARGET_OPT %}
 {%- set compiler_setup = {} -%}
 {%- for compiler, setup in TARGET_COMPILER_SETUP|batch(2) -%}
 {%-   do compiler_setup.update({compiler : [setup]}) -%}
@@ -159,7 +159,7 @@
     [[[environment]]]
       REWRITE = ''
       SOURCE  = {{publish_destination}}
-      TARGET  = file://$HOME/public_html/lfric-mesh_tools-{{PLATFORM_OPT}}
+      TARGET  = file://$HOME/public_html/lfric-mesh_tools-{{TARGET_OPT}}
 {%- endif %}
 
 {%- if 'mirror_results_remote' in scheduledTasks %}
@@ -172,7 +172,7 @@
     [[[environment]]]
       REWRITE = {{MIRROR_REWRITE}}
       SOURCE  = {{publish_destination}}
-      TARGET  = {{MIRROR_UPLOAD_URL}}lfric-mesh_tools-{{PLATFORM_OPT}}
+      TARGET  = {{MIRROR_UPLOAD_URL}}lfric-mesh_tools-{{TARGET_OPT}}
 {%- endif %}
 
 ##############################################################################
@@ -192,7 +192,7 @@
       DESTINATION_DIRECTORY = $OUTPUT_ROOT/{{label}}
       BIN_DIR               = $DESTINATION_DIRECTORY/bin
       COMPILER              = {{compiler}}
-      PLATFORM_OPT          = {{PLATFORM_OPT}}
+      TARGET_OPT            = {{TARGET_OPT}}
       {#- We can't define WORKING_DIR here as it may contain    #}
       {#- target specific variables not existing on the local machine #}
 {%-       endif %}
@@ -219,7 +219,7 @@
       SOURCE_DIRECTORY      = $SOURCE_ROOT/{{projectName}}
       WORKING_DIR           = {{TARGET_BUILD_ROOT}}/{{label}}/mesh_tools
       BUILD_TARGET          = {{build}}
-      LFRIC_TARGET_PLATFORM = {{PLATFORM_OPT}}
+      LFRIC_TARGET_PLATFORM = {{TARGET_OPT}}
       PROFILE               = {{build}}
       TARGET                = build
       MAKE_THREADS          = 4
@@ -286,9 +286,11 @@
 
 {%-     for mesh in mesh_types %}
 {%-       if 'generate_' + mesh + '_' + label in scheduledTasks %}
+  [[{{mesh|upper}}_{{label|upper}}]]
+    inherit = {{family}}, TARGET
 
   [[generate_{{mesh}}_{{label}}]]
-    inherit = {{family}}, TARGET
+    inherit = {{mesh|upper}}_{{label|upper}}
     pre-script = """
                  mkdir -p $DESTINATION_DIRECTORY/meshes
                  {{'\n'| command_list( TARGET_BASE_SETUP,
@@ -308,12 +310,12 @@
 
 {%-       if 'summarise_' + mesh + '_' + label in scheduledTasks %}
 {%- set command_key = '' %}
-{%- if PLATFORM_OPT == 'meto-xc40' %}
+{%- if TARGET_OPT == 'meto-xc40' %}
 {%-   set command_key = '--command-key=aprun' %}
 {%- endif %}
 
   [[summarise_{{mesh}}_{{label}}]]
-    inherit = {{family}}, TARGET
+    inherit = {{mesh|upper}}_{{label|upper}}
     pre-script = """
                  {{'\n'|command_list( TARGET_BASE_SETUP,
                                      compiler_setup[compiler],
@@ -333,7 +335,7 @@
 
     [[[directives]]]
 
-{%- if PLATFORM_OPT == 'meto-xc40' %}
+{%- if TARGET_OPT == 'meto-xc40' %}
       -l select=1
       -l walltime=00:05:00
       -q=normal
@@ -344,7 +346,7 @@
 {%- endif %}
 
   [[check_summary_{{mesh}}_{{label}}]]
-    inherit = {{family}}, TARGET
+    inherit = {{mesh|upper}}_{{label|upper}}
     pre-script = """
                  {{'\n'|command_list( TARGET_BASE_SETUP,
                                      compiler_setup[compiler],
@@ -369,17 +371,23 @@
 {%-       endif %} {#- 'summarise_' + mesh + '_' + label in scheduledTasks #}
 
 {%-       if 'check_mesh_' + mesh + '_' + label in scheduledTasks %}
+
   [[check_mesh_{{mesh}}_{{label}}]]
-    inherit = {{family}},  TARGET
+    inherit = {{mesh|upper}}_{{label|upper}}
     pre-script = """
                  {{'\n'| command_list(TARGET_BASE_SETUP,
                          compiler_setup[compiler],
                          TARGET_REVEAL_SETUP)}}
                  """
-    script = rose task-run --app-key=check_{{mesh}}
+    script = rose task-run --app-key=check_mesh_kgo
 
     [[[environment]]]
-      MESH_FILE = $DESTINATION_DIRECTORY/meshes/{{mesh}}.nc
+      APP_NAME   = mesh
+      KGO_DIR    = $SOURCE_ROOT/{{projectName}}/kgos
+      TARGET_OPT = {{TARGET_OPT}}
+      CONFIG     = {{mesh}}
+      MESH_DIR   = $DESTINATION_DIRECTORY/meshes
+      MESH_FILE  = {{mesh}}.nc
 
     [[[directives]]]
 {%-         for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}

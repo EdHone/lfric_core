@@ -28,7 +28,6 @@ module gencube_ps_mod
                                             degrees_to_radians
   use coord_transform_mod,            only: ll2xyz, xyz2ll
   use global_mesh_map_collection_mod, only: global_mesh_map_collection_type
-  use global_mesh_map_mod,            only: generate_global_mesh_map_id
   use log_mod,                        only: log_event, log_scratch_space, &
                                             LOG_LEVEL_ERROR
   use reference_element_mod,          only: W, S, E, N, SWB, SEB, NWB, NEB
@@ -96,6 +95,8 @@ module gencube_ps_mod
     procedure :: orient_lfric
     procedure :: smooth
 
+    procedure :: clear
+
   end type gencube_ps_type
 
 !-------------------------------------------------------------------------------
@@ -126,9 +127,9 @@ function gencube_ps_constructor( mesh_name, edge_cells, nsmooth,        &
 
   implicit none
 
-  character(len=*), intent(in) :: mesh_name
-  integer(i_def),   intent(in) :: edge_cells
-  integer(i_def),   intent(in) :: nsmooth
+  character(str_def), intent(in) :: mesh_name
+  integer(i_def),     intent(in) :: edge_cells
+  integer(i_def),     intent(in) :: nsmooth
 
   character(str_def), optional, intent(in) :: target_mesh_names(:)
   integer(i_def),     optional, intent(in) :: target_edge_cells(:)
@@ -139,13 +140,6 @@ function gencube_ps_constructor( mesh_name, edge_cells, nsmooth,        &
 
   character(str_long) :: target_mesh_names_str
   character(str_long) :: target_edge_cells_str
-
-  if (edge_cells < 3) then
-    write(log_scratch_space,'(A,I0,A)')               &
-        ' Invalid argument [edge_cells:', edge_cells, &
-        '], edge_cells must be >2'
-    call log_event( trim(log_scratch_space), LOG_LEVEL_ERROR )
-  end if
 
   self%mesh_name  = trim(mesh_name)
   self%mesh_class = trim(MESH_CLASS)
@@ -244,19 +238,32 @@ subroutine calc_adjacency(self, cell_next)
   class(gencube_ps_type),      intent(in)  :: self
   integer(i_def), allocatable, intent(out) :: cell_next(:,:)
 
-  integer(i_def) :: edge_cells, ncells, cpp
+  integer(i_def) :: edge_cells, ncells, cpp, i
   integer(i_def) :: cell, astat, panel_number
+
+  integer(i_def), allocatable :: panel_edge_cells_west(:)
+  integer(i_def), allocatable :: panel_edge_cells_south(:)
+  integer(i_def), allocatable :: panel_edge_cells_east(:)
+  integer(i_def), allocatable :: panel_edge_cells_north(:)
+
+  integer(i_def), allocatable :: panel_next(:,:)
+  integer(i_def), allocatable :: panel_edge_cells(:,:,:) ! (cell id, panel edge, panel number )
 
 
   edge_cells = self%edge_cells
   cpp        = edge_cells*edge_cells
   ncells     = cpp*self%npanels
 
-  allocate(cell_next(4, ncells), stat=astat)
 
+  allocate(cell_next(4, ncells), stat=astat)
   if (astat /= 0)                                               &
       call log_event( PREFIX//"Failure to allocate cell_next.", &
                       LOG_LEVEL_ERROR )
+
+  allocate(panel_edge_cells_west(edge_cells))
+  allocate(panel_edge_cells_south(edge_cells))
+  allocate(panel_edge_cells_east(edge_cells))
+  allocate(panel_edge_cells_north(edge_cells))
 
   cell_next = 0
 
@@ -269,6 +276,30 @@ subroutine calc_adjacency(self, cell_next)
   !  +---+---+---+---+
   !      | 6 |
   !      +---+
+  !
+  ! Cells in each panel are numbered from NW panel corner
+  ! i.e. 3x3 panel number #1 is:
+  !
+  ! +-----+
+  ! |1|2|3|
+  ! |-+-+-|
+  ! |4|5|6|
+  ! |-+-+-|
+  ! |7|8|9|
+  ! +-----+
+
+  allocate(panel_next(4, npanels))
+  allocate(panel_edge_cells (edge_cells,4,npanels))
+
+  ! Ordering : W,S,E,N
+  panel_next(:,1) = [4,6,2,5]
+  panel_next(:,2) = [1,6,3,5]
+  panel_next(:,3) = [2,6,4,5]
+  panel_next(:,4) = [3,6,1,5]
+  panel_next(:,5) = [1,2,3,4]
+  panel_next(:,6) = [1,4,3,2]
+
+  call get_panel_edge_cell_ids( edge_cells, panel_edge_cells )
 
   ! Default settings
   do cell=1, ncells
@@ -276,139 +307,137 @@ subroutine calc_adjacency(self, cell_next)
     cell_next(:, cell) = (/ cell-1, cell+edge_cells, cell+1, cell-edge_cells /)
   end do
 
-  ! Panel I
-  panel_number = 1
-  do cell = (panel_number-1)*cpp + 1, panel_number*cpp
 
+
+  ! Panel I
+  !===========================================================================
+  panel_number = 1
+  do i=1, edge_cells
     ! Top edge
-    if (cell <= edge_cells) then
-      cell_next(N, cell) = 4*cpp+1+(cell-1)*edge_cells
-    end if
+    cell = panel_edge_cells(i,N, panel_number)
+    cell_next(N, cell) = panel_edge_cells(i, W, panel_next(N,panel_number) ) 
 
     ! Right edge
-    if (mod(cell, edge_cells) == 0) then
-      cell_next(E, cell) = cpp+1+cell-edge_cells
-    end if
-
+    cell = panel_edge_cells(i,E, panel_number)
+    cell_next(E, cell) = panel_edge_cells(i, W, panel_next(E,panel_number) ) 
+      
     ! Bottom edge
-    if (cell > cpp-edge_cells) then
-      cell_next(S, cell) = 5*cpp+1+(cpp-cell)*edge_cells
-    end if
+    cell = panel_edge_cells(i,S, panel_number)
+    cell_next(S, cell) = panel_edge_cells(edge_cells+1-i, W, panel_next(S,panel_number) )
 
     ! Left edge
-    if (mod(cell, edge_cells) == 1) then
-      cell_next(W, cell) = 3*cpp+(cell/edge_cells+1)*edge_cells
-    end if
+    cell = panel_edge_cells(i,W, panel_number)
+    cell_next(W, cell) = panel_edge_cells(i, E, panel_next(W,panel_number) )
   end do
 
-  panel_number = 2
   ! Panel II
-  do cell = (panel_number-1)*cpp+1, panel_number*cpp
-
+  !===========================================================================
+  panel_number = 2
+  do i=1, edge_cells
     ! Top edge
-    if (cell <= cpp+edge_cells) then
-      cell_next(N, cell) = 5*cpp-edge_cells+cell-cpp
-    end if
+    cell = panel_edge_cells(i,N, panel_number)
+    cell_next(N, cell) = panel_edge_cells(i, S, panel_next(N,panel_number) ) 
+    
     ! Right edge
-    if (mod(cell, edge_cells) == 0) then
-      cell_next(E, cell) = 2*cpp+1+(cell-cpp-edge_cells)
-    end if
+    cell = panel_edge_cells(i,E, panel_number)
+    cell_next(E, cell) = panel_edge_cells(i, W, panel_next(E,panel_number) ) 
+
     ! Bottom edge
-    if (cell > 2*cpp-edge_cells) then
-      cell_next(S, cell) = 5*cpp+(cell-(2*cpp-edge_cells))
-    end if
+    cell = panel_edge_cells(i,S, panel_number)
+    cell_next(S, cell) = panel_edge_cells(i, N, panel_next(S,panel_number) ) 
+      
     ! Left edge
-    if (mod(cell, edge_cells) == 1) then
-      cell_next(W, cell) = cell-(cpp+1)+edge_cells
-    end if
+    cell = panel_edge_cells(i,W, panel_number)
+    cell_next(W, cell) = panel_edge_cells(i, E, panel_next(W,panel_number) ) 
   end do
 
   ! Panel III
+  !===========================================================================
   panel_number = 3
-  do cell = (panel_number-1)*cpp+1, panel_number*cpp
+  do i=1, edge_cells
 
     ! Top edge
-    if (cell <= 2*cpp+edge_cells) then
-      cell_next(N, cell) = 5*cpp-(cell-1-2*cpp)*edge_cells
-    end if
+    cell = panel_edge_cells(i,N, panel_number)
+    cell_next(N, cell) = panel_edge_cells(edge_cells+1-i, E, panel_next(N,panel_number) ) 
+
     ! Right edge
-    if (mod(cell, edge_cells) == 0) then
-      cell_next(E, cell) = 3*cpp+1+(cell-2*cpp-edge_cells)
-    end if
+    cell = panel_edge_cells(i,E, panel_number)
+    cell_next(E, cell) = panel_edge_cells(i, W, panel_next(E,panel_number) ) 
+
     ! Bottom edge
-    if (cell > 3*cpp-edge_cells) then
-      cell_next(S, cell) = 5*cpp+(cell-(3*cpp-edge_cells))*edge_cells
-    end if
+    cell = panel_edge_cells(i,S, panel_number)
+    cell_next(S, cell) = panel_edge_cells(i, E, panel_next(S,panel_number) ) 
+
     ! Left edge
-    if (mod(cell, edge_cells) == 1) then
-      cell_next(W, cell) = cell-(cpp+1)+edge_cells
-    end if
+    cell = panel_edge_cells(i,W, panel_number)
+    cell_next(W, cell) = panel_edge_cells(i, E, panel_next(W,panel_number) ) 
+
   end do
 
-  ! Panel IV
-  panel_number = 4
-  do cell = (panel_number-1)*cpp+1, panel_number*cpp
 
+  ! Panel IV
+  !===========================================================================
+  panel_number = 4
+  do i=1, edge_cells
     ! Top edge
-    if (cell <= 3*cpp+edge_cells) then
-      cell_next(N, cell) = 4*cpp+1+edge_cells-(cell-3*cpp)
-    end if
+    cell = panel_edge_cells(i,N, panel_number)
+    cell_next(N, cell) = panel_edge_cells(edge_cells+1-i, N, panel_next(N,panel_number) ) 
+
     ! Right edge
-    if (mod(cell, edge_cells) == 0) then
-      cell_next(E, cell) = (cell-edge_cells)-3*cpp+1
-    end if
+    cell = panel_edge_cells(i,E, panel_number)
+    cell_next(E, cell) = panel_edge_cells(i, W, panel_next(E,panel_number) ) 
+
     ! Bottom edge
-    if (cell > 4*cpp-edge_cells) then
-      cell_next(S, cell) = 6*cpp-(cell-1-(4*cpp-edge_cells))
-    end if
+    cell = panel_edge_cells(i,S, panel_number)
+    cell_next(S, cell) = panel_edge_cells(edge_cells+1-i, S, panel_next(S,panel_number) ) 
+
     ! Left edge
-    if (mod(cell, edge_cells) == 1) then
-      cell_next(W, cell) = cell-(cpp+1)+edge_cells
-    end if
+    cell = panel_edge_cells(i,W, panel_number)
+    cell_next(W, cell) = panel_edge_cells(i, E, panel_next(W,panel_number) ) 
   end do
 
   ! Panel V
+  !===========================================================================
   panel_number = 5
-  do cell = (panel_number-1)*cpp+1, panel_number*cpp
-
+  do i=1, edge_cells
     ! Top edge
-    if (cell <= 4*cpp+edge_cells) then
-      cell_next(N, cell) = 3*cpp+edge_cells-(cell-1-4*cpp)
-    end if
+    cell = panel_edge_cells(i,N, panel_number)
+    cell_next(N, cell) = panel_edge_cells(edge_cells+1-i, N, panel_next(N,panel_number) ) 
+
     ! Right edge
-    if (mod(cell, edge_cells) == 0) then
-      cell_next(E, cell) = (5*cpp-cell)/edge_cells + 2*cpp+1
-    end if
+    cell = panel_edge_cells(i,E, panel_number)
+    cell_next(E, cell) = panel_edge_cells(edge_cells+1-i, N, panel_next(E,panel_number) ) 
+
     ! Bottom edge
-    if (cell > 5*cpp-edge_cells) then
-      cell_next(S, cell) = cell - (5*cpp-edge_cells) + cpp
-    end if
+    cell = panel_edge_cells(i,S, panel_number)
+    cell_next(S, cell) = panel_edge_cells(i, N, panel_next(S,panel_number) ) 
+
     ! Left edge
-    if (mod(cell, edge_cells) == 1) then
-      cell_next(W, cell) = (cell-4*cpp)/edge_cells + 1
-    end if
+    cell = panel_edge_cells(i,W, panel_number)
+    cell_next(W, cell) = panel_edge_cells(i, N, panel_next(W,panel_number) ) 
   end do
 
-  ! Panel VI
-  panel_number = 6
-  do cell = (panel_number-1)*cpp+1, panel_number*cpp
 
+
+  ! Panel VI
+  !===========================================================================
+  panel_number = 6
+  do i=1, edge_cells
     ! Top edge
-    if (cell <= 5*cpp+edge_cells) then
-      cell_next(N, cell) = 2*cpp-edge_cells + cell-5*cpp
-    end if
+    cell = panel_edge_cells(i,N, panel_number)
+    cell_next(N, cell) = panel_edge_cells(i, S, panel_next(N,panel_number) ) 
+
     ! Right edge
-    if (mod(cell, edge_cells) == 0) then
-      cell_next(E, cell) = 3*cpp-edge_cells + (cell-5*cpp)/edge_cells
-    end if
+    cell = panel_edge_cells(i,E, panel_number)
+    cell_next(E, cell) = panel_edge_cells(i, S, panel_next(E,panel_number) ) 
+
     ! Bottom edge
-    if (cell > 6*cpp-edge_cells) then
-      cell_next(S, cell) = 4*cpp - (cell-(6*cpp-edge_cells+1))
-    end if
+    cell = panel_edge_cells(i,S, panel_number)
+    cell_next(S, cell) = panel_edge_cells(edge_cells+1-i, S, panel_next(S,panel_number) ) 
+
     ! Left edge
-    if (mod(cell, edge_cells) == 1) then
-      cell_next(W, cell) = cpp - (cell-5*cpp)/edge_cells
-    end if
+    cell = panel_edge_cells(i,W, panel_number)
+    cell_next(W, cell) = panel_edge_cells(edge_cells+1-i, S, panel_next(W,panel_number) ) 
   end do
 
   return
@@ -1206,45 +1235,140 @@ end subroutine calc_global_mesh_maps
 !-------------------------------------------------------------------------------
 subroutine write_mesh(self)
 
-  use iso_fortran_env,     only : stdout => output_unit
+  use global_mesh_map_collection_mod, only: global_mesh_map_collection_type
+  use global_mesh_map_mod, only: global_mesh_map_type
+  use iso_fortran_env,     only: stdout => output_unit
 
   implicit none
 
   class(gencube_ps_type), intent(in) :: self
 
-  integer(i_def) :: i, cell, vert, ncells
+  integer(i_def) :: i, j, ncells
+  integer(i_def) :: cell, edge, vert
+
+  type(global_mesh_map_type), pointer :: global_mesh_map => null()
+
+  integer(i_def), allocatable :: cell_map (:,:)
+  integer(i_def), allocatable :: tmp_map (:,:)
+  integer(i_def) :: nsource
+  integer(i_def) :: ntarget_per_cell
+
+  character(str_long) :: tmp_str
 
   ncells = self%npanels*self%edge_cells*self%edge_cells
 
-  write(stdout,*) "cell_next"
+  write(stdout,'(A)')    "====DEBUG INFO===="
+  write(stdout,'(A)')    "Mesh name: "// trim(self%mesh_name)
+  write(stdout,'(A)')    "Class:     "// trim(self%mesh_class)
+  write(stdout,'(A,I0)') "Panels:    ", self%npanels
+  write(stdout,'(A,I0)') "Panel edge cells: ", self%edge_cells
+  write(stdout,'(A)')    "Co-ord (x) units: "// trim(self%coord_units_x)
+  write(stdout,'(A)')    "Co-ord (y) units: "// trim(self%coord_units_y)
+  write(stdout,'(A,I0)') "Smoothing iterations:     ", self%nsmooth
+  write(stdout,'(A,I0)') "Mappings to other meshes: ", self%nmaps
+  do i=1, self%nmaps
+    write(stdout,'(T4,A,I0,A)') trim(self%target_mesh_names(i))// &
+                                '(', self%target_edge_cells(i),')'
+  end do
+
+
+  write(stdout,'(A)') ''
+  write(stdout,'(A)') '=========================='
+  write(stdout,'(A)') ' Cell adjacency (W,S,E,N)'
+  write(stdout,'(A)') '=========================='
   do cell=1, ncells
-      write(stdout,"(I3,T8,4I4)") cell, self%cell_next(:,cell)
+    tmp_str=''
+    write(tmp_str,'(I07,A,4(I07,"  "))') cell,' => ', self%cell_next(:,cell)
+    write(stdout,('(A)')) trim(tmp_str)
   end do
 
-  write(stdout,*)
-  write(stdout,*) "verts_on_cell"
+
+  write(stdout,'(A)') ''
+  write(stdout,'(A)') '================================='
+  write(stdout,'(A)') ' Vertices on cells (SW,SE,NW,NE)'
+  write(stdout,'(A)') '================================='
   do cell=1, ncells
-    write(stdout,"(I3,T8,4I4)") cell, self%verts_on_cell(:,cell)
+    tmp_str=''
+    write(tmp_str,'(I07,A,4(I07,"  "))') cell,' => ', self%verts_on_cell(:,cell)
+    write(stdout,('(A)')) trim(tmp_str)
   end do
 
-  write(stdout,*)
-  write(stdout,*) "verts_on_edge"
-  do i=1, size(self%verts_on_edge, 2)
-    write(stdout,"(I3,T8,2I4)") i, self%verts_on_edge(:,i)
-  end do
 
-  write(stdout,*)
-  write(stdout,*) "edges_on_cell"
+  write(stdout,'(A)')  ''
+  write(stdout,'(A)') '================================='
+  write(stdout,'(A)') ' Edges on cells (W,S,E,N)'
+  write(stdout,'(A)') '================================='
   do cell=1, ncells
-    write(stdout,"(I3,T8,4I4)") cell, self%edges_on_cell(:,cell)
+    tmp_str=''
+    write(tmp_str,'(I07,A,4(I07,"  "))') cell, ' => ', self%edges_on_cell(:,cell)
+    write(stdout,('(A)')) trim(tmp_str)
   end do
 
-  write(stdout,*)
-  write(stdout,*) "vert_coords"
+
+  write(stdout,'(A)') ''
+  write(stdout,'(A)') '================================='
+  write(stdout,'(A)') ' Vertices on edges'
+  write(stdout,'(A)') '================================='
+  do edge=1, size(self%verts_on_edge, 2)
+    tmp_str=''
+    write(tmp_str,'(I07,A,I07,A,I07)') &
+        edge,' => ', self%verts_on_edge(1,edge), &
+        ' -- ', self%verts_on_edge(2,edge)
+    write(stdout,('(A)')) trim(tmp_str)
+  end do
+
+
+  write(stdout,'(A)')  ''
+  write(stdout,'(A)') '================================='
+  write(stdout,'(A)') ' Node coordinates (lon,lat)'
+  write(stdout,'(A)') '================================='
   do vert=1, ncells+2
-    write(stdout,*) vert, self%vert_coords(:,vert)
+    tmp_str=''
+    write(tmp_str,'(I07,A,F8.4,A,F8.4,A)')     &
+        vert,' => ( ', self%vert_coords(1,vert), &
+        ',  ', self%vert_coords(2,vert), ' )'
+    write(stdout,('(A)')) trim(tmp_str)
   end do
 
+  write(stdout,'(A)')  ''
+  write(stdout,'(A)') '================================='
+  write(stdout,'(A)') ' Cell centre coordinates (lon,lat)'
+  write(stdout,'(A)') '================================='
+  do cell=1, ncells
+    tmp_str=''
+    write(tmp_str,'(I07,A,F8.4,A,F8.4,A)')       &
+        cell,' => ( ', self%cell_coords(1,cell), &
+        ',  ', self%cell_coords(2,cell), ' )'
+    write(stdout,('(A)')) trim(tmp_str)
+  end do
+
+
+  write(stdout,'(A)') ''
+  write(stdout,'(A)') '================================='
+  write(stdout,'(A)') ' Mappings to other meshes'
+  write(stdout,'(A)') '================================='
+
+  do i=1, self%nmaps
+    global_mesh_map  => self%global_mesh_maps%get_global_mesh_map(1,i+1)
+    nsource          = global_mesh_map%get_nsource_cells()
+    ntarget_per_cell = global_mesh_map%get_ntarget_cells_per_source_cell()
+    if (allocated(cell_map)) deallocate(cell_map)
+    if (allocated(tmp_map)) deallocate(tmp_map)
+    allocate(cell_map(ntarget_per_cell, nsource))
+    allocate(tmp_map(ntarget_per_cell, 1))
+    do j=1, nsource
+      call global_mesh_map%get_cell_map([j], tmp_map)
+      cell_map(:, j) = tmp_map(:,1)
+    end do
+    write(stdout,'(2(A,I0),A)')                               &
+        trim(self%mesh_name)//'(', self%edge_cells, ') => '// &
+        trim(self%target_mesh_names(i))//'(', self%target_edge_cells(i), '):'
+    do j=1, nsource
+      write(stdout,'(I7,A,10(I0," "))') j,' => ' , cell_map(:, j)
+    end do
+  end do
+
+  write(stdout,'(A)')    "====END DEBUG INFO===="
   return
 end subroutine write_mesh
 
@@ -1539,5 +1663,62 @@ subroutine get_metadata( self,               &
 
   return
 end subroutine get_metadata
+
+subroutine clear(self)
+
+  implicit none
+
+  class (gencube_ps_type), intent(inout) :: self
+
+  if (allocated(self%target_mesh_names)) deallocate( self%target_mesh_names )
+  if (allocated(self%target_edge_cells)) deallocate( self%target_edge_cells )
+
+  if (allocated(self%cell_next))     deallocate( self%cell_next     )
+  if (allocated(self%verts_on_cell)) deallocate( self%verts_on_cell )
+  if (allocated(self%edges_on_cell)) deallocate( self%edges_on_cell )
+  if (allocated(self%verts_on_edge)) deallocate( self%verts_on_edge )
+  if (allocated(self%vert_coords))   deallocate( self%vert_coords   )
+  if (allocated(self%cell_coords))   deallocate( self%cell_coords   )
+
+  if (allocated(self%global_mesh_maps)) then
+    call self%global_mesh_maps%clear()
+    deallocate( self%global_mesh_maps )
+  end if
+
+
+  return
+end subroutine clear
+
+subroutine get_panel_edge_cell_ids( edge_cells, panel_edge_cells )
+
+  implicit none
+
+!
+!          North
+!      o---->>>----o         Cell ids on panel edges are
+!      |           |         listed in direction shown:
+! West Y   Panel   Y East
+!      |           |         panel_edge_cells( cell_ids, 
+!      o---->>>----o                           side of the panel,
+!          South                               panel number )
+!
+
+  integer(i_def), intent(in)  :: edge_cells
+  integer(i_def), intent(out) :: panel_edge_cells(edge_cells,4,npanels)
+
+  integer(i_def) :: i, cpp, panel
+
+  cpp = edge_cells*edge_cells
+
+  do panel=1, npanels
+    ! Panel edge ordering W,S,E,N
+    do i=1, edge_cells
+      panel_edge_cells(i,W,panel) = (panel-1)*cpp + edge_cells*(i-1) + 1
+      panel_edge_cells(i,S,panel) = (panel-1)*cpp + (cpp-edge_cells) + i
+      panel_edge_cells(i,E,panel) = (panel-1)*cpp + edge_cells*(i)
+      panel_edge_cells(i,N,panel) = (panel-1)*cpp + i
+    end do
+  end do
+end subroutine get_panel_edge_cell_ids
 
 end module gencube_ps_mod

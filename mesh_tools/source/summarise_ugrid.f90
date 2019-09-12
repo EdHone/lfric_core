@@ -89,11 +89,18 @@ program summarise_ugrid
                                     trim(adjustl(filename)) )
 
     if (allocated(maps_mesh_names)) deallocate(maps_mesh_names)
-    ! Extract data on the current mesh in the ugrid file object
-    call infile%get_metadata( mesh_name=mesh_name,                   &
-                              mesh_class=mesh_class,                 &
-                              constructor_inputs=constructor_inputs, &
-                              maps_mesh_names=maps_mesh_names )
+
+    if (n_meshes > 1) then
+      ! Extract data on the current mesh in the ugrid file object
+      call infile%get_metadata( mesh_name=mesh_name,                   &
+                                mesh_class=mesh_class,                 &
+                                constructor_inputs=constructor_inputs, &
+                                maps_mesh_names=maps_mesh_names )
+    else
+      call infile%get_metadata( mesh_name=mesh_name,                   &
+                                mesh_class=mesh_class,                 &
+                                constructor_inputs=constructor_inputs)
+    end if
 
     call infile%get_dimensions( nodes, edges, faces, nodes_per_face, &
                                 edges_per_face, nodes_per_edge,      &
