@@ -12,7 +12,7 @@
 !       the support becomes available.
 module gw_si_solver_alg_mod
 
-  use, intrinsic :: ieee_arithmetic
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_nan
 
   use constants_mod,           only: r_def, str_def, i_def
   use field_bundle_mod,        only: clone_bundle,                              &
@@ -50,8 +50,9 @@ module gw_si_solver_alg_mod
   use timestepping_config_mod, only: dt
   use derived_config_mod,      only: bundle_size
   use field_indices_mod,       only: igw_u, igw_p, igw_b
-  use output_config_mod,       only: subroutine_timers
+  use io_config_mod,           only: subroutine_timers
   use timer_mod,               only: timer
+
   implicit none
 
   private

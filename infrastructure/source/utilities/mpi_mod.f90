@@ -12,14 +12,21 @@
 !> store a valid MPI communicator.
 !>
 module mpi_mod
-  use constants_mod, only : r_def, i_def, i_native, l_def, i_halo_index, str_def, &
+
+  use constants_mod, only : i_def, i_halo_index, i_native, &
+                            l_def, r_def, str_def,         &
                             real_type, integer_type, logical_type
-  use mpi
-  use yaxt,          only: xt_redist, xt_idxlist, xt_xmap, &
-                           xt_idxvec_new, xt_xmap_dist_dir_new, &
-                           xt_redist_p2p_off_new, &
-                           xt_xmap_delete, xt_idxlist_delete
-  use log_mod,       only: log_event, LOG_LEVEL_ERROR
+  use mpi,           only : mpi_comm_rank, mpi_comm_size, mpi_finalize, &
+                            mpi_init, mpi_success, mpi_comm_world,      &
+                            mpi_max, mpi_min, mpi_sum,                  &
+                            mpi_character, mpi_double_precision,        &
+                            mpi_integer, mpi_integer1, mpi_integer2,    &
+                            mpi_integer8, mpi_logical, mpi_real4
+  use yaxt,          only : xt_redist, xt_idxlist, xt_xmap, &
+                            xt_idxvec_new, xt_xmap_dist_dir_new, &
+                            xt_redist_p2p_off_new, &
+                            xt_xmap_delete, xt_idxlist_delete
+  use log_mod,       only : log_event, LOG_LEVEL_ERROR
 
   implicit none
 

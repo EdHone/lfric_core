@@ -490,7 +490,105 @@ contains
     use atm_fields_bounds_mod, only: tdims, udims, vdims, udims_s, vdims_s, &
          pdims
     use atm_step_local, only: dim_cs1, dim_cs2
-    use atmos_physics2_alloc_mod !everything
+    use atmos_physics2_alloc_mod, only : atmos_physics2_alloc, &
+                                         alpha1,               &
+                                         alpha1_sea,           &
+                                         alpha1_sice,          &
+                                         aresist,              &
+                                         aresist_surft,        &
+                                         ashtf_prime,          &
+                                         ashtf_prime_sea,      &
+                                         ashtf_prime_surft,    &
+                                         bl_type_1,            &
+                                         bl_type_2,            &
+                                         bl_type_3,            &
+                                         bl_type_4,            &
+                                         bl_type_5,            &
+                                         bl_type_6,            &
+                                         bl_type_7,            &
+                                         bq_gb,                &
+                                         bt_gb,                &
+                                         canhc_surft,          &
+                                         cdr10m_u,             &
+                                         cdr10m_v,             &
+                                         chr1p5m,              &
+                                         chr1p5m_sice,         &
+                                         cu_over_orog,         &
+                                         dtrdz_charney_grid,   &
+                                         dtrdz_u,              &
+                                         dtrdz_v,              &
+                                         dust_emiss_frac,      &
+                                         dust_flux,            &
+                                         emis_soil,            &
+                                         emis_surft,           &
+                                         flake,                &
+                                         fland,                &
+                                         flandg,               &
+                                         flandg_u,             &
+                                         flandg_v,             &
+                                         fraca,                &
+                                         gc_surft,             &
+                                         hcons_soilt,          &
+                                         k_blend_tq,           &
+                                         k_blend_uv,           &
+                                         kent,                 &
+                                         kent_dsc,             &
+                                         npp_gb,               &
+                                         r_b_dust,             &
+                                         rdz_charney_grid,     &
+                                         rdz_u,                &
+                                         rdz_v,                &
+                                         resfs,                &
+                                         resft,                &
+                                         resist_b,             &
+                                         resist_b_surft,       &
+                                         resp_s_gb_um,         &
+                                         resp_s_tot_soilt,     &
+                                         resp_w_pft,           &
+                                         rho_aresist,          &
+                                         rho_aresist_surft,    &
+                                         rhokh_sea,            &
+                                         rhokh_sice,           &
+                                         rhokh_surft,          &
+                                         rhokm,                &
+                                         rhokm_u,              &
+                                         rhokm_v,              &
+                                         rib_gb,               &
+                                         shallowc,             &
+                                         smc_soilt,            &
+                                         surft_index,          &
+                                         surft_pts,            &
+                                         t_frac,               &
+                                         t_frac_dsc,           &
+                                         taux_p,               &
+                                         tauy_p,               &
+                                         tile_frac,            &
+                                         u_0_px,               &
+                                         u_p,                  &
+                                         u_px,                 &
+                                         u_s,                  &
+                                         u_s_std_surft,        &
+                                         u_s_t_dry_tile,       &
+                                         u_s_t_tile,           &
+                                         uhalo,                &
+                                         uw0,                  &
+                                         v_0_px,               &
+                                         v_p,                  &
+                                         v_px,                 &
+                                         vshr,                 &
+                                         vw0,                  &
+                                         we_lim,               &
+                                         we_lim_dsc,           &
+                                         wt_ext_surft,         &
+                                         z0h_surft,            &
+                                         z0hssi,               &
+                                         z0m_eff_gb,           &
+                                         z0m_surft,            &
+                                         z0mssi,               &
+                                         zhnl,                 &
+                                         zhsc,                 &
+                                         zrzi,                 &
+                                         zrzi_dsc
     use bdy_expl3_mod, only: bdy_expl3
     use bl_option_mod, only: flux_bc_opt, specified_fluxes_only
     use conv_diag_6a_mod, only: conv_diag_6a

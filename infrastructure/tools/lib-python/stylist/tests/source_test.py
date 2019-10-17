@@ -13,7 +13,9 @@ import os.path
 import shutil
 import tempfile
 
+import fparser.two.Fortran2003
 import pytest
+
 from stylist.source import CPreProcessor, CSource, \
                            FortranPreProcessor, FortranSource, \
                            PFUnitProcessor, \
@@ -191,9 +193,23 @@ END PROGRAM test'''
                             implicit none
                             write(6, '("Hello ", A)') 'world'
                           end program test
-                             '''
+                       '''
     _BARE_SUBROUTINE = r'''subroutine testing
                            end subroutine testing'''
+    _MULTI_PROC_MODULE = r'''! Initial comment
+                             module multi
+                               implicit none
+                             contains
+                               subroutine one()
+                                 implicit none
+                               end subroutine one
+                               function two()
+                                 implicit none
+                                 integer :: two
+                                 two = 2
+                               end function two
+                             end module multi
+                          '''
 
     @pytest.fixture(scope="class",
                     params=([_SIMPLE_PROGRAM,
@@ -234,6 +250,20 @@ END PROGRAM test'''
         print(unit_under_test.get_tree())
         result = unit_under_test.path('/'.join(path_case[1]))
         assert [obj.__class__.__name__ for obj in result] == path_case[2]
+
+    def test_find_all(self):
+        '''
+        Checks that finding all occurances of a source part works.
+        '''
+        reader = SourceStringReader(self._MULTI_PROC_MODULE)
+        unit_under_test = FortranSource(reader)
+        print(repr(unit_under_test.get_tree()))
+        wanted = fparser.two.Fortran2003.Module_Subprogram
+        result = unit_under_test.find_all(wanted)
+        assert str(result.next().content[0].items[1]) == 'one'
+        assert str(result.next().content[0].items[1]) == 'two'
+        with pytest.raises(StopIteration):
+            result.next()
 
 
 class TestCSource(object):

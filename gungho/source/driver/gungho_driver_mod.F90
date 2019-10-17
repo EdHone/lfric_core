@@ -32,8 +32,7 @@ module gungho_driver_mod
   use create_physics_prognostics_mod, &
                                   only : create_physics_prognostics
 
-  use create_fd_prognostics_mod,  &
-                                  only : create_fd_prognostics
+  use create_fd_prognostics_mod,  only : create_fd_prognostics
   use init_gungho_prognostics_alg_mod, &
                                   only : init_gungho_prognostics_alg
   use map_fd_to_prognostics_alg_mod,  only : map_fd_to_prognostics
@@ -66,10 +65,8 @@ module gungho_driver_mod
                                          ancil_option_none,          &
                                          ancil_option_analytic,      & 
                                          ancil_option_aquaplanet
-  use create_fd_prognostics_mod,  &
-                                  only : create_fd_prognostics
-  use init_fd_prognostics_mod,    &
-                                  only : init_fd_prognostics_dump
+  use create_fd_prognostics_mod,  only : create_fd_prognostics
+  use init_fd_prognostics_mod,    only : init_fd_prognostics_dump
   use init_ancils_mod,            only : init_analytic_ancils, &
                                          init_aquaplanet_ancils
   use log_mod,                    only : log_event,          &
@@ -86,7 +83,7 @@ module gungho_driver_mod
   use runtime_constants_mod,      only : final_runtime_constants
   use gungho_step_mod,            only : step
   use timer_mod,                  only : timer, output_timer, init_timer
-  use xios
+  use xios,                       only : xios_update_calendar
   use count_mod,                  only : count_type, halo_calls
   use mpi_mod,                    only : initialise_comm, finalise_comm
   use gungho_mod,                 only : program_name

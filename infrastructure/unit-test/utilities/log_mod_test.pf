@@ -9,9 +9,13 @@
 !>
 module log_mod_test
 
-  use pFUnit_Mod
-  use log_mod
   use constants_mod, only: r_def, i_def, str_long
+  use log_mod,       only: finalise_logging, initialise_logging, log_event, &
+                           log_level, log_level_debug, log_level_error,     &
+                           log_level_info, log_level_trace,                 &
+                           log_level_warning, log_set_alert_stream,         &
+                           log_set_level, log_set_info_stream
+  use pFUnit_Mod
 
   implicit none
 

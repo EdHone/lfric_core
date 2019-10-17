@@ -1,37 +1,39 @@
-!-------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 ! Copyright (c) 2017,  Met Office, on behalf of HMSO and Queen's Printer
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
-!-------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 
-!>@brief A linear operator with a W3 Mass matrix in the upper diagonal block and
-!! a W0 mass matrix in the lower diagonal block, i.e. it is dense.
+!>@brief A linear operator with a W3 Mass matrix in the upper diagonal block
+!>       and a W0 mass matrix in the lower diagonal block, i.e. it is dense.
 !>
-!> @details An extension of the abstract linear_operator with mass matrices in the
-!! upper (W3) and lower (W0) blocks. The apply method is over-ridden with LMA kernels
-!! being applied in the upper and lower blocks. The constructor uses the LMA assebly
-!! kernels. An extra procedure - extract_diagonal goes beyond the abstract interfaces
-!! so that the diagonal can be extracted although it is not used by this type.
+!> An extension of the abstract linear_operator with mass matrices in the
+!> upper (W3) and lower (W0) blocks. The apply method is over-ridden with LMA
+!> kernels being applied in the upper and lower blocks. The constructor uses
+!> the LMA assembly kernels. An extra procedure - extract_diagonal goes beyond
+!> the abstract interfaces so that the diagonal can be extracted although it
+!> is not used by this type.
 
 module dense_operator_alg_mod
-  use constants_mod, only : r_def, i_def
-  use linear_operator_mod, only : abstract_linear_operator_type
-  use vector_mod,          only : abstract_vector_type
-  use field_vector_mod,    only : field_vector_type
-  use log_mod,             only : log_event, LOG_LEVEL_ERROR, &
-                                  log_scratch_space
-  use operator_mod,        only : operator_type
-  use field_mod,           only : field_type
-  use function_space_mod,  only : function_space_type
-  use function_space_collection_mod,     only: function_space_collection
-  use fs_continuity_mod
 
-  use quadrature_xyoz_mod,               only : quadrature_xyoz_type
-  use compute_mass_matrix_kernel_w0_mod, only : compute_mass_matrix_kernel_w0_type
-  use compute_mass_matrix_kernel_w3_mod, only : compute_mass_matrix_kernel_w3_type
-  use matrix_vector_kernel_mod,          only : matrix_vector_kernel_type
-  use mm_diagonal_kernel_mod,            only : mm_diagonal_kernel_type
-  use runtime_constants_mod,             only : get_coordinates
+  use compute_mass_matrix_kernel_w0_mod, &
+                                     only : compute_mass_matrix_kernel_w0_type
+  use compute_mass_matrix_kernel_w3_mod, &
+                                     only : compute_mass_matrix_kernel_w3_type
+  use constants_mod,                 only : r_def, i_def
+  use field_mod,                     only : field_type
+  use field_vector_mod,              only : field_vector_type
+  use function_space_mod,            only : function_space_type
+  use function_space_collection_mod, only : function_space_collection
+  use linear_operator_mod,           only : abstract_linear_operator_type
+  use log_mod,                       only : log_event, LOG_LEVEL_ERROR, &
+                                            log_scratch_space
+  use matrix_vector_kernel_mod,      only : matrix_vector_kernel_type
+  use mm_diagonal_kernel_mod,        only : mm_diagonal_kernel_type
+  use operator_mod,                  only : operator_type
+  use quadrature_xyoz_mod,           only : quadrature_xyoz_type
+  use runtime_constants_mod,         only : get_coordinates
+  use vector_mod,                    only : abstract_vector_type
 
   implicit none
   private

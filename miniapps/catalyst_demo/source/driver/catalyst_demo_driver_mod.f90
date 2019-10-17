@@ -39,7 +39,7 @@ module catalyst_demo_driver_mod
                                             LOG_LEVEL_DEBUG,    &
                                             LOG_LEVEL_TRACE,    &
                                             log_scratch_space
-  use mod_wait
+  use mod_wait,                       only: init_wait
   use operator_mod,                   only: operator_type
   use io_config_mod,                  only: write_diag,           &
                                             diagnostic_frequency, &
@@ -55,7 +55,6 @@ module catalyst_demo_driver_mod
   use mpi_mod,                        only: initialise_comm, store_comm, &
                                             finalise_comm,               &
                                             get_comm_size, get_comm_rank
-  use xios
   use visualisation_config_mod,       only : write_catalyst_output,   &
                                              visualisation_frequency, &
                                              visualisation_stem_name, &
@@ -65,6 +64,13 @@ module catalyst_demo_driver_mod
                                              catalyst_initialize, &
                                              catalyst_coprocess,  &
                                              catalyst_finalize
+  use xios,                           only : xios_ctx,              &
+                                             xios_id,               &
+                                             xios_context_finalize, &
+                                             xios_domain_init,      &
+                                             xios_finalize,         &
+                                             xios_initialize,       &
+                                             xios_update_calendar
 
   implicit none
 

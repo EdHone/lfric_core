@@ -14,7 +14,7 @@ module gw_init_fields_alg_mod
                                                LOG_LEVEL_ERROR
   use constants_mod,                     only: r_def, i_def
 
-  use solver_alg_mod,                    only: solver_algorithm
+  use iterative_solver_mod,              only: solver_algorithm
   use runtime_constants_mod,             only: get_coordinates
 
   ! Configuration options
@@ -38,7 +38,6 @@ module gw_init_fields_alg_mod
 
   ! Handles
   use fs_continuity_mod,                 only: W0, W2, W3, Wtheta
-
 
   implicit none
 

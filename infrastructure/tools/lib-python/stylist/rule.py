@@ -190,3 +190,29 @@ class MissingImplicit(FortranRule):
                 description = description.format(thing=nature, name=name)
                 issues.append(Issue(description))
         return issues
+
+
+class MissingOnly(FortranRule):
+    '''
+    Catches cases where a "use" statement is present but has no "only" claus.
+    '''
+    def __init__(self, ignore=[]):
+        '''
+        Constructs a "MissingOnly" rule object taking a list of exception
+        modules which are not required to have an "only" clause.
+        '''
+        assert isinstance(ignore, list)
+        self._ignore = ignore
+
+    def examine_fortran(self, subject):
+        issues = []
+
+        for statement in subject.find_all(fparser.two.Fortran2003.Use_Stmt):
+            module = statement.items[2]
+            onlies = statement.items[4]
+            if str(module).lower() not in self._ignore:
+                if onlies is None:
+                    description = 'Usage of "{module}" without "only" clause.'
+                    issues.append(Issue(description.format(module=module)))
+
+        return issues

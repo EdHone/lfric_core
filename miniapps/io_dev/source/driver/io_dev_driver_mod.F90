@@ -9,21 +9,21 @@
 !>
 module io_dev_driver_mod
 
+use configuration_mod,          only: final_configuration
 use constants_mod,              only: i_def, i_native
 use convert_to_upper_mod,       only: convert_to_upper
+use create_fem_mod,             only: init_fem
+use create_mesh_mod,            only: init_mesh
 use derived_config_mod,         only: set_derived_config 
+use diagnostics_io_mod,         only: write_scalar_diagnostic, &
+                                      write_vector_diagnostic
 use field_mod,                  only: field_type
 use finite_element_config_mod,  only: element_order
 use global_mesh_collection_mod, only: global_mesh_collection, &
                                       global_mesh_collection_type
 use init_io_dev_mod,            only: init_io_dev
-use create_fem_mod,             only: init_fem
-use create_mesh_mod,            only: init_mesh
-use configuration_mod,          only: final_configuration
 use io_dev_mod,                 only: load_configuration, program_name
 use io_mod,                     only: xios_domain_init
-use diagnostics_io_mod,         only: write_scalar_diagnostic, &
-                                      write_vector_diagnostic
 use log_mod,                    only: log_event,          &
                                       log_set_level,      &
                                       log_scratch_space,  &
@@ -35,12 +35,15 @@ use log_mod,                    only: log_event,          &
                                       LOG_LEVEL_INFO,     &
                                       LOG_LEVEL_DEBUG,    &
                                       LOG_LEVEL_TRACE
-use mod_wait
-use timestepping_config_mod,    only: dt
+use mod_wait,                   only: init_wait
 use mpi_mod,                    only: initialise_comm, store_comm, &
                                       finalise_comm,               &
                                       get_comm_size, get_comm_rank
-use xios
+use timestepping_config_mod,    only: dt
+use xios,                       only: xios_context_finalize, &
+                                      xios_finalize,         &
+                                      xios_initialize,       &
+                                      xios_update_calendar
 use yaxt,                       only: xt_initialize, xt_finalize
 
 implicit none

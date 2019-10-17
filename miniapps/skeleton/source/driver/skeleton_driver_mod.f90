@@ -9,20 +9,22 @@
 !>
 module skeleton_driver_mod
 
+  use checksum_alg_mod,           only : checksum_alg
+  use cli_mod,                    only : get_initial_filename
+  use configuration_mod,          only : final_configuration
   use constants_mod,              only : i_def, i_native
   use convert_to_upper_mod,       only : convert_to_upper
-  use cli_mod,                    only : get_initial_filename
   use create_mesh_mod,            only : init_mesh
   use create_fem_mod,             only : init_fem
-  use init_skeleton_mod,          only : init_skeleton
-  use yaxt,                       only : xt_initialize, xt_finalize
+  use derived_config_mod,         only : set_derived_config
+  use diagnostics_io_mod,         only : write_scalar_diagnostic
+  use field_mod,                  only : field_type
   use global_mesh_collection_mod, only : global_mesh_collection, &
                                          global_mesh_collection_type
-  use field_mod,                  only : field_type
-  use skeleton_alg_mod,           only : skeleton_alg
-  use configuration_mod,          only : final_configuration
-  use skeleton_mod,               only : load_configuration, program_name
-  use derived_config_mod,         only : set_derived_config
+  use init_skeleton_mod,          only : init_skeleton
+  use io_mod,                     only : xios_domain_init
+  use io_config_mod,              only : write_diag, &
+                                         use_xios_io
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
@@ -34,17 +36,17 @@ module skeleton_driver_mod
                                          LOG_LEVEL_INFO,     &
                                          LOG_LEVEL_DEBUG,    &
                                          LOG_LEVEL_TRACE
-  use io_config_mod,              only : write_diag, &
-                                         use_xios_io
-  use diagnostics_io_mod,         only : write_scalar_diagnostic
-  use io_mod,                     only : xios_domain_init
-  use checksum_alg_mod,           only : checksum_alg
   use mpi_mod,                    only : initialise_comm, store_comm, &
                                          finalise_comm,               &
                                          get_comm_size, get_comm_rank
-
-  use xios
-  use mod_wait
+  use mod_wait,                   only : init_wait
+  use skeleton_mod,               only : load_configuration, program_name
+  use skeleton_alg_mod,           only : skeleton_alg
+  use xios,                       only : xios_context_finalize, &
+                                         xios_finalize,         &
+                                         xios_initialize,       &
+                                         xios_update_calendar
+  use yaxt,                       only : xt_initialize, xt_finalize
 
   implicit none
 

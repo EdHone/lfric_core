@@ -9,7 +9,38 @@ module function_space_mod_test
 
   use constants_mod,         only : i_def, i_native, l_def, r_def, str_long
   use fs_continuity_mod,     only : W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi
-  use fs_test_data_mod  ! Will use everything in here as it's the static data
+  use fs_test_data_mod,      only : fs0k0_nodal_coords,         &
+                                    fs0k0_dofmap,               &
+                                    fs0k0_basis_function,       &
+                                    fs0k0_basis_diff_function,  &
+                                    fs1k0_nodal_coords,         &
+                                    fs1k0_dofmap,               &
+                                    fs1k0_basis_function,       &
+                                    fs1k0_basis_diff_function,  &
+                                    fs2k0_nodal_coords,         &
+                                    fs2k0_dofmap,               &
+                                    fs2k0_basis_function,       &
+                                    fs2k0_basis_diff_function,  &
+                                    fs3k0_nodal_coords,         &
+                                    fs3k0_dofmap,               &
+                                    fs3k0_basis_function,       &
+                                    fs3k0_basis_diff_function,  &
+                                    fstk0_nodal_coords,         &
+                                    fstk0_dofmap,               &
+                                    fstk0_basis_function,       &
+                                    fstk0_basis_diff_function,  &
+                                    fs2vk0_nodal_coords,        &
+                                    fs2vk0_dofmap,              &
+                                    fs2vk0_basis_function,      &
+                                    fs2vk0_basis_diff_function, &
+                                    fs2hk0_nodal_coords,        &
+                                    fs2hk0_dofmap,              &
+                                    fs2hk0_basis_function,      &
+                                    fs2hk0_basis_diff_function, &
+                                    fsck0_nodal_coords,         &
+                                    fsck0_dofmap,               &
+                                    fsck0_basis_function,       &
+                                    fsck0_basis_diff_function
   use function_space_mod,    only : function_space_type
   use mesh_collection_mod,   only : mesh_collection_type, &
                                     mesh_collection

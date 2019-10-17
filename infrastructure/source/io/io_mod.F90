@@ -11,39 +11,33 @@
 !!           writing LFRic fields
 !-------------------------------------------------------------------------------
 module io_mod
+
+  use base_mesh_config_mod,          only: geometry, &
+                                           geometry_spherical
   use constants_mod,                 only: i_def, i_native, i_halo_index, &
                                            r_def, dp_xios,                &
                                            str_def, str_max_filename,     &
                                            l_def, PI, radians_to_degrees
+  use coord_transform_mod,           only: xyz2llr
   use field_mod,                     only: field_type, field_proxy_type
   use field_collection_mod,          only: field_collection_type, &
                                            field_collection_iterator_type
+  use files_config_mod,              only: checkpoint_stem_name, &
+                                           start_dump_filename, &
+                                           start_dump_directory
   use finite_element_config_mod,     only: element_order
-  use base_mesh_config_mod,          only: geometry, &
-                                           geometry_spherical
-  use fs_continuity_mod,             only: W0, W1, W2, W3, Wtheta, W2H, &
-                                           name_from_functionspace
-  use mesh_mod,                      only: mesh_type
-  use mesh_collection_mod,           only: mesh_collection 
   use function_space_mod,            only: function_space_type, BASIS
   use function_space_collection_mod, only: function_space_collection
-  use project_output_mod,            only: project_output
-  use io_config_mod,                 only: diagnostic_frequency, &
-                                           checkpoint_write,     &
-                                           checkpoint_read,      &
-                                           write_dump
+  use fs_continuity_mod,             only: W0, W1, W2, W3, Wtheta, W2H, &
+                                           name_from_functionspace
   use initialization_config_mod,     only: init_option,               &
                                            init_option_fd_start_dump, &
                                            ancil_option,              &
                                            ancil_option_aquaplanet
-
-  use files_config_mod,              only: checkpoint_stem_name, &
-                                           start_dump_filename, &
-                                           start_dump_directory
-  use time_config_mod,               only: timestep_start, &
-                                           timestep_end
-  use runtime_constants_mod,         only: get_coordinates
-  use coord_transform_mod,           only: xyz2llr
+  use io_config_mod,                 only: diagnostic_frequency, &
+                                           checkpoint_write,     &
+                                           checkpoint_read,      &
+                                           write_dump
   use log_mod,                       only: log_event,         &
                                            log_set_level,     &
                                            log_scratch_space, &
@@ -51,12 +45,34 @@ module io_mod
                                            LOG_LEVEL_INFO,    &
                                            LOG_LEVEL_DEBUG,   &
                                            LOG_LEVEL_TRACE
-
+  use mesh_mod,                      only: mesh_type
+  use mesh_collection_mod,           only: mesh_collection 
+  use mpi,                           only: mpi_success
+  use mpi_mod,                       only: get_comm_size, get_comm_rank, all_gather
+  use project_output_mod,            only: project_output
   use psykal_lite_mod,               only: invoke_nodal_coordinates_kernel, &
                                            invoke_pointwise_convert_xyz2llr
-  use mpi_mod, only: get_comm_size, get_comm_rank, all_gather
-  use mpi, only: MPI_SUCCESS
-  use xios
+  use runtime_constants_mod,         only: get_coordinates
+  use time_config_mod,               only: timestep_start, &
+                                           timestep_end
+  use xios,                          only: xios_context,                  &
+                                           xios_duration,                 &
+                                           xios_fieldgroup,               &
+                                           xios_file,                     &
+                                           xios_close_context_definition, &
+                                           xios_context_initialize,       &
+                                           xios_get_axis_attr,            &
+                                           xios_get_domain_attr,          &
+                                           xios_get_handle,               &
+                                           xios_is_valid_field,           &
+                                           xios_is_valid_file,            &
+                                           xios_recv_field,               &
+                                           xios_send_field,               &
+                                           xios_set_attr,                 &
+                                           xios_set_axis_attr,            &
+                                           xios_set_current_context,      &
+                                           xios_set_domain_attr,          &
+                                           xios_set_timestep
 
   implicit none
   private

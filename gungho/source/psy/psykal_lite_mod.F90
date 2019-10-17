@@ -20,12 +20,6 @@ module psykal_lite_mod
   use mesh_mod,                     only : mesh_type
   use function_space_mod,           only : BASIS, DIFF_BASIS
 
-  ! The following modules are not currently implemented as part of the main
-  ! code but they do have unit tests so need to be declared here so they are
-  ! built ready for unit testing.
-
-  use quadrature_xoyoz_mod
-  use quadrature_xyz_mod
   use quadrature_xyoz_mod, only : quadrature_xyoz_type, &
                                   quadrature_xyoz_proxy_type
   use quadrature_face_mod, only : quadrature_face_type, &

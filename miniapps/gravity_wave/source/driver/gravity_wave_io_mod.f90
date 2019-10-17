@@ -15,7 +15,8 @@ module gravity_wave_io_mod
   use time_config_mod,                only : timestep_start
   use io_config_mod,                  only : use_xios_io
   use io_mod,                         only : xios_domain_init
-  use xios
+  use xios,                           only : xios_context_finalize, &
+                                             xios_update_calendar
 
   implicit none
 

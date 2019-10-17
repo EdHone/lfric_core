@@ -46,7 +46,7 @@ module gravity_wave_driver_mod
                                             timestep_end
   use timer_mod,                      only: init_timer, timer, output_timer
   use mpi_mod,                        only: initialise_comm, finalise_comm
-  use xios
+  use xios,                           only: xios_update_calendar
 
   implicit none
 

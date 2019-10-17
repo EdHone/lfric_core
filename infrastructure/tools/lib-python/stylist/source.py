@@ -287,6 +287,31 @@ class FortranSource(SourceTree):
                         raise Exception(message.format(candidate_name))
         return found
 
+    def find_all(self, find_node, root=None):
+        '''
+        Returns a generator which loops over all instances if the specified
+        parse element below the root.
+
+        The search descends the tree but that descent is terminated by a match.
+        '''
+        if root:
+            candidates = [root]
+        else:
+            candidates = list(self._tree.content)
+
+        while candidates:
+            candidate = candidates.pop(0)
+            if self._ast_match(candidate, find_node):
+                yield candidate
+            else:  # If we found a thing we don't descend into it
+                if isinstance(candidate, fparser.two.Fortran2003.BlockBase):
+                    candidates.extend(candidate.content)
+                elif isinstance(candidate,
+                                fparser.two.Fortran2003.SequenceBase):
+                    candidates.extend(candidate.items)
+                else:
+                    pass
+
     @staticmethod
     def _ast_match(candidate, saught_class):
         if candidate.__class__.__name__ == saught_class.__name__:

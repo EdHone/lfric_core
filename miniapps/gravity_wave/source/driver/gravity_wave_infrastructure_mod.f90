@@ -8,27 +8,27 @@
 
 module gravity_wave_infrastructure_mod
 
-  use constants_mod,                  only : i_def, i_native
-  use convert_to_upper_mod,           only : convert_to_upper
-  use mpi_mod,                        only : store_comm, &
-                                             get_comm_size, get_comm_rank
-  use log_mod,                        only : log_event,          &
-                                             log_set_level,      &
-                                             log_scratch_space,  &
-                                             initialise_logging, &
-                                             finalise_logging,   &
-                                             LOG_LEVEL_ALWAYS,   &
-                                             LOG_LEVEL_ERROR,    &
-                                             LOG_LEVEL_WARNING,  &
-                                             LOG_LEVEL_INFO,     &
-                                             LOG_LEVEL_DEBUG,    &
-                                             LOG_LEVEL_TRACE
-  use gravity_wave_mod,               only : load_configuration
-  use configuration_mod,              only : final_configuration
-  use derived_config_mod,             only : set_derived_config
-  use yaxt,                           only : xt_initialize, xt_finalize
-  use xios
-  use mod_wait
+  use configuration_mod,    only : final_configuration
+  use constants_mod,        only : i_def, i_native
+  use convert_to_upper_mod, only : convert_to_upper
+  use derived_config_mod,   only : set_derived_config
+  use gravity_wave_mod,     only : load_configuration
+  use log_mod,              only : log_event,          &
+                                   log_set_level,      &
+                                   log_scratch_space,  &
+                                   initialise_logging, &
+                                   finalise_logging,   &
+                                   LOG_LEVEL_ALWAYS,   &
+                                   LOG_LEVEL_ERROR,    &
+                                   LOG_LEVEL_WARNING,  &
+                                   LOG_LEVEL_INFO,     &
+                                   LOG_LEVEL_DEBUG,    &
+                                   LOG_LEVEL_TRACE
+  use mod_wait,             only : init_wait
+  use mpi_mod,              only : store_comm, &
+                                   get_comm_size, get_comm_rank
+  use xios,                 only : xios_finalize, xios_initialize
+  use yaxt,                 only : xt_initialize, xt_finalize
   
   
   implicit none

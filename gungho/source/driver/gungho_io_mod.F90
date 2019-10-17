@@ -9,13 +9,14 @@
 
 module gungho_io_mod
 
-  use constants_mod,                  only : i_def
-  use field_mod,                      only : field_type
-  use timestepping_config_mod,        only : dt
-  use time_config_mod,                only : timestep_start
-  use io_config_mod,                  only : use_xios_io
-  use io_mod,                         only : xios_domain_init
-  use xios
+  use constants_mod,           only : i_def
+  use field_mod,               only : field_type
+  use io_mod,                  only : xios_domain_init
+  use io_config_mod,           only : use_xios_io
+  use time_config_mod,         only : timestep_start
+  use timestepping_config_mod, only : dt
+  use xios,                    only : xios_context_finalize, &
+                                      xios_update_calendar
 
   implicit none
 

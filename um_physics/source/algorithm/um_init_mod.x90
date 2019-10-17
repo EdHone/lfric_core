@@ -32,11 +32,11 @@ module um_init_mod
                                     method_2d_smag,         &
                                     method_blending,        &
                                     mix_factor_in => mix_factor
-  use spectral_gwd_config_mod, only:                    &
-                ussp_launch_factor_in => ussp_launch_factor,&
-                wavelstar_in => wavelstar,                  &
-                add_cgw_in => add_cgw,                      &
-                cgw_scale_factor_in => cgw_scale_factor
+  use spectral_gwd_config_mod, only:                                        &
+                               ussp_launch_factor_in => ussp_launch_factor, &
+                               wavelstar_in => wavelstar,                   &
+                               add_cgw_in => add_cgw,                       &
+                               cgw_scale_factor_in => cgw_scale_factor
 
   implicit none
 
@@ -121,7 +121,7 @@ contains
         sigl, tleaf_of, tlow, tupp, vint, vsl
     use jules_vegetation_mod, only: can_rad_mod, ilayers, l_vegcan_soilfx
     use g_wave_input_mod, only: ussp_launch_factor,                        &
-                                  wavelstar, l_add_cgw, cgw_scale_factor
+                                wavelstar, l_add_cgw, cgw_scale_factor
     use dust_parameters_mod, only: i_dust, i_dust_off,                     &
                                    dust_parameters_load
     use level_heights_mod, only: r_theta_levels, r_rho_levels, eta_theta_levels
