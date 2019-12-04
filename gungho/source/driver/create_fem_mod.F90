@@ -98,7 +98,6 @@ module create_fem_mod
     end do
 
     call assign_coordinate_field(chi, mesh_id)
-    call assign_orography_field(chi, mesh_id)
 
 
     ! Create shifted vertical mesh extrusion.

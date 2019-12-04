@@ -30,6 +30,7 @@ module gungho_model_mod
 
   use timer_mod,                  only : timer, output_timer, init_timer
 
+  use assign_orography_field_mod, only : assign_orography_field
   use field_mod,                  only : field_type, &
                                          write_interface
   use count_mod,                  only : count_type, halo_calls
@@ -242,6 +243,10 @@ module gungho_model_mod
       end if
 
     end if
+
+    ! Set up orography after XIOS to enable read-in from ancillary file
+    call assign_orography_field(chi, mesh_id)
+
 
     !-------------------------------------------------------------------------
     ! Setup constants
