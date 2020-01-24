@@ -21,8 +21,8 @@
       <domain id="checkpoint_W3" name="checkpoint_W3" nvertex="1"/>
       <domain id="checkpoint_Wtheta" name="checkpoint_Wtheta" nvertex="1"/>
       <domain id="checkpoint_W3_2D" name="checkpoint_W3_2D" nvertex="1"/>
-   </domain_definition>
-   
+ </domain_definition>
+
 
    <grid_definition>
     <grid id="node_grid">
@@ -68,12 +68,12 @@
        <field id="init_wind3" name="wind3" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
        <field id="init_density" name="density" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
        <field id="init_wind_divergence" name="wind_divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
-     </field_group>    
+     </field_group>
 
    </field_definition>
 
    <file_definition
-      type="one_file" 
+      type="one_file"
       par_access="collective"
       time_counter="none">
 
@@ -84,7 +84,7 @@
         <field field_ref="checkpoint_density"/>
         <field field_ref="checkpoint_wind"/>
         <field field_ref="checkpoint_wind_divergence"/>
-      </file> 
+      </file>
 
        <!-- file definition for checkpoint read -->
       <file id="lfric_checkpoint_read" name="lfric_checkpoint" mode="read" output_freq="1ts" cyclic="true" enabled=".FALSE.">
@@ -99,7 +99,7 @@
         <field field_ref="wind3"/>
         <field field_ref="density"/>
         <field field_ref="wind_divergence"/>
-      </file> 
+      </file>
 
       <file id="lfric_initial" name="lfric_initial" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
         <field field_ref="init_wind1"/>
@@ -107,7 +107,7 @@
         <field field_ref="init_wind3"/>
         <field field_ref="init_density"/>
         <field field_ref="init_wind_divergence"/>
-      </file> 
+      </file>
 
 
     </file_definition>

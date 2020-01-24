@@ -17,8 +17,10 @@ module create_physics_prognostics_mod
   use field_collection_mod,           only : field_collection_type
   use fs_continuity_mod,              only : W2, W3, Wtheta
   use function_space_mod,             only : function_space_type
-  use log_mod,                        only : log_event,                        &
-                                             LOG_LEVEL_INFO,                   &
+  use io_mod,                         only : tile_order, pft_order, &
+                                             sice_order, soil_order
+  use log_mod,                        only : log_event,         &
+                                             LOG_LEVEL_INFO,         &
                                              LOG_LEVEL_ERROR
   use radiation_config_mod,           only : n_radstep
   use aerosol_config_mod,             only : c_aerosol,                        &
@@ -100,14 +102,6 @@ contains
     type(function_space_type), pointer :: sice_space => null()
 
     type( field_type ), pointer :: theta => null()
-
-    ! Each column of a higher-order discontinuous field will be used to
-    ! represent multi-dimensional quantities like tiles, plant functional
-    ! types and sea ice categories. Set parameters for the orders required:
-    integer(i_def) :: tile_order = 2 ! Enough space for 27 tiles
-    integer(i_def) :: pft_order  = 1 ! Enough space for 8 plant functional types
-    integer(i_def) :: sice_order = 1 ! Enough space for 8 sea ice categories
-    integer(i_def) :: soil_order = 1 ! Enough space for 8 soil levels
 
     integer(i_def) :: theta_space
     logical(l_def) :: checkpoint_restart_flag
@@ -191,6 +185,15 @@ contains
     !========================================================================
     radiation_fields = field_collection_type(name='radiation_fields')
 
+    ! 2D fields, need checkpointing
+    checkpoint_restart_flag = .true.
+    call add_physics_field( radiation_fields, depository, prognostic_fields,   &
+      'albedo_obs_sw', twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field( radiation_fields, depository, prognostic_fields,   &
+      'albedo_obs_vis', twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field( radiation_fields, depository, prognostic_fields,   &
+      'albedo_obs_nir', twod_space, checkpoint_restart_flag, twod=.true. )
+
     ! 2D fields, don't need checkpointing
     checkpoint_restart_flag = .false.
     call add_physics_field( radiation_fields, depository, prognostic_fields,   &
@@ -207,12 +210,6 @@ contains
       'sw_down_blue_surf', twod_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( radiation_fields, depository, prognostic_fields,   &
       'sw_direct_blue_surf', twod_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( radiation_fields, depository, prognostic_fields,   &
-      'albedo_obs_sw', twod_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( radiation_fields, depository, prognostic_fields,   &
-      'albedo_obs_vis', twod_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( radiation_fields, depository, prognostic_fields,   &
-      'albedo_obs_nir', twod_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( radiation_fields, depository, prognostic_fields,   &
       'lw_up_tile', tile_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( radiation_fields, depository, prognostic_fields,   &
@@ -485,9 +482,12 @@ contains
       'tstar',   twod_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
       'z0msea',  twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'surface_conductance', twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'chloro_sea', twod_space, checkpoint_restart_flag, twod=.true. )
 
     ! Fields on surface tiles, need checkpointing
-    checkpoint_restart_flag = .false. ! #1920 required for this to work
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
       'tile_fraction', tile_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
@@ -500,6 +500,14 @@ contains
       'leaf_area_index', pft_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
       'canopy_height', pft_space, checkpoint_restart_flag, twod=.true. )
+
+    ! Sea-ice category fields, need checkpointing
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'sea_ice_thickness', sice_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'sea_ice_pond_frac', sice_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'sea_ice_pond_depth', sice_space, checkpoint_restart_flag, twod=.true. )
 
     ! Fields on surface tiles, don't need checkpointing
     checkpoint_restart_flag = .false.
@@ -530,19 +538,7 @@ contains
 
     ! 2D fields
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
-      'surface_conductance', twod_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( surface_fields, depository, prognostic_fields,     &
-      'chloro_sea', twod_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( surface_fields, depository, prognostic_fields,     &
       'ustar', twod_space, checkpoint_restart_flag, twod=.true. )
-
-    ! Sea-ice category fields
-    call add_physics_field( surface_fields, depository, prognostic_fields,     &
-      'sea_ice_thickness', sice_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( surface_fields, depository, prognostic_fields,     &
-      'sea_ice_pond_frac', sice_space, checkpoint_restart_flag, twod=.true. )
-    call add_physics_field( surface_fields, depository, prognostic_fields,     &
-      'sea_ice_pond_depth', sice_space, checkpoint_restart_flag, twod=.true. )
 
     ! This needs to be order 3 as it is land tile (9) x soil levels (4) = 36
     vector_space => function_space_collection%get_fs(twod_mesh_id, 3, W3)
@@ -555,7 +551,7 @@ contains
     soil_fields = field_collection_type(name='soil_fields')
 
     ! 2D fields, need checkpointing
-    checkpoint_restart_flag = .false. ! #1920 required for this to work
+    checkpoint_restart_flag = .true.
     call add_physics_field( soil_fields, depository, prognostic_fields,       &
       'soil_albedo', twod_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( soil_fields, depository, prognostic_fields,       &
@@ -601,7 +597,7 @@ contains
     snow_fields = field_collection_type(name='snow_fields')
 
     ! Fields on surface tiles, need checkpointing
-    checkpoint_restart_flag = .false. ! #1920 required for this to work
+    checkpoint_restart_flag = .true.
     call add_physics_field( snow_fields, depository, prognostic_fields,  &
       'tile_snow_mass', tile_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( snow_fields, depository, prognostic_fields,  &

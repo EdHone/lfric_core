@@ -205,6 +205,22 @@ contains
 
     logical(l_def) :: put_field
 
+    ! Initialise all the physics fields here. We'll then re initialise
+    ! them below if need be
+    if (use_physics) then
+          call init_physics_prognostics_alg( model_data%radiation_fields,    &
+                                             model_data%microphysics_fields, &
+                                             model_data%orography_fields,    &
+                                             model_data%turbulence_fields,   &
+                                             model_data%convection_fields,   &
+                                             model_data%cloud_fields,        &
+                                             model_data%surface_fields,      &
+                                             model_data%soil_fields,         &
+                                             model_data%snow_fields,         &
+                                             model_data%aerosol_fields )
+
+    end if
+
     ! Initialise prognostic fields appropriately
     select case ( prognostic_init_choice )
 
@@ -217,19 +233,6 @@ contains
                                           model_data%diagnostic_fields, &
                                           model_data%mr,                &
                                           model_data%moist_dyn )
-
-        if (use_physics) then
-          call init_physics_prognostics_alg( model_data%radiation_fields,    &
-                                             model_data%microphysics_fields, &
-                                             model_data%orography_fields,    &
-                                             model_data%turbulence_fields,   &
-                                             model_data%convection_fields,   &
-                                             model_data%cloud_fields,        &
-                                             model_data%surface_fields,      &
-                                             model_data%soil_fields,         &
-                                             model_data%snow_fields,         &
-                                             model_data%aerosol_fields )
-        end if
 
       case ( init_option_checkpoint_dump )
 
@@ -247,16 +250,7 @@ contains
             call initial_cloud_alg( model_data%convection_fields, &
                                     model_data%cloud_fields )
           end if
-          ! re-initialise jules fields
-          call init_jules_alg( model_data%radiation_fields, &
-                               model_data%surface_fields,   &
-                               model_data%soil_fields,      &
-                               model_data%snow_fields )
 
-          ! Set the increments to 0 initially
-          call init_physics_incs_alg( model_data%radiation_fields,    &
-                                      model_data%microphysics_fields, &
-                                      model_data%convection_fields )
         end if
 
       case ( init_option_fd_start_dump )
@@ -267,23 +261,6 @@ contains
 
           ! Read in from a UM2LFRic dump file
           call init_fd_prognostics_dump( model_data%fd_fields )
-
-          ! Initialise jules fields
-          call init_jules_alg( model_data%radiation_fields, &
-                               model_data%surface_fields,   &
-                               model_data%soil_fields,      &
-                               model_data%snow_fields )
-
-          ! Initialise aerosol climatology fields
-          call init_aerosol_alg( model_data%aerosol_fields )
-
-          ! Initialise orography fields
-          call init_orography_fields_alg(model_data%orography_fields)
-
-          ! Set physics increments to 0
-          call init_physics_incs_alg( model_data%radiation_fields,    &
-                                      model_data%microphysics_fields, &
-                                      model_data%convection_fields )
 
           ! Populate prognostics from input finite difference fields
           call map_fd_to_prognostics( model_data%prognostic_fields,          &

@@ -100,7 +100,7 @@
 
 &time
  timestep_start             = 1
- timestep_end               = 1
+ timestep_end               = 50
 /
 
 &planet

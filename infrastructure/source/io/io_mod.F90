@@ -79,6 +79,14 @@ module io_mod
             xios_read_field_face,         &
             xios_read_field_single_face
 
+! Each column of a higher-order discontinuous field can be used to
+! represent multi-dimensional quantities like tiles, plant functional
+! types and sea ice categories. Set parameters for the orders required:
+integer(i_def), public, parameter :: tile_order = 2 ! Enough space for 27 tiles
+integer(i_def), public, parameter :: pft_order  = 1 ! Enough space for 8 plant functional types
+integer(i_def), public, parameter :: sice_order = 1 ! Enough space for 8 sea ice categories
+integer(i_def), public, parameter :: soil_order = 1 ! Enough space for 8 soil levels
+
 contains
 
 !-------------------------------------------------------------------------------
@@ -130,7 +138,6 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, &
 
   integer(i_native) :: fs_index
 
-
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Setup context !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   call xios_context_initialize(xios_ctx, mpi_comm)
@@ -171,8 +178,21 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, &
   ! Set up 2D checkpoint domain - only W3 at the moment
 
   domain_name = "checkpoint_W3_2D"
-
   call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true.)
+
+  ! Set up physics prognostics checkpoint domains which make use of higher-order fields
+
+  domain_name = "checkpoint_pft"
+  call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., pft_order)
+
+  domain_name = "checkpoint_tile"
+  call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., tile_order)
+
+  domain_name = "checkpoint_sice"
+  call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., sice_order)
+
+  domain_name = "checkpoint_soil"
+  call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., soil_order)
 
   !!!!!!!!!!!!! Setup diagnostic output context information !!!!!!!!!!!!!!!!!!
 
@@ -806,10 +826,12 @@ end subroutine xios_diagnostic_domain_init
 !!  @param[in]      chi           Coordinate field
 !!  @param[in]      use_index     Flag to specify use of domain index
 !!                                to preserve order over decomposition
-
+!!  @param[in]      k_order       Function space order (optional,
+!!                                default = 0)
 !-------------------------------------------------------------------------------
 
-subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_index)
+subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, &
+                                       use_index, k_order)
 
   implicit none
 
@@ -821,10 +843,12 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   type(field_type), intent(in)         :: chi(3)
   logical(l_def),   intent(in)         :: use_index
 
+  integer(i_def),   optional, intent(in)  :: k_order
 
   ! Local variables
 
   integer(i_def)    :: i
+  integer(i_def)    :: k_ord
 
   ! Checkpoint domain
   integer(i_def)                      :: ibegin_checkpoint
@@ -863,9 +887,15 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
    r2d = 1.0_r_def
   endif
 
+  ! Set k order value to 0 if unassigned
+  if (present(k_order))then
+    k_ord=k_order
+  else
+    k_ord=0
+  end if
+
 
   ! Set up arrays to hold number of dofs for local and global domains
-
 
   allocate(local_undf(1))
   allocate(all_undfs_checkpoint_domain(get_comm_size()))
@@ -875,8 +905,8 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   ! Create appropriate function space in order to be able to get the
   ! physical coordinates
 
-  output_field_fs => function_space_collection%get_fs( mesh_id,       &
-                                                       element_order, &
+  output_field_fs => function_space_collection%get_fs( mesh_id, &
+                                                       k_ord, &
                                                        fs_id)
 
   ! Calculate the nodal coords for a field on the function space
@@ -885,7 +915,6 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   do i = 1,3
     call coord_output(i)%initialise( vector_space = output_field_fs )
   end do
-
 
   ! Convert field to physical nodal output & sample chi on nodal points
   call invoke_nodal_coordinates_kernel(coord_output, chi)
@@ -905,7 +934,6 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
 
   local_undf(1)  = proxy_coord_output(1)%vspace%get_last_dof_owned()
 
-
   !!!!!!!!!!!!  Global domain calculation !!!!!!!!!!!!!!!!!!!!!!!!!!
 
   call all_gather ( local_undf, all_undfs_checkpoint_domain, 1 )
@@ -914,7 +942,6 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   ! for checkpoint domain
 
   global_undf_checkpoint = sum(all_undfs_checkpoint_domain)
-
 
   ! Calculate ibegin for each rank as we have the array of undfs in order
   ! we can just sum to get it.
@@ -952,7 +979,6 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
                             bounds_lat_1d=bnd_checkpoint_lat)
 
   ! If we have requested to use domain index then get it and use it
-
   if (use_index) then
 
     ! Allocate domain_index - it is of size ndof_glob
@@ -961,11 +987,15 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
     ! Populate domain_index for this rank
     call output_field_fs%get_global_dof_id(domain_index)
 
+    ! temporary fix for higher-order domain decomposition
+    if (k_ord > 0) then
+      domain_index = domain_index/2
+    end if
+
     ! Pass local portion of domain_index (up to undf)
     call xios_set_domain_attr(domain_name, i_index=int(domain_index(1:local_undf(1))))
 
   end if
-
 
   if ( allocated(checkpoint_lon) )     deallocate(checkpoint_lon)
   if ( allocated(checkpoint_lat) )     deallocate(checkpoint_lat)
@@ -974,8 +1004,8 @@ subroutine xios_checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, use_ind
   if ( allocated(bnd_checkpoint_lat) ) deallocate(bnd_checkpoint_lat)
   if ( allocated(local_undf) )      deallocate(local_undf)
   if ( allocated(all_undfs_checkpoint_domain) ) deallocate(all_undfs_checkpoint_domain)
-  nullify( output_field_fs )
 
+  nullify( output_field_fs )
   return
 end subroutine xios_checkpoint_domain_init
 
@@ -1798,4 +1828,3 @@ subroutine xios_write_field_edge(xios_field_name, field_proxy)
 end subroutine xios_write_field_edge
 
 end module io_mod
-
