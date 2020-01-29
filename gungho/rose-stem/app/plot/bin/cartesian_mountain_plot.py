@@ -206,7 +206,7 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
             if cntrs == 'lines':
                 cc = np.linspace(9.99, 10.01, 21)
                 cf = plt.contour(x_plt, zi_adj, np.round(dval, 10),
-                                 cc, cmap=cm.spectral, linewidths=3)
+                                 cc, cmap=cm.Spectral, linewidths=3)
             elif cntrs == 'colours':
                 cf = plt.pcolormesh(x_plt, zi_adj, np.round(dval, 10),
                                     vmin=9.99, vmax=10.01, cmap=cm.coolwarm)
@@ -223,7 +223,7 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
             if cntrs == 'lines':
                 cc = np.linspace(np.min(dval), np.max(dval), 13)
                 cf = plt.contour(x_plt, zi_adj, np.round(dval, 10),
-                                 cc, cmap=cm.spectral, linewidths=3)
+                                 cc, cmap=cm.Spectral, linewidths=3)
             else:
                 cf = plt.pcolormesh(x_plt, zi_adj, np.round(dval, 10))
                 plt.colorbar(cf,  cmap=cm.coolwarm)
@@ -267,7 +267,7 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
                 plt.clabel(cf, fontsize=10)
             else:
                 cf = plt.contour(x_plt, zi_adj, np.round(dval, 10),
-                                 cc, cmap=cm.spectral, linewidths=3)
+                                 cc, cmap=cm.Spectral, linewidths=3)
         elif cntrs == 'colours':
             cf = plt.pcolormesh(x_plt, zi_adj, np.round(dval, 10),
                                 vmin=np.min(dval), vmax=np.max(dval),
@@ -276,9 +276,9 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
         if cntrs == 'lines':
             cc = np.linspace(cmin_t, cmax_t, nc_t)
             cf = plt.contour(x_plt, zi_adj, np.round(dval, 10),
-                             cc, cmap=cm.spectral,
+                             cc, cmap=cm.Spectral,
                              linewidths=3)
-            plt.colorbar(cf,  cmap=cm.spectral)
+            plt.colorbar(cf,  cmap=cm.Spectral)
         elif cntrs == 'colours':
             cf = plt.pcolormesh(x_plt, zi_adj, np.round(dval, 10),
                                 vmin=cmin_t, vmax=cmax_t,
@@ -288,8 +288,8 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
         if cntrs == 'lines':
             cc = np.linspace(-0.00001, 0.00001, 21)
             cf = plt.contour(x_plt, zi_adj, np.round(dval, 10),
-                             cc, cmap=cm.spectral, linewidths=3)
-            plt.colorbar(cf,  cmap=cm.spectral)
+                             cc, cmap=cm.Spectral, linewidths=3)
+            plt.colorbar(cf,  cmap=cm.Spectral)
         elif cntrs == 'colours':
             cf = plt.pcolormesh(x_plt, zi_adj, np.round(dval, 10),
                                 vmin=-0.00001, vmax=-0.00001,
@@ -299,8 +299,8 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
         if cntrs == 'lines':
             cc = np.linspace(-0.0005, 0.0005, 21)
             cf = plt.contour(x_plt, zi_adj, np.round(dval, 10),
-                             cc, cmap=cm.spectral, linewidths=3)
-            plt.colorbar(cf,  cmap=cm.spectral)
+                             cc, cmap=cm.Spectral, linewidths=3)
+            plt.colorbar(cf,  cmap=cm.Spectral)
         elif cntrs == 'colours':
             cf = plt.pcolormesh(x_plt, zi_adj, np.round(dval, 10),
                                 cmap=cm.coolwarm)
@@ -412,7 +412,7 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
             if cntrs == 'lines':
                 cc = np.linspace(np.min(dval), np.max(dval), 13)
                 cf = plt.contour(y_plt, zi_adj, np.round(dval, 10), cc,
-                                 cmap=cm.spectral, linewidths=3)
+                                 cmap=cm.Spectral, linewidths=3)
             elif cntrs == 'colours':
                 cf = plt.pcolormesh(y_plt, zi_adj, np.round(dval, 10),
                                     vmin=np.min(dval), vmax=np.max(dval),
@@ -421,8 +421,8 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
             if cntrs == 'lines':
                 cc = np.linspace(cmin_t, cmax_t, nc_t)
                 cf = plt.contour(y_plt, zi_adj, np.round(dval, 10), cc,
-                                 cmap=cm.spectral, linewidths=3)
-                plt.colorbar(cf,  cmap=cm.spectral)
+                                 cmap=cm.Spectral, linewidths=3)
+                plt.colorbar(cf,  cmap=cm.Spectral)
             elif cntrs == 'colours':
                 cf = plt.pcolormesh(y_plt, zi_adj, np.round(dval, 10),
                                     vmin=cmin_t, vmax=cmax_t,
@@ -432,8 +432,8 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
             if cntrs == 'lines':
                 cc = np.linspace(-0.00001, 0.00001, 21)
                 cf = plt.contour(y_plt, zi_adj, np.round(dval, 10), cc,
-                                 cmap=cm.spectral, linewidths=3)
-                plt.colorbar(cf,  cmap=cm.spectral)
+                                 cmap=cm.Spectral, linewidths=3)
+                plt.colorbar(cf,  cmap=cm.Spectral)
             elif cntrs == 'colours':
                 cf = plt.pcolormesh(y_plt, zi_adj, np.round(dval, 10),
                                     vmin=-0.00001, vmax=-0.00001,
@@ -443,8 +443,8 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
             if cntrs == 'lines':
                 cc = np.linspace(-0.0005, 0.0005, 21)
                 cf = plt.contour(y_plt, zi_adj, np.round(dval, 10), cc,
-                                 cmap=cm.spectral, linewidths=3)
-                plt.colorbar(cf,  cmap=cm.spectral)
+                                 cmap=cm.Spectral, linewidths=3)
+                plt.colorbar(cf,  cmap=cm.Spectral)
             elif cntrs == 'colours':
                 cf = plt.pcolormesh(y_plt, zi_adj, np.round(dval, 10),
                                     cmap=cm.coolwarm)
@@ -508,7 +508,7 @@ def make_figure(plotpath, field, component, timestep, plotlevel_x,
         if case == 'schar3d':
             cc = np.linspace(np.min(dval), np.max(dval), 13)
             cf = plt.contour(x_plt, y_plt, np.round(dval, 10), cc,
-                             cmap=cm.spectral, linewidths=3)
+                             cmap=cm.Spectral, linewidths=3)
 
             plt.xlim(-20, 20)
             plt.ylim(-20, 20)
