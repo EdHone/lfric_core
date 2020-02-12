@@ -26,6 +26,7 @@ use idealised_config_mod,         only : test_cold_bubble_x,           &
                                          test_solid_body_rotation_alt, &
                                          test_deep_baroclinic_wave,    &
                                          test_dry_cbl,                 &
+                                         test_snow,                    &
                                          test_shallow_conv,            &
                                          test_cos_phi,                 &
                                          test_cosine_bubble
@@ -227,7 +228,7 @@ function analytic_temperature(chi, choice) result(temperature)
                               pressure, temperature, density, &
                               u, v, w)
 
-  case( test_dry_cbl )
+  case( test_dry_cbl, test_snow )
     ! For the time being this is a fixed profile for the dry cbl
     ! but to be read in and made generic later
     if (z<= 1000.0)then

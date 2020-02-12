@@ -28,6 +28,7 @@
       <domain id="checkpoint_tile" name="checkpoint_tile" nvertex="1"/>
       <domain id="checkpoint_sice" name="checkpoint_sice" nvertex="1"/>
       <domain id="checkpoint_soil" name="checkpoint_soil" nvertex="1"/>
+      <domain id="checkpoint_snow" name="checkpoint_snow" nvertex="1"/>
  </domain_definition>
 
    <grid_definition>
@@ -96,11 +97,28 @@
        <field id="checkpoint_tile_snow_rgrain" name="tile_snow_rgrain" long_name="Tile snow grain size" unit="microns" domain_ref="checkpoint_tile" />
        <field id="checkpoint_n_snow_layers" name="tile_n_snow_layers" long_name="Number of snow layerson tiles" unit="1" domain_ref="checkpoint_tile" />
        <field id="checkpoint_snow_depth" name="tile_snow_depth" long_name="Snow depth on tiles" unit="m" domain_ref="checkpoint_tile" />
+      <field id="checkpoint_snowpack_density" name="tile_snowpack_density" long_name="Snowpack density on tiles" unit="kg m-3" domain_ref="checkpoint_tile" />
+       <field id="checkpoint_snow_under_canopy" name="tile_snow_under_canopy" long_name="Snow under canopy on tiles" unit="m" domain_ref="checkpoint_tile" />
+       <field id="checkpoint_snow_layer_thickness" name="tile_snow_layer_thickness" long_name="Snow layer thickness on tiles" unit="m" domain_ref="checkpoint_snow" />
+       <field id="checkpoint_snow_layer_ice_mass" name="tile_snow_layer_ice_mass" long_name="Snow layer ice mass on tiles" unit="kg m-2" domain_ref="checkpoint_snow" />
+       <field id="checkpoint_snow_layer_liq_mass" name="tile_snow_layer_liq_mass" long_name="Snow layer liquid mass on tiles" unit="kg m-2" domain_ref="checkpoint_snow" />
+       <field id="checkpoint_snow_layer_temp" name="tile_snow_layer_temp" long_name="Snow layer temperature on tiles" unit="K" domain_ref="checkpoint_snow" />
+       <field id="checkpoint_snow_layer_rgrain" name="tile_snow_layer_rgrain" long_name="Snow layer grain size on tiles" unit="microns" domain_ref="checkpoint_snow" />
        <field id="checkpoint_canopy_water" name="tile_canopy_water" long_name="Canopy water content on tiles" unit="kg m-2" domain_ref="checkpoint_tile" />
        <field id="checkpoint_soil_albedo" name="soil_albedo" long_name="Soil Albedo" unit="1" domain_ref="checkpoint_W3_2D" />
        <field id="checkpoint_soil_roughness" name="soil_roughness" long_name="Roughness length of soil" unit="m" domain_ref="checkpoint_W3_2D" />
        <field id="checkpoint_soil_thermal_cond" name="soil_thermal_cond" long_name="Thermal conductivity of soil" unit="W m-1 K-1" domain_ref="checkpoint_W3_2D" />
        <field id="checkpoint_soil_carbon_content" name="soil_carbon_content" long_name="Soil Carbon content" unit="kgC m-2" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_decrease_sath_cond" name="decrease_sath_cond" long_name="Decrease in saturated hydraulic condictivity with depth" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_mean_topog_index" name="mean_topog_index" long_name="Mean Topographic Index" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_a_sat_frac" name="a_sat_frac" long_name="Saturated fraction a parameter" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_c_sat_frac" name="c_sat_frac" long_name="Saturated fraction c parameter" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_a_wet_frac" name="a_wet_frac" long_name="Wet fraction a parameter" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_c_wet_frac" name="c_wet_frac" long_name="Wet fraction c parameter" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_soil_sat_frac" name="soil_sat_frac" long_name="Soil saturated fraction" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_soil_wet_frac" name="soil_wet_frac" long_name="Soil wet fraction" unit="1" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_water_table" name="water_table" long_name="Water table depth" unit="m" domain_ref="checkpoint_W3_2D" />
+       <field id="checkpoint_wetness_under_soil" name="wetness_under_soil" long_name="Wetness below soil column" unit="1" domain_ref="checkpoint_W3_2D" />
        <field id="checkpoint_albedo_obs_sw" name="albedo_obs_sw" long_name="Observed SW albedo" unit="1" domain_ref="checkpoint_W3_2D" />
        <field id="checkpoint_albedo_obs_vis" name="albedo_obs_vis" long_name="Observed visible albedo" unit="1" domain_ref="checkpoint_W3_2D" />
        <field id="checkpoint_albedo_obs_nir" name="albedo_obs_nir" long_name="Observed near-infrared albedo" unit="1" domain_ref="checkpoint_W3_2D" />
@@ -375,11 +393,28 @@
         <field field_ref="checkpoint_tile_snow_rgrain"/>
       	<field field_ref="checkpoint_n_snow_layers"/>
       	<field field_ref="checkpoint_snow_depth"/>
+      	<field field_ref="checkpoint_snowpack_density"/>
+      	<field field_ref="checkpoint_snow_under_canopy"/>
+      	<field field_ref="checkpoint_snow_layer_thickness"/>
+      	<field field_ref="checkpoint_snow_layer_ice_mass"/>
+      	<field field_ref="checkpoint_snow_layer_liq_mass"/>
+      	<field field_ref="checkpoint_snow_layer_temp"/>
+      	<field field_ref="checkpoint_snow_layer_rgrain"/>
       	<field field_ref="checkpoint_canopy_water"/>
       	<field field_ref="checkpoint_soil_albedo"/>
       	<field field_ref="checkpoint_soil_roughness"/>
       	<field field_ref="checkpoint_soil_thermal_cond"/>
       	<field field_ref="checkpoint_soil_carbon_content"/>
+      	<field field_ref="checkpoint_decrease_sath_cond"/>
+      	<field field_ref="checkpoint_mean_topog_index"/>
+      	<field field_ref="checkpoint_a_sat_frac"/>
+      	<field field_ref="checkpoint_c_sat_frac"/>
+      	<field field_ref="checkpoint_a_wet_frac"/>
+      	<field field_ref="checkpoint_c_wet_frac"/>
+      	<field field_ref="checkpoint_soil_sat_frac"/>
+      	<field field_ref="checkpoint_soil_wet_frac"/>
+      	<field field_ref="checkpoint_water_table"/>
+      	<field field_ref="checkpoint_wetness_under_soil"/>
       	<field field_ref="checkpoint_albedo_obs_sw"/>
       	<field field_ref="checkpoint_albedo_obs_vis"/>
       	<field field_ref="checkpoint_albedo_obs_nir"/>
@@ -447,11 +482,28 @@
        <field id="restart_tile_snow_rgrain" name="tile_snow_rgrain" long_name="Tile snow grain size" unit="microns" operation="instant" domain_ref="checkpoint_tile" />
        <field id="restart_n_snow_layers" name="tile_n_snow_layers" long_name="Number of snow layerson tiles" unit="1" operation="instant" domain_ref="checkpoint_tile" />
        <field id="restart_snow_depth" name="tile_snow_depth" long_name="Snow depth on tiles" unit="m" operation="instant" domain_ref="checkpoint_tile" />
+       <field id="restart_snowpack_density" name="tile_snowpack_density" long_name="Snow depth on tiles" unit="kg m-3" operation="instant" domain_ref="checkpoint_tile" />
+       <field id="restart_snow_under_canopy" name="tile_snow_under_canopy" long_name="Snow depth on tiles" unit="m" operation="instant" domain_ref="checkpoint_tile" />
+       <field id="restart_snow_layer_thickness" name="tile_snow_layer_thickness" long_name="Snow layer thickness on tiles" unit="m" operation="instant" domain_ref="checkpoint_snow" />
+       <field id="restart_snow_layer_ice_mass" name="tile_snow_layer_ice_mass" long_name="Snow layer ice mass on tiles" unit="kg m-2" operation="instant" domain_ref="checkpoint_snow" />
+       <field id="restart_snow_layer_liq_mass" name="tile_snow_layer_liq_mass" long_name="Snow layer liquid mass on tiles" unit="kg m-2" operation="instant" domain_ref="checkpoint_snow" />
+       <field id="restart_snow_layer_temp" name="tile_snow_layer_temp" long_name="Snow layer temperature on tiles" unit="K" operation="instant" domain_ref="checkpoint_snow" />
+       <field id="restart_snow_layer_rgrain" name="tile_snow_layer_rgrain" long_name="Snow layer grain size on tiles" unit="microns" operation="instant" domain_ref="checkpoint_snow" />
        <field id="restart_canopy_water" name="tile_canopy_water" long_name="Canopy water content on tiles" unit="kg m-2" operation="instant" domain_ref="checkpoint_tile" />
        <field id="restart_soil_albedo" name="soil_albedo" long_name="Soil Albedo" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
        <field id="restart_soil_roughness" name="soil_roughness" long_name="Roughness length of soil" unit="m" operation="instant" domain_ref="checkpoint_W3_2D" />
        <field id="restart_soil_thermal_cond" name="soil_thermal_cond" long_name="Thermal conductivity of soil" unit="W m-1 K-1" operation="instant" domain_ref="checkpoint_W3_2D" />
        <field id="restart_soil_carbon_content" name="soil_carbon_content" long_name="Soil Carbon content" unit="kgC m-2" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_decrease_sath_cond" name="decrease_sath_cond" long_name="Decrease in saturated hydraulic condictivity with depth" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_mean_topog_index" name="mean_topog_index" long_name="Mean Topographic Index" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_a_sat_frac" name="a_sat_frac" long_name="Saturated fraction a parameter" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_c_sat_frac" name="c_sat_frac" long_name="Saturated fraction c parameter" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_a_wet_frac" name="a_wet_frac" long_name="Wet fraction a parameter" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_c_wet_frac" name="c_wet_frac" long_name="Wet fraction c parameter" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_soil_sat_frac" name="soil_sat_frac" long_name="Soil saturated fraction" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_soil_wet_frac" name="soil_wet_frac" long_name="Soil wet fraction" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_water_table" name="water_table" long_name="Water table depth" unit="m" operation="instant" domain_ref="checkpoint_W3_2D" />
+       <field id="restart_wetness_under_soil" name="wetness_under_soil" long_name="Wetness below soil column" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
        <field id="restart_albedo_obs_sw" name="albedo_obs_sw" long_name="Observed SW albedo" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
        <field id="restart_albedo_obs_vis" name="albedo_obs_vis" long_name="Observed visible albedo" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />
        <field id="restart_albedo_obs_nir" name="albedo_obs_nir" long_name="Observed near-infrared albedo" unit="1" operation="instant" domain_ref="checkpoint_W3_2D" />

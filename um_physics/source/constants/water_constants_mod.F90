@@ -24,15 +24,8 @@ module water_constants_mod
   implicit none
 
   private
-  public :: hcapi, hcapw, hcapv, lc, lf, rho_ice, rho_water, rhosea, tfs, tm
-
-  ! The following variables have been hidden as they are not currently
-  ! required to build the extracted UM code. They have been left in
-  ! in case they are required as more UM code is drawn into the lfric_atm
-  ! build. Should they be required at a later date, they should simply be
-  ! added to the public statement above
-
-  ! Disabled variables: dpsidt
+  public :: hcapi, hcapw, hcapv, lc, lf, rho_ice, rho_water, rhosea, tfs, tm, &
+            dpsidt
 
   !-----------------------------------------------------------------------
   ! Parameters names contained here are fixed, as these names are

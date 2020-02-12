@@ -32,7 +32,7 @@ module bl_imp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_imp_kernel_type
     private
-    type(arg_type) :: meta_args(77) = (/                &
+    type(arg_type) :: meta_args(80) = (/                &
         arg_type(GH_INTEGER, GH_READ),                  &! outer
         arg_type(GH_FIELD,   GH_READ,      WTHETA),     &! theta_in_wth
         arg_type(GH_FIELD,   GH_READ,      W3),         &! wetrho_in_w3
@@ -54,11 +54,9 @@ module bl_imp_kernel_mod
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_3),&! canopy_height
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_1),&! peak_to_trough_orog
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_1),&! silhouette_area_orog
-        arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_1),&! soil_carbon_content
         arg_type(GH_FIELD,   GH_INC,       ANY_SPACE_2),&! tile_temperature
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_2),&! tile_snow_mass
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_2),&! n_snow_layers
-        arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_2),&! snow_depth
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_2),&! canopy_water
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_4),&! soil_temperature
         arg_type(GH_FIELD,   GH_INC,       ANY_SPACE_2),&! tile_heat_flux
@@ -66,6 +64,11 @@ module bl_imp_kernel_mod
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_2),&! sw_up_tile
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_1),&! sw_down_surf
         arg_type(GH_FIELD,   GH_READ,      ANY_SPACE_1),&! lw_down_surf
+        arg_type(GH_FIELD,   GH_WRITE,     ANY_SPACE_2),&! snow_sublimation  (kg m-2 s-1)
+        arg_type(GH_FIELD,   GH_WRITE,     ANY_SPACE_2),&! surf_heat_flux (W m-2)
+        arg_type(GH_FIELD,   GH_WRITE,     ANY_SPACE_2),&! canopy_evap (kg m-2 s-1)
+        arg_type(GH_FIELD,   GH_WRITE,     ANY_SPACE_4),&! water_extraction (kg m-2 s-1)
+        arg_type(GH_FIELD,   GH_WRITE,     ANY_SPACE_2),&! total_snowmelt (kg m-2 s-1)
         arg_type(GH_FIELD,   GH_WRITE,     WTHETA),     &! dtheta_bl
         arg_type(GH_FIELD,   GH_INC,       W2),         &! du_bl_w2
         arg_type(GH_FIELD,   GH_WRITE,     WTHETA),     &! dmv_bl
@@ -147,11 +150,9 @@ contains
   !> @param[in]     canopy_height        Canopy height
   !> @param[in]     peak_to_trough_orog  Half of peak-to-trough height over root(2) of orography
   !> @param[in]     silhouette_area_orog Silhouette area of orography
-  !> @param[in]     soil_carbon_content  Soil carbon content
   !> @param[in,out] tile_temperature     Surface tile temperatures
   !> @param[in]     tile_snow_mass       Snow mass on tiles (kg/m2)
   !> @param[in]     n_snow_layers        Number of snow layers on tiles
-  !> @param[in]     snow_depth           Snow depth on tiles
   !> @param[in]     canopy_water         Canopy water on each tile
   !> @param[in]     soil_temperature     Soil temperature
   !> @param[in,out] tile_heat_flux       Surface heat flux
@@ -159,6 +160,11 @@ contains
   !> @param[in]     sw_up_tile           Upwelling SW radiation on surface tiles
   !> @param[in]     sw_down_surf         Downwelling SW radiation at surface
   !> @param[in]     lw_down_surf         Downwelling LW radiation at surface
+  !> @param[out]    snow_sublimation     Sublimation of snow
+  !> @param[out]    surf_heat_flux       Surface heat flux
+  !> @param[out]    canopy_evap          Canopy evaporation from land tiles
+  !> @param[out]    water_extraction     Extraction of water from each soil layer
+  !> @param[out]    total_snowmelt       Surface plus canopy snowmelt rate
   !> @param[out]    dtheta_bl            BL theta increment
   !> @param[in,out] du_bl_w2             BL wind increment
   !> @param[out]    dmv_bl               BL vapour increment
@@ -252,11 +258,9 @@ contains
                          canopy_height,                      &
                          peak_to_trough_orog,                &
                          silhouette_area_orog,               &
-                         soil_carbon_content,                &
                          tile_temperature,                   &
                          tile_snow_mass,                     &
                          n_snow_layers,                      &
-                         snow_depth,                         &
                          canopy_water,                       &
                          soil_temperature,                   &
                          tile_heat_flux,                     &
@@ -264,6 +268,11 @@ contains
                          sw_up_tile,                         &
                          sw_down_surf,                       &
                          lw_down_surf,                       &
+                         snow_sublimation,                   &
+                         surf_heat_flux,                     &
+                         canopy_evap,                        &
+                         water_extraction,                   &
+                         total_snowmelt,                     &
                          dtheta_bl,                          &
                          du_bl_w2,                           &
                          dmv_bl,                             &
@@ -354,7 +363,7 @@ contains
 
     ! spatially varying fields used from modules
     use level_heights_mod, only: r_theta_levels, r_rho_levels, eta_theta_levels
-    use prognostics, only: snowdepth_surft, nsnow_surft
+    use prognostics, only: nsnow_surft
 
     ! subroutines used
     use bdy_expl3_mod, only: bdy_expl3
@@ -435,23 +444,26 @@ contains
     real(kind=r_def), intent(inout) :: tile_temperature(undf_tile)
     real(kind=r_def), intent(in)    :: tile_snow_mass(undf_tile)
     real(kind=r_def), intent(in)    :: n_snow_layers(undf_tile)
-    real(kind=r_def), intent(in)    :: snow_depth(undf_tile)
     real(kind=r_def), intent(in)    :: canopy_water(undf_tile)
     real(kind=r_def), intent(inout) :: tile_heat_flux(undf_tile)
     real(kind=r_def), intent(inout) :: tile_moisture_flux(undf_tile)
     real(kind=r_def), intent(in)    :: sw_up_tile(undf_tile)
+    real(kind=r_def), intent(out)   :: snow_sublimation(undf_tile)
+    real(kind=r_def), intent(out)   :: surf_heat_flux(undf_tile)
+    real(kind=r_def), intent(out)   :: canopy_evap(undf_tile)
+    real(kind=r_def), intent(out)   :: total_snowmelt(undf_tile)
 
     real(kind=r_def), intent(in) :: leaf_area_index(undf_pft)
     real(kind=r_def), intent(in) :: canopy_height(undf_pft)
 
     real(kind=r_def), intent(in) :: peak_to_trough_orog(undf_2d)
     real(kind=r_def), intent(in) :: silhouette_area_orog(undf_2d)
-    real(kind=r_def), intent(in) :: soil_carbon_content(undf_2d)
     real(kind=r_def), intent(in) :: sw_down_surf(undf_2d)
     real(kind=r_def), intent(in) :: lw_down_surf(undf_2d)
     real(kind=r_def), intent(out):: zlcl_mixed(undf_2d)
 
     real(kind=r_def), intent(in) :: soil_temperature(undf_soil)
+    real(kind=r_def), intent(out):: water_extraction(undf_soil)
 
     real(kind=r_def), intent(in) :: tile_water_extract(undf_smtile)
 
@@ -530,7 +542,7 @@ contains
          ashtf_prime, rhokh_sice
 
     ! field on land points and soil levels
-    real(r_um), dimension(land_field,sm_levels) :: t_soil_soilt
+    real(r_um), dimension(land_field,sm_levels) :: t_soil_soilt, ext
 
     ! real fields on land points
     real(r_um), dimension(land_field) :: sil_orog_land_gb, ho2r2_orog_gb,    &
@@ -545,15 +557,12 @@ contains
     ! integer fields on number of tile types
     integer, dimension(ntype) :: surft_pts
 
-    ! fields on land points and carbon pools
-    real(r_um), dimension(land_field,dim_cs1) :: cs_pool_gb_um
-
     ! fields on land points and surface tiles
     real(r_um), dimension(land_field,ntiles) :: canopy_surft, snow_surft,    &
          sw_surft, tstar_surft, frac_surft, ftl_surft, fqw_surft,            &
          dtstar_surft, alpha1, ashtf_prime_surft, chr1p5m, fraca, resfs,     &
          rhokh_surft, z0h_surft, z0m_surft, resft, flake, emis_surft,        &
-         canhc_surft
+         canhc_surft, ei_surft, ecan_surft, melt_surft, surf_htf_surft
 
     ! fields on land points and plant functional types
     real(r_um), dimension(land_field,npft) :: canht_pft, lai_pft
@@ -603,16 +612,13 @@ contains
 
     real(r_um), dimension(dim_cs2) :: resp_s_tot_soilt
 
-    real(r_um), dimension(land_field,dim_cs1) :: resp_s_gb_um
+    real(r_um), dimension(land_field,dim_cs1) :: resp_s_gb_um, cs_pool_gb_um
 
     real(r_um), dimension(land_field) :: npp_gb
 
-    real(r_um), dimension(land_field,sm_levels) :: ext
-
     real(r_um), dimension(land_field,ntiles) :: catch_surft,                 &
-         tscrndcl_surft, ei_surft, ecan_surft, melt_surft, surf_htf_surft,   &
-         epot_surft, aresist_surft, dust_emiss_frac, gc_surft,               &
-         resist_b_surft, rho_aresist_surft, u_s_std_surft
+         tscrndcl_surft, epot_surft, aresist_surft, dust_emiss_frac,         &
+         gc_surft, resist_b_surft, rho_aresist_surft, u_s_std_surft
 
     real(r_um), dimension(land_field,ntiles,ndivh) :: u_s_t_dry_tile,        &
          u_s_t_tile
@@ -774,9 +780,6 @@ contains
       t_soil_soilt(1, i) = real(soil_temperature(map_soil(i)), r_um)
     end do
 
-    ! Soil carbon content (cs_pool_gb_um)
-    cs_pool_gb_um = real(soil_carbon_content(map_2d(1)), r_um)
-
     ! Downwelling LW radiation at surface
     lw_down = real(lw_down_surf(map_2d(1)), r_um)
 
@@ -810,8 +813,6 @@ contains
       snow_surft(1, i_tile) = real(tile_snow_mass(map_tile(i)), r_um)
       ! Number of snow layers on tiles (nsnow_surft)
       nsnow_surft(1, i_tile) = int(n_snow_layers(map_tile(i)), i_um)
-      ! Snow depth on tiles (snowdepth_surft)
-      snowdepth_surft(1, i_tile) = real(snow_depth(map_tile(i)), r_um)
     end do
 
     !-----------------------------------------------------------------------
@@ -969,6 +970,7 @@ contains
     smc_soilt(1) = soil_moist_avail(map_2d(1))
     zhnl(1,1) = zh_nonloc(map_2d(1))
     zh(1,1) = zh_2d(map_2d(1))
+    zlcl_mix = 0.0_r_um
 
     bl_type_1(1,1) = bl_types(map_bl(1))
     bl_type_2(1,1) = bl_types(map_bl(2))
@@ -1392,33 +1394,38 @@ contains
 
       zlcl_mixed(map_2d(1)) = zlcl_mix(1,1)
 
+      ! Update land tiles
       i_tile = 0
       do i = first_land_tile, first_land_tile + n_land_tile - 1
         i_tile = i_tile + 1
-        ! Land tile temperatures
         tile_temperature(map_tile(i)) = real(tstar_surft(1, i_tile), r_def)
-         ! sensible heat flux
         tile_heat_flux(map_tile(i)) = real(ftl_surft(1, i_tile), r_def)
-        ! moisture flux
         tile_moisture_flux(map_tile(i)) = real(fqw_surft(1, i_tile), r_def)
+        snow_sublimation(map_tile(i)) = real(ei_surft(1, i_tile), r_def)
+        ! NB - net surface heat flux
+        surf_heat_flux(map_tile(i)) = real(surf_htf_surft(1, i_tile), r_def)
+        canopy_evap(map_tile(i)) = real(ecan_surft(1, i_tile), r_def)
+        total_snowmelt(map_tile(i)) = real(melt_surft(1, i_tile), r_def)
       end do
 
-      ! Sea temperature
+      ! Update sea tile
       tile_temperature(map_tile(first_sea_tile)) = real(tstar_sea(1,1), r_def)
-      ! heat flux - NB actually grid box mean but okay for aquaplanet
+      ! NB actually grid box mean but okay for aquaplanet
       tile_heat_flux(map_tile(first_sea_tile)) = real(ftl(1,1,1), r_def)
-      ! moisture flux - NB actually grid box mean but okay for aquaplanet
+      ! NB actually grid box mean but okay for aquaplanet
       tile_moisture_flux(map_tile(first_sea_tile)) = real(fqw(1,1,1), r_def)
 
+      ! Update sea-ice tiles
       i_sice = 0
       do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
         i_sice = i_sice + 1
-        ! sea-ice temperature
         tile_temperature(map_tile(i)) = real(tstar_sice_sicat(1,1,i_sice), r_def)
-        ! sea-ice heat flux
         tile_heat_flux(map_tile(i)) = real(ftl_ice(1,1,i_sice), r_def)
-        ! sea-ice moisture flux
         tile_moisture_flux(map_tile(i)) = real(fqw_ice(1,1,i_sice), r_def)
+      end do
+
+      do i = 1, n_soil_levs
+        water_extraction(map_soil(i)) = real(ext(1, i), r_def)
       end do
 
     endif

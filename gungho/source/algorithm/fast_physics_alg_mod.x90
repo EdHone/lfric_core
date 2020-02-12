@@ -10,7 +10,9 @@ module fast_physics_alg_mod
   use section_choice_config_mod, only: boundary_layer,    &
                                        boundary_layer_um, &
                                        convection,        &
-                                       convection_um
+                                       convection_um,     &
+                                       surface,           &
+                                       surface_jules
 
   use constants_mod,        only: i_def,r_def
   use log_mod,              only: log_event,       &
@@ -40,6 +42,8 @@ module fast_physics_alg_mod
   use mr_indices_mod,       only: nummr, imr_v
   use enforce_lower_bound_kernel_mod, only: enforce_lower_bound_kernel_type
 
+  use timestepping_config_mod, only : outer_iterations
+
 #ifdef UM_PHYSICS
   ! UM BL scheme
   use bl_imp_alg_mod,  only: bl_imp_alg_step
@@ -47,6 +51,8 @@ module fast_physics_alg_mod
   use conv_ll_alg_mod, only: conv_ll_alg_step
   use conv_gr_alg_mod, only: conv_gr_alg_step
   use pc2_conv_coupling_alg_mod, only: pc2_conv_coupling_alg_step
+  ! Jules surface schemes
+  use jules_extra_alg_mod, only: jules_extra_alg_step
 #endif
 
   implicit none
@@ -55,29 +61,31 @@ contains
 
   !> @details Collection of procedures for subgrid physics that act
   !>          within the outer loop of the solver
-  !> @param[in,out] du                Increment to wind field
-  !> @param[in,out] dtheta            Increment to theta field
-  !> @param[in,out] mr                Mixing ratios
-  !> @param[in]     theta             Theta field
-  !> @param[in]     rho               Rho on w3 space
-  !> @param[in]     exner             Exner pressure on w3 space
-  !> @param[in]     mr_n              Mixing ratios at time level n
-  !> @param[in]     derived_fields    Group of derived fields
-  !> @param[in]     radition_fields   Fields for radiation scheme
-  !> @param[in]     orography_fields  Fields for orog drag scheme
-  !> @param[in,out] turbulence_fields Fields for turbulence scheme
-  !> @param[in,out] convection_fields Fields for convection scheme
-  !> @param[in,out] cloud_fields      Fields for cloud scheme
-  !> @param[in,out] surface_fields    Fields for surface scheme
-  !> @param[in]     soil_fields       Fields for soil hydrology scheme
-  !> @param[in]     snow_fields       Fields for snow scheme
-  !> @param[in]     dA                Areas of faces
-  !> @param[in]     height_w3         Height in w3
-  !> @param[in]     height_wth        Height in wth
-  !> @param[in]     delta             Edge length on wtheta points
-  !> @param[in]     outer             Outer loop counter
+  !> @param[in,out] du                  Increment to wind field
+  !> @param[in,out] dtheta              Increment to theta field
+  !> @param[in,out] mr                  Mixing ratios
+  !> @param[in]     theta               Theta field
+  !> @param[in]     rho                 Rho on w3 space
+  !> @param[in]     exner               Exner pressure on w3 space
+  !> @param[in]     mr_n                Mixing ratios at time level n
+  !> @param[in]     derived_fields      Group of derived fields
+  !> @param[in]     radition_fields     Fields for radiation scheme
+  !> @param[in]     microphysics_fields Fields for microphysics scheme
+  !> @param[in]     orography_fields    Fields for orographic drag scheme
+  !> @param[in,out] turbulence_fields   Fields for turbulence scheme
+  !> @param[in,out] convection_fields   Fields for convection scheme
+  !> @param[in,out] cloud_fields        Fields for cloud scheme
+  !> @param[in,out] surface_fields      Fields for surface scheme
+  !> @param[in,out] soil_fields         Fields for soil hydrology scheme
+  !> @param[in,out] snow_fields         Fields for snow scheme
+  !> @param[in]     dA                  Areas of faces
+  !> @param[in]     height_w3           Height in w3
+  !> @param[in]     height_wth          Height in wth
+  !> @param[in]     delta               Edge length on wtheta points
+  !> @param[in]     outer               Outer loop counter
     subroutine fast_physics(du, dtheta, mr, theta, rho, exner, mr_n,           &
-                            derived_fields, radiation_fields, orography_fields,&
+                            derived_fields, radiation_fields,                  &
+                            microphysics_fields, orography_fields,             &
                             turbulence_fields, convection_fields, cloud_fields,&
                             surface_fields, soil_fields, snow_fields,          &
                             dA, height_w3, height_wth, delta, outer)
@@ -95,13 +103,14 @@ contains
     ! Field groups
     type( field_collection_type ), intent(in)    :: derived_fields
     type( field_collection_type ), intent(in)    :: radiation_fields
+    type( field_collection_type ), intent(in)    :: microphysics_fields
     type( field_collection_type ), intent(in)    :: orography_fields
     type( field_collection_type ), intent(inout) :: turbulence_fields
     type( field_collection_type ), intent(inout) :: convection_fields
     type( field_collection_type ), intent(inout) :: cloud_fields
     type( field_collection_type ), intent(inout) :: surface_fields
-    type( field_collection_type ), intent(in)    :: soil_fields
-    type( field_collection_type ), intent(in)    :: snow_fields
+    type( field_collection_type ), intent(inout) :: soil_fields
+    type( field_collection_type ), intent(inout) :: snow_fields
 
     ! Coordinate fields
     type( field_type ), intent( in )    :: dA, height_w3, height_wth
@@ -110,9 +119,16 @@ contains
     ! scalars
     integer(kind=i_def), intent(in)     :: outer
 
-    ! Local fields (should be created at initialization, but done here for the time being)
+    ! Local fields not required outside of this algorithm
+    ! We create them here so as to not use memory outside of this algorithm
     type( field_type ) :: dtheta_bl
     type( field_type ) :: du_bl
+    ! Surface fields passed from BL to Jules
+    type( field_type ) :: snow_sublimation
+    type( field_type ) :: surf_heat_flux
+    type( field_type ) :: canopy_evap
+    type( field_type ) :: water_extraction
+    type( field_type ) :: total_snowmelt
 
     type( field_type), pointer :: dmv_conv => null()
 
@@ -179,12 +195,24 @@ contains
       call du%copy_field_properties(du_bl)
       call invoke( setval_c(dtheta_bl, 0.0_r_def), &
                    setval_c(du_bl, 0.0_r_def) )
-      call bl_imp_alg_step(dtheta_bl, du_bl, mr, theta, exner, mr_n,           &
+      call bl_imp_alg_step(dtheta_bl, du_bl, mr, snow_sublimation,             &
+                           surf_heat_flux, canopy_evap, water_extraction,      &
+                           total_snowmelt, theta, exner, mr_n,                 &
                            derived_fields, radiation_fields, orography_fields, &
                            turbulence_fields, convection_fields, cloud_fields, &
                            surface_fields, soil_fields, snow_fields,           &
                            dA, height_w3, height_wth, outer)
       boundary_layer_done=.true. ! We've done it, so need to collect this term later on
+    end if
+
+    if ( surface == surface_jules .and. &
+         outer == outer_iterations ) then
+      ! Algorithm that calls Jules surface and sub-surface routines
+      ! (currently hydrology and snow)
+      call jules_extra_alg_step(microphysics_fields, convection_fields,        &
+                                surface_fields, soil_fields, snow_fields,      &
+                                snow_sublimation, surf_heat_flux, canopy_evap, &
+                                water_extraction, total_snowmelt)
     end if
 #endif
 

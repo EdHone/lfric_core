@@ -35,6 +35,11 @@ contains
   !>@param[in,out] dtheta_bl         Theta increment
   !>@param[in,out] du_bl             3D wind increment
   !>@param[in,out] mr                Mixing ratios
+  !>@param[out]    snow_sublimation  Sublimation of snow
+  !>@param[out]    surf_heat_flux    Net surface heat flux
+  !>@param[out]    canopy_evap       Canopy evaporation from land tiles
+  !>@param[out]    water_extraction  Extraction of water from each soil layer
+  !>@param[out]    total_snowmelt    Surface plus canopy snowmelt rate
   !>@param[in]     theta             Theta in its native (wth) space
   !>@param[in]     exner             Exner Pressure in the w3 space
   !>@param[in]     mr_n              Mixing ratios at time level n
@@ -51,7 +56,9 @@ contains
   !>@param[in]     height_w3         Height in w3
   !>@param[in]     height_wth        Height in wth
   !>@param[in]     outer             Outer loop counter
-  subroutine bl_imp_alg_step(dtheta_bl, du_bl, mr, theta, exner, mr_n,        &
+  subroutine bl_imp_alg_step(dtheta_bl, du_bl, mr, snow_sublimation,          &
+                             surf_heat_flux, canopy_evap, water_extraction,   &
+                             total_snowmelt, theta, exner, mr_n,              &
                              derived_fields, radiation_fields,                &
                              orography_fields, turbulence_fields,             &
                              convection_fields, cloud_fields, surface_fields, &
@@ -66,6 +73,9 @@ contains
     implicit none
 
     type( field_type ), intent( inout )     :: dtheta_bl, du_bl, mr(nummr)
+    type( field_type ), intent( out )       :: snow_sublimation,              &
+                                               surf_heat_flux, canopy_evap,   &
+                                               water_extraction, total_snowmelt
     type( field_type ), intent( in )        :: theta, exner, mr_n(nummr)
     type( field_type ), intent( in )        :: dA, height_w3, height_wth
 
@@ -148,13 +158,11 @@ contains
     type( field_type ), pointer :: peak_to_trough_orog  => null()
     type( field_type ), pointer :: silhouette_area_orog => null()
 
-    type( field_type ), pointer :: soil_carbon_content  => null()
     type( field_type ), pointer :: soil_temperature   => null()
     type( field_type ), pointer :: soil_moist_avail => null()
 
     type( field_type ), pointer :: tile_snow_mass     => null()
     type( field_type ), pointer :: n_snow_layers      => null()
-    type( field_type ), pointer :: snow_depth         => null()
 
     type( field_type ) :: tmp_diag
     type( field_type ) :: rhokm_w2, rhokm_surf_w2, ngstress_w2, dtrdz_w2, &
@@ -164,6 +172,8 @@ contains
     integer(i_def) :: i_tile
 
     ! Surface tile names
+    ! This method of naming and outputting diagnostics is temporary, pending
+    ! a proper solution for multi-dimensional fields (#1552)
     character(str_short) :: tile_names(11) = &
          [character(len=8):: 'brd_leaf', 'ndl_leaf', 'c3_grass', 'c4_grass', &
                              'shrub', 'urban', 'lake', 'soil', 'ice',        &
@@ -246,14 +256,19 @@ contains
     tile_water_extract => surface_fields%get_field('tile_water_extract')
 
     ! Soil fields
-    soil_carbon_content => soil_fields%get_field('soil_carbon_content')
     soil_temperature   => soil_fields%get_field('soil_temperature')
     soil_moist_avail => soil_fields%get_field('soil_moist_avail')
 
     ! Snow fields
     tile_snow_mass     => snow_fields%get_field('tile_snow_mass')
     n_snow_layers      => snow_fields%get_field('n_snow_layers')
-    snow_depth         => snow_fields%get_field('snow_depth')
+
+    ! Local surface fields that need creatig
+    call tile_temperature%copy_field_properties(snow_sublimation)
+    call tile_temperature%copy_field_properties(surf_heat_flux)
+    call tile_temperature%copy_field_properties(canopy_evap)
+    call tile_temperature%copy_field_properties(total_snowmelt)
+    call soil_temperature%copy_field_properties(water_extraction)
 
     ! Set up required variables in w2 space
     call u_physics%copy_field_properties(rhokm_w2)
@@ -286,11 +301,12 @@ contains
                            height_w3, height_wth, ntml, cumulus,               &
                            tile_fraction, leaf_area_index, canopy_height,      &
                            peak_to_trough_orog, silhouette_area_orog,          &
-                           soil_carbon_content, tile_temperature,              &
-                           tile_snow_mass, n_snow_layers, snow_depth,          &
+                           tile_temperature, tile_snow_mass, n_snow_layers,    &
                            canopy_water, soil_temperature,                     &
                            tile_heat_flux, tile_moisture_flux,                 &
                            sw_up_tile, sw_down_surf, lw_down_surf,             &
+                           snow_sublimation, surf_heat_flux, canopy_evap,      &
+                           water_extraction, total_snowmelt,                   &
                            dtheta_bl, du_bl, dmv_bl, dt_conv, du_conv_w2,      &
                            mr(imr_v), mr(imr_cl), mr(imr_ci),                  &
                            cf_area, cf_ice, cf_liq, cf_bulk, rh_crit,          &

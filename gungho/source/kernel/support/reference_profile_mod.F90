@@ -18,6 +18,7 @@ use idealised_config_mod,           only : test_cold_bubble_x,    &
                                            test_const_lapse_rate, &
                                            test_cosine_hill,      &
                                            test_dry_cbl,          &
+                                           test_snow,             &
                                            test_gravity_wave,     &
                                            test_held_suarez,      &
                                            test_isentropic,       &
@@ -114,7 +115,7 @@ else                     ! PLANAR DOMAIN
                   **(1.0_r_def-gravity/(Cp*lapse_rate)))
       exner_s = exner_surf * ((1.0_r_def - lapse_rate/theta_surf * z) &
                   **(gravity/(Cp*lapse_rate)))
-    case( test_dry_cbl )   ! Dry convective boundary layer
+    case( test_dry_cbl, test_snow )   ! Dry convective boundary layer
       if (z<=1000.0_r_def) then
         ! Isentropic
         theta_s = theta_surf

@@ -18,7 +18,7 @@ module create_physics_prognostics_mod
   use fs_continuity_mod,              only : W2, W3, Wtheta
   use function_space_mod,             only : function_space_type
   use io_mod,                         only : tile_order, pft_order, &
-                                             sice_order, soil_order
+                                             sice_order, soil_order, snow_order
   use log_mod,                        only : log_event,         &
                                              LOG_LEVEL_INFO,         &
                                              LOG_LEVEL_ERROR
@@ -100,6 +100,7 @@ contains
     type(function_space_type), pointer :: pft_space => null()
     type(function_space_type), pointer :: soil_space => null()
     type(function_space_type), pointer :: sice_space => null()
+    type(function_space_type), pointer :: snow_space => null()
 
     type( field_type ), pointer :: theta => null()
 
@@ -131,7 +132,7 @@ contains
     pft_space => function_space_collection%get_fs(twod_mesh_id, pft_order, W3)
     soil_space => function_space_collection%get_fs(twod_mesh_id, soil_order, W3)
     sice_space => function_space_collection%get_fs(twod_mesh_id, sice_order, W3)
-
+    snow_space => function_space_collection%get_fs(twod_mesh_id, snow_order, W3)
     !========================================================================
     ! Fields derived from the FE dynamical fields for use in physics
     !========================================================================
@@ -539,6 +540,8 @@ contains
     ! 2D fields
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
       'ustar', twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field(surface_fields, depository, prognostic_fields,      &
+      'net_prim_prod', twod_space, checkpoint_restart_flag, twod=.true.)
 
     ! This needs to be order 3 as it is land tile (9) x soil levels (4) = 36
     vector_space => function_space_collection%get_fs(twod_mesh_id, 3, W3)
@@ -560,6 +563,26 @@ contains
       'soil_thermal_cond', twod_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( soil_fields, depository, prognostic_fields,       &
       'soil_carbon_content', twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'decrease_sath_cond', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'mean_topog_index', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'a_sat_frac', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'c_sat_frac', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'a_wet_frac', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'c_wet_frac', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'soil_sat_frac', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'soil_wet_frac', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'water_table', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'wetness_under_soil', twod_space, checkpoint_restart_flag, twod=.true.)
 
     ! Fields on soil levels
     call add_physics_field( soil_fields, depository, prognostic_fields,       &
@@ -590,6 +613,10 @@ contains
     checkpoint_restart_flag = .false.
     call add_physics_field( soil_fields, depository, prognostic_fields,       &
       'soil_moist_avail', twod_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'soil_respiration', twod_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(soil_fields, depository, prognostic_fields,        &
+      'thermal_cond_wet_soil', twod_space, checkpoint_restart_flag, twod=.true.)
 
     !========================================================================
     ! Fields owned by the snow scheme
@@ -606,6 +633,22 @@ contains
       'n_snow_layers', tile_space, checkpoint_restart_flag, twod=.true. )
     call add_physics_field( snow_fields, depository, prognostic_fields,  &
       'snow_depth', tile_space, checkpoint_restart_flag, twod=.true. )
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snowpack_density', tile_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snow_under_canopy', tile_space, checkpoint_restart_flag, twod=.true.)
+
+    ! Fields on snow layers
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snow_layer_thickness', snow_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snow_layer_ice_mass', snow_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snow_layer_liq_mass', snow_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snow_layer_temp', snow_space, checkpoint_restart_flag, twod=.true.)
+    call add_physics_field(snow_fields, depository, prognostic_fields,   &
+      'snow_layer_rgrain', snow_space, checkpoint_restart_flag, twod=.true.)
 
     ! 2D fields
     call add_physics_field( snow_fields, depository, prognostic_fields,  &

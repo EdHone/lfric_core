@@ -28,6 +28,7 @@
       <domain id="checkpoint_tile" name="checkpoint_tile" nvertex="1"/>
       <domain id="checkpoint_sice" name="checkpoint_sice" nvertex="1"/>
       <domain id="checkpoint_soil" name="checkpoint_soil" nvertex="1"/>
+      <domain id="checkpoint_snow" name="checkpoint_snow" nvertex="1"/>
  </domain_definition>
 
 

@@ -86,10 +86,12 @@ module io_mod
 ! Each column of a higher-order discontinuous field can be used to
 ! represent multi-dimensional quantities like tiles, plant functional
 ! types and sea ice categories. Set parameters for the orders required:
+! This will likely change once #1552 is on trunk
 integer(i_def), public, parameter :: tile_order = 2 ! Enough space for 27 tiles
 integer(i_def), public, parameter :: pft_order  = 1 ! Enough space for 8 plant functional types
 integer(i_def), public, parameter :: sice_order = 1 ! Enough space for 8 sea ice categories
 integer(i_def), public, parameter :: soil_order = 1 ! Enough space for 8 soil levels
+integer(i_def), public, parameter :: snow_order = 2 ! Enough space for 9 tiles and 3 snow layers, i.e. 27
 
 contains
 
@@ -199,6 +201,9 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, &
 
   domain_name = "checkpoint_soil"
   call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., soil_order)
+
+  domain_name = "checkpoint_snow"
+  call xios_checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., snow_order)
 
   !!!!!!!!!!!!! Setup diagnostic output context information !!!!!!!!!!!!!!!!!!
 

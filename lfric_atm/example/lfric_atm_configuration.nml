@@ -248,6 +248,7 @@ stellar_radius=6.957e8,
 /
 &surface
 surf_tile_fracs=0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.0,0.2,0.0,
+use_hydrology=.true.
 /
 &time
 timestep_end=48,

@@ -46,6 +46,8 @@ module um_init_mod
                                add_cgw_in => add_cgw,                       &
                                cgw_scale_factor_in => cgw_scale_factor
 
+  use surface_config_mod, only: use_hydrology
+
   implicit none
 
 contains
@@ -109,10 +111,19 @@ contains
                                       i_gc_sussocbc_5mode,                 &
                                       l_glomap_clim_aie2
     use gen_phys_inputs_mod, only: l_mr_physics
-    use jules_hydrology_mod, only: l_hydrology
+    use jules_hydrology_mod, only: l_hydrology, l_pdm, l_top,              &
+         l_var_rainfrac, l_wetland_unfrozen, nfita
     use jules_sea_seaice_mod, only: nice_use, iseasurfalg, emis_sea,       &
          seasalinityfactor, charnock, nice, ip_ss_surf_div
-    use jules_snow_mod, only: cansnowpft, check_jules_snow
+    use jules_snow_mod, only: nsmax, a_snow_et, aicemax, b_snow_et,        &
+         c_snow_et, can_clump, cansnowpft, dzsnow,                         &
+         frac_snow_subl_melt, graupel_options, i_basal_melting_opt,        &
+         i_grain_growth_opt, i_relayer_opt, i_snow_cond_parm,              &
+         l_et_metamorph, l_snow_infilt, l_snow_nocan_hc,                   &
+         l_snowdep_surf, lai_alb_lim_sn, n_lai_exposed,                    &
+         rho_firn_albedo, rho_snow_et_crit, rho_snow_fresh,                &
+         snow_hcon, unload_rate_cnst, unload_rate_u,                       &
+         check_jules_snow
     use jules_soil_mod, only: dzsoil, dzsoil_io, l_dpsids_dsdz,            &
         l_soil_sat_down, l_vg_soil, soilhc_method
     use jules_soil_biogeochem_mod, only: const_ch4_cs
@@ -168,7 +179,8 @@ contains
     ! LFRic modules with information we need
     use conversions_mod, only: pi_over_180
     use field_mod, only : field_type, field_proxy_type
-    use init_jules_alg_mod, only: n_land_tile, n_sea_ice_tile, n_soil_levs
+    use init_jules_alg_mod, only: n_land_tile, n_sea_ice_tile, n_soil_levs, &
+         max_snow_levs
     use timestepping_config_mod, only: dt, outer_iterations
     use well_mixed_gases_config_mod, only: co2_mix_ratio
     use ukca_mode_setup, only: ukca_mode_sussbcoc_5mode
@@ -260,17 +272,48 @@ contains
     l_spec_albedo=.true.
     l_spec_sea_alb=.true.
 
-    ! JULES snow options (GL7 config) Temp: only cansnowpft
-    ! The order of the following three lines is important. The current
+    ! JULES snow options (GL7 config)
+    a_snow_et             = 2.8e-6_r_um
+    aicemax(1:2)          = (/0.78, 0.36 /)
+    b_snow_et             = 0.042_r_um
+    c_snow_et             = 0.046_r_um
+    can_clump(1:5)        = (/ 1.0,4.0,1.0,1.0,1.0 /)
+    cansnowpft(1:5)       = (/ .false.,.true.,.false.,.false.,.false. /)
+    dzsnow(1:3)           = (/ 0.04,0.12,0.34 /)
+    frac_snow_subl_melt   = 1
+    graupel_options       = 0
+    i_basal_melting_opt   = 0
+    i_grain_growth_opt    = 0
+    i_relayer_opt         = 0
+    i_snow_cond_parm      = 1
+    l_et_metamorph        = .true.
+    l_snow_infilt         = .true.
+    l_snow_nocan_hc       = .true.
+    l_snowdep_surf        = .true.
+    lai_alb_lim_sn(1:5)   = (/ 1.0,1.0,0.1,0.1,0.1 /)
+    n_lai_exposed(1:5)    = (/ 1.0,1.0,3.0,3.0,2.0 /)
+    nsmax                 = max_snow_levs
+    rho_firn_albedo       = 550.0_r_um
+    rho_snow_et_crit      = 150.0_r_um
+    rho_snow_fresh        = 109.0_r_um
+    snow_hcon             = 0.1495_r_um
+    unload_rate_cnst(1:5) = (/ 0.0,0.0,0.0,0.0,0.0 /)
+    unload_rate_u(1:5)    = (/ 0.0,2.31e-06,0.0,0.0,0.0 /)
+
+    ! The order of the following lines is important. The current
     ! code is not robust to a change in call order, to fix it requires
     ! changes to JULES(and or UM) and LFRic code.
-    cansnowpft(1:5)=(/ .false.,.true.,.false.,.false.,.false. /)
     call check_jules_snow()
     call allocate_jules_arrays(land_field,ntiles,sm_levels,nice_use,nice_use)
 
 
     ! Set up JULES hydrology values (will be GL7 with hydrology kernel present)
-    l_hydrology    = .false.
+    l_hydrology    = use_hydrology
+    l_pdm              = .false.
+    l_top              = .true.
+    l_var_rainfrac     = .false. ! True in GL7 but needs work to implement
+    l_wetland_unfrozen = .false.
+    nfita              = 30
 
     ! Set up JULES nvegparm values (GL7 config: jules_nvegparm)
     albsnc_nvg=(/ 0.4,0.8,0.8,0.8 /)
