@@ -4,7 +4,7 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> @brief The argument type to hold kernel metadata required by the psy layer.
+!> @brief The argument type to hold kernel metadata required by the PSy layer.
 
 !> @details Metadata for the kernels. In order to create correct PSy code a
 !> code we need to know how many fields and operators are passed to the kernel
@@ -17,12 +17,12 @@
 !> A kernel may also require additional data associated with a particular
 !> function space (basis function, differential basis function and orientation
 !> information). This information is specified in the xxx type.
-!> the psy layer needs to know how this is to be accessed.
+!> the PSy layer needs to know how this is to be accessed.
 !> read, write etc and which function space it belongs. These are the three
 !> integers of
 !> the arg_type and the values are then one of the parameters
 !> defined in this module.
-!> field metadata also has three logicals controlling whether the psy layer
+!> field metadata also has three logicals controlling whether the PSy layer
 !> needs to pass the basis function, the differential basis function,
 !> and the guassian quadrature type.
 !> Another metadatum which describes the kernel, not the fields
@@ -126,10 +126,17 @@ module argument_mod
 
   !> @defgroup mesh_data_items Enumeration of mesh data items.
   !> @{
-  integer, public, parameter :: adjacent_face                             = 533
-  integer, public, parameter :: reference_element_number_horizontal_faces = 904
-  integer, public, parameter :: reference_element_normal_to_face          = 171
-  integer, public, parameter :: reference_element_out_face_normal         = 007
+  integer, public, parameter :: adjacent_face = 533
+  !> @}
+
+  !> @defgroup reference_element_data_items Enumeration of reference element data items.
+  !> @{
+  integer, public, parameter :: normals_to_faces                    = 171
+  integer, public, parameter :: normals_to_horizontal_faces         = 904
+  integer, public, parameter :: normals_to_vertical_faces           = 333
+  integer, public, parameter :: outward_normals_to_faces            = 007
+  integer, public, parameter :: outward_normals_to_horizontal_faces = 618
+  integer, public, parameter :: outward_normals_to_vertical_faces   = 802
   !> @}
 
 ! Metadata argument type
@@ -154,10 +161,19 @@ module argument_mod
      integer :: wproperties3 = -1 ! { " } optional and must be a distinct property
   end type func_type
 
-  !> Describes mesh data requirements used in kernel metadata.
+  !> Metadata argument for mesh data requirements used in kernel metadata
   !>
   type, public :: mesh_data_type
-    integer :: mesh_data_item
+    integer :: mesh_data_item ! {adjacent_face}
   end type mesh_data_type
+
+  !> Metadata argument for reference element data requirements used in kernel metadata
+  !>
+  type, public :: reference_element_data_type
+    ! {normals_to_faces, normals_to_horizontal_faces, normals_to_vertical_faces, &
+    !  outward_normals_to_faces, outward_normals_to_horizontal_faces,            &
+    !  outward_normals_to_vertical_faces}
+    integer :: reference_element_data_item
+  end type reference_element_data_type
 
 end module argument_mod

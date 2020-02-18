@@ -125,7 +125,7 @@ contains
     real(r_def) :: long, lat, r
 
     ! Reference element stats
-    nfaces_h = reference_element%get_number_2d_faces()
+    nfaces_h = reference_element%get_number_horizontal_faces()
 
     nverts_per_3d_cell = nverts
     nedges_per_3d_cell = reference_element%get_number_edges()
@@ -320,7 +320,7 @@ contains
     integer(i_def) :: nedges_h
     integer(i_def) :: nverts_h
 
-    nfaces_h = reference_element%get_number_2d_faces()
+    nfaces_h = reference_element%get_number_horizontal_faces()
     nedges_h = reference_element%get_number_2d_edges()
     nverts_h = reference_element%get_number_2d_vertices()
 

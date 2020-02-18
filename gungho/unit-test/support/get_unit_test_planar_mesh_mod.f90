@@ -19,9 +19,13 @@ module get_unit_test_planar_mesh_mod
 
   integer(i_def), parameter :: ncells = 9
 
-  public :: get_m3x3_adjacent_face,          &
-            get_out_face_normal,             &
-            get_normals_to_faces
+  public :: get_m3x3_adjacent_face,                  &
+            get_normals_to_faces,                    &
+            get_normals_to_horizontal_faces,         &
+            get_normals_to_vertical_faces,           &
+            get_outward_normals_to_faces,            &
+            get_outward_normals_to_horizontal_faces, &
+            get_outward_normals_to_vertical_faces
 
 contains
 
@@ -48,40 +52,104 @@ contains
 
   end subroutine get_m3x3_adjacent_face
 
-  subroutine get_out_face_normal(out_face_normal)
-    ! Return the coordinates of a vector pointing outward from a
-    ! cell for each face as copied from the reference cube
-    implicit none
-
-    real(r_def), intent(out), allocatable :: out_face_normal(:,:)
-
-    allocate ( out_face_normal( 3, 6) )
-
-    out_face_normal(:,1)=(/ -1.0_r_def,  0.0_r_def,  0.0_r_def /)
-    out_face_normal(:,2)=(/  0.0_r_def, -1.0_r_def,  0.0_r_def /)
-    out_face_normal(:,3)=(/  1.0_r_def,  0.0_r_def,  0.0_r_def /)
-    out_face_normal(:,4)=(/  0.0_r_def,  1.0_r_def,  0.0_r_def /)
-    out_face_normal(:,5)=(/  0.0_r_def,  0.0_r_def, -1.0_r_def /)
-    out_face_normal(:,6)=(/  0.0_r_def,  0.0_r_def,  1.0_r_def /)
-
-  end subroutine get_out_face_normal
-
-  subroutine get_normals_to_faces(normals_to_face)
+  subroutine get_normals_to_faces(normals_to_faces)
     ! Return the coordinates of normal vector from each face
     ! as copied from the reference cube
     implicit none
 
-    real(r_def), intent(out), allocatable :: normals_to_face(:,:)
+    real(r_def), intent(out), allocatable :: normals_to_faces(:,:)
+    real(r_def),              allocatable :: normals_h(:,:), normals_v(:,:)
 
-    allocate ( normals_to_face( 6, 3) )
+    allocate ( normals_to_faces(3, 6) )
+    allocate ( normals_h(3, 4), normals_v(3, 2) )
 
-    normals_to_face( 1,: )=(/ 1.0_r_def , 0.0_r_def , 0.0_r_def /)
-    normals_to_face( 2,: )=(/ 0.0_r_def ,-1.0_r_def , 0.0_r_def /)
-    normals_to_face( 3,: )=(/ 1.0_r_def , 0.0_r_def , 0.0_r_def /)
-    normals_to_face( 4,: )=(/ 0.0_r_def ,-1.0_r_def , 0.0_r_def /)
-    normals_to_face( 5,: )=(/ 0.0_r_def , 0.0_r_def , 1.0_r_def /)
-    normals_to_face( 6,: )=(/ 0.0_r_def , 0.0_r_def , 1.0_r_def /)
+    ! Populate normals to horizontal faces
+    call get_normals_to_horizontal_faces( normals_h )
+    normals_to_faces(:,1:4) = normals_h
+    ! Populate normals to vertical faces
+    call get_normals_to_vertical_faces( normals_v )
+    normals_to_faces(:,5:6) = normals_v
 
   end subroutine get_normals_to_faces
+
+  subroutine get_normals_to_horizontal_faces(normals_to_horizontal_faces)
+    ! Return the coordinates of normal vector from each horizontal face
+    ! as copied from the reference cube
+    implicit none
+
+    real(r_def), intent(out), allocatable :: normals_to_horizontal_faces(:,:)
+
+    allocate ( normals_to_horizontal_faces(3, 4) )
+
+    normals_to_horizontal_faces(:,1) = (/ 1.0_r_def , 0.0_r_def , 0.0_r_def /)
+    normals_to_horizontal_faces(:,2) = (/ 0.0_r_def ,-1.0_r_def , 0.0_r_def /)
+    normals_to_horizontal_faces(:,3) = (/ 1.0_r_def , 0.0_r_def , 0.0_r_def /)
+    normals_to_horizontal_faces(:,4) = (/ 0.0_r_def ,-1.0_r_def , 0.0_r_def /)
+
+  end subroutine get_normals_to_horizontal_faces
+
+  subroutine get_normals_to_vertical_faces(normals_to_vertical_faces)
+    ! Return the coordinates of normal vector from each vertical face
+    ! as copied from the reference cube
+    implicit none
+
+    real(r_def), intent(out), allocatable :: normals_to_vertical_faces(:,:)
+
+    allocate ( normals_to_vertical_faces(3, 2) )
+
+    normals_to_vertical_faces(:,1) = (/ 0.0_r_def , 0.0_r_def , 1.0_r_def /)
+    normals_to_vertical_faces(:,2) = (/ 0.0_r_def , 0.0_r_def , 1.0_r_def /)
+
+  end subroutine get_normals_to_vertical_faces
+
+  subroutine get_outward_normals_to_faces(outward_normals_to_faces)
+    ! Return the coordinates of a vector pointing outward from a
+    ! cell for each face as copied from the reference cube
+    implicit none
+
+    real(r_def), intent(out), allocatable :: outward_normals_to_faces(:,:)
+    real(r_def),              allocatable :: normals_h(:,:), normals_v(:,:)
+
+    allocate ( outward_normals_to_faces(3, 6) )
+    allocate ( normals_h(3, 4), normals_v(3, 2) )
+
+    ! Populate outward normals to horizontal faces
+    call get_outward_normals_to_horizontal_faces( normals_h )
+    outward_normals_to_faces(:,1:4) = normals_h
+    ! Populate outward normals to vertical faces
+    call get_outward_normals_to_vertical_faces( normals_v )
+    outward_normals_to_faces(:,5:6) = normals_v
+
+  end subroutine get_outward_normals_to_faces
+
+  subroutine get_outward_normals_to_horizontal_faces(outward_normals_to_horizontal_faces)
+    ! Return the coordinates of a vector pointing outward from a
+    ! cell for each horizontal face as copied from the reference cube
+    implicit none
+
+    real(r_def), intent(out), allocatable :: outward_normals_to_horizontal_faces(:,:)
+
+    allocate ( outward_normals_to_horizontal_faces(3, 4) )
+
+    outward_normals_to_horizontal_faces(:,1) = (/ -1.0_r_def,  0.0_r_def,  0.0_r_def /)
+    outward_normals_to_horizontal_faces(:,2) = (/  0.0_r_def, -1.0_r_def,  0.0_r_def /)
+    outward_normals_to_horizontal_faces(:,3) = (/  1.0_r_def,  0.0_r_def,  0.0_r_def /)
+    outward_normals_to_horizontal_faces(:,4) = (/  0.0_r_def,  1.0_r_def,  0.0_r_def /)
+
+  end subroutine get_outward_normals_to_horizontal_faces
+
+  subroutine get_outward_normals_to_vertical_faces(outward_normals_to_vertical_faces)
+    ! Return the coordinates of a vector pointing outward from a
+    ! cell for each vertical face as copied from the reference cube
+    implicit none
+
+    real(r_def), intent(out), allocatable :: outward_normals_to_vertical_faces(:,:)
+
+    allocate ( outward_normals_to_vertical_faces(3, 2) )
+
+    outward_normals_to_vertical_faces(:,1) = (/  0.0_r_def,  0.0_r_def, -1.0_r_def /)
+    outward_normals_to_vertical_faces(:,2) = (/  0.0_r_def,  0.0_r_def,  1.0_r_def /)
+
+  end subroutine get_outward_normals_to_vertical_faces
 
 end module get_unit_test_planar_mesh_mod

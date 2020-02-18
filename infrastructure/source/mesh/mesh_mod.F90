@@ -305,7 +305,7 @@ contains
   function mesh_constructor ( global_mesh,   &
                               partition,     &
                               extrusion )    &
-                            result( self )
+                              result( self )
 
     implicit none
 
@@ -713,11 +713,11 @@ contains
       allocate ( self%face_id_in_adjacent_cell( nedges_per_2d_cell, &
                                                 self%ncells_2d_with_ghost) )
 
-    call calc_face_id_in_adjacent_cell(                                      &
-                                  self%face_id_in_adjacent_cell,             &
-                                  nedges_per_2d_cell,                        &
-                                  self%cell_next,                            &
-                                  self%reference_element%get_number_faces(), &
+    call calc_face_id_in_adjacent_cell(                                                 &
+                                  self%face_id_in_adjacent_cell,                        &
+                                  self%reference_element%get_number_horizontal_faces(), &
+                                  self%cell_next,                                       &
+                                  self%reference_element%get_number_faces(),            &
                                   self%ncells_2d_with_ghost )
 
     ! Some of the mesh colouring algorithms implement colouring depending on the
@@ -740,7 +740,7 @@ contains
                       self%ncolours,                                        &
                       self%ncells_per_colour,                               &
                       self%cells_in_colour,                                 &
-                      self%reference_element%get_number_2d_faces(),         &
+                      self%reference_element%get_number_horizontal_faces(), &
                       npanels,                                              &
                       self%ncells_global_mesh,                              &
                       gid_from_lid(:) )
@@ -1357,7 +1357,7 @@ contains
 
     implicit none
     class(mesh_type), intent(in) :: self
-    type(domain_size_type)          :: domain_size
+    type(domain_size_type)       :: domain_size
 
     domain_size = self%domain_size
 
@@ -2110,38 +2110,66 @@ contains
 
 
   !============================================================================
-  !> @details Compute the local id of each face in the adjacent cells
+  !> @details Computes the local ID of each face in the adjacent cells.
+  !>          Requires number of 2D (horizontal) and 3D (all) faces from the
+  !>          reference element.
+  !>          Note: The method relies on enumeration of an opposite face being
+  !>          nfaces_h/2 apart, hence giving correct results only for a
+  !>          reference element with an even number of horizontal faces (e.g. a
+  !>          cube or a hexagonal prism).
+  !>
+  !> @param[out] face_id_in_adjacent_cell Local index of face in adjacent cells
+  !> @param[in]  nfaces_h                 Number of horizontal faces per 3D cell
+  !>                                      (faces visited when looping in horizontal)
+  !> @param[in]  cell_next                Cell IDs of adjacent cells
+  !> @param[in]  nfaces                   Number of all faces in a 3D cell
+  !> @param[in]  ncells                   Number of cells in partition
   subroutine calc_face_id_in_adjacent_cell( face_id_in_adjacent_cell, &
-                                            num_face_per_cell, &
-                                            cell_next, nfaces, &
+                                            nfaces_h,                 &
+                                            cell_next,                &
+                                            nfaces,                   &
                                             ncells )
 
     implicit none
 
-    integer(i_def), intent(in)  :: num_face_per_cell, ncells, nfaces
+    integer(i_def), intent(in)  :: nfaces_h, ncells, nfaces
     integer(i_def), intent(in)  :: cell_next(nfaces,ncells)
-    integer(i_def), intent(out) :: face_id_in_adjacent_cell(num_face_per_cell,ncells)
+    integer(i_def), intent(out) :: face_id_in_adjacent_cell(nfaces_h,ncells)
 
     integer(i_def) :: cell, face, next_cell, next_face
 
-    do cell = 1, ncells
-      do face = 1,num_face_per_cell
-        if ( cell_next(face,cell) > 0_i_def ) then
-          next_cell = cell_next(face,cell)
-          do next_face = 1, num_face_per_cell
-            if ( cell_next(next_face,next_cell) == cell ) then
-              ! We have found the local id in next_cell that takes us back to
-              ! the original cell, so store this value in the array
-              face_id_in_adjacent_cell(face,cell) = next_face
-            end if
-          end do
-        else
-          ! There are no neighbour cells so put a negative number in the
-          ! adjacency array
-          face_id_in_adjacent_cell(face,cell) = mod(face+2_i_def,4_i_def)
-        end if
+    ! Check that the number of horizontal faces is even
+    if ( mod(nfaces_h, 2_i_def) == 0_i_def ) then
+
+      ! If the number of horizontal faces is even, find indices of adjacent cells
+      do cell = 1, ncells
+        do face = 1, nfaces_h
+          if ( cell_next(face,cell) > 0_i_def ) then
+            next_cell = cell_next(face,cell)
+            do next_face = 1, nfaces_h
+              if ( cell_next(next_face,next_cell) == cell ) then
+                ! We have found the local id in next_cell that takes us back to
+                ! the original cell, so store this value in the array
+                face_id_in_adjacent_cell(face,cell) = next_face
+              end if
+            end do
+          else
+            ! There are no neighbour cells so put a negative number in the
+            ! adjacency array
+            face_id_in_adjacent_cell(face,cell) = mod(face+nfaces_h/2_i_def, nfaces_h)
+          end if
+        end do
       end do
-    end do
+
+    else
+
+      ! If the number of horizontal faces is odd report an error
+      write(log_scratch_space,'(A,I0)') &
+         "calc_face_id_in_adjacent_cell: odd number of horizontal faces ", &
+          nfaces_h
+      call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+
+    end if
 
   end subroutine calc_face_id_in_adjacent_cell
 

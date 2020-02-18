@@ -7,20 +7,19 @@
 !-------------------------------------------------------------------------------
 
 !> @brief Kernel which computes vertical fluxes through fitting a high order 1D
-!>        upwind reconstruction
-!> @details Compute the flux for a tracer density field using a high order
-!>          polynomial fit to the integrated tracer values. The stencil used for the
-!>          polynomial is centred on the upwind cell.
+!>        upwind reconstruction.
+!> @details Computes the flux for a tracer density field using a high order
+!>          polynomial fit to the integrated tracer values. The stencil used
+!>          for the polynomial is centred on the upwind cell.
 !>          Near the boundaries the order of reconstruction may be reduced
-!>          if there are not enough points to compute desired order
-!>          This method is only valid for lowest order elements
+!>          if there are not enough points to compute desired order.
+!>          This method is only valid for lowest order elements.
 module poly1d_vert_adv_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_INTEGER,                 &
-                              GH_READWRITE, GH_READ,                &
-                              GH_BASIS, CELLS, GH_EVALUATOR,        &
-                              reference_element_out_face_normal
+use argument_mod,      only : arg_type, func_type,   &
+                              GH_FIELD, GH_INTEGER,  &
+                              GH_READWRITE, GH_READ, &
+                              GH_BASIS, CELLS, GH_EVALUATOR
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : W2, Wtheta
 use kernel_mod,        only : kernel_type
@@ -28,10 +27,11 @@ use kernel_mod,        only : kernel_type
 implicit none
 
 private
+
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_adv_kernel_type
   private
   type(arg_type) :: meta_args(6) = (/                                  &
@@ -54,9 +54,10 @@ end type
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
 public poly1d_vert_adv_code
+
 contains
 
-!> @brief Computes the vertical fluxes for a tracer density
+!> @brief Computes the vertical fluxes for a tracer density.
 !! @param[in]  nlayers Number of layers
 !! @param[in,out] advective Advective update to increment
 !! @param[in]  wind Wind field
@@ -66,12 +67,13 @@ contains
 !! @param[in]  undf_wt Number of unique degrees of freedom for the tracer field
 !! @param[in]  map_wt Cell dofmaps for the tracer space
 !! @param[in]  ndf_w2 Number of degrees of freedom per cell
-!! @param[in]  undf_w2 Number of unique degrees of freedom for the flux & wind fields
+!! @param[in]  undf_w2 Number of unique degrees of freedom for the flux &
+!!                     wind fields
 !! @param[in]  map_w2 Dofmap for the cell at the base of the column
 !! @param[in]  basis_w2 Basis function array evaluated at wt nodes
 !! @param[in]  global_order Desired order of polynomial reconstruction
-!! @param[in]  nfaces_v Number of vertical faces (used by PSyclone to size coeff
-!!                      array)
+!! @param[in]  nfaces_v Number of vertical faces (used by PSyclone to size
+!!                      coeff array)
 subroutine poly1d_vert_adv_code( nlayers,              &
                                  advective,            &
                                  wind,                 &

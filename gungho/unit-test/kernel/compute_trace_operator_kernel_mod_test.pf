@@ -19,7 +19,7 @@ module compute_trace_operator_kernel_mod_test
   public :: test_all
 
   @TestCase
-  type, extends(MPITestCase), public       :: compute_trace_operator_test_type
+  type, extends(MPITestCase), public :: compute_trace_operator_test_type
      private
 
    contains
@@ -72,7 +72,7 @@ contains
 
     use compute_trace_operator_kernel_mod, only : compute_trace_operator_code
 
-    use get_unit_test_planar_mesh_mod, only: get_out_face_normal
+    use get_unit_test_planar_mesh_mod, only: get_outward_normals_to_faces
 
     use get_unit_test_qfaces_mod, only: get_number_quadrature_points_per_face, &
                                         get_w2trace_qfaces_cube_hv_basis,      &
@@ -94,7 +94,7 @@ contains
     real(kind=r_def)              :: answer(6, 6)
 
     integer(kind=i_def)           :: cell
-    integer(kind=i_def)           :: nlayers, nfaces
+    integer(kind=i_def)           :: nlayers, nfaces_re
     integer(kind=i_def)           :: ndf_w2b, ndf_w2t
     ! Quadrature points per face
     integer(kind=i_def)           :: nqp
@@ -107,7 +107,7 @@ contains
     ! Maps dofs to entities - for function space in this test all dofs are on faces
     integer(kind=i_def), allocatable  :: face_entity_map(:)
 
-    real(r_def), allocatable :: out_face_normal(:,:)
+    real(r_def), allocatable :: outward_normals_to_faces(:,:)
 
     ! Quadrature weights
     real(kind=r_def), allocatable     :: wqp(:, :)
@@ -125,26 +125,25 @@ contains
     call get_w2trace_qfaces_cube_hv_basis(basis_w2trace_face)
     call get_w2broken_qfaces_cube_hv_basis(basis_w2broken_face)
 
-    ! Get canned adjacency information for the mesh
-    call get_out_face_normal(out_face_normal)
+    ! Get canned information for the reference cube
+    call get_outward_normals_to_faces(outward_normals_to_faces)
+    ! Get number of reference cube faces from the outward normals array
+    nfaces_re = size( outward_normals_to_faces, 2 )
 
     ! Compute cell 1 only
     cell = 1
-
-    ! Cube cells
-    nfaces = 6
 
     ! Get canned data for a 3-layer mesh
     nlayers=3
 
     call get_w2broken_m3x3_q3x3x3_size( ndf_w2b, unused, ncells, &
-                                  unused, unused,                  &
-                                  unused, unused,                  &
-                                  nlayers )
+                                        unused, unused,          &
+                                        unused, unused,          &
+                                        nlayers )
     call get_w2trace_m3x3_q3x3x3_size( ndf_w2t, unused, unused,  &
-                                  unused, unused,                  &
-                                  unused, unused,                  &
-                                  nlayers )
+                                       unused, unused,           &
+                                       unused, unused,           &
+                                       nlayers )
     ! Get number of points and weights for quadrature points on
     ! horizontal and vertical faces
     call get_number_quadrature_points_per_face(nqp)
@@ -168,9 +167,9 @@ contains
                                       wqp,                      &
                                       basis_w2broken_face,      &
                                       basis_w2trace_face,       &
-                                      nfaces,                   &
                                       face_entity_map,          &
-                                      out_face_normal )
+                                      nfaces_re,                &
+                                      outward_normals_to_faces )
 
     call trace_ans( answer )
     @assertEqual(answer, local_stencil(:, :, 1), tol)
@@ -180,7 +179,7 @@ contains
     deallocate(face_entity_map)
     deallocate(local_stencil)
     deallocate(wqp)
-    deallocate(out_face_normal)
+    deallocate(outward_normals_to_faces)
 
   end subroutine test_all
 

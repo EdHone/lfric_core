@@ -20,7 +20,7 @@ module pressure_gradient_bd_kernel_mod_test
   public :: test_all
 
   @TestCase
-  type, extends(MPITestCase), public   :: pressure_gradient_bd_test_type
+  type, extends(MPITestCase), public :: pressure_gradient_bd_test_type
     private
 
   contains
@@ -55,7 +55,7 @@ contains
 
     ! Initialise YAXT
     call xt_initialize(this%getMpiCommunicator())
-    !Store the MPI communicator for later use
+    ! Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
@@ -101,8 +101,8 @@ contains
                                              get_w2_m3x3_dofmap,            &
                                              get_w3_m3x3_dofmap,            &
                                              get_wtheta_m3x3_dofmap
-    use get_unit_test_planar_mesh_mod, only: get_m3x3_adjacent_face,      &
-                                             get_out_face_normal
+    use get_unit_test_planar_mesh_mod, only: get_m3x3_adjacent_face,        &
+                                             get_outward_normals_to_horizontal_faces
 
 
     implicit none
@@ -116,10 +116,11 @@ contains
 
     integer(i_def) :: cell
 
-    integer(i_def)         :: nlayers, nqp
+    integer(i_def)         :: nlayers, nqp_f
     integer(i_def)         :: ndf_wtheta, undf_wtheta
     integer(i_def)         :: ndf_w2, undf_w2
     integer(i_def)         :: ndf_w3, undf_w3
+    integer(i_def)         :: nfaces_qr, nfaces_re_h
     integer(i_def)         :: k
 
     ! Test field data
@@ -134,7 +135,7 @@ contains
     ! Dummy variable for passing into multi-getter routines where item is not needed
     integer(i_def) :: unused
 
-    real(kind=r_def), allocatable :: wqp(:,:)
+    real(kind=r_def), allocatable :: wqp_f(:,:)
 
     integer(i_def), allocatable :: adjacent_face(:,:)
 
@@ -142,7 +143,7 @@ contains
     integer(i_def), allocatable :: map_wt(:,:)
     integer(i_def), allocatable :: map_w3(:,:)
 
-    real(r_def), allocatable  :: out_face_normal(:,:)
+    real(r_def), allocatable  :: outward_normals_to_horizontal_faces(:,:)
 
     real(r_def), allocatable :: basis_w2_face(:,:,:,:)
     real(r_def), allocatable :: basis_w3_face(:,:,:,:)
@@ -171,8 +172,11 @@ contains
 
     ! Get number of points and weights for quadrature points on
     ! horizontal faces
-    call get_number_quadrature_points_per_face(nqp)
-    call get_quadrature_faces_h_weights(wqp)
+    call get_number_quadrature_points_per_face(nqp_f)
+    call get_quadrature_faces_h_weights(wqp_f)
+    ! Get number of faces in the quadrature rule from quadrature
+    ! weights array
+    nfaces_qr = size( wqp_f, 2 )
 
     ! Get basis functions on horizontal faces
     call get_w2_qfaces_cube_h_basis(basis_w2_face)
@@ -189,9 +193,13 @@ contains
     ! Canned field has extent of 1 which gives size 5
     cross_stencil_w3_size=5
 
-    ! Get canned information for the mesh and reference cube
+    ! Get canned adjacency information for the mesh
     call get_m3x3_adjacent_face(adjacent_face)
-    call get_out_face_normal(out_face_normal)
+    ! Get canned information for the reference cube
+    call get_outward_normals_to_horizontal_faces(outward_normals_to_horizontal_faces)
+    ! Get number of reference cube horizontal faces from the horizontal
+    ! outward normals array
+    nfaces_re_h = size( outward_normals_to_horizontal_faces, 2 )
 
     ! Create the data arrays
     allocate(r_u_bd_data(undf_w2))
@@ -223,11 +231,12 @@ contains
                                     moist_dyn_data(:,1),            &
                                     moist_dyn_data(:,2),            &
                                     moist_dyn_data(:,3),            &
-                                    nqp, wqp,                       &
+                                    nfaces_qr, nqp_f, wqp_f,        &
                                     basis_w2_face, basis_w3_face,   &
                                     basis_wtheta_face,              &
+                                    nfaces_re_h,                    &
                                     adjacent_face(:,cell),          &
-                                    out_face_normal )
+                                    outward_normals_to_horizontal_faces )
 
     ! Test only on level 1
     k=1
@@ -249,9 +258,9 @@ contains
     deallocate(map_wt)
     deallocate(map_w3)
     deallocate(cross_stencil_w3_map)
-    deallocate(wqp)
+    deallocate(wqp_f)
     deallocate(adjacent_face)
-    deallocate(out_face_normal)
+    deallocate(outward_normals_to_horizontal_faces)
 
   end subroutine test_all
 

@@ -22,14 +22,14 @@
 module compute_trace_operator_kernel_mod
 
   use argument_mod,              only: arg_type, func_type,             &
-                                       mesh_data_type,                  &
+                                       reference_element_data_type,     &
                                        GH_OPERATOR, GH_WRITE,           &
                                        GH_FIELD, GH_READ,               &
                                        GH_BASIS, GH_DIFF_BASIS,         &
                                        CELLS,                           &
                                        GH_QUADRATURE_face,              &
                                        ANY_SPACE_9,                     &
-                                       reference_element_out_face_normal
+                                       outward_normals_to_faces
 
   use reference_element_mod,     only: FACE_OFFSET
   use coordinate_jacobian_mod,   only: coordinate_jacobian
@@ -44,22 +44,24 @@ module compute_trace_operator_kernel_mod
   !-------------------------------------------------------------------------------
   ! Public types
   !-------------------------------------------------------------------------------
-  !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+  !> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 
   type, public, extends(kernel_type) :: compute_trace_operator_type
-     private
-     type(arg_type) :: meta_args(2) = (/                    &
-        arg_type(GH_OPERATOR, GH_WRITE, W2trace, W2broken), &
-        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)        &
-        /)
-     type(func_type) :: meta_funcs(3) = (/    &
-        func_type(W2broken,    GH_BASIS),     &
-        func_type(W2trace,     GH_BASIS),     &
-        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
-        /)
-     integer :: iterates_over = CELLS
+    private
+    type(arg_type) :: meta_args(2) = (/                                  &
+         arg_type(GH_OPERATOR, GH_WRITE, W2trace, W2broken),             &
+         arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
+         /)
+    type(func_type) :: meta_funcs(3) = (/                                &
+         func_type(W2broken,    GH_BASIS),                               &
+         func_type(W2trace,     GH_BASIS),                               &
+         func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
+         /)
+    type(reference_element_data_type) :: meta_reference_element(1) = (/  &
+         reference_element_data_type( outward_normals_to_faces )         &
+         /)
      integer :: gh_shape = GH_QUADRATURE_face
-     type(mesh_data_type) :: meta_init = mesh_data_type(reference_element_out_face_normal)
+     integer :: iterates_over = CELLS
    contains
      procedure, nopass :: compute_trace_operator_code
    end type compute_trace_operator_type
@@ -86,10 +88,10 @@ contains
   !!                      quadrature points on horizontal and vertical faces
   !! @param[in] w2t_basis Basis functions in W2trace evaluated at gaussian
   !!                      quadrature points on horizontal and vertical faces
-  !! @param[in] nfaces The number of faces (3D) or edges (2D) in each cell
   !! @param[in] face_entity_map Array mapping dof index to face entity.
-  !! @param[in] out_face_normal Vector normal to the out faces of the
-  !!                            reference element.
+  !! @param[in] nfaces_re The number of faces (3D) or edges (2D) in each cell
+  !! @param[in] outward_normals_to_faces Vector of normals to the reference
+  !!                                     element "outward faces".
   !!
   subroutine compute_trace_operator_code( cell, nlayers, ncell_3d,   &
                                           trace_op,                  &
@@ -98,35 +100,35 @@ contains
                                           nqp, wqp,                  &
                                           w2b_basis,                 &
                                           w2t_basis,                 &
-                                          nfaces,                    &
                                           face_entity_map,           &
-                                          out_face_normal )
+                                          nfaces_re,                 &
+                                          outward_normals_to_faces )
 
     implicit none
 
     ! Argument declarations
-    integer(kind=i_def),                                        intent(in) :: cell, nlayers, ncell_3d
-    integer(kind=i_def),                                        intent(in) :: ndf_w2b, ndf_w2t
-    integer(kind=i_def),                                        intent(in) :: nfaces, nqp
+    integer(kind=i_def),                                     intent(in) :: cell, nlayers, ncell_3d
+    integer(kind=i_def),                                     intent(in) :: ndf_w2b, ndf_w2t
+    integer(kind=i_def),                                     intent(in) :: nfaces_re, nqp
 
     real(kind=r_def), dimension(ndf_w2t, ndf_w2b, ncell_3d), intent(out) :: trace_op
-    real(kind=r_def), dimension(3, ndf_w2b, nqp, nfaces),    intent(in)  :: w2b_basis
-    real(kind=r_def), dimension(1, ndf_w2t, nqp, nfaces),    intent(in)  :: w2t_basis
+    real(kind=r_def), dimension(3, ndf_w2b, nqp, nfaces_re), intent(in)  :: w2b_basis
+    real(kind=r_def), dimension(1, ndf_w2t, nqp, nfaces_re), intent(in)  :: w2t_basis
 
     integer(kind=i_def), dimension(ndf_w2t), intent(in) :: face_entity_map
-    real(kind=r_def),                        intent(in) :: out_face_normal(:, :)
+    real(kind=r_def),                        intent(in) :: outward_normals_to_faces(:, :)
 
     ! Internal variables
     integer(kind=i_def) :: df, dfb, dft, k, ik, face, qp
 
-    real(kind=r_def), dimension(nqp, nfaces), intent(in) :: wqp
-    real(kind=r_def)                                     :: integrand
+    real(kind=r_def), dimension(nqp, nfaces_re), intent(in) :: wqp
+    real(kind=r_def)                                        :: integrand
 
     ! Loop over layers
     do k = 0, nlayers - 1
       ik = k + 1 + (cell - 1) * nlayers
 
-      do face = 1, nfaces
+      do face = 1, nfaces_re
         do dfb = 1, ndf_w2b
           do dft = 1, ndf_w2t
             ! If trace dofs lie on the face, compute the integrand. Otherwise,
@@ -146,7 +148,7 @@ contains
                 ! no need for Jacobians.
                 integrand = wqp(qp, face) * w2t_basis(1, dft, qp, face)  &
                           * dot_product(w2b_basis(:, dfb, qp, face),     &
-                                        out_face_normal(:, face))
+                                        outward_normals_to_faces(:, face))
                 trace_op(dft, dfb, ik) = trace_op(dft, dfb, ik) + integrand
               end do
             end if ! End of trace dof / face check

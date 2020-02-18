@@ -20,11 +20,11 @@
 !>          This method is only valid for lowest order elements
 module poly2d_advective_coeffs_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_INTEGER,                 &
-                              GH_WRITE, GH_READ,                    &
-                              ANY_SPACE_1,                          &
-                              GH_BASIS, CELLS, GH_QUADRATURE_XYoZ,  &
+use argument_mod,      only : arg_type, func_type,                 &
+                              GH_FIELD, GH_INTEGER,                &
+                              GH_WRITE, GH_READ,                   &
+                              ANY_SPACE_1,                         &
+                              GH_BASIS, CELLS, GH_QUADRATURE_XYoZ, &
                               GH_QUADRATURE_edge, STENCIL, REGION
 use constants_mod,     only : r_def, i_def, l_def
 use fs_continuity_mod, only : Wtheta
@@ -36,7 +36,7 @@ private
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly2d_advective_coeffs_kernel_type
   private
   type(arg_type) :: meta_args(6) = (/                                  &
@@ -93,7 +93,7 @@ contains
 !>@param[in] nqp_v Number of vertical quadrature points
 !>@param[in] wqp_h Weights of horizontal quadrature points
 !>@param[in] wqp_v Weights of vertical quadrature points
-!>@param[in] n_edges Number of edges in the quadrature rule
+!>@param[in] nedges_qr Number of edges in the quadrature rule
 !>@param[in] nqp_e Number of edge quadrature points
 !>@param[in] wqp_e Weights of edge quadrature points
 subroutine poly2d_advective_coeffs_code(nlayers,                    &
@@ -114,7 +114,7 @@ subroutine poly2d_advective_coeffs_code(nlayers,                    &
                                         nfaces_h,                   &
                                         cells_in_stencil,           &
                                         nqp_h, nqp_v, wqp_h, wqp_v, &
-                                        n_edges, nqp_e, wqp_e )
+                                        nedges_qr, nqp_e, wqp_e )
 
   use matrix_invert_mod,         only: matrix_invert
   use cross_product_mod,         only: cross_product
@@ -129,7 +129,7 @@ subroutine poly2d_advective_coeffs_code(nlayers,                    &
   integer(kind=i_def), intent(in) :: nlayers
   integer(kind=i_def), intent(in) :: ndf_wt, undf_wt, &
                                      ndf_wx, undf_wx
-  integer(kind=i_def), intent(in) :: nqp_v, nqp_h, nqp_e, n_edges
+  integer(kind=i_def), intent(in) :: nqp_v, nqp_h, nqp_e, nedges_qr
   integer(kind=i_def), intent(in) :: stencil_size_wt, stencil_size_wx
 
   integer(kind=i_def), dimension(ndf_wt,stencil_size_wt), intent(in) :: smap_wt
@@ -139,12 +139,12 @@ subroutine poly2d_advective_coeffs_code(nlayers,                    &
   real(kind=r_def), dimension(undf_wx),                            intent(in)  :: chi1, chi2, chi3
   real(kind=r_def), dimension(stencil_size_wt, nfaces_h, undf_wt), intent(out) :: coeff
 
-  real(kind=r_def), dimension(1,ndf_wx,nqp_h,nqp_v),   intent(in) :: basis_wx
-  real(kind=r_def), dimension(1,ndf_wx,nqp_e,n_edges), intent(in) :: edge_basis_wx
+  real(kind=r_def), dimension(1,ndf_wx,nqp_h,nqp_v),     intent(in) :: basis_wx
+  real(kind=r_def), dimension(1,ndf_wx,nqp_e,nedges_qr), intent(in) :: edge_basis_wx
 
-  real(kind=r_def), dimension(nqp_h),         intent(in) ::  wqp_h
-  real(kind=r_def), dimension(nqp_v),         intent(in) ::  wqp_v
-  real(kind=r_def), dimension(nqp_e,n_edges), intent(in) ::  wqp_e
+  real(kind=r_def), dimension(nqp_h),           intent(in) :: wqp_h
+  real(kind=r_def), dimension(nqp_v),           intent(in) :: wqp_v
+  real(kind=r_def), dimension(nqp_e,nedges_qr), intent(in) :: wqp_e
 
   ! Local variables
   logical(kind=l_def) :: spherical

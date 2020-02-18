@@ -6,8 +6,10 @@
 
 !include look.iuml
 !include mesh/mesh_mod.iuml
+!include mesh/reference_element_mod.iuml
 
 mesh_mod::mesh_type o-> partition_mod::partition_type
+mesh_mod::mesh_type o-> reference_element_mod::reference_element_type
 mesh_mod::mesh_type -> extrusion_mod::extrusion_type
 
 global_mesh_mod::global_mesh_type - mesh_mod::mesh_type

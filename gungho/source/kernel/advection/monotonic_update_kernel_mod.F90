@@ -6,21 +6,20 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Kernel which enforces monotonicity on an advective update
+!> @brief Kernel which enforces monotonicity on an advective update.
 !> @details Modifies the advective update A(theta) such that
 !>          \f[ M_\theta (theta^{n+1} - theta^{n}) + \Delta t A(\theta) \f]
 !>          Returns a monotonic theta^{n+1}. The monotonticity is enforced by
 !>          ensuring that the the implied theta^{n+1} lies within the range
 !>          [min(theta_s),max(theta_s)] for all s in the stencil of values used
-!>          to compute theta
+!>          to compute theta.
 module monotonic_update_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_REAL, GH_INTEGER,        &
-                              GH_READWRITE, GH_READ,                &
-                              GH_BASIS, CELLS, GH_EVALUATOR,        &
-                              STENCIL, CROSS,                       &
-                              reference_element_out_face_normal
+use argument_mod,      only : arg_type, func_type,           &
+                              GH_FIELD, GH_REAL, GH_INTEGER, &
+                              GH_READWRITE, GH_READ,         &
+                              GH_BASIS, CELLS, GH_EVALUATOR, &
+                              STENCIL, CROSS
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : Wtheta
 use kernel_mod,        only : kernel_type
@@ -28,10 +27,11 @@ use kernel_mod,        only : kernel_type
 implicit none
 
 private
+
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: monotonic_update_kernel_type
   private
   type(arg_type) :: meta_args(5) = (/                                  &
@@ -50,9 +50,10 @@ end type
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
 public monotonic_update_code
+
 contains
 
-!> @brief Computes the horizontal fluxes for a tracer density
+!> @brief Computes the horizontal fluxes for a tracer density.
 !! @param[in]  nlayers Number of layers
 !! @param[in,out] adv Advective update field to apply monotonicity to
 !! @param[in]  theta Field to be advected, used to compute the advective output
@@ -60,7 +61,8 @@ contains
 !! @param[in]  stencil_map Dofmaps for the stencil
 !! @param[in]  inv_mt Lumped inverse of the Wtheta mass matrix
 !! @param[in]  dt Timestep
-!! @param[in]  order Desired polynomial order used to reconstruct the high order theta approximation
+!! @param[in]  order Desired polynomial order used to reconstruct the high order
+!!                   theta approximation
 !! @param[in]  ndf_wt Number of degrees of freedom per cell
 !! @param[in]  undf_wt Number of unique degrees of freedom for the tracer field
 !! @param[in]  map_wt Dofmap for the tracer field

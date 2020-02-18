@@ -6,22 +6,23 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Kernel which computes horizontal tracer values through fitting a high order 2D
-!>        upwind reconstruction
-!> @details Compute the reconstruction for a tracer field using a high order
-!>          polynomial fit to the integrated tracer values. The stencil used for the
-!>          polynomial is centred on the upwind cell.
-!>          A 2D region stencil centred around the cell is used to build the polynomial
-!>          representation of the tracer field
-!>          This method is only valid for lowest order elements
+!> @brief Kernel which computes horizontal tracer values through fitting a
+!>        high order 2D upwind reconstruction.
+!> @details Computes the reconstruction for a tracer field using a high order
+!>          polynomial fit to the integrated tracer values. The stencil used
+!>          for the polynomial is centred on the upwind cell.
+!>          A 2D region stencil centred around the cell is used to build the
+!>          polynomial representation of the tracer field.
+!>          This method is only valid for lowest order elements.
 module poly2d_adv_recon_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_INTEGER,                 &
-                              GH_INC, GH_READ,                      &
-                              GH_BASIS, CELLS, GH_EVALUATOR,        &
-                              STENCIL, REGION,                      &
-                              reference_element_out_face_normal
+use argument_mod,      only : arg_type, func_type,           &
+                              reference_element_data_type,   &
+                              GH_FIELD, GH_INTEGER,          &
+                              GH_INC, GH_READ,               &
+                              GH_BASIS, CELLS, GH_EVALUATOR, &
+                              STENCIL, REGION,               &
+                              outward_normals_to_horizontal_faces
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : W1, W2, Wtheta
 use kernel_mod,        only : kernel_type
@@ -29,28 +30,29 @@ use kernel_mod,        only : kernel_type
 implicit none
 
 private
+
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly2d_adv_recon_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,   W1),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  Wtheta, STENCIL(REGION)),        &
-       arg_type(GH_FIELD,   GH_READ,  Wtheta),                         &
-       arg_type(GH_INTEGER, GH_READ),                                  &
-       arg_type(GH_INTEGER, GH_READ)                                   &
+  type(arg_type) :: meta_args(6) = (/                                     &
+       arg_type(GH_FIELD,   GH_INC,   W1),                                &
+       arg_type(GH_FIELD,   GH_READ,  W2),                                &
+       arg_type(GH_FIELD,   GH_READ,  Wtheta, STENCIL(REGION)),           &
+       arg_type(GH_FIELD,   GH_READ,  Wtheta),                            &
+       arg_type(GH_INTEGER, GH_READ),                                     &
+       arg_type(GH_INTEGER, GH_READ)                                      &
        /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(W2, GH_BASIS)                                         &
+  type(func_type) :: meta_funcs(1) = (/                                   &
+       func_type(W2, GH_BASIS)                                            &
+       /)
+  type(reference_element_data_type) :: meta_reference_element(1) = (/     &
+       reference_element_data_type( outward_normals_to_horizontal_faces ) &
        /)
   integer :: iterates_over = CELLS
   integer :: gh_shape = GH_EVALUATOR
-  type(mesh_data_type) :: meta_init(1) = (/             &
-    mesh_data_type( reference_element_out_face_normal ) &
-      /)
 contains
   procedure, nopass :: poly2d_adv_recon_code
 end type
@@ -59,16 +61,18 @@ end type
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
 public poly2d_adv_recon_code
+
 contains
 
-!> @brief Computes the horizontal polynomial interpolation of a tracer
+!> @brief Computes the horizontal polynomial interpolation of a tracer.
 !! @param[in]  nlayers Number of layers
 !! @param[in,out] reconstruction Reconstructed tracer field to compute
 !! @param[in]  wind Wind field
 !! @param[in]  tracer Pointwise tracer field to reconstruct
 !! @param[in]  coeff Array of polynomial coefficients for interpolation
 !! @param[in]  ndf_w1 Number of degrees of freedom per cell
-!! @param[in]  undf_w1 Number of unique degrees of freedom for the reconstructed field
+!! @param[in]  undf_w1 Number of unique degrees of freedom for the
+!!                     reconstructed field
 !! @param[in]  map_w1 Dofmap for the cell at the base of the column
 !! @param[in]  ndf_w2 Number of degrees of freedom per cell
 !! @param[in]  undf_w2 Number of unique degrees of freedom for the wind field
@@ -79,10 +83,11 @@ contains
 !! @param[in]  stencil_size Size of the stencil (number of cells)
 !! @param[in]  stencil_map Dofmaps for the stencil
 !! @param[in]  cells_in_stencil Number of cells needed to compute the polynomial
-!!             fit (may be less than stencil_size)
-!! @param[in]  nfaces_h Number of horizontal neighbours
-!! @param[in]  out_face_normal  Vectors normal to the "out faces" of the
-!!                              reference element.
+!!                              fit (may be less than stencil_size)
+!! @param[in]  nfaces_re_h Number of horizontal neighbours
+!! @param[in]  outward_normals_to_horizontal_faces Vector of normals to the
+!!                                                 reference element horizontal
+!!                                                 "outward faces"
 subroutine poly2d_adv_recon_code( nlayers,              &
                                   reconstruction,       &
                                   wind,                 &
@@ -100,8 +105,8 @@ subroutine poly2d_adv_recon_code( nlayers,              &
                                   stencil_size,         &
                                   stencil_map,          &
                                   cells_in_stencil,     &
-                                  nfaces_h,             &
-                                  out_face_normal )
+                                  nfaces_re_h,          &
+                                  outward_normals_to_horizontal_faces )
 
   implicit none
 
@@ -117,28 +122,28 @@ subroutine poly2d_adv_recon_code( nlayers,              &
   integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
   integer(kind=i_def), intent(in)                    :: cells_in_stencil
   integer(kind=i_def), intent(in)                    :: stencil_size
-  integer(kind=i_def), intent(in)                    :: nfaces_h
+  integer(kind=i_def), intent(in)                    :: nfaces_re_h
 
   real(kind=r_def), dimension(undf_w1), intent(inout):: reconstruction
   real(kind=r_def), dimension(undf_w2), intent(in)   :: wind
   real(kind=r_def), dimension(undf_wt), intent(in)   :: tracer
 
-  real(kind=r_def), dimension(stencil_size, nfaces_h, undf_wt), intent(in) :: coeff
+  real(kind=r_def), dimension(stencil_size, nfaces_re_h, undf_wt), intent(in) :: coeff
 
   real(kind=r_def), dimension(3,ndf_w2,ndf_w1), intent(in) :: basis_w2
 
   integer(kind=i_def), dimension(ndf_wt,stencil_size), intent(in) :: stencil_map
 
-  real(kind=r_def),    intent(in)  :: out_face_normal(:,:)
+  real(kind=r_def), intent(in)  :: outward_normals_to_horizontal_faces(:,:)
 
   ! Internal variables
-  integer(kind=i_def)                   :: k, df, ij, p, face, stencil
-  real(kind=r_def)                      :: direction
-  real(kind=r_def), dimension(nfaces_h) :: v_dot_n
-  real(kind=r_def)                     :: polynomial_tracer
+  integer(kind=i_def)                      :: k, df, ij, p, face, stencil
+  real(kind=r_def)                         :: direction
+  real(kind=r_def), dimension(nfaces_re_h) :: v_dot_n
+  real(kind=r_def)                         :: polynomial_tracer
 
-  do df = 1,nfaces_h
-    v_dot_n(df) = dot_product(basis_w2(:,df,df),out_face_normal(:,df))
+  do df = 1,nfaces_re_h
+    v_dot_n(df) = dot_product(basis_w2(:,df,df),outward_normals_to_horizontal_faces(:,df))
   end do
 
   ij = stencil_map(1,1)
@@ -146,7 +151,7 @@ subroutine poly2d_adv_recon_code( nlayers,              &
   ! Horizontal tracer reconstruction
   ! Bottom point
   k = 0
-  do df = 1,nfaces_h
+  do df = 1,nfaces_re_h
     ! Check if this is the upwind cell
     direction = wind(map_w2(df) + k )*v_dot_n(df)
     if ( direction >= 0.0_r_def ) then
@@ -160,7 +165,7 @@ subroutine poly2d_adv_recon_code( nlayers,              &
   end do
 
   do k = 1, nlayers - 1
-    do df = 1,nfaces_h
+    do df = 1,nfaces_re_h
       ! Check if this is the upwind cell
       direction = (wind(map_w2(df) + k ) + wind(map_w2(df) + k-1 ))*v_dot_n(df)
       if ( direction >= 0.0_r_def ) then
@@ -175,7 +180,7 @@ subroutine poly2d_adv_recon_code( nlayers,              &
   end do
   ! Final point
   k = nlayers - 1
-  do df = 1,nfaces_h
+  do df = 1,nfaces_re_h
     ! Check if this is the upwind cell
     direction = wind(map_w2(df) + k )*v_dot_n(df)
     if ( direction >= 0.0_r_def ) then

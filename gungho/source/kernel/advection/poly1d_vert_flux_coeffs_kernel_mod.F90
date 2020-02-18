@@ -19,12 +19,12 @@
 !>          This method is only valid for lowest order elements
 module poly1d_vert_flux_coeffs_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_INTEGER,                 &
-                              GH_WRITE, GH_READ,                    &
-                              ANY_SPACE_1,                          &
-                              GH_BASIS, CELLS, GH_QUADRATURE_XYoZ, &
-                              GH_QUADRATURE_face
+use argument_mod,      only : arg_type, func_type,  &
+                              GH_FIELD, GH_INTEGER, &
+                              GH_WRITE, GH_READ,    &
+                              ANY_SPACE_1,          &
+                              GH_BASIS, CELLS,      &
+                              GH_QUADRATURE_XYoZ, GH_QUADRATURE_face
 use constants_mod,     only : r_def, i_def, EPS
 use fs_continuity_mod, only : W3
 use kernel_mod,        only : kernel_type
@@ -35,7 +35,7 @@ private
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_flux_coeffs_kernel_type
   private
   type(arg_type) :: meta_args(5) = (/                                  &
@@ -81,13 +81,13 @@ contains
 !>@param[in] face_basis_wx Basis function of the coordinate space evaluated on
 !!                         quadrature points on the vertical faces
 !>@param[in] global_order Desired polynomial order for flux computations
-!>@param[in] nfaces_v Number of vertical faces( used by psyclone to size coeff
-!!                    array)
+!>@param[in] nfaces_re_v Number of vertical faces( used by PSyclone to size
+!!                       coeff array)
 !>@param[in] nqp_h Number of horizontal quadrature points
 !>@param[in] nqp_v Number of vertical quadrature points
 !>@param[in] wqp_h Weights of horizontal quadrature points
 !>@param[in] wqp_v Weights of vertical quadrature points
-!>@param[in] n_faces Number of faces in the quadrature rule
+!>@param[in] nfaces_qr Number of faces in the quadrature rule
 !>@param[in] nqp_f Number of face quadrature points
 !>@param[in] wqp_f Weights of face quadrature points
 subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
@@ -103,9 +103,9 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
                                         basis_wx,                   &
                                         face_basis_wx,              &
                                         global_order,               &
-                                        nfaces_v,                   &
+                                        nfaces_re_v,                &
                                         nqp_h, nqp_v, wqp_h, wqp_v, &
-                                        n_faces, nqp_f, wqp_f )
+                                        nfaces_qr, nqp_f, wqp_f )
 
 
   use matrix_invert_mod,    only: matrix_invert
@@ -114,11 +114,11 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
   implicit none
 
   ! Arguments
-  integer(kind=i_def), intent(in) :: global_order, nfaces_v
+  integer(kind=i_def), intent(in) :: global_order, nfaces_re_v
   integer(kind=i_def), intent(in) :: nlayers
   integer(kind=i_def), intent(in) :: ndf_w3, undf_w3, &
                                      ndf_wx, undf_wx
-  integer(kind=i_def), intent(in) :: nqp_v, nqp_h, nqp_f, n_faces
+  integer(kind=i_def), intent(in) :: nqp_v, nqp_h, nqp_f, nfaces_qr
 
   integer(kind=i_def), dimension(ndf_w3), intent(in) :: map_w3
   integer(kind=i_def), dimension(ndf_wx), intent(in) :: map_wx
@@ -126,14 +126,14 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
   real(kind=r_def), dimension(undf_w3), intent(in)  :: mdw3
   real(kind=r_def), dimension(undf_wx), intent(in)  :: chi1, chi2, chi3
 
-  real(kind=r_def), dimension(global_order+1, nfaces_v, undf_w3), intent(out) :: coeff
+  real(kind=r_def), dimension(global_order+1, nfaces_re_v, undf_w3), intent(out) :: coeff
 
-  real(kind=r_def), dimension(1,ndf_wx,nqp_h,nqp_v),   intent(in) :: basis_wx
-  real(kind=r_def), dimension(1,ndf_wx,nqp_f,n_faces), intent(in) :: face_basis_wx
+  real(kind=r_def), dimension(1,ndf_wx,nqp_h,nqp_v),     intent(in) :: basis_wx
+  real(kind=r_def), dimension(1,ndf_wx,nqp_f,nfaces_qr), intent(in) :: face_basis_wx
 
-  real(kind=r_def), dimension(nqp_h),         intent(in) ::  wqp_h
-  real(kind=r_def), dimension(nqp_v),         intent(in) ::  wqp_v
-  real(kind=r_def), dimension(nqp_f,n_faces), intent(in) ::  wqp_f
+  real(kind=r_def), dimension(nqp_h),           intent(in) ::  wqp_h
+  real(kind=r_def), dimension(nqp_v),           intent(in) ::  wqp_v
+  real(kind=r_def), dimension(nqp_f,nfaces_qr), intent(in) ::  wqp_f
 
   ! Local variables
   integer(kind=i_def) :: k, ijk, df, qv0, qh0, stencil, nmonomial, qp, &

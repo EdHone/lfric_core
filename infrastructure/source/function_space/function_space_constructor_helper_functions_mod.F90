@@ -1010,7 +1010,7 @@ contains
             lz(idx) = j(j2l_face(i, 3))
 
             ! Gather normals corresponding to each face
-            call reference_element%get_normal_to_out_face( i, unit_vec(:,idx) )
+            call reference_element%get_outward_normal_to_face( i, unit_vec(:,idx) )
             ! Label face degrees of freedom
             entity_dofs(idx) = reference_element%get_face_entity(i)
             idx = idx + 1
@@ -1510,12 +1510,12 @@ contains
     !=========================================================
 
     reference_element => mesh%get_reference_element()
-    number_horizontal_faces    = reference_element%get_number_2d_faces()
-    number_horizontal_edges    = reference_element%get_number_2d_edges()
-    number_horizontal_vertices = reference_element%get_number_2d_vertices()
     number_faces               = reference_element%get_number_faces()
     number_edges               = reference_element%get_number_edges()
     number_vertices            = reference_element%get_number_vertices()
+    number_horizontal_faces    = reference_element%get_number_horizontal_faces()
+    number_horizontal_edges    = reference_element%get_number_2d_edges()
+    number_horizontal_vertices = reference_element%get_number_2d_vertices()
 
     ncells = ncells_2d_with_ghost
 

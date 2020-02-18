@@ -81,7 +81,7 @@ end type quadrature_edge_type
 type, public :: quadrature_edge_proxy_type
 
   private
-  !> Allocatable arrays which holds the values of the gaussian quadrature
+  !> Allocatable arrays which hold the values of the gaussian quadrature
   real(kind=r_def), pointer, public :: weights_xyz(:,:)  => null()
   real(kind=r_def), pointer, public :: points_xyz(:,:,:) => null()
 
@@ -145,8 +145,7 @@ function init_quadrature(np_1, horizontal_edges, vertical_edges, &
   end if
 
   if ( vertical_edges ) then
-    self%nedges_vertical   = reference_element%get_number_edges() &
-                           - reference_element%get_number_horizontal_edges()
+    self%nedges_vertical   = reference_element%get_number_vertical_edges()
   else
     self%nedges_vertical   = 0
   end if

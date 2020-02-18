@@ -19,10 +19,10 @@
 !>          This method is only valid for lowest order elements
 module poly1d_vert_adv_coeffs_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_INTEGER,                 &
-                              GH_WRITE, GH_READ,                    &
-                              ANY_SPACE_1,                          &
+use argument_mod,      only : arg_type, func_type,  &
+                              GH_FIELD, GH_INTEGER, &
+                              GH_WRITE, GH_READ,    &
+                              ANY_SPACE_1,          &
                               GH_BASIS, CELLS, GH_EVALUATOR
 use constants_mod,     only : r_def, i_def, EPS
 use fs_continuity_mod, only : Wtheta
@@ -34,7 +34,7 @@ private
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_adv_coeffs_kernel_type
   private
   type(arg_type) :: meta_args(5) = (/                                  &

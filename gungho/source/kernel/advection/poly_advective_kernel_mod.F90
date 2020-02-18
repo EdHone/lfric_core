@@ -14,9 +14,9 @@
 !>          This method is only valid for lowest order elements
 module poly_advective_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD,                             &
-                              GH_WRITE, GH_READ,                    &
+use argument_mod,      only : arg_type, func_type, &
+                              GH_FIELD,            &
+                              GH_WRITE, GH_READ,   &
                               CELLS
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : W1, W2, Wtheta

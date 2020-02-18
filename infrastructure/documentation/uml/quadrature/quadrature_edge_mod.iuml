@@ -3,24 +3,28 @@
 ' under which the code may be used.
 
 class quadrature_edge_mod::quadrature_edge_type {
-
-  -np_xyz: integer
-  -weights_xyz: real[:]  <<allocatable>>
+  -weights_xyz : real[:]  <<allocatable>>
   -points_xyz : real[::] <<allocatable>>
+  -np_xyz : integer
+  -nedges : integer
+  -nedges_horizontal : integer
+  -nedges_vertical : integer
 
-  +<<create>>init_quadrature( <<in>>np: integer, <<in>>horizontal_edges: logical, <<in>>vertical_edges: logical, <<in>>reference_element: reference_element, <<in>>rule: quadrature_rule ) : quadrature_edge_type
-  +compute_function( <<in>>function_to_call: integer, <<in>> function_space: function_space_type, <<in>>fspace_dim: integer, <<in>>ndf: integer, <<out>>basis: real[:::] )
-  +get_quadrature_proxy() : quadrature_edge_proxy_type
-  +quadrature_final()
+  +<<create>>init_quadrature( <<in>>np_1: integer, <<in>>horizontal_edges: logical, <<in>>vertical_edges: logical, <<in>>reference_element: reference_element_type, <<in>>rule: quadrature_rule_type ) : quadrature_edge_type
   +<<destroy>>quadrature_destructor()
+  +quadrature_final()
 
+  +compute_function( <<in>>function_space: function_space_type, <<in>>function_to_call: integer,  <<in>>fspace_dim: integer, <<in>>ndf: integer, <<out>>basis: real[::::] )
+  +get_quadrature_proxy() : quadrature_edge_proxy_type
 }
 
 class quadrature_edge_mod::quadrature_edge_proxy_type {
-  +np_xyz: integer 
-  +weights_xyz: real[:]  <<pointer>>
+  +weights_xyz : real[:]  <<pointer>>
   +points_xyz : real[::] <<pointer>>
-  +nedges: integer
+  +np_xyz : integer
+  +nedges : integer
+  +nedges_horizontal : integer
+  +nedges_vertical : integer
 }
 
 quadrature_mod::quadrature_type <|-- quadrature_edge_mod::quadrature_edge_type

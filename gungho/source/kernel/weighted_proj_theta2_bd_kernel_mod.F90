@@ -7,22 +7,23 @@
 !>        the velocity space to the potential temperature space weighted by
 !>        the potential temperature gradient.
 !>
-!> Kernel which computes the boundary integral part of the projection operator
-!> from the velocity space to the potential temperature space weighted by the
-!> potential temperature gradient Compute the projection operator
-!> \f<[<\gamma, flux(\theta*v)\cdot n>\f] where v is in W2 and gamma is in the
-!> potential temperature space.
+!> @details The kernel computes the boundary integral part of the projection
+!>          operator from the velocity space to the potential temperature space
+!>          weighted by the potential temperature gradient.
+!>          Computes the projection operator
+!>          \f<[<\gamma, flux(\theta*v)\cdot n>\f],
+!>          where v is in W2 and gamma is in the potential temperature space.
 !>
 module weighted_proj_theta2_bd_kernel_mod
 
   use argument_mod,      only : arg_type, func_type, mesh_data_type, &
+                                reference_element_data_type,         &
                                 GH_OPERATOR, GH_FIELD, GH_REAL,      &
                                 GH_READ, GH_READWRITE,               &
                                 GH_BASIS,                            &
                                 CELLS, GH_QUADRATURE_face,           &
                                 adjacent_face,                       &
-                                reference_element_normal_to_face,    &
-                                reference_element_out_face_normal
+                                outward_normals_to_horizontal_faces
   use constants_mod,     only : r_def, i_def, l_def
   use cross_product_mod, only : cross_product
   use fs_continuity_mod, only : W2, Wtheta
@@ -31,32 +32,34 @@ module weighted_proj_theta2_bd_kernel_mod
 
   implicit none
 
+  private
+
   !---------------------------------------------------------------------------
   ! Public types
   !---------------------------------------------------------------------------
   !> The type declaration for the kernel. Contains the metadata needed by the
-  !> Psy layer.
-  !>
+  !> PSy layer.
   type, public, extends(kernel_type) :: weighted_proj_theta2_bd_kernel_type
     private
-    type(arg_type) :: meta_args(3) = (/                            &
-      arg_type(GH_OPERATOR, GH_READWRITE, Wtheta, W2),             &
-      arg_type(GH_FIELD,    GH_READ,      Wtheta),                 &
-      arg_type(GH_REAL,     GH_READ)                               &
-        /)
-    type(func_type) :: meta_funcs(2) = (/                          &
-      func_type(Wtheta, GH_BASIS),                                 &
-      func_type(W2,     GH_BASIS)                                  &
-        /)
+    type(arg_type) :: meta_args(3) = (/                                     &
+         arg_type(GH_OPERATOR, GH_READWRITE, Wtheta, W2),                   &
+         arg_type(GH_FIELD,    GH_READ,      Wtheta),                       &
+         arg_type(GH_REAL,     GH_READ)                                     &
+         /)
+    type(func_type) :: meta_funcs(2) = (/                                   &
+         func_type(Wtheta, GH_BASIS),                                       &
+         func_type(W2,     GH_BASIS)                                        &
+         /)
+    type(mesh_data_type) :: meta_mesh(1) = (/                               &
+         mesh_data_type( adjacent_face )                                    &
+         /)
+    type(reference_element_data_type) :: meta_reference_element(1) = (/     &
+         reference_element_data_type( outward_normals_to_horizontal_faces ) &
+         /)
     integer :: iterates_over = CELLS
     integer :: gh_shape = GH_QUADRATURE_face
-    type(mesh_data_type) :: meta_init(3) = (/                       &
-      mesh_data_type( adjacent_face ),                              &
-      mesh_data_type( reference_element_normal_to_face ),           &
-      mesh_data_type( reference_element_out_face_normal )           &
-     /)
   contains
-    procedure, nopass ::weighted_proj_theta2_bd_code
+    procedure, nopass :: weighted_proj_theta2_bd_code
   end type
 
   !---------------------------------------------------------------------------
@@ -67,64 +70,73 @@ module weighted_proj_theta2_bd_kernel_mod
 contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief The subroutine which is called directly by the Psy layer
-  !!
+  !> @brief Computes the weighted projection from W2 to Wtheta.
+  !>
   !! @param[in] cell Cell number
-  !! @param[in] nlayers Integer the number of layers
+  !! @param[in] nlayers Number of layers
   !! @param[in] ncell_3d ncell*ndf
-  !! @param[inout] projection Projection operator to compute
+  !! @param[in,out] projection Projection operator to compute
   !! @param[in] theta Potential temperature
   !! @param[in] scalar Real to scale matrix by
   !! @param[in] ndf_w2 Number of degrees of freedom per cell for w2
   !! @param[in] ndf_wtheta Number of degrees of freedom per cell for wtheta
-  !! @param[in] undf_wtheta Number of unique of degrees of freedom for wtheta
+  !! @param[in] undf_wtheta Number of unique degrees of freedom for wtheta
   !! @param[in] stencil_wtheta_map Stencil dofmap for the Wtheta space
   !! @param[in] stencil_wtheta_size Number of cells in the Wtheta stencil map
-  !! @param[in] nqp Integer, number of quadrature points
-  !! @param[in] wqp Real array. Quadrature weights
-  !! @param[in] w2_basis_face Real 4-dim array holding w2 basis functions
-  !!            evaluated at Gaussian quadrature points on horizontal faces
-  !! @param[in] wtheta_basis_face Real 4-dim array holding wtheta basis functions
-  !!            evaluated at Gaussian quadrature points on horizontal faces
+  !! @param[in] nfaces_qr Number of faces in the quadrature rule
+  !! @param[in] nqp_f Number of quadrature points on horizontal faces
+  !! @param[in] wqp_f Quadrature weights on horizontal faces
+  !! @param[in] w2_basis_face 4-dim array holding w2 basis functions evaluated
+  !!                          at Gaussian quadrature points on horizontal faces
+  !! @param[in] wtheta_basis_face 4-dim array holding wtheta basis functions
+  !!                              evaluated at Gaussian quadrature points on
+  !!                              horizontal faces
+  !! @param[in] nfaces_re_h Number of reference element faces bisected by a
+  !!                        horizontal plane
   !! @param[in] adjacent_face Vector containing information on neighbouring face
-  !!            index for the current cell
-  !! @param[in] normal_to_face Vector of normal to reference element faces.
-  !! @param[in] out_face_normal Vector of normal to reference element "out
-  !!                            faces".
+  !!                          index for the current cell
+  !! @param[in] outward_normals_to_horizontal_faces Vector of normals to the
+  !!                                                reference element horizontal
+  !!                                                "outward faces"
   !!
-  subroutine weighted_proj_theta2_bd_code( cell, nlayers, ncell_3d, &
-                                           projection,              &
-                                           theta,                   &
-                                           scalar,                  &
-                                           ndf_w2,                  &
-                                           ndf_wtheta, undf_wtheta, &
-                                           stencil_wtheta_map,      &
-                                           stencil_wtheta_size,     &
-                                           nqp, wqp,                &
-                                           w2_basis_face,           &
-                                           wtheta_basis_face,       &
-                                           adjacent_face,           &
-                                           normal_to_face, out_face_normal )
+  subroutine weighted_proj_theta2_bd_code( cell, nlayers, ncell_3d,     &
+                                           projection,                  &
+                                           theta,                       &
+                                           scalar,                      &
+                                           ndf_w2,                      &
+                                           ndf_wtheta, undf_wtheta,     &
+                                           stencil_wtheta_map,          &
+                                           stencil_wtheta_size,         &
+                                           nfaces_qr, nqp_f, wqp_f,     &
+                                           w2_basis_face,               &
+                                           wtheta_basis_face,           &
+                                           nfaces_re_h,                 &
+                                           adjacent_face,               &
+                                           outward_normals_to_horizontal_faces)
 
     implicit none
 
     ! Arguments
-    integer(kind=i_def), intent(in) :: cell, nlayers, ncell_3d, nqp
+    integer(kind=i_def), intent(in) :: cell, ncell_3d
+    integer(kind=i_def), intent(in) :: nlayers
+    integer(kind=i_def), intent(in) :: nfaces_qr, nqp_f
     integer(kind=i_def), intent(in) :: ndf_wtheta, undf_wtheta, ndf_w2
-    integer(kind=i_def), intent(in) :: stencil_wtheta_size
+    integer(kind=i_def), intent(in) :: nfaces_re_h
 
+    integer(kind=i_def), intent(in) :: stencil_wtheta_size
     integer(kind=i_def), dimension(ndf_wtheta, stencil_wtheta_size), intent(in) :: stencil_wtheta_map
 
-    real(kind=r_def), dimension(ndf_wtheta,ndf_w2,ncell_3d),    intent(inout) :: projection
-    real(kind=r_def), dimension(undf_wtheta),                   intent(in)    :: theta
-    real(kind=r_def),                                           intent(in)    :: scalar
-    real(kind=r_def), dimension(3,ndf_w2,    nqp,4), intent(in)    :: w2_basis_face
-    real(kind=r_def), dimension(1,ndf_wtheta,nqp,4), intent(in)    :: wtheta_basis_face
-    real(kind=r_def), dimension(nqp,4),              intent(in)    :: wqp
+    real(kind=r_def), dimension(ndf_wtheta,ndf_w2,ncell_3d), intent(inout) :: projection
+    real(kind=r_def), dimension(undf_wtheta),                intent(in)    :: theta
+    real(kind=r_def),                                        intent(in)    :: scalar
+
+    real(kind=r_def), dimension(3,ndf_w2,nqp_f,nfaces_qr), intent(in)     :: w2_basis_face
+    real(kind=r_def), dimension(1,ndf_wtheta,nqp_f,nfaces_qr), intent(in) :: wtheta_basis_face
+    real(kind=r_def), dimension(nqp_f,nfaces_qr), intent(in)              :: wqp_f
 
     integer(kind=i_def), intent(in) :: adjacent_face(:)
-    real(kind=r_def),    intent(in) :: normal_to_face(:,:)
-    real(kind=r_def),    intent(in) :: out_face_normal(:,:)
+
+    real(kind=r_def),    intent(in) :: outward_normals_to_horizontal_faces(:,:)
 
     ! Internal variables
     integer(kind=i_def) :: df, k, ik, face, face_next, dft, df2
@@ -139,7 +151,8 @@ contains
     ! Assumes same number of horizontal qp in x and y
     do k = 0, nlayers-1
       ik = k + 1 + (cell-1)*nlayers
-      do face = 1, size( adjacent_face, 1 )
+
+      do face = 1, nfaces_re_h
         ! Storing opposite face number on neighbouring cell
         face_next = adjacent_face(face)
 
@@ -149,19 +162,22 @@ contains
           theta_next_e(df) = theta(stencil_wtheta_map(df, face+1) + k )
         end do
 
-        do qp = 1, nqp
+        do qp = 1, nqp_f
 
           theta_at_fquad = 0.0_r_def
           theta_next_at_fquad = 0.0_r_def
           do df = 1, ndf_wtheta
-            theta_at_fquad       = theta_at_fquad      + theta_e(df)     *wtheta_basis_face(1,df,qp,face)
-            theta_next_at_fquad  = theta_next_at_fquad + theta_next_e(df)*wtheta_basis_face(1,df,qp,face_next)
+            theta_at_fquad       = theta_at_fquad      + theta_e(df)     * &
+                                   wtheta_basis_face(1,df,qp,face)
+            theta_next_at_fquad  = theta_next_at_fquad + theta_next_e(df)* &
+                                   wtheta_basis_face(1,df,qp,face_next)
           end do
           theta_av = 0.5_r_def * (theta_at_fquad + theta_next_at_fquad)
 
           do df2 = 1,ndf_w2
-            v_dot_n = dot_product(w2_basis_face(:,df2,qp,face),out_face_normal(:, face))
-            flux_term = wqp(qp,face) * theta_av * v_dot_n
+            v_dot_n = dot_product(w2_basis_face(:,df2,qp,face), &
+                                  outward_normals_to_horizontal_faces(:, face))
+            flux_term = wqp_f(qp,face) * theta_av * v_dot_n
             if (upwind) then
               flux_term = flux_term + 0.5_r_def * abs(v_dot_n) * &
                           (theta_at_fquad - theta_next_at_fquad)
@@ -173,8 +189,11 @@ contains
 
             end do ! dft
           end do ! df2
+
         end do ! qp
+
       end do ! faces
+
     end do ! layers
 
   end subroutine weighted_proj_theta2_bd_code

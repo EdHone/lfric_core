@@ -13,11 +13,11 @@
 !>          operator
 module consistent_wind_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD,                             &
-                              GH_INC, GH_READ,                      &
-                              ANY_SPACE_1,                          &
-                              GH_BASIS, GH_DIFF_BASIS,              &
+use argument_mod,      only : arg_type, func_type,     &
+                              GH_FIELD,                &
+                              GH_INC, GH_READ,         &
+                              ANY_SPACE_1,             &
+                              GH_BASIS, GH_DIFF_BASIS, &
                               CELLS, GH_EVALUATOR
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : Wtheta, W2
@@ -29,7 +29,7 @@ private
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: consistent_wind_kernel_type
   private
   type(arg_type) :: meta_args(4) = (/                                  &

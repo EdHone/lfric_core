@@ -51,7 +51,7 @@ module flux_alg_mod
   ! Interpolation coefficients needed for nonuniform fv operators
   type( field_type ), allocatable :: flux_coeffs(:,:), &
                                      vert_flux_coeffs(:,:)
-  integer(i_def)                  :: nfaces_h, nfaces_v
+  integer(i_def)                  :: nfaces_re_h, nfaces_re_v
 
   public  :: flux_alg
   public  :: flux_alg_init
@@ -109,10 +109,10 @@ contains
         ! Get topology information from the reference element
         mesh              => w3_field%get_mesh()
         reference_element => mesh%get_reference_element()
-        ! Number of horizontal neighbours
-        nfaces_h = reference_element%get_number_horizontal_faces()
-        ! Number of vertical neighbours is (and always will be) 2
-        nfaces_v = reference_element%get_number_vertical_faces()
+        ! Number of horizontal neighbours from the reference element
+        nfaces_re_h = reference_element%get_number_horizontal_faces()
+        ! Number of vertical neighbours from the reference element
+        nfaces_re_v = reference_element%get_number_vertical_faces()
 
         if ( oned_reconstruction ) then
           flux_stencil_size = fv_flux_order + 1
@@ -123,16 +123,16 @@ contains
           flux2d_stencil_size = 1
           do polynomial = 1, fv_flux_order
             if ( mod(polynomial, 2) == 0 ) then
-              flux2d_stencil_size = flux2d_stencil_size + nfaces_h
+              flux2d_stencil_size = flux2d_stencil_size + nfaces_re_h
             else
-              flux2d_stencil_size = flux2d_stencil_size + nfaces_h*polynomial
+              flux2d_stencil_size = flux2d_stencil_size + nfaces_re_h*polynomial
             end if
           end do
           flux_stencil_size = flux2d_stencil_size
         end if
         call psykal_lite_mol_flux_init(w3_field, &
                                        fv_flux_order, flux_stencil_size, &
-                                       nfaces_h, nfaces_v)
+                                       nfaces_re_h, nfaces_re_v)
 
         chi => get_coordinates()
         nqp_xyz = fv_flux_order+1
@@ -150,8 +150,8 @@ contains
 
         call log_event( "Gungho: computing horizontal flux coeffs", LOG_LEVEL_INFO )
         md_w3 => get_mass_matrix_diagonal(w3_id)
-        allocate( flux_coeffs(flux_stencil_size, nfaces_h) )
-        do direction = 1, nfaces_h
+        allocate( flux_coeffs(flux_stencil_size, nfaces_re_h) )
+        do direction = 1, nfaces_re_h
           do polynomial = 1,flux_stencil_size
               call flux_coeffs(polynomial, direction)%initialise( vector_space = w3_fs )
           end do
@@ -159,16 +159,16 @@ contains
         if ( oned_reconstruction ) then
           call invoke_poly1d_flux_coeffs( flux_coeffs, md_w3, chi, qr, qrf, &
                                           fv_flux_order,                    &
-                                          flux_stencil_extent, nfaces_h )
+                                          flux_stencil_extent, nfaces_re_h )
         else
           call invoke_poly2d_flux_coeffs( flux_coeffs, md_w3, chi, qr, qrf, &
                                           fv_flux_order,                    &
-                                          flux2d_stencil_size, nfaces_h )
+                                          flux2d_stencil_size, nfaces_re_h )
         end if
         call log_event( "Gungho: computing vertical flux coeffs", LOG_LEVEL_INFO )
         ! Vertical flux coeffs
-        allocate( vert_flux_coeffs(fv_flux_order+1, nfaces_v) )
-        do direction = 1, nfaces_v
+        allocate( vert_flux_coeffs(fv_flux_order+1, nfaces_re_v) )
+        do direction = 1, nfaces_re_v
           do polynomial = 1,fv_flux_order+1
             call vert_flux_coeffs(polynomial, direction)%initialise( vector_space = w3_fs )
           end do
@@ -179,7 +179,7 @@ contains
         qrf = quadrature_face_type(nqp_xyz, .false., .true.,                   &
                                    reference_element, gaussian_quadrature)
         call invoke_poly1d_vert_flux_coeffs( vert_flux_coeffs, md_w3, chi,     &
-                                             qr, qrf, fv_flux_order, nfaces_v )
+                                             qr, qrf, fv_flux_order, nfaces_re_v )
 
         !======================================================================!
       else
@@ -241,16 +241,16 @@ contains
      if ( oned_reconstruction ) then
        ! Use 1d flux reconstruction
        call invoke_poly1d_flux( mass_flux, wind, density, flux_coeffs, &
-                                fv_flux_order, flux_stencil_extent, nfaces_h )
+                                fv_flux_order, flux_stencil_extent, nfaces_re_h )
      else
        ! Use 2d flux reconstruction
        call invoke_poly2d_flux( mass_flux, wind, density, flux_coeffs, &
-                                fv_flux_order, flux2d_stencil_size, nfaces_h )
+                                fv_flux_order, flux2d_stencil_size, nfaces_re_h )
      end if
      ! Compute vertical components of mass flux
      call invoke_poly1d_vert_flux( mass_flux, wind, density, &
                                    vert_flux_coeffs, &
-                                   fv_flux_order, nfaces_v)
+                                   fv_flux_order, nfaces_re_v)
 
     case(operators_fem)
       ! Project density*wind into the mass flux space

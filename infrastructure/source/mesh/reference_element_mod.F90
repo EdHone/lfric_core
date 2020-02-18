@@ -5,7 +5,12 @@
 !-----------------------------------------------------------------------------
 !> @brief Unit reference elements.
 !>
-!> Includes ordering of topological entities and lookups for dofs.
+!> @details Includes ordering of topological entities and lookups for dofs.
+!>          Note that the naming of entities (e.g. edges, faces) as horizontal
+!>          or vertical stems from how the entities are looped over.
+!>          "Horizontal" entities are those visited when looping is done in
+!>          \f[(x-y)\f] plane while "vertical" entities are those visited when
+!>          looping is done in \f[(x-z)\f] and/or \f[(y-z)\f] plane.
 !>
 !> @todo Currently also contains geometry information which it probably
 !>       shouldn't.
@@ -24,19 +29,22 @@ module reference_element_mod
   type, abstract, public :: reference_element_type
     private
 
-    integer(i_def) :: number_verts_per_edge = 2
-
     ! Geometric information about the reference element
-    integer(i_def) :: number_vertices, &
-                      number_faces,    &
+    integer(i_def) :: number_vertices,         &
+                      number_faces,            &
                       number_edges
-    integer(i_def) :: number_horizontal_vertices, &
-                      number_horizontal_faces,    &
-                      number_horizontal_edges,    &
-                      number_vertical_faces
-    integer(i_def) :: number_2d_vertices, &
-                      number_2d_faces,    &
+    integer(i_def) :: number_horizontal_faces, &
+                      number_horizontal_edges, &
+                      number_vertical_faces,   &
+                      number_vertical_edges
+    integer(i_def) :: number_2d_vertices,      &
                       number_2d_edges
+
+    ! The numbers of vertices per edge and faces per edge
+    ! are invariant and will never change no matter what
+    ! shape element is used
+    integer(i_def) :: number_verts_per_edge = 2
+    integer(i_def) :: number_faces_per_edge = 2
 
     ! Vertex coodinates
     real(r_def), allocatable :: vertex_coords(:,:)
@@ -55,27 +63,34 @@ module reference_element_mod
     integer(i_def), allocatable :: face_on_edge(:,:)
 
     ! Vector directions
-    real(r_def), allocatable :: normal_to_face(:,:)
+    real(r_def), allocatable :: normals_to_faces(:,:)
+    real(r_def), allocatable :: normals_to_horizontal_faces(:,:)
+    real(r_def), allocatable :: normals_to_vertical_faces(:,:)
     real(r_def), allocatable :: tangent_to_edge(:,:)
-    real(r_def), allocatable :: out_face_normal(:,:)
+    real(r_def), allocatable :: outward_normals_to_faces(:,:)
+    real(r_def), allocatable :: outward_normals_to_horizontal_faces(:,:)
+    real(r_def), allocatable :: outward_normals_to_vertical_faces(:,:)
 
     ! Geometric entities
     integer(i_def), allocatable :: vertex_entities(:)
     integer(i_def), allocatable :: edge_entities(:)
     integer(i_def), allocatable :: face_entities(:)
+
   contains
+
     private
+
     procedure :: reference_element_init
     procedure :: reference_element_final
     procedure, public :: get_number_2d_vertices
     procedure, public :: get_number_2d_edges
-    procedure, public :: get_number_2d_faces
-    procedure, public :: get_number_horizontal_edges
-    procedure, public :: get_number_horizontal_faces
-    procedure, public :: get_number_vertical_faces
     procedure, public :: get_number_vertices
     procedure, public :: get_number_edges
+    procedure, public :: get_number_horizontal_edges
+    procedure, public :: get_number_vertical_edges
     procedure, public :: get_number_faces
+    procedure, public :: get_number_horizontal_faces
+    procedure, public :: get_number_vertical_faces
     procedure, public :: get_number_verts_per_edge
     procedure, public :: get_edge_on_face
     procedure, public :: get_vertex
@@ -85,9 +100,13 @@ module reference_element_mod
     procedure, public :: get_volume_centre_coordinates
     procedure, public :: get_normal_to_face
     procedure, public :: get_normals_to_faces
+    procedure, public :: get_normals_to_horizontal_faces
+    procedure, public :: get_normals_to_vertical_faces
     procedure, public :: get_tangent_to_edge
-    procedure, public :: get_normal_to_out_face
-    procedure, public :: get_normals_to_out_faces
+    procedure, public :: get_outward_normal_to_face
+    procedure, public :: get_outward_normals_to_faces
+    procedure, public :: get_outward_normals_to_horizontal_faces
+    procedure, public :: get_outward_normals_to_vertical_faces
     procedure, public :: get_face_entity
     procedure, public :: get_edge_entity
     procedure, public :: get_vertex_entity
@@ -99,46 +118,49 @@ module reference_element_mod
     procedure(edge_on_face_iface),      deferred :: populate_edge_on_face
     procedure(edge_on_vertex_iface),    deferred :: populate_edge_on_vertex
     procedure(face_on_edge_iface),      deferred :: populate_face_on_edge
-    procedure(normal_to_face_iface),    deferred :: populate_normal_to_face
+    procedure(normals_to_faces_iface),  deferred :: populate_normals_to_faces
+    procedure(normals_to_faces_iface),  deferred :: populate_normals_to_horizontal_faces
+    procedure(normals_to_faces_iface),  deferred :: populate_normals_to_vertical_faces
     procedure(tangent_to_edge_iface),   deferred :: populate_tangent_to_edge
-    procedure(out_face_normal_iface),   deferred :: populate_out_face_normal
-
+    procedure(normals_to_faces_iface),  deferred :: populate_outward_normals_to_faces
+    procedure(normals_to_faces_iface),  deferred :: populate_outward_normals_to_horizontal_faces
+    procedure(normals_to_faces_iface),  deferred :: populate_outward_normals_to_vertical_faces
   end type reference_element_type
 
-  interface
-    ! Fills arrays with entity labels. These arrays map
-    ! entity index to the geometric entity on the reference
-    ! cell.
-    !
-    ! [out] vertex_entities Maps vertex index to geometric entity.
-    ! [out] edge_entities   Maps edge index to geometric entity.
-    ! [out] face_entities   Maps face index to geometric entity.
-    !
-     subroutine entities_iface( this, vertex_entities, edge_entities, &
-                                face_entities )
-       import reference_element_type, i_def
-       class(reference_element_type), intent(in) :: this
-       integer(i_def), intent(out) :: vertex_entities(:)
-       integer(i_def), intent(out) :: edge_entities(:)
-       integer(i_def), intent(out) :: face_entities(:)
-     end subroutine entities_iface
-    !
-    ! Fills an array with vertex coordinates.
-    !
-    ! [out] vertex Holds n times 3 coordinate values.
-    !
+  abstract interface
+    !> @brief Fills arrays with entity labels. These arrays map
+    !> entity index to the geometric entity on the reference
+    !> cell.
+    !>
+    !> @param[out] vertex_entities Maps vertex index to geometric entity.
+    !> @param[out] edge_entities   Maps edge index to geometric entity.
+    !> @param[out] face_entities   Maps face index to geometric entity.
+    !>
+    subroutine entities_iface( this, vertex_entities, edge_entities, &
+                               face_entities )
+      import reference_element_type, i_def
+      class(reference_element_type), intent(in) :: this
+      integer(i_def), intent(out) :: vertex_entities(:)
+      integer(i_def), intent(out) :: edge_entities(:)
+      integer(i_def), intent(out) :: face_entities(:)
+    end subroutine entities_iface
+    !>
+    !> @brief Fills an array with vertex coordinates.
+    !>
+    !> @param[out] vertex Holds n times 3 coordinate values.
+    !>
     subroutine vertices_iface( this, vertex )
       import reference_element_type, r_def
       class(reference_element_type), intent(in) :: this
       real(r_def), intent(out) :: vertex(:,:)
     end subroutine vertices_iface
-    !
-    ! Fills arrays with entity centre point coordinates.
-    !
-    ! [out] edges    Holds n times 3 coordinate values.
-    ! [out] faces    Holds n times 3 coordinate values.
-    ! [out] volumes  Holds n times 3 coordinate values.
-    !
+    !>
+    !> @brief Fills arrays with entity centre point coordinates.
+    !>
+    !> @param[out] edges    Holds n times 3 coordinate values.
+    !> @param[out] faces    Holds n times 3 coordinate values.
+    !> @param[out] volumes  Holds n times 3 coordinate values.
+    !>
     subroutine entity_centre_iface( this, edges, faces, volumes )
       import reference_element_type, r_def
       class(reference_element_type), intent(in) :: this
@@ -146,86 +168,76 @@ module reference_element_mod
       real(r_def), intent(out) :: faces(:,:)
       real(r_def), intent(out) :: volumes(:,:)
     end subroutine entity_centre_iface
-    !
-    ! Fills an array with vertex coordinates on faces.
-    !
-    ! [out] vertex_on_face  Holds n times 3 coordinate values.
-    !
+    !>
+    !> @brief Fills an array with vertex coordinates on faces.
+    !>
+    !> @param[out] vertex_on_face  Holds n times 3 coordinate values.
+    !>
     subroutine vertices_on_faces_iface( this, vertex_on_face )
       import reference_element_type, i_def
       class(reference_element_type), intent(in) :: this
       integer(i_def), intent(out) :: vertex_on_face(:,:)
     end subroutine vertices_on_faces_iface
-    !
-    ! Fills an array with vertex coordinates on edges.
-    !
-    ! [out] vertex_on_edge  Holds n times 3 coordinate values.
-    !
+    !>
+    !> @brief Fills an array with vertex coordinates on edges.
+    !>
+    !> @param[out] vertex_on_edge  Holds n times 3 coordinate values.
+    !>
     subroutine vertices_on_edges_iface( this, vertex_on_edge )
       import reference_element_type, i_def
       class(reference_element_type), intent(in) :: this
       integer(i_def), intent(out) :: vertex_on_edge(:,:)
     end subroutine vertices_on_edges_iface
-    !
-    ! Fills an array with IDs of edges around each face.
-    !
-    ! [out] edge_on_face  Holds face by edge.
-    !
+    !>
+    !> @brief Fills an array with IDs of edges around each face.
+    !>
+    !> @param[out] edge_on_face  Holds face by edge.
+    !>
     subroutine edge_on_face_iface( this, edge_on_face )
       import reference_element_type, i_def
       class(reference_element_type), intent(in) :: this
       integer(i_def), intent(out) :: edge_on_face(:,:)
     end subroutine edge_on_face_iface
-    !
-    ! Fills an array with IDs of edges around a vertex.
-    !
-    ! [out] edge_on_vertex  Holds vertex by edge.
-    !
+    !>
+    !> @brief Fills an array with IDs of edges around a vertex.
+    !>
+    !> @param[out] edge_on_vertex  Holds vertex by edge.
+    !>
     subroutine edge_on_vertex_iface( this, edge_on_vertex )
       import reference_element_type, i_def
       class(reference_element_type), intent(in) :: this
       integer(i_def), intent(out) :: edge_on_vertex(:,:)
     end subroutine edge_on_vertex_iface
-    !
-    ! Fills an array with IDs of faces around an edge.
-    !
-    ! [out] edges  Holds edge by face.
-    !
+    !>
+    !> @brief Fills an array with IDs of faces around an edge.
+    !>
+    !> @param[out] edges  Holds edge by face.
+    !>
     subroutine face_on_edge_iface( this, edges )
       import reference_element_type, i_def
       class(reference_element_type), intent(in) :: this
       integer(i_def), intent(out) :: edges(:,:)
     end subroutine face_on_edge_iface
-    !
-    ! Fills an array with vector coordinates for normals to faces.
-    !
-    ! [out] normals  Holds n by 3 vector values.
-    !
-    subroutine normal_to_face_iface( this, normals )
+    !>
+    !> @brief Fills an array with vector coordinates for normals to faces.
+    !>
+    !> @param[out] normals  Holds 3 by n vector values.
+    !>
+    subroutine normals_to_faces_iface( this, normals )
       import reference_element_type, r_def
       class(reference_element_type), intent(in) :: this
       real(r_def), intent(out) :: normals(:,:)
-    end subroutine normal_to_face_iface
-    !
-    ! Fills an array with vector coordinates for tangents to edges.
-    !
-    ! [out] tangents  Holds n by 3 vector values.
-    !
+    end subroutine normals_to_faces_iface
+    !>
+    !> @brief Fills an array with vector coordinates for tangents to edges.
+    !>
+    !> @param[out] tangents  Holds n by 3 vector values.
+    !>
     subroutine tangent_to_edge_iface( this, tangents )
       import reference_element_type, r_def
       class(reference_element_type), intent(in) :: this
       real(r_def), intent(out) :: tangents(:,:)
     end subroutine tangent_to_edge_iface
-    !
-    ! Fills an array with vector coordinates for normals to "out faces".
-    !
-    ! [out] normals  Holds 3 by n vector values.
-    !
-    subroutine out_face_normal_iface( this, normals )
-      import reference_element_type, r_def
-      class(reference_element_type), intent(in) :: this
-      real(r_def), intent(out) :: normals(:,:)
-    end subroutine out_face_normal_iface
   end interface
 
   ! It is possible that we may end up having to calculate these from the
@@ -234,12 +246,6 @@ module reference_element_mod
   integer(i_def), parameter :: vert_per_face   = 4
   integer(i_def), parameter :: edge_per_face   = 4
   integer(i_def), parameter :: edge_per_vertex = 3
-
-  ! The numbers of vertices per edge and faces per edge
-  ! are invariant and will never change no matter what
-  ! shape element is used
-  integer(i_def), parameter :: vert_per_edge   = 2
-  integer(i_def), parameter :: face_per_edge   = 2
 
   ! Useful constants.
   !
@@ -274,7 +280,7 @@ module reference_element_mod
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Describes a unit cube reference element.
   !>
-  !> Entity naming convention for reference cube:
+  !> @details Entity naming convention for reference cube:
   !>
   !> <pre>
   !>         NWT-\--NT-\--NET
@@ -290,6 +296,10 @@ module reference_element_mod
   !>     SWB-\--SB-\--SEB
   !> </pre>
   !>
+  !> "Horizontal" entities are visited when looping in W ("west"), S ("south"),
+  !> E ("east") and N ("north") directions while "vertical" entities are visited
+  !> when looping in B ("bottom") and T ("top") directions.
+  !>
   type, extends(reference_element_type), public :: reference_cube_type
     private
   contains
@@ -302,14 +312,23 @@ module reference_element_mod
     procedure :: populate_edge_on_face      => cube_populate_edge_on_face
     procedure :: populate_edge_on_vertex    => cube_populate_edge_on_vertex
     procedure :: populate_face_on_edge      => cube_populate_face_on_edge
-    procedure :: populate_normal_to_face    => cube_populate_normal_to_face
+    procedure :: populate_normals_to_faces  => cube_populate_normals_to_faces
+    procedure :: populate_normals_to_horizontal_faces &
+                                            => cube_populate_normals_to_horizontal_faces
+    procedure :: populate_normals_to_vertical_faces &
+                                            => cube_populate_normals_to_vertical_faces
     procedure :: populate_tangent_to_edge   => cube_populate_tangent_to_edge
-    procedure :: populate_out_face_normal   => cube_populate_out_face_normal
+    procedure :: populate_outward_normals_to_faces &
+                                            => cube_populate_outward_normals_to_faces
+    procedure :: populate_outward_normals_to_horizontal_faces &
+                                            => cube_populate_outward_normals_to_horizontal_faces
+    procedure :: populate_outward_normals_to_vertical_faces &
+                                            => cube_populate_outward_normals_to_vertical_faces
     final :: reference_cube_destructor
   end type reference_cube_type
 
   interface reference_cube_type
-    procedure reference_cube_constructor
+    module procedure reference_cube_constructor
   end interface reference_cube_type
 
   !> @name Faces of the cube.
@@ -372,7 +391,7 @@ module reference_element_mod
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Describes a unit triangular prism reference element.
   !>
-  !> Entity naming convention for reference prism:
+  !> @details Entity naming convention for reference prism:
   !>
   !> <pre>
   !>               QRU
@@ -406,6 +425,9 @@ module reference_element_mod
   !>
   !> </pre>
   !>
+  !> "Horizontal" entities are visited when looping in P, Q and R directions
+  !>  while "vertical" entities are visited when looping in L and U directions.
+  !>
   type, extends(reference_element_type), public :: reference_prism_type
     private
   contains
@@ -418,9 +440,18 @@ module reference_element_mod
     procedure :: populate_edge_on_face      => prism_populate_edge_on_face
     procedure :: populate_edge_on_vertex    => prism_populate_edge_on_vertex
     procedure :: populate_face_on_edge      => prism_populate_face_on_edge
-    procedure :: populate_normal_to_face    => prism_populate_normal_to_face
+    procedure :: populate_normals_to_faces  => prism_populate_normals_to_faces
+    procedure :: populate_normals_to_horizontal_faces &
+                                            => prism_populate_normals_to_horizontal_faces
+    procedure :: populate_normals_to_vertical_faces &
+                                            => prism_populate_normals_to_vertical_faces
     procedure :: populate_tangent_to_edge   => prism_populate_tangent_to_edge
-    procedure :: populate_out_face_normal   => prism_populate_out_face_normal
+    procedure :: populate_outward_normals_to_faces &
+                                            => prism_populate_outward_normals_to_faces
+    procedure :: populate_outward_normals_to_horizontal_faces &
+                                            => prism_populate_outward_normals_to_horizontal_faces
+    procedure :: populate_outward_normals_to_vertical_faces &
+                                            => prism_populate_outward_normals_to_vertical_faces
     final :: reference_prism_destructor
   end type reference_prism_type
 
@@ -497,42 +528,52 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! @brief Initialises the common parameters of a reference element.
+  ! @brief Initialises the common parameters of a 3D reference element by
+  !        extruding a 2D reference shape.
   !
-  ! [in] horiz_vertices  Vertices in the horizontal.
-  ! [in] horiz_faces     Faces bisected by a horizontal plane.
-  ! [in] horiz_edges     Edges in the horizontal.
+  ! [in] nvertices_2d  Vertices of the horizontal (2D) reference shape.
+  ! [in] nedges_2d     Edges of the horizontal (2D) reference shape.
   !
-  subroutine reference_element_init( this,           &
-                                     horiz_vertices, &
-                                     horiz_faces,    &
-                                     horiz_edges )
+  subroutine reference_element_init( this,         &
+                                     nvertices_2d, &
+                                     nedges_2d )
     implicit none
 
     class(reference_element_type), intent(inout) :: this
-    integer(i_def), intent(in) :: horiz_vertices
-    integer(i_def), intent(in) :: horiz_faces
-    integer(i_def), intent(in) :: horiz_edges
+    integer(i_def), intent(in) :: nvertices_2d
+    integer(i_def), intent(in) :: nedges_2d
 
     integer(i_def), parameter :: number_of_volumes = 1
 
     ! 2D cell information
-    this%number_2d_vertices = horiz_vertices
-    this%number_2d_faces    = horiz_faces
-    this%number_2d_edges    = horiz_edges
+    this%number_2d_vertices = nvertices_2d
+    this%number_2d_edges    = nedges_2d
 
-    ! Vertical extrusion
+    ! Horizontal entities of the 3D reference element:
+    !  - Horizontal edges are the two sets of 2D edges enclosing the bottom/lower
+    !    and top/upper faces and lie in the horizontal (x-y) plane;
+    !  - Horizontal faces are extruded from the edges of the 2D reference shape
+    !    (2D edges lie in the horizontal plane).
+    this%number_horizontal_edges = 2 * this%number_2d_edges
+    this%number_horizontal_faces = this%number_2d_edges
+
+    ! Vertical entities of the 3D reference element:
+    ! - Vertical edges are extruded from the vertices of the 2D reference shape
+    !   and lie in the vertical (x-z) and (y-z) planes;
+    this%number_vertical_edges = this%number_2d_vertices
+    ! - Vertical faces are bottom/lower and and top/upper faces (for both cubes
+    !   and prisms there will only ever be 2).
     this%number_vertical_faces = 2_i_def
-    this%number_vertices       = 2 * this%number_2d_vertices
-    this%number_faces          = this%number_2d_faces &
-                               + this%number_vertical_faces
-    this%number_edges          = 2 * this%number_2d_edges &
-                                   + this%number_2d_vertices
 
-    ! Information about the horizontal entities of the
-    ! 3D reference element
-    this%number_horizontal_faces = this%number_2d_faces
-    this%number_horizontal_edges = 2*this%number_2d_edges
+    ! All entities of the 3D reference element:
+    ! - 3D vertices consist of two sets of 2D vertices;
+    this%number_vertices       = 2 * this%number_2d_vertices
+    ! - 3D edges consist of horizontal and vertical edges;
+    this%number_edges          = this%number_horizontal_edges &
+                               + this%number_vertical_edges
+    ! - 3D faces consist of horizontal and vertical faces.
+    this%number_faces          = this%number_horizontal_faces &
+                               + this%number_vertical_faces
 
     ! Allocate and populate arrays
     allocate( this%vertex_entities(this%number_vertices) )
@@ -555,7 +596,7 @@ contains
     allocate( this%vert_on_face(this%number_faces, vert_per_face) )
     call this%populate_vertices_on_faces( this%vert_on_face )
 
-    allocate( this%vert_on_edge(this%number_edges, vert_per_edge) )
+    allocate( this%vert_on_edge(this%number_edges, this%number_verts_per_edge) )
     call this%populate_vertices_on_edges( this%vert_on_edge )
 
     allocate( this%edge_on_face(this%number_faces, edge_per_face) )
@@ -564,17 +605,29 @@ contains
     allocate( this%edge_on_vert(this%number_vertices, edge_per_vertex) )
     call this%populate_edge_on_vertex( this%edge_on_vert )
 
-    allocate( this%face_on_edge(this%number_edges, face_per_edge) )
+    allocate( this%face_on_edge(this%number_edges, this%number_faces_per_edge) )
     call this%populate_face_on_edge( this%face_on_edge )
 
-    allocate( this%normal_to_face(this%number_faces,3))
-    call this%populate_normal_to_face( this%normal_to_face )
+    allocate( this%normals_to_faces(3, this%number_faces))
+    call this%populate_normals_to_faces( this%normals_to_faces )
+
+    allocate( this%normals_to_horizontal_faces(3, this%number_horizontal_faces))
+    call this%populate_normals_to_horizontal_faces( this%normals_to_horizontal_faces )
+
+    allocate( this%normals_to_vertical_faces(3, this%number_vertical_faces))
+    call this%populate_normals_to_vertical_faces( this%normals_to_vertical_faces )
 
     allocate( this%tangent_to_edge(this%number_edges,3) )
     call this%populate_tangent_to_edge( this%tangent_to_edge )
 
-    allocate( this%out_face_normal(3, this%number_faces) )
-    call this%populate_out_face_normal( this%out_face_normal )
+    allocate( this%outward_normals_to_faces(3, this%number_faces) )
+    call this%populate_outward_normals_to_faces( this%outward_normals_to_faces )
+
+    allocate( this%outward_normals_to_horizontal_faces(3, this%number_horizontal_faces) )
+    call this%populate_outward_normals_to_horizontal_faces( this%outward_normals_to_horizontal_faces )
+
+    allocate( this%outward_normals_to_vertical_faces(3, this%number_vertical_faces) )
+    call this%populate_outward_normals_to_vertical_faces( this%outward_normals_to_vertical_faces )
 
   end subroutine reference_element_init
 
@@ -596,14 +649,18 @@ contains
     if (allocated( this%edge_on_face )) deallocate( this%edge_on_face )
     if (allocated( this%edge_on_vert )) deallocate( this%edge_on_vert )
     if (allocated( this%face_on_edge )) deallocate( this%face_on_edge )
-    if (allocated( this%normal_to_face )) deallocate( this%normal_to_face )
+    if (allocated( this%normals_to_faces )) deallocate( this%normals_to_faces )
+    if (allocated( this%normals_to_horizontal_faces )) deallocate( this%normals_to_horizontal_faces )
+    if (allocated( this%normals_to_vertical_faces )) deallocate( this%normals_to_vertical_faces )
     if (allocated( this%tangent_to_edge )) deallocate( this%tangent_to_edge )
-    if (allocated( this%out_face_normal )) deallocate( this%out_face_normal )
+    if (allocated( this%outward_normals_to_faces )) deallocate( this%outward_normals_to_faces )
+    if (allocated( this%outward_normals_to_horizontal_faces )) deallocate( this%outward_normals_to_horizontal_faces )
+    if (allocated( this%outward_normals_to_vertical_faces )) deallocate( this%outward_normals_to_vertical_faces )
 
   end subroutine reference_element_final
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of vertices of the 2d reference shape.
+  !> @brief Gets the number of vertices of the 2D reference shape.
   !>
   !> @return Positive integer.
   !>
@@ -619,7 +676,7 @@ contains
   end function get_number_2d_vertices
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of edges of the 2d reference shape.
+  !> @brief Gets the number of edges of the 2D reference shape.
   !>
   !> @return Positive integer.
   !>
@@ -635,74 +692,7 @@ contains
   end function get_number_2d_edges
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of facets of the 2d reference shape.
-  !>
-  !> @return Positive integer.
-  !>
-  pure function get_number_2d_faces( this )
-
-    implicit none
-
-    class(reference_element_type), intent(in) :: this
-    integer(i_def) :: get_number_2d_faces
-
-    get_number_2d_faces = this%number_2d_faces
-
-  end function get_number_2d_faces
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of edges in the horizontal, these are edges with
-  !>        tengents in the horizontal directions
-  !>
-  !> @return Positive integer.
-  !>
-  pure function get_number_horizontal_edges( this )
-
-    implicit none
-
-    class(reference_element_type), intent(in) :: this
-    integer(i_def) :: get_number_horizontal_edges
-
-    get_number_horizontal_edges = this%number_horizontal_edges
-
-  end function get_number_horizontal_edges
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of faces in the horizontal, these are faces whose
-  !>        normals are in the horizontal directions
-  !>
-  !> @return Positive integer.
-  !>
-  pure function get_number_horizontal_faces( this )
-
-    implicit none
-
-    class(reference_element_type), intent(in) :: this
-    integer(i_def) :: get_number_horizontal_faces
-
-    get_number_horizontal_faces = this%number_horizontal_faces
-
-  end function get_number_horizontal_faces
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of faces in the vertical, these are faces whose
-  !>        normals are in the vertical direction. The answer will always be 2
-  !>
-  !> @return Positive integer.
-  !>
-  pure function get_number_vertical_faces( this )
-
-    implicit none
-
-    class(reference_element_type), intent(in) :: this
-    integer(i_def) :: get_number_vertical_faces
-
-    get_number_vertical_faces = this%number_vertical_faces
-
-  end function get_number_vertical_faces
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of edges in the reference element.
+  !> @brief Gets the number of vertices in the reference element.
   !>
   !> @return Positive integer.
   !>
@@ -734,6 +724,40 @@ contains
   end function get_number_edges
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the number of edges in the horizontal, these are edges with
+  !>        tangents in the horizontal directions.
+  !>
+  !> @return Positive integer.
+  !>
+  pure function get_number_horizontal_edges( this )
+
+    implicit none
+
+    class(reference_element_type), intent(in) :: this
+    integer(i_def) :: get_number_horizontal_edges
+
+    get_number_horizontal_edges = this%number_horizontal_edges
+
+  end function get_number_horizontal_edges
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the number of edges in the vertical, thes are edges with
+  !>        tangents in the vertical directions.
+  !>
+  !> @return Positive integer.
+  !>
+  pure function get_number_vertical_edges( this )
+
+    implicit none
+
+    class(reference_element_type), intent(in) :: this
+    integer(i_def) :: get_number_vertical_edges
+
+    get_number_vertical_edges = this%number_vertical_edges
+
+  end function get_number_vertical_edges
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Gets the number of faces in the reference element.
   !>
   !> @return Positive integer.
@@ -750,9 +774,43 @@ contains
   end function get_number_faces
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the number of vertices per edge on the reference shape.
+  !> @brief Gets the number of faces in the horizontal, these are faces whose
+  !>        normals are in the horizontal directions.
   !>
   !> @return Positive integer.
+  !>
+  pure function get_number_horizontal_faces( this )
+
+    implicit none
+
+    class(reference_element_type), intent(in) :: this
+    integer(i_def) :: get_number_horizontal_faces
+
+    get_number_horizontal_faces = this%number_horizontal_faces
+
+  end function get_number_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the number of faces in the vertical, these are faces whose
+  !>        normals are in the vertical direction.
+  !>
+  !> @return Positive integer (always 2).
+  !>
+  pure function get_number_vertical_faces( this )
+
+    implicit none
+
+    class(reference_element_type), intent(in) :: this
+    integer(i_def) :: get_number_vertical_faces
+
+    get_number_vertical_faces = this%number_vertical_faces
+
+  end function get_number_vertical_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the number of vertices per edge on the reference element.
+  !>
+  !> @return Positive integer (always 2).
   !>
   pure function get_number_verts_per_edge( this )
 
@@ -939,26 +997,62 @@ contains
     integer(i_def),                intent(in)  :: face_index
     real(r_def),                   intent(out) :: normal(3)
 
-    normal = this%normal_to_face(face_index, :)
+    normal = this%normals_to_faces(:, face_index)
 
   end subroutine get_normal_to_face
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the vectors normal to each face.
+  !> @brief Gets the array of vectors normal to all faces.
   !>
-  !> @param[out] normal_to_face  Allocates and fills an array of vector
-  !>                             triple per face.
+  !> @param[out] normals_to_faces  Allocates and fills an array of vector
+  !>                               triple per face.
   !>
-  subroutine get_normals_to_faces( this, normal_to_face )
+  subroutine get_normals_to_faces( this, normals_to_faces )
 
     implicit none
 
     class(reference_element_type), intent(in)  :: this
-    real(r_def), allocatable,      intent(out) :: normal_to_face(:,:)
+    real(r_def), allocatable,      intent(out) :: normals_to_faces(:,:)
 
-    allocate( normal_to_face, source=this%normal_to_face )
+    allocate( normals_to_faces, source=this%normals_to_faces )
 
   end subroutine get_normals_to_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the array of vectors normal to horizontal faces (faces whose
+  !>        normals lie in the horizontal plane).
+  !>
+  !> @param[out] normals_to_horizontal_faces  Allocates and fills an array of vector
+  !>                                          triple per horizontal face.
+  !>
+  subroutine get_normals_to_horizontal_faces( this, normals_to_horizontal_faces )
+
+    implicit none
+
+    class(reference_element_type), intent(in)  :: this
+    real(r_def), allocatable,      intent(out) :: normals_to_horizontal_faces(:,:)
+
+    allocate( normals_to_horizontal_faces, source=this%normals_to_horizontal_faces )
+
+  end subroutine get_normals_to_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the array of vectors normal to vertical faces (faces whose
+  !>        normals lie in the vertical plane).
+  !>
+  !> @param[out] normals_to_vertical_faces  Allocates and fills an array of vector
+  !>                                        triple per vertical face.
+  !>
+  subroutine get_normals_to_vertical_faces( this, normals_to_vertical_faces )
+
+    implicit none
+
+    class(reference_element_type), intent(in)  :: this
+    real(r_def), allocatable,      intent(out) :: normals_to_vertical_faces(:,:)
+
+    allocate( normals_to_vertical_faces, source=this%normals_to_vertical_faces )
+
+  end subroutine get_normals_to_vertical_faces
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Gets the vector representing the tangent to an edge.
@@ -982,37 +1076,72 @@ contains
   !> @brief Gets the vector representing the outward normal to a face.
   !>
   !> @param[in]  face_index  Face enumerator.
-  !> @param[out] out_normal  Vector triple.
+  !> @param[out] normal  Vector triple.
   !>
-  pure subroutine get_normal_to_out_face( this, face_index, out_normal )
+  pure subroutine get_outward_normal_to_face( this, face_index, normal )
 
     implicit none
 
     class(reference_element_type), intent(in)  :: this
     integer(i_def),                intent(in)  :: face_index
-    real(r_def),                   intent(out) :: out_normal(3)
+    real(r_def),                   intent(out) :: normal(3)
 
-    out_normal = this%out_face_normal(:, face_index)
+    normal = this%outward_normals_to_faces(:, face_index)
 
-  end subroutine get_normal_to_out_face
+  end subroutine get_outward_normal_to_face
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the vectors normal to each "out face".
+  !> @brief Gets the array of vectors normal to all "outward faces".
   !>
-  !> @param[out] out_face_normal  Allocates and fills an array of vector
-  !>                              triple per face.
+  !> @param[out] outward_normals_to_faces  Allocates and fills an array
+  !>                                       vector triple per face.
   !>
-  subroutine get_normals_to_out_faces( this, out_face_normal )
+  subroutine get_outward_normals_to_faces( this, outward_normals_to_faces )
 
     implicit none
 
     class(reference_element_type), intent(in)  :: this
-    real(r_def), allocatable,      intent(out) :: out_face_normal(:,:)
+    real(r_def), allocatable,      intent(out) :: outward_normals_to_faces(:,:)
 
-    allocate( out_face_normal, source=this%out_face_normal )
+    allocate( outward_normals_to_faces, source=this%outward_normals_to_faces )
 
-  end subroutine get_normals_to_out_faces
+  end subroutine get_outward_normals_to_faces
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the array of vectors normal to horizontal "outward faces"
+  !>        (faces whose normals lie in the horizontal plane).
+  !>
+  !> @param[out] outward_normals_to_horizontal_faces  Allocates and fills an array
+  !>                                                  vector triple per horizontal face.
+  !>
+  subroutine get_outward_normals_to_horizontal_faces( this, outward_normals_to_horizontal_faces )
+
+    implicit none
+
+    class(reference_element_type), intent(in)  :: this
+    real(r_def), allocatable,      intent(out) :: outward_normals_to_horizontal_faces(:,:)
+
+    allocate( outward_normals_to_horizontal_faces, source=this%outward_normals_to_horizontal_faces )
+
+  end subroutine get_outward_normals_to_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets the array of vectors normal to vertical "outward faces"
+  !>        (faces whose normals lie in the vertical plane).
+  !>
+  !> @param[out] outward_normals_to_vertical_faces  Allocates and fills an array
+  !>                                                vector triple per vertical face.
+  !>
+  subroutine get_outward_normals_to_vertical_faces( this, outward_normals_to_vertical_faces )
+
+    implicit none
+
+    class(reference_element_type), intent(in)  :: this
+    real(r_def), allocatable,      intent(out) :: outward_normals_to_vertical_faces(:,:)
+
+    allocate( outward_normals_to_vertical_faces, source=this%outward_normals_to_vertical_faces )
+
+  end subroutine get_outward_normals_to_vertical_faces
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Reference cube methods
@@ -1020,7 +1149,7 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Constructs a reference cube.
+  !> @brief Constructs a reference cube by extruding a 2D reference square.
   !>
   !> @return The new instance.
   !>
@@ -1030,9 +1159,8 @@ contains
 
     type(reference_cube_type) :: new_cube
 
-    call new_cube%reference_element_init( horiz_vertices=4, &
-                                          horiz_faces=4,    &
-                                          horiz_edges=4 )
+    call new_cube%reference_element_init( nvertices_2d = 4, &
+                                          nedges_2d = 4 )
 
   end function reference_cube_constructor
 
@@ -1050,7 +1178,7 @@ contains
   end subroutine reference_cube_destructor
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! Fills entitiy arrays with the corresponding geometric labels on
+  ! Fills entity arrays with the corresponding geometric labels on
   ! a unit-cube.
   !
   ! [out] vertex_entities Maps vertex index to geometric entity.
@@ -1295,9 +1423,9 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Fills an array with normal vectors to each face.
   !
-  ! [out] normals Face by 3 array of vectors.
+  ! [out] normals 3 by face array of vectors.
   !
-  subroutine cube_populate_normal_to_face( this, normals )
+  subroutine cube_populate_normals_to_faces( this, normals )
 
     implicit none
 
@@ -1305,14 +1433,52 @@ contains
     real(r_def), intent(out) :: normals(:,:)
 
     ! Unit normal vector to each face
-    normals(W,:) = I_VEC
-    normals(S,:) = MINUS_J_VEC
-    normals(E,:) = I_VEC
-    normals(N,:) = MINUS_J_VEC
-    normals(B,:) = K_VEC
-    normals(T,:) = K_VEC
+    normals(:,W) = I_VEC
+    normals(:,S) = MINUS_J_VEC
+    normals(:,E) = I_VEC
+    normals(:,N) = MINUS_J_VEC
+    normals(:,B) = K_VEC
+    normals(:,T) = K_VEC
 
-  end subroutine cube_populate_normal_to_face
+  end subroutine cube_populate_normals_to_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each horizontal (W, S, E, N) face.
+  !
+  ! [out] normals 3 by face array of vectors.
+  !
+  subroutine cube_populate_normals_to_horizontal_faces( this, normals )
+
+    implicit none
+
+    class(reference_cube_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Unit normal vector to each horizontal face
+    normals(:,1) = this%normals_to_faces(:,W)
+    normals(:,2) = this%normals_to_faces(:,S)
+    normals(:,3) = this%normals_to_faces(:,E)
+    normals(:,4) = this%normals_to_faces(:,N)
+
+  end subroutine cube_populate_normals_to_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each vertical (B, T) face.
+  !
+  ! [out] normals 3 by face array of vectors.
+  !
+  subroutine cube_populate_normals_to_vertical_faces( this, normals )
+
+    implicit none
+
+    class(reference_cube_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Unit normal vector to each vertical face
+    normals(:,1) = this%normals_to_faces(:,B)
+    normals(:,2) = this%normals_to_faces(:,T)
+
+  end subroutine cube_populate_normals_to_vertical_faces
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Fills an array with tangent vectors to each edge.
@@ -1344,18 +1510,18 @@ contains
   end subroutine cube_populate_tangent_to_edge
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! Fills an array with normal vectors to each "out edge".
+  ! Fills an array with normal vectors to each "outward face".
   !
-  ! [out] normals  3 by face array of vectors.
+  ! [out] normals 3 by face array of vectors.
   !
-  subroutine cube_populate_out_face_normal( this, normals )
+  subroutine cube_populate_outward_normals_to_faces( this, normals )
 
     implicit none
 
     class(reference_cube_type), intent(in) :: this
     real(r_def), intent(out) :: normals(:,:)
 
-    ! Outward normal to each face
+    ! Outward unit normal vector to each face
     normals(:,W) = MINUS_I_VEC
     normals(:,S) = MINUS_J_VEC
     normals(:,E) = I_VEC
@@ -1363,8 +1529,45 @@ contains
     normals(:,B) = MINUS_K_VEC
     normals(:,T) = K_VEC
 
-  end subroutine cube_populate_out_face_normal
+  end subroutine cube_populate_outward_normals_to_faces
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each horizontal (W, S, E, N) "outward face".
+  !
+  ! [out] normals 3 by face array of vectors.
+  !
+  subroutine cube_populate_outward_normals_to_horizontal_faces( this, normals )
+
+    implicit none
+
+    class(reference_cube_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Outward unit normal vector to each horizontal face
+    normals(:,1) = this%outward_normals_to_faces(:,W)
+    normals(:,2) = this%outward_normals_to_faces(:,S)
+    normals(:,3) = this%outward_normals_to_faces(:,E)
+    normals(:,4) = this%outward_normals_to_faces(:,N)
+
+  end subroutine cube_populate_outward_normals_to_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each vertical (B, T) "outward face".
+  !
+  ! [out] normals 3 by face array of vectors.
+  !
+  subroutine cube_populate_outward_normals_to_vertical_faces( this, normals )
+
+    implicit none
+
+    class(reference_cube_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Outward unit normal vector to each vertical face
+    normals(:,1) = this%outward_normals_to_faces(:,B)
+    normals(:,2) = this%outward_normals_to_faces(:,T)
+
+  end subroutine cube_populate_outward_normals_to_vertical_faces
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Reference prism methods.
@@ -1372,7 +1575,7 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Constructs a reference prism.
+  !> @brief Constructs a reference prism by extruding a 2D reference triangle.
   !>
   !> @return The new instance.
   !>
@@ -1382,9 +1585,8 @@ contains
 
     type(reference_prism_type) :: new_prism
 
-    call new_prism%reference_element_init( horiz_vertices = 3, &
-                                           horiz_faces = 3,    &
-                                           horiz_edges = 3 )
+    call new_prism%reference_element_init( nvertices_2d = 3, &
+                                           nedges_2d = 3 )
 
   end function reference_prism_constructor
 
@@ -1403,7 +1605,7 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! Fills entitiy arrays with the corresponding geometric labels on
+  ! Fills entity arrays with the corresponding geometric labels on
   ! a reference prism.
   !
   ! [out] vertex_entities Maps vertex index to geometric entity.
@@ -1626,23 +1828,60 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Fills an array with normal vectors to each face.
   !
-  ! [out] normals Face by 3 array of vectors.
+  ! [out] normals 3 by face array of vectors.
   !
-  subroutine prism_populate_normal_to_face( this, normals )
+  subroutine prism_populate_normals_to_faces( this, normals )
 
     implicit none
 
     class(reference_prism_type), intent(in) :: this
     real(r_def), intent(out) :: normals(:,:)
 
-    ! Outward unit normal vector to each face
-    normals(P,:) = MINUS_J_VEC
-    normals(Q,:) = Q_NORM_VEC
-    normals(R,:) = R_NORM_VEC
-    normals(L,:) = MINUS_K_VEC
-    normals(U,:) = K_VEC
+    ! Unit normal vector to each face
+    normals(:,P) = MINUS_J_VEC
+    normals(:,Q) = Q_NORM_VEC
+    normals(:,R) = R_NORM_VEC
+    normals(:,L) = MINUS_K_VEC
+    normals(:,U) = K_VEC
 
-  end subroutine prism_populate_normal_to_face
+  end subroutine prism_populate_normals_to_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each horizontal (P, Q, R) face.
+  !
+  ! [out] normals 3 by face array of vectors.
+  !
+  subroutine prism_populate_normals_to_horizontal_faces( this, normals )
+
+    implicit none
+
+    class(reference_prism_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Unit normal vector to each horizontal face
+    normals(:,1) = this%normals_to_faces(:,P)
+    normals(:,2) = this%normals_to_faces(:,Q)
+    normals(:,3) = this%normals_to_faces(:,R)
+
+  end subroutine prism_populate_normals_to_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each vertical (L, U) face.
+  !
+  ! [out] normals 3 by face array of vectors.
+  !
+  subroutine prism_populate_normals_to_vertical_faces( this, normals )
+
+    implicit none
+
+    class(reference_prism_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Unit normal vector to each vertical face
+    normals(:,1) = this%normals_to_faces(:,L)
+    normals(:,2) = this%normals_to_faces(:,U)
+
+  end subroutine prism_populate_normals_to_vertical_faces
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Fills an array with tangent vectors to each edge.
@@ -1671,24 +1910,61 @@ contains
   end subroutine prism_populate_tangent_to_edge
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! Fills an array with normal vectors to each "out edge".
+  ! Fills an array with normal vectors to each "outward face".
   !
   ! [out] normals  3 by face array of vectors.
   !
-  subroutine prism_populate_out_face_normal( this, normals )
+  subroutine prism_populate_outward_normals_to_faces( this, normals )
 
     implicit none
 
     class(reference_prism_type), intent(in) :: this
     real(r_def), intent(out) :: normals(:,:)
 
-    ! Outward normal to each face
+    ! Outward unit normal vectors to each face
     normals(:,P) = MINUS_J_VEC
     normals(:,Q) = Q_NORM_VEC
     normals(:,R) = R_NORM_VEC
     normals(:,L) = MINUS_K_VEC
     normals(:,U) = K_VEC
 
-  end subroutine prism_populate_out_face_normal
+  end subroutine prism_populate_outward_normals_to_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each horizontal (P, Q, R) "outward face".
+  !
+  ! [out] normals  3 by face array of vectors.
+  !
+  subroutine prism_populate_outward_normals_to_horizontal_faces( this, normals )
+
+    implicit none
+
+    class(reference_prism_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Outward unit normal vectors to each horizontal face
+    normals(:,1) = this%outward_normals_to_faces(:,P)
+    normals(:,2) = this%outward_normals_to_faces(:,Q)
+    normals(:,3) = this%outward_normals_to_faces(:,R)
+
+  end subroutine prism_populate_outward_normals_to_horizontal_faces
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Fills an array with normal vectors to each vertical (L, U) "outward face".
+  !
+  ! [out] normals  3 by face array of vectors.
+  !
+  subroutine prism_populate_outward_normals_to_vertical_faces( this, normals )
+
+    implicit none
+
+    class(reference_prism_type), intent(in) :: this
+    real(r_def), intent(out) :: normals(:,:)
+
+    ! Outward unit normal vectors to each vertical face
+    normals(:,1) = this%outward_normals_to_faces(:,L)
+    normals(:,2) = this%outward_normals_to_faces(:,U)
+
+  end subroutine prism_populate_outward_normals_to_vertical_faces
 
 end module reference_element_mod

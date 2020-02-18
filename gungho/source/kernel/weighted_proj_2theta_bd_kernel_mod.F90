@@ -7,47 +7,54 @@
 !>        potential temperature space to the velocity space weighted by the
 !>        pressure gradient.
 !>
-!> Compute the boundary projection operator \f[<v.n,{\Pi}*\gamma>\f] where v
-!> is in W2, gamma is in the potential temperature space and exner is computed
-!> pointwise from the equation of state.
+!> @details The kernel computes the boundary projection operator
+!>          \f[<v.n,{\Pi}*\gamma>\f] where v is in W2, gamma is in the
+!>          potential temperature space and exner is computed pointwise from
+!>          the equation of state.
 !>
 module weighted_proj_2theta_bd_kernel_mod
 
   use argument_mod,      only: arg_type, func_type, mesh_data_type, &
+                               reference_element_data_type,         &
                                GH_OPERATOR, GH_FIELD, GH_REAL,      &
                                GH_READ, GH_READWRITE,               &
                                GH_BASIS, GH_DIFF_BASIS,             &
                                CELLS, GH_QUADRATURE_face,           &
                                adjacent_face,                       &
-                               reference_element_out_face_normal
+                               outward_normals_to_horizontal_faces
   use constants_mod,     only: r_def, i_def
   use fs_continuity_mod, only: W2, W3, Wtheta
   use kernel_mod,        only: kernel_type
 
   implicit none
 
+  private
+
   !---------------------------------------------------------------------------
   ! Public types
   !---------------------------------------------------------------------------
-
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> PSy layer.
   type, public, extends(kernel_type) :: weighted_proj_2theta_bd_kernel_type
     private
-    type(arg_type) :: meta_args(3) = (/                  &
-        arg_type(GH_OPERATOR, GH_READWRITE, W2, Wtheta), &
-        arg_type(GH_FIELD,    GH_READ,      W3),         &
-        arg_type(GH_REAL,     GH_READ)                   &
-        /)
-    type(func_type) :: meta_funcs(3) = (/ &
-        func_type(W2,     GH_BASIS),      &
-        func_type(Wtheta, GH_BASIS),      &
-        func_type(W3,     GH_BASIS)       &
-        /)
+    type(arg_type) :: meta_args(3) = (/                                     &
+         arg_type(GH_OPERATOR, GH_READWRITE, W2, Wtheta),                   &
+         arg_type(GH_FIELD,    GH_READ,      W3),                           &
+         arg_type(GH_REAL,     GH_READ)                                     &
+         /)
+    type(func_type) :: meta_funcs(3) = (/                                   &
+         func_type(W2,     GH_BASIS),                                       &
+         func_type(Wtheta, GH_BASIS),                                       &
+         func_type(W3,     GH_BASIS)                                        &
+         /)
+    type(mesh_data_type) :: meta_mesh(1) = (/                               &
+         mesh_data_type( adjacent_face )                                    &
+          /)
+    type(reference_element_data_type) :: meta_reference_element(1) = (/     &
+         reference_element_data_type( outward_normals_to_horizontal_faces ) &
+         /)
     integer :: iterates_over = CELLS
     integer :: gh_shape = GH_QUADRATURE_face
-      type(mesh_data_type) :: meta_init(2) = (/               &
-          mesh_data_type( adjacent_face ),                    &
-          mesh_data_type( reference_element_out_face_normal ) &
-        /)
   contains
     procedure, nopass :: weighted_proj_2theta_bd_code
   end type
@@ -60,31 +67,36 @@ module weighted_proj_2theta_bd_kernel_mod
 contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Computes the weigthed projection from Wtheta to W2.
+  !> @brief Computes the weighted projection from Wtheta to W2.
   !>
   !! @param[in] cell Cell number
-  !! @param[in] nlayers Number of layers.
+  !! @param[in] nlayers Number of layers
   !! @param[in] ncell_3d ncell*ndf
-  !! @param[inout] projection Projection operator to compute
+  !! @param[in,out] projection Projection operator to compute
   !! @param[in] exner Exner presssure
   !! @param[in] scalar Real to scale matrix by
-  !! @param[in] ndf_w2 Number of degrees of freedom per cell.
-  !! @param[in] ndf_wtheta Number of degrees of freedom per cell.
-  !! @param[in] ndf_w3 Number of degrees of freedom per cell.
-  !! @param[in] undf_w3 Total number of degrees.
+  !! @param[in] ndf_w2 Number of degrees of freedom per cell for w2
+  !! @param[in] ndf_wtheta Number of degrees of freedom per cell for wtheta
+  !! @param[in] ndf_w3 Number of degrees of freedom per cell for w3
+  !! @param[in] undf_w3 Number of unique degrees of freedom for w3
   !! @param[in] stencil_w3_map W3 dofmaps for the stencil
   !! @param[in] stencil_w3_size Size of the W3 stencil (number of cells)
-  !! @param[in] nqp Number of quadrature points
-  !! @param[in] wqp Quadrature weights
-  !! @param[in] w2_basis_face  Basis functions evaluated at gaussian &
-  !!                           quadrature points on horizontal faces.
-  !! @param[in] w3_basis_face  Basis functions evaluated at gaussian &
-  !!                           quadrature points on horizontal faces.
-  !! @param[in] wtheta_basis_face  Basis functions evaluated at gaussian &
-  !!                               quadrature points on horizontal faces.
-  !! @param[in] adjacent_face  Vector containing information on neighbouring &
-  !!                           face index for the current cell.
-  !! @param[in] out_face_normal  Vectors on "out faces" of reference element.
+  !! @param[in] nfaces_qr Number of faces in the quadrature rule
+  !! @param[in] nqp_f Number of quadrature points on horizontal faces
+  !! @param[in] wqp_f Quadrature weights on horizontal faces
+  !! @param[in] w2_basis_face  Basis functions evaluated at gaussian
+  !!                           quadrature points on horizontal faces
+  !! @param[in] w3_basis_face  Basis functions evaluated at gaussian
+  !!                           quadrature points on horizontal faces
+  !! @param[in] wtheta_basis_face  Basis functions evaluated at gaussian
+  !!                               quadrature points on horizontal faces
+  !! @param[in] nfaces_re_h Number of reference element faces bisected by a
+  !!                        horizontal plane
+  !! @param[in] adjacent_face  Vector containing information on neighbouring
+  !!                           face index for the current cell
+  !! @param[in] outward_normals_to_horizontal_faces Vector of normals to the
+  !!                                                reference element horizontal
+  !!                                                "outward faces"
   !!
   subroutine weighted_proj_2theta_bd_code( cell, nlayers, ncell_3d, &
                                            projection,              &
@@ -95,50 +107,56 @@ contains
                                            ndf_w3, undf_w3,         &
                                            stencil_w3_map,          &
                                            stencil_w3_size,         &
-                                           nqp, wqp,                &
+                                           nfaces_qr, nqp_f, wqp_f, &
                                            w2_basis_face,           &
                                            w3_basis_face,           &
                                            wtheta_basis_face,       &
-                                           adjacent_face, out_face_normal )
+                                           nfaces_re_h,             &
+                                           adjacent_face,           &
+                                           outward_normals_to_horizontal_faces )
 
     use calc_exner_pointwise_mod, only: calc_exner_pointwise
 
     implicit none
 
     ! Arguments
-    integer(kind=i_def),                     intent(in) :: cell, nqp
-    integer(kind=i_def),                     intent(in) :: nlayers
-    integer(kind=i_def),                     intent(in) :: ncell_3d
-    integer(kind=i_def),                     intent(in) :: undf_w3, ndf_w3, ndf_w2, ndf_wtheta
+    integer(kind=i_def), intent(in) :: cell
+    integer(kind=i_def), intent(in) :: nlayers
+    integer(kind=i_def), intent(in) :: nfaces_qr, nqp_f
+    integer(kind=i_def), intent(in) :: ncell_3d
+    integer(kind=i_def), intent(in) :: undf_w3, ndf_w3, ndf_w2, ndf_wtheta
+    integer(kind=i_def), intent(in) :: nfaces_re_h
 
     integer(kind=i_def), intent(in) :: stencil_w3_size
-    integer(kind=i_def), dimension(ndf_w3, stencil_w3_size), intent(in)  :: stencil_w3_map
+    integer(kind=i_def), dimension(ndf_w3, stencil_w3_size), intent(in) :: stencil_w3_map
 
-    real(kind=r_def), dimension(3,ndf_w2,nqp,4),     intent(in) :: w2_basis_face
-    real(kind=r_def), dimension(1,ndf_w3,nqp,4),     intent(in) :: w3_basis_face
-    real(kind=r_def), dimension(1,ndf_wtheta,nqp,4), intent(in) :: wtheta_basis_face
+    real(kind=r_def), dimension(3,ndf_w2,nqp_f,nfaces_qr),     intent(in) :: w2_basis_face
+    real(kind=r_def), dimension(1,ndf_w3,nqp_f,nfaces_qr),     intent(in) :: w3_basis_face
+    real(kind=r_def), dimension(1,ndf_wtheta,nqp_f,nfaces_qr), intent(in) :: wtheta_basis_face
+    real(kind=r_def), dimension(nqp_f,nfaces_qr),              intent(in) :: wqp_f
 
     real(kind=r_def), dimension(ndf_w2,ndf_wtheta,ncell_3d), intent(inout) :: projection
     real(kind=r_def), dimension(undf_w3),                    intent(in)    :: exner
     real(kind=r_def),                                        intent(in)    :: scalar
-    real(kind=r_def), dimension(nqp,4),                      intent(in)    :: wqp
 
     integer(kind=i_def), intent(in) :: adjacent_face(:)
-    real(kind=r_def),    intent(in) :: out_face_normal(:,:)
+
+    real(kind=r_def),    intent(in) :: outward_normals_to_horizontal_faces(:,:)
 
     ! Internal variables
-    integer(kind=i_def)                      :: df, df0, df2, k, ik, face, face_next
-    integer(kind=i_def)                      :: qp
-    real(kind=r_def), dimension(ndf_w3)      :: exner_e, exner_next_e
+    integer(kind=i_def)                 :: df, df0, df2, k, ik, face, face_next
+    integer(kind=i_def)                 :: qp
+    real(kind=r_def), dimension(ndf_w3) :: exner_e, exner_next_e
 
-    real(kind=r_def)                         :: v(3), normal(3), integrand
-    real(kind=r_def)                         :: exner_at_fquad, &
-                                                exner_next_at_fquad, &
-                                                exner_av
+    real(kind=r_def)                    :: v(3), normal(3), integrand
+    real(kind=r_def)                    :: exner_at_fquad, &
+                                           exner_next_at_fquad, &
+                                           exner_av
 
     do k = 0, nlayers - 1
       ik = k + 1 + (cell-1)*nlayers
-      do face = 1, size( adjacent_face, 1 )
+
+      do face = 1, nfaces_re_h
 
         face_next = adjacent_face(face)
 
@@ -147,7 +165,7 @@ contains
           exner_next_e(df) = exner(stencil_w3_map(df, face+1) + k)
         end do
 
-        do qp = 1, nqp
+        do qp = 1, nqp_f
           exner_at_fquad      = 0.0_r_def
           exner_next_at_fquad = 0.0_r_def
           do df = 1, ndf_w3
@@ -157,17 +175,20 @@ contains
           exner_av = 0.5_r_def*(exner_at_fquad + exner_next_at_fquad)
 
           do df0 = 1, ndf_wtheta
-            normal =  out_face_normal(:,face)*wtheta_basis_face(1,df0,qp,face)
+            normal =  outward_normals_to_horizontal_faces(:,face)*wtheta_basis_face(1,df0,qp,face)
             do df2 = 1, ndf_w2
               v  = w2_basis_face(:,df2,qp,face)
 
-              integrand = wqp(qp,face)*exner_av*dot_product(v, normal)
+              integrand = wqp_f(qp,face)*exner_av*dot_product(v, normal)
               projection(df2,df0,ik) = projection(df2,df0,ik) - scalar*integrand
-            end do
-          end do
-        end do
-      end do
-    end do
+            end do ! df2
+          end do ! df0
+
+        end do ! qp
+
+      end do ! faces
+
+    end do ! layers
 
   end subroutine weighted_proj_2theta_bd_code
 

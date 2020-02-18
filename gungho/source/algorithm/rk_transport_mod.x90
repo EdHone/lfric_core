@@ -97,7 +97,7 @@ module rk_transport_mod
                     advective_stencil_extent, &
                     flux2d_stencil_size,      &
                     advective2d_stencil_size
-  integer(i_def) :: nfaces_h, nfaces_v
+  integer(i_def) :: nfaces_re_h, nfaces_re_v
 
   public :: rk_transport_init
   public :: rk_transport_step
@@ -187,10 +187,10 @@ contains
         ! Get topology information from the reference element
         mesh              => theta%get_mesh()
         reference_element => mesh%get_reference_element()
-        ! Number of horizontal neighbours
-        nfaces_h = reference_element%get_number_horizontal_faces()
-        ! Number of vertical neighbours is (and always will be) 2
-        nfaces_v = reference_element%get_number_vertical_faces()
+        ! Number of horizontal neighbours from the reference element
+        nfaces_re_h = reference_element%get_number_horizontal_faces()
+        ! Number of vertical neighbours from the reference element
+        nfaces_re_v = reference_element%get_number_vertical_faces()
 
         ! Compute stencil extents
         flux_stencil_extent      = int(real(fv_flux_order+1)/2.0,i_def)
@@ -213,36 +213,36 @@ contains
         call psykal_lite_mol_flux_init(rho,                 &
                                        fv_flux_order,       &
                                        fv_flux_order+1,     &
-                                       nfaces_h, nfaces_v)
+                                       nfaces_re_h, nfaces_re_v)
         call psykal_lite_mol_adv_init(theta,                &
                                       fv_advective_order,   &
                                       fv_advective_order+1, &
-                                      nfaces_h, nfaces_v)
+                                      nfaces_re_h, nfaces_re_v)
       else
         flux2d_stencil_size = 1
         do polynomial = 1, fv_flux_order
           if ( mod(polynomial,2) == 0 ) then
-            flux2d_stencil_size = flux2d_stencil_size + nfaces_h
+            flux2d_stencil_size = flux2d_stencil_size + nfaces_re_h
           else
-            flux2d_stencil_size = flux2d_stencil_size + nfaces_h*polynomial
+            flux2d_stencil_size = flux2d_stencil_size + nfaces_re_h*polynomial
           end if
         end do
         advective2d_stencil_size = 1
         do polynomial = 1, fv_advective_order
           if ( mod(polynomial,2) == 0 ) then
-            advective2d_stencil_size = advective2d_stencil_size + nfaces_h
+            advective2d_stencil_size = advective2d_stencil_size + nfaces_re_h
           else
-            advective2d_stencil_size = advective2d_stencil_size + nfaces_h*polynomial
+            advective2d_stencil_size = advective2d_stencil_size + nfaces_re_h*polynomial
           end if
         end do
         call psykal_lite_mol_flux_init(rho,                     &
                                        fv_flux_order,           &
                                        flux2d_stencil_size,     &
-                                       nfaces_h, nfaces_v)
+                                       nfaces_re_h, nfaces_re_v)
         call psykal_lite_mol_adv_init(theta,                    &
                                       fv_advective_order,       &
                                       advective2d_stencil_size, &
-                                      nfaces_h, nfaces_v)
+                                      nfaces_re_h, nfaces_re_v)
       end if
 
       chi => get_coordinates()
@@ -260,30 +260,30 @@ contains
       call log_event( "Gungho: computing horizontal flux coeffs", LOG_LEVEL_INFO )
       md_w3 => get_mass_matrix_diagonal(w3_id)
       if ( oned_reconstruction ) then
-        allocate( flux_coeffs(fv_flux_order+1, nfaces_h) )
-        do direction = 1,nfaces_h
+        allocate( flux_coeffs(fv_flux_order+1, nfaces_re_h) )
+        do direction = 1,nfaces_re_h
           do polynomial = 1,fv_flux_order+1
             call flux_coeffs(polynomial,direction)%initialise( vector_space = rho_fs )
           end do
         end do
         call invoke_poly1d_flux_coeffs( flux_coeffs, md_w3, chi, qr, qrf, &
                                         fv_flux_order,                    &
-                                        flux_stencil_extent, nfaces_h )
+                                        flux_stencil_extent, nfaces_re_h )
       else
-        allocate( flux_coeffs(flux2d_stencil_size, nfaces_h) )
-        do direction = 1,nfaces_h
+        allocate( flux_coeffs(flux2d_stencil_size, nfaces_re_h) )
+        do direction = 1,nfaces_re_h
           do polynomial = 1,flux2d_stencil_size
             call flux_coeffs(polynomial,direction)%initialise( vector_space = rho_fs )
           end do
         end do
         call invoke_poly2d_flux_coeffs( flux_coeffs, md_w3, chi, qr, qrf, &
                                         fv_flux_order,                    &
-                                        flux2d_stencil_size, nfaces_h )
+                                        flux2d_stencil_size, nfaces_re_h )
       end if
       call log_event( "Gungho: computing vertical flux coeffs", LOG_LEVEL_INFO )
       ! Vertical flux coeffs
-      allocate( vert_flux_coeffs(fv_flux_order+1, nfaces_v) )
-      do direction = 1,nfaces_v
+      allocate( vert_flux_coeffs(fv_flux_order+1, nfaces_re_v) )
+      do direction = 1,nfaces_re_v
         do polynomial = 1,fv_flux_order+1
           call vert_flux_coeffs(polynomial,direction)%initialise( vector_space = rho_fs )
         end do
@@ -293,7 +293,7 @@ contains
                                  reference_element, gaussian_quadrature)
 
       call invoke_poly1d_vert_flux_coeffs( vert_flux_coeffs, md_w3, chi, &
-                                           qr, qrf, fv_flux_order, nfaces_v )
+                                           qr, qrf, fv_flux_order, nfaces_re_v )
       if ( subroutine_timers ) call timer('rk_transport_alg: V flux coeffs')
 
       ! Compute advective coeffcients
@@ -309,18 +309,18 @@ contains
       call theta_av%initialise( vector_space =                                    &
           function_space_collection%get_fs(mesh_id, element_order, W1) )
       if ( oned_reconstruction ) then
-        allocate( adv_coeffs(fv_advective_order+1, nfaces_h) )
-        do direction = 1,nfaces_h
+        allocate( adv_coeffs(fv_advective_order+1, nfaces_re_h) )
+        do direction = 1,nfaces_re_h
           do polynomial = 1,fv_advective_order+1
             call adv_coeffs(polynomial,direction)%initialise( vector_space = theta_fs )
           end do
         end do
         call invoke_poly1d_advective_coeffs( adv_coeffs, md_wt, chi, qr, qre,  &
                                              fv_advective_order,               &
-                                             advective_stencil_extent, nfaces_h )
+                                             advective_stencil_extent, nfaces_re_h )
       else
-        allocate( adv_coeffs(advective2d_stencil_size, nfaces_h) )
-        do direction = 1,nfaces_h
+        allocate( adv_coeffs(advective2d_stencil_size, nfaces_re_h) )
+        do direction = 1,nfaces_re_h
           do polynomial = 1,advective2d_stencil_size
             call adv_coeffs(polynomial,direction)%initialise( vector_space = theta_fs )
           end do
@@ -328,18 +328,18 @@ contains
         call invoke_poly2d_advective_coeffs( adv_coeffs, md_wt, chi, qr, &
                                              qre, fv_advective_order,    &
                                              advective2d_stencil_size,   &
-                                             nfaces_h )
+                                             nfaces_re_h )
       end if
       call log_event( "Gungho: computing vertical advective coeffs", LOG_LEVEL_INFO )
       ! Vertical advective coeffs
-      allocate( vert_adv_coeffs(fv_advective_order+2, nfaces_v) )
-      do direction = 1,nfaces_v
+      allocate( vert_adv_coeffs(fv_advective_order+2, nfaces_re_v) )
+      do direction = 1,nfaces_re_v
         do polynomial = 1,fv_advective_order+2
           call vert_adv_coeffs(polynomial,direction)%initialise( vector_space = theta_fs )
         end do
       end do
       call invoke_poly1d_vert_adv_coeffs( vert_adv_coeffs, md_wt, chi, &
-                                          fv_advective_order, nfaces_v )
+                                          fv_advective_order, nfaces_re_v )
 
       if ( consistent_metric ) then
         call advective_av_chi3%initialise(vector_space = theta_av%get_function_space() )
@@ -418,39 +418,39 @@ contains
           call invoke( setval_c(theta_av, 0.0_r_def) )
           if ( oned_reconstruction ) then
             call invoke_poly1d_flux( mass_flux, u, rho, flux_coeffs, &
-                                     fv_flux_order, flux_stencil_extent, nfaces_h )
+                                     fv_flux_order, flux_stencil_extent, nfaces_re_h )
             call invoke_poly1d_adv_recon( theta_av, u, theta, adv_coeffs, &
                                           fv_advective_order, advective_stencil_extent, &
-                                          nfaces_h )
+                                          nfaces_re_h )
             ! Horizontal advection of metric terms
             if ( consistent_metric ) then
               call invoke( setval_c(advective_av_chi3, 0.0_r_def) )
               call invoke_poly1d_adv_recon( advective_av_chi3, u, &
                                             chi3_at_wt, adv_coeffs, &
                                             fv_advective_order, advective_stencil_extent, &
-                                            nfaces_h )
+                                            nfaces_re_h )
             end if
           else
             ! Use 2d flux code
             call invoke_poly2d_flux( mass_flux, u, rho, flux_coeffs, &
-                                     fv_flux_order, flux2d_stencil_size, nfaces_h )
+                                     fv_flux_order, flux2d_stencil_size, nfaces_re_h )
             call invoke_poly2d_adv_recon( theta_av, u, theta, adv_coeffs, &
                                           fv_advective_order, advective2d_stencil_size, &
-                                          nfaces_h )
+                                          nfaces_re_h )
             ! Horizontal advection of metric terms
             if ( consistent_metric ) &
               call invoke_poly2d_adv_recon( advective_av_chi3, u, &
                                             chi3_at_wt, adv_coeffs, &
                                             fv_advective_order, advective2d_stencil_size, &
-                                            nfaces_h )
+                                            nfaces_re_h )
           end if
           call invoke( poly_advective_kernel_type( rt_prediction(stage), &
                                                    u, theta_av) )
 
           ! Compute vertical components of mass flux
           call invoke_poly1d_vert_flux( mass_flux, u, rho, &
-                                        vert_flux_coeffs, &
-                                        fv_flux_order, nfaces_v)
+                                        vert_flux_coeffs,  &
+                                        fv_flux_order, nfaces_re_v)
 
           ! Compute vertical components of advective update
           call u%copy_field(consistent_wind)
@@ -461,7 +461,7 @@ contains
           end if
           call invoke_poly1d_vert_adv( rt_prediction(stage), consistent_wind, theta, &
                                        vert_adv_coeffs, &
-                                       fv_advective_order, nfaces_v)
+                                       fv_advective_order, nfaces_re_v)
         case(operators_fem)
           ! Use FEM projection
           ! Initialise fields

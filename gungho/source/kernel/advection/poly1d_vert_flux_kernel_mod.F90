@@ -7,20 +7,22 @@
 !-------------------------------------------------------------------------------
 
 !> @brief Kernel which computes vertical fluxes through fitting a high order 1D
-!>        upwind reconstruction
-!> @details Compute the flux for a tracer density field using a high order
-!>          polynomial fit to the integrated tracer values. The stencil used for the
-!>          polynomial is centred on the upwind cell.
+!>        upwind reconstruction.
+!> @details Computes the flux for a tracer density field using a high order
+!>          polynomial fit to the integrated tracer values. The stencil used
+!>          for the polynomial is centred on the upwind cell.
 !>          Near the boundaries the order of reconstruction may be reduced
-!>          if there are not enough points to compute desired order
-!>          This method is only valid for lowest order elements
+!>          if there are not enough points to compute desired order.
+!>          This method is only valid for the lowest order elements based on
+!>          a reference cube.
 module poly1d_vert_flux_kernel_mod
 
-use argument_mod,      only : arg_type, func_type, mesh_data_type,  &
-                              GH_FIELD, GH_INTEGER,                 &
-                              GH_INC, GH_READ,                      &
-                              GH_BASIS, CELLS, GH_EVALUATOR,        &
-                              reference_element_out_face_normal
+use argument_mod,      only : arg_type, func_type,           &
+                              reference_element_data_type,   &
+                              GH_FIELD, GH_INTEGER,          &
+                              GH_INC, GH_READ,               &
+                              GH_BASIS, CELLS, GH_EVALUATOR, &
+                              outward_normals_to_vertical_faces
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : W2, W3
 use kernel_mod,        only : kernel_type
@@ -28,28 +30,29 @@ use kernel_mod,        only : kernel_type
 implicit none
 
 private
+
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+!> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_flux_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,   W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_INTEGER, GH_READ),                                  &
-       arg_type(GH_INTEGER, GH_READ)                                   &
+  type(arg_type) :: meta_args(6) = (/                                   &
+       arg_type(GH_FIELD,   GH_INC,   W2),                              &
+       arg_type(GH_FIELD,   GH_READ,  W2),                              &
+       arg_type(GH_FIELD,   GH_READ,  W3),                              &
+       arg_type(GH_FIELD,   GH_READ,  W3),                              &
+       arg_type(GH_INTEGER, GH_READ),                                   &
+       arg_type(GH_INTEGER, GH_READ)                                    &
        /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(W2, GH_BASIS)                                         &
+  type(func_type) :: meta_funcs(1) = (/                                 &
+       func_type(W2, GH_BASIS)                                          &
+       /)
+  type(reference_element_data_type) :: meta_reference_element(1) = (/   &
+       reference_element_data_type( outward_normals_to_vertical_faces ) &
        /)
   integer :: iterates_over = CELLS
   integer :: gh_shape = GH_EVALUATOR
-  type(mesh_data_type) :: meta_init(1) = (/             &
-    mesh_data_type( reference_element_out_face_normal ) &
-      /)
 contains
   procedure, nopass :: poly1d_vert_flux_code
 end type
@@ -58,26 +61,29 @@ end type
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
 public poly1d_vert_flux_code
+
 contains
 
-!> @brief Computes the vertical fluxes for a tracer density
+!> @brief Computes the vertical fluxes for a tracer density.
 !! @param[in]  nlayers Number of layers
 !! @param[out] flux Mass flux field to compute
 !! @param[in]  wind Wind field
 !! @param[in]  density Tracer density
 !! @param[in]  coeff Array of polynomial coefficients for interpolation
 !! @param[in]  ndf_w2 Number of degrees of freedom per cell
-!! @param[in]  undf_w2 Number of unique degrees of freedom for the flux & wind fields
+!! @param[in]  undf_w2 Number of unique degrees of freedom for the flux &
+!!                     wind fields
 !! @param[in]  map_w2 Dofmap for the cell at the base of the column
 !! @param[in]  basis_w2 Basis function array evaluated at w2 nodes
 !! @param[in]  ndf_w3 Number of degrees of freedom per cell
 !! @param[in]  undf_w3 Number of unique degrees of freedom for the density field
 !! @param[in]  map_w3 Cell dofmaps for the density space
 !! @param[in]  global_order Desired order of polynomial reconstruction
-!! @param[in]  out_face_normal Vectors normal to the "out faces" of the
-!!                             reference element.
-!! @param[in]  nfaces_v Number of vertical faces (used by PSyclone to size coeff
-!!                     array)
+!! @param[in]  nfaces_re_v Number of vertical faces (used by PSyclone to size
+!!                         coeff array)
+!! @param[in]  outward_normals_to_vertical_faces Vector of normals to the
+!!                                               reference element vertical
+!!                                               "outward faces"
 subroutine poly1d_vert_flux_code( nlayers,              &
                                   flux,                 &
                                   wind,                 &
@@ -91,8 +97,8 @@ subroutine poly1d_vert_flux_code( nlayers,              &
                                   undf_w3,              &
                                   map_w3,               &
                                   global_order,         &
-                                  nfaces_v,             &
-                                  out_face_normal )
+                                  nfaces_re_v,          &
+                                  outward_normals_to_vertical_faces )
 
   implicit none
 
@@ -104,26 +110,33 @@ subroutine poly1d_vert_flux_code( nlayers,              &
   integer(kind=i_def), intent(in)                    :: undf_w2
   integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
   integer(kind=i_def), dimension(ndf_w3), intent(in) :: map_w3
-  integer(kind=i_def), intent(in)                    :: global_order, nfaces_v
+  integer(kind=i_def), intent(in)                    :: global_order, nfaces_re_v
 
   real(kind=r_def), dimension(undf_w2), intent(out)  :: flux
   real(kind=r_def), dimension(undf_w2), intent(in)   :: wind
   real(kind=r_def), dimension(undf_w3), intent(in)   :: density
 
-  real(kind=r_def), dimension(global_order+1, nfaces_v, undf_w3), intent(in) :: coeff
+  real(kind=r_def), dimension(global_order+1, nfaces_re_v, undf_w3), intent(in) :: coeff
 
   real(kind=r_def), dimension(3,ndf_w2,ndf_w2), intent(in) :: basis_w2
 
-  real(kind=r_def),    intent(in)  :: out_face_normal(:,:)
+  real(kind=r_def), intent(in)  :: outward_normals_to_vertical_faces(:,:)
 
   ! Internal variables
   integer(kind=i_def)            :: k, df, ij, p, stencil, order, id, &
                                     m, ijkp
+  integer(kind=i_def)            :: vert_offset
   real(kind=r_def)               :: direction
   real(kind=r_def), dimension(2) :: v_dot_n
   real(kind=r_def)               :: polynomial_density
 
   integer(kind=i_def), allocatable, dimension(:,:) :: smap
+
+  ! TODO: Set the offset for vertical faces for the reference cube. This should
+  ! not be hardcoded as it depends on element type (cube vs prism). Instead it
+  ! should really be passed from the PSy layer for the kernel to be
+  ! element-agnostic
+  vert_offset = 4_i_def
 
   ! Compute the offset map for all even orders up to order
   allocate( smap(global_order+1,0:global_order/2) )
@@ -134,8 +147,9 @@ subroutine poly1d_vert_flux_code( nlayers,              &
     end do
   end do
 
-  do df = 5,6
-    v_dot_n(df-4) =  dot_product(basis_w2(:,df,df),out_face_normal(:,df))
+  do id = 1,nfaces_re_v
+    df = id + vert_offset
+    v_dot_n(id) =  dot_product(basis_w2(:,df,df), outward_normals_to_vertical_faces(:,id))
   end do
 
   ij = map_w3(1)
@@ -143,8 +157,8 @@ subroutine poly1d_vert_flux_code( nlayers,              &
   ! Vertical flux computation
   do k = 0, nlayers - 1
     order = min(global_order, min(2*k, 2*(nlayers-1 - k)))
-    do df = 5,6
-      id = df - 4
+    do id = 1,nfaces_re_v
+       df = id + vert_offset
       ! Check if this is the upwind cell
       direction = wind(map_w2(df) + k )*v_dot_n(id)
       if ( direction >= 0.0_r_def ) then

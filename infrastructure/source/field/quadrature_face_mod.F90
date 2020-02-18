@@ -67,7 +67,7 @@ contains
 
 end type quadrature_face_type
 
-!> Psy layer representation of a quadrature_face type
+!> PSy layer representation of a quadrature_face type
 !>
 !> This is an accessor class that allows access to quadrature_face_type
 !> data and information with each element accessed via a public pointer.
@@ -75,12 +75,13 @@ end type quadrature_face_type
 type, public :: quadrature_face_proxy_type
 
   private
-  !> Allocatable arrays which holds the values of the gaussian quadrature
+  !> Allocatable arrays which hold the values of the gaussian quadrature
   real(kind=r_def), pointer, public :: weights_xyz(:,:)  => null()
   real(kind=r_def), pointer, public :: points_xyz(:,:,:) => null()
 
   !> Number of points
   integer(kind=i_def), public       :: np_xyz
+
   !> Number of faces (vertical, horizontal, and total)
   integer(kind=i_def), public       :: nfaces
   integer(kind=i_def), public       :: nfaces_horizontal, nfaces_vertical
@@ -133,15 +134,14 @@ function init_quadrature_variable(np_1, np_2, horizontal_faces, vertical_faces, 
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
   end if
 
-  ! Note: for both prisms and cubes, there will only ever be 2 vertical faces
   if ( horizontal_faces ) then
-    self%nfaces_horizontal = reference_element%get_number_2d_faces()
+    self%nfaces_horizontal = reference_element%get_number_horizontal_faces()
   else
     self%nfaces_horizontal = 0
   end if
 
   if ( vertical_faces ) then
-    self%nfaces_vertical   = 2
+    self%nfaces_vertical   = reference_element%get_number_vertical_faces()
   else
     self%nfaces_vertical   = 0
   end if
@@ -193,14 +193,14 @@ function init_quadrature_symmetrical(np, horizontal_faces, vertical_faces, &
   real(kind=r_def), pointer               :: points_weights_2(:,:) => null()
 
   if ( horizontal_faces .and. vertical_faces ) then
-    self%nfaces_horizontal = reference_element%get_number_2d_faces()
-    self%nfaces_vertical   = 2
+    self%nfaces_horizontal = reference_element%get_number_horizontal_faces()
+    self%nfaces_vertical   = reference_element%get_number_vertical_faces()
   else if ( horizontal_faces ) then
-    self%nfaces_horizontal = reference_element%get_number_2d_faces()
+    self%nfaces_horizontal = reference_element%get_number_horizontal_faces()
     self%nfaces_vertical   = 0
   else if ( vertical_faces ) then
     self%nfaces_horizontal = 0
-    self%nfaces_vertical   = 2
+    self%nfaces_vertical   = reference_element%get_number_vertical_faces()
   end if
 
   if ( .not. (horizontal_faces .or. vertical_faces) ) then
