@@ -20,7 +20,9 @@ program cubedsphere_mesh_generator
                          only: read_cubedsphere_mesh_generator_namelist,        &
                                postprocess_cubedsphere_mesh_generator_namelist, &
                                edge_cells, smooth_passes, nmeshes, mesh_names,  &
-                               mesh_filename
+                               mesh_filename, do_rotate, lat_north, lon_north,  &
+                               rotate_angle
+
   use mpi_mod,           only: initialise_comm, store_comm, finalise_comm, &
                                get_comm_size, get_comm_rank
   use gencube_ps_mod,    only: gencube_ps_type
@@ -194,6 +196,21 @@ program cubedsphere_mesh_generator
       '  Smoothing passes for maximum resolution: ', smooth_passes
   call log_event( trim(log_scratch_space), LOG_LEVEL_INFO )
 
+  if (do_rotate)then
+    write(log_scratch_space, '(A)') &
+       '  Rotation of mesh requested with: '
+    call log_event( trim(log_scratch_space), LOG_LEVEL_INFO )
+    write(log_scratch_space, '(A,F6.1)') &
+       '  New North lat: ', lat_north
+    call log_event( trim(log_scratch_space), LOG_LEVEL_INFO )
+    write(log_scratch_space, '(A,F6.1)') &
+       '  New North lon: ', lon_north
+    call log_event( trim(log_scratch_space), LOG_LEVEL_INFO )
+    write(log_scratch_space, '(A,F6.1)') &
+       '  Rotation about north: ', rotate_angle
+    call log_event( trim(log_scratch_space), LOG_LEVEL_INFO )
+  end if
+
   !===================================================================
   ! 7.0 Generate objects which know how to generate each requested
   !     unique mesh.
@@ -286,7 +303,9 @@ program cubedsphere_mesh_generator
                                   edge_cells=unique_edge_cells(i),            &
                                   target_mesh_names=target_mesh_names,        &
                                   target_edge_cells=unique_target_edge_cells, &
-                                  nsmooth=nsmooth )
+                                  nsmooth=nsmooth, do_rotate=do_rotate,       &
+                                  lat_north=lat_north, lon_north=lon_north,   &
+                                  rotate_angle=rotate_angle)
 
     else if ( n_unique_meshes == 1 ) then
 
@@ -294,7 +313,11 @@ program cubedsphere_mesh_generator
       ! and so no optional target_ndivs required
       csgen(i) = gencube_ps_type( mesh_name  = unique_mesh_names(i), &
                                   edge_cells = unique_edge_cells(i), &
-                                  nsmooth    = nsmooth )
+                                  nsmooth    = nsmooth,              &
+                                  do_rotate  = do_rotate,            &
+                                  lat_north  = lat_north,            &
+                                  lon_north  = lon_north,            &
+                                  rotate_angle=rotate_angle)
 
     else
       write(log_scratch_space, "(A,I0,A)") &

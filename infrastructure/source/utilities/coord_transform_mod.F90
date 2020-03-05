@@ -28,6 +28,7 @@ public :: cartesian_distance
 public :: sphere2cart_vector
 public :: cart2sphere_vector
 public :: central_angle
+public :: rodrigues_rotation
 
 !------------------------------------------------------------------------------
 ! Contained functions / subroutines
@@ -201,6 +202,7 @@ subroutine xyz2llr(x,y,z,long,lat,r)
   r = sqrt(x*x + y*y + z*z)
 
 end subroutine xyz2llr
+
 
 !-------------------------------------------------------------------------------
 !>  @brief  Calculates the area of a spherical triangle.
@@ -402,6 +404,39 @@ pure function cart2sphere_vector(x_vec, cartesian_vec) result ( spherical_vec )
      spherical_vec(2) = spherical_vec(2)*r
 
 end function cart2sphere_vector
+
+!-------------------------------------------------------------------------------
+!> @brief Rotate a vector x_vec through an angle alpha around an
+!>        axis rot_vec using Rodrigues rotation formula
+!> @details Rotates a 3d Cartesian vector x_vec = (x,y,z) about an axis
+!>          rot_vec = (r1,r2,r3) by an angle alpha
+!> @param[in] x_vec vector (x,y,z) location in Cartesian coodinates
+!> @param[in] rot_vec vector (r1,r2,r3) direction of axis of rotation
+!> @param[in] alpha real angle of rotation
+!> @result    y_vec 3d Cartesian rotated vector
+!-------------------------------------------------------------------------------
+pure function rodrigues_rotation(x_vec, rot_vec, alpha) result(y_vec)
+  use constants_mod,     only: r_def
+  use cross_product_mod, only: cross_product
+  implicit none
+
+  real(kind=r_def), intent(in)  :: x_vec(3)
+  real(kind=r_def), intent(in)  :: rot_vec(3)
+  real(kind=r_def), intent(in)  :: alpha
+
+  real(kind=r_def) :: y_vec(3)
+
+  real(kind=r_def) :: unit_rot_vec(3)
+
+  ! Create a normalised vector in the direction of the rotation vector
+  unit_rot_vec=rot_vec/sqrt(rot_vec(1)**2+rot_vec(2)**2+rot_vec(3)**2)
+
+  ! Create a rotated vector using the normalised rotation vector
+  y_vec = x_vec * cos(alpha) +                                                     &
+          cross_product( unit_rot_vec, x_vec ) * sin( alpha )                      &
+          + unit_rot_vec * dot_product( x_vec, unit_rot_vec ) * ( 1.0 -cos(alpha) )
+
+end function rodrigues_rotation
 
 end module coord_transform_mod
 

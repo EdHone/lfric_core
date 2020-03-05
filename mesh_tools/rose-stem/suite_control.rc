@@ -18,6 +18,7 @@
                       'cubedsphere_c1',
                       'cubedsphere_c2',
                       'cubedsphere_c3',
+                      'cubedsphere_rotated',
                       'planar_biperiodic',
                       'planar_non_periodic',
                       'planar_trench_x',

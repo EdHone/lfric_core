@@ -18,6 +18,9 @@
 !>      | 6 |
 !>      +---+
 !>
+!>  The equator passes through the centres of panels 1-4, while the zero degrees
+!>  longitude passes through the centre of cell 1 and the axis of the north pole
+!>  through panels 5 and 6.
 !-------------------------------------------------------------------------------
 module gencube_ps_mod
 !-------------------------------------------------------------------------------
@@ -34,6 +37,9 @@ module gencube_ps_mod
   use ugrid_generator_mod,            only: ugrid_generator_type
 
   implicit none
+
+  ! set Cartesian axis for north
+  real(r_def), parameter    :: TRUE_NORTH(3) = (/0._r_def, 0._r_def, 1._r_def/)
 
   private
 
@@ -69,6 +75,11 @@ module gencube_ps_mod
     integer(i_def)              :: npanels
     integer(i_def)              :: nmaps
 
+    real(r_def)                 :: lat_north
+    real(r_def)                 :: lon_north
+    real(r_def)                 :: rotate_angle
+    logical                     :: do_rotate
+
     character(str_def), allocatable :: target_mesh_names(:)
     integer(i_def),     allocatable :: target_edge_cells(:)
     type(global_mesh_map_collection_type), allocatable :: global_mesh_maps
@@ -94,6 +105,7 @@ module gencube_ps_mod
     procedure :: get_global_mesh_maps
     procedure :: write_mesh
     procedure :: orient_lfric
+    procedure :: rotate_mesh
     procedure :: smooth
 
     procedure :: clear
@@ -115,6 +127,17 @@ contains
 !>                               Each panel will contain edge_cells*edge_cells faces.
 !> @param[in] nsmooth            Number of smoothing passes to be performed on mesh nodes.
 !>                               Each panel will contain edge_cells*edge_cells faces.
+!> @param[in, optional] do_rotate
+!>                               Logical to indicate rotation of the resulting mesh
+!> @param[in, optional] lat_north
+!>                               If rotating the cubed-sphere, then this is the target
+!>                               latitude (degrees) of the center of the "Northern" panel
+!> @param[in, optional] lon_north
+!>                               If rotating the cubed-sphere, then this is the target
+!>                               longitude (degrees) of the center of the "Northern" panel
+!> @param[in, optional] rotate_angle
+!>                               If rotating the cubed-sphere, then this rotation
+!>                               angle (degrees) about the "Northern" panel
 !> @param[in, optional] target_mesh_names
 !>                               Names of meshes to map to.
 !> @param[in, optional] target_edge_cells
@@ -122,9 +145,10 @@ contains
 !>
 !> @return    self               Instance of gencube_ps_type
 !-------------------------------------------------------------------------------
-function gencube_ps_constructor( mesh_name, edge_cells, nsmooth,        &
-                                 target_mesh_names, target_edge_cells ) &
-                         result( self )
+ function gencube_ps_constructor( mesh_name, edge_cells, nsmooth, do_rotate,   &
+                                  lat_north, lon_north, rotate_angle,          &
+                                  target_mesh_names, target_edge_cells )       &
+                                  result( self )
 
   implicit none
 
@@ -132,6 +156,10 @@ function gencube_ps_constructor( mesh_name, edge_cells, nsmooth,        &
   integer(i_def),     intent(in) :: edge_cells
   integer(i_def),     intent(in) :: nsmooth
 
+  logical,            optional, intent(in) :: do_rotate
+  real(r_def),        optional, intent(in) :: lat_north
+  real(r_def),        optional, intent(in) :: lon_north
+  real(r_def),        optional, intent(in) :: rotate_angle
   character(str_def), optional, intent(in) :: target_mesh_names(:)
   integer(i_def),     optional, intent(in) :: target_edge_cells(:)
 
@@ -148,6 +176,26 @@ function gencube_ps_constructor( mesh_name, edge_cells, nsmooth,        &
   self%nsmooth    = nsmooth
   self%npanels    = NPANELS
   self%nmaps      = 0
+
+  ! Input as degrees, store as radians
+
+  if ( present(do_rotate) ) then
+
+    self%do_rotate = do_rotate
+
+    if ( do_rotate ) then
+
+      self%lat_north      = lat_north    * degrees_to_radians
+      self%lon_north      = lon_north    * degrees_to_radians
+      self%rotate_angle   = rotate_angle * degrees_to_radians
+
+    end if
+
+  else
+
+    self%do_rotate = .false.
+
+  end if
 
   write(self%constructor_inputs,'(2(A,I0))')     &
       'edge_cells=',    self%edge_cells,  ';' // &
@@ -1008,6 +1056,84 @@ subroutine calc_coords(self, vert_coords, coord_units_x, coord_units_y)
 end subroutine calc_coords
 
 !-------------------------------------------------------------------------------
+!> @brief   Rotates coordinates of the mesh by rotating to a new 'North'
+!>          given by lon_north, lat_north and then rotating clockwise by an
+!>          angle rotate_angle
+!> @details Rotates coordinates of the mesh by rotating to a new 'North'
+!>          given by lon_north, lat_north and then rotating clockwise by an
+!>          angle rotate_angle.  This routine updates self%vert_coords
+!>
+!> We can describe moving the pole from TRUE_NORTH to new_north
+!> as a rotation  about the vector rot_vec by an angle alpha_vec
+!>
+!> @param[in]   self         The gencube_ps_type instance reference.
+!-------------------------------------------------------------------------------
+subroutine rotate_mesh(self)
+
+  use coord_transform_mod, only: xyz2ll, ll2xyz, rodrigues_rotation
+  use cross_product_mod,   only: cross_product
+  use constants_mod,       only: PI
+
+  implicit none
+
+  class(gencube_ps_type),   intent(inout)  :: self
+
+  real(r_def)    :: x_vec(3)     ! Cartesian vector of points
+  real(r_def)    :: rot_vec(3)   ! Cartesian axis of rotation
+  real(r_def)    :: new_north(3) ! Cartesian vector for new 'North'
+  real(r_def)    :: alpha_rot    ! Angle of rotation about rot_vec
+  integer(i_def) :: icell, nverts
+  real(r_def)    :: lat, lon
+
+  logical        :: do_newnorth  ! To determine if we want a new north
+  logical        :: do_rotate    ! To determine if we want to rotate about north
+  nverts = size(self%vert_coords, dim=2)
+
+  ! First set up axis of rotation
+  ! NB dot_product(TRUE_NORTH, TRUE_NORTH)=1
+  ! We leave it in case this changes.
+  call ll2xyz( self%lon_north, self%lat_north, new_north(1), new_north(2),   &
+               new_north(3) )
+  rot_vec   = cross_product( TRUE_NORTH, new_north )
+  alpha_rot = acos( dot_product( TRUE_NORTH, new_north ) /                   &
+              sqrt( dot_product(  new_north, new_north ) *                   &
+                    dot_product( TRUE_NORTH, TRUE_NORTH ) ) )
+
+  ! If angle is less than ~ 0.0001 degrees (i.e. norm2(rot_vec) < 1.e-6)
+  ! Then don't change axis
+  do_newnorth = .true.
+  if ( norm2(rot_vec) < 1.e-6 ) do_newnorth = .false.
+
+  ! If rotate_angle < 0.0001 degress, then don't rotate
+  do_rotate   = .true.
+  if ( abs(self%rotate_angle) < 0.0001 ) do_rotate = .false.
+
+  if (do_newnorth .or. do_rotate) then
+
+    do icell = 1, nverts
+
+      lon = self%vert_coords(1,icell)
+      lat = self%vert_coords(2,icell)
+
+      call ll2xyz(lon, lat, x_vec(1), x_vec(2), x_vec(3))
+
+      ! First rotate by rotation_angle
+      if (do_rotate) x_vec = rodrigues_rotation(x_vec, TRUE_NORTH,           &
+                                                self%rotate_angle)
+      ! Next rotate to new North
+      if (do_newnorth) x_vec = rodrigues_rotation(x_vec, rot_vec, alpha_rot)
+
+      ! convert back to lat, lon and send back to vert_coords
+      call xyz2ll(x_vec(1), x_vec(2), x_vec(3), self%vert_coords(1,icell),   &
+                  self%vert_coords(2,icell))
+
+    end do
+
+  end if
+
+end subroutine rotate_mesh
+
+!-------------------------------------------------------------------------------
 !> @brief Populates the arguments with the dimensions defining
 !>        the mesh.
 !>
@@ -1162,6 +1288,7 @@ subroutine generate(self)
   call orient_lfric(self)
 
   if (self%nsmooth > 0_i_def) call smooth(self)
+  if (self%do_rotate) call rotate_mesh(self)
 
   call calc_cell_centres(self)
 
