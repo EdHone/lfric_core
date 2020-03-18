@@ -11,6 +11,7 @@
 {%- set mesh_rdef     = "64" %}
 {%- set mesh_build    = "fast-debug" %}
 {%- set mesh_compiler = "intel" %}
+{%- set MAXRUNAHEAD     = 1 %}
 
 {%- set groups = {'developer': ['check_compilers("fast-debug", publish=True)',
                                 'api_documentation_graph(publish=True)',

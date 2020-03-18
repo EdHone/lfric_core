@@ -11,7 +11,7 @@
 {%- set rdef_default    = "64" %}
 {%- set mesh_rdef       = "64" %}
 {%- set mesh_build      = "fast-debug" %}
-{%- set MAXRUNAHEAD     = 5 %}
+{%- set MAXRUNAHEAD     = 2 %}
 
 {%- set application_configurations = { 'lfric_atm' : ['scm_dry_bl',
                                                       'scm_bl',

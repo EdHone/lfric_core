@@ -16,7 +16,6 @@
 {%- set rose_suite_gui_headers = [] %}
 {%- set resolution_choices = {} %}
 {%- set support_meshes = {} %}
-{%- set scheduledTasksEnv = {} %}
 {%- set scheduledTasksDict = {} %}
 {%- set mesh_names = [] %}
 
@@ -62,14 +61,9 @@
 {# construct the graph for cruns:                                       #}
 {#                                                                      #}
 {#     maxcrun              Specifies the maximum number of cycles      #}
-{#     scheduledTasksEnv    Dictionary of environment variables.        #}
-{#                          to be passed from the mission to the task - #}
-{#                          these are evalulated as a string of         #}
-{#                          variable = value pairs.                     #}
-{#     scheduledTasksDict   Is as scheduledTasksEnv, but the python     #}
-{#                          dictionary rather than a string - this is   #}
-{#                          then used in setting the directives.        #}
-{#                          These are updated from the mission calls.   #}
+{#     scheduledTasksDict   Python Dictionary of environment variables  #}
+{#                          To be passed from the mission to the task - #}
+{#                          this is then used in setting the directives #}
 
 {%- set crunInfo = {'maxcrun':1} %}  {# 'maxcrun' is used as the number of cycles based on the requested jobs #}
 {%- set MAXRUNAHEAD = (MAXRUNAHEAD|default(3)) %} {# The maximum allowable runahead limit #}
@@ -103,6 +97,9 @@
         abort on stalled = True
 {%- endif %}
         timeout = PT3H
+
+[visualization]
+    number of cycle points = {{ crunInfo['maxcrun'] if crunInfo['maxcrun'] < MAXRUNAHEAD else MAXRUNAHEAD }}
 
 [scheduling]
     cycling mode = integer

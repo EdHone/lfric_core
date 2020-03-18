@@ -11,6 +11,7 @@
 {%- set rdef_default    = "64" %}
 {%- set mesh_rdef       = "64" %}
 {%- set mesh_build      = "fast-debug" %}
+{%- set MAXRUNAHEAD     = 1 %}
 
 {%- set application_configurations = { 'gravity_wave' : ['multigrid_on',
                                                          'multigrid_off',

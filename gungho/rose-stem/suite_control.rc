@@ -11,6 +11,7 @@
 {%- set rdef_default    = "64" %}
 {%- set mesh_rdef       = "64" %}
 {%- set mesh_build      = "fast-debug" %}
+{%- set MAXRUNAHEAD     = 15 %}
 
 {%- set application_configurations = { 'gungho' : [ 'runge-kutta', 'semi-implicit',
                                                     'transport-rk', 'transport-rk-bip',
