@@ -93,9 +93,9 @@ $(BIN_DIR)/%: %.x | $(BIN_DIR)
 %.x: $$($$(shell echo $$* | tr a-z A-Z)_OBJS)
 	$(call MESSAGE,Linking,$@)
 	$(Q)$(LDMPI) $(LDFLAGS) -o $@ \
-	             $(patsubst %,-l%,$(EXTERNAL_DYNAMIC_LIBRARIES)) \
 	             $^ \
-	             $(patsubst %,-l%,$(EXTERNAL_STATIC_LIBRARIES))
+	             $(patsubst %,-l%,$(EXTERNAL_STATIC_LIBRARIES)) \
+	             $(patsubst %,-l%,$(EXTERNAL_DYNAMIC_LIBRARIES))
 
 .PRECIOUS: %.o %.mod
 %.o %.mod: %.f90
