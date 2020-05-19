@@ -20,6 +20,7 @@ module gungho_setup_io_mod
                                            land_area_ancil_path,      &
                                            orography_ancil_path,      &
                                            soil_ancil_path,           &
+                                           surface_frac_ancil_path,   &
                                            start_dump_filename,       &
                                            start_dump_directory
   use initialization_config_mod,     only: init_option,               &
@@ -104,6 +105,12 @@ module gungho_setup_io_mod
       write(ancil_fname,'(A)') trim(ancil_directory)//'/'// &
                                trim(soil_ancil_path)
       call tmp_file%init_xios_file("soil_ancil", path=ancil_fname)
+      call files_list%insert_item(tmp_file)
+
+      ! Set surface fraction ancil filename from namelist
+      write(ancil_fname,'(A)') trim(ancil_directory)//'/'// &
+                               trim(surface_frac_ancil_path)
+      call tmp_file%init_xios_file("surface_frac_ancil", path=ancil_fname)
       call files_list%insert_item(tmp_file)
     end if
 

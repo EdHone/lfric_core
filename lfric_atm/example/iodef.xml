@@ -11,6 +11,7 @@
    <axis_definition>
     <axis id="vert_axis_half_levels" name="half_levels"/>
     <axis id="vert_axis_full_levels" name="full_levels"/>
+    <axis id="veg_pseudo_levels" name="veg_pseudo_levels" n_glo="9"/>
    </axis_definition>
 
    <domain_definition>
@@ -1228,18 +1229,8 @@
        <field id="soil_thermal_cond" name="soil_thermal_conductivity" long_name="Soil thermal conductivity" unit="Wm-1K-1" operation="once" domain_ref="face_half_levels"/>
       </file>
 
-      <file id="ancil_output" name="ancil_output" mode="write" output_freq="1ts" convention="UGRID" cyclic="true" enabled=".TRUE.">
- 	     <field id="surface_altitude_out" name="surface_altitude" long_name="Surface altitude" unit="m" domain_ref="face_half_levels" operation="once"/>
-       <field id="sd_orog_out" name="sd_orog" long_name="Standard deviation of orography" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="grad_xx_orog_out" name="grad_xx_orog" long_name="Orographic gradient XX component" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="grad_xy_orog_out" name="grad_xy_orog" long_name="Orographic gradient XY component" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="grad_yy_orog_out" name="grad_yy_orog" long_name="Orographic gradient YY component" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="peak_to_trough_orog_out" name="peak_to_trough_orog" long_name="Half of (peak to trough ht of orog)" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="silhouette_area_orog_out" name="silhouette_area_orog" long_name="Silhouette orographic roughness" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="land_area_fraction_out" name="land_area_fraction" long_name="Land area fraction" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="soil_albedo_out" name="soil_albedo" long_name="Soil albedo" unit="1" operation="once" domain_ref="face_half_levels"/>
-       <field id="soil_carbon_content_out" name="soil_carbon_content" long_name="Soil carbon content" unit="kgC m-2" operation="once" domain_ref="face_half_levels"/>
-       <field id="soil_thermal_cond_out" name="soil_thermal_conductivity" long_name="Soil thermal conductivity" unit="Wm-1K-1" operation="once" domain_ref="face_half_levels"/>
+      <file id="surface_frac_ancil" name="surface_frac_ancil" mode="read" output_freq="1ts" convention="UGRID" cyclic="true" enabled=".FALSE.">
+       <field id="tile_fraction_data" name="m01s00i216" long_name="Fractions of vegetation types" unit="1" operation="once" domain_ref="face_half_levels" axis_ref="veg_pseudo_levels"/>
       </file>
 
     </file_definition>

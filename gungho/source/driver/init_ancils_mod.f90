@@ -126,6 +126,9 @@ contains
     !=====  SURFACE ANCILS  =====
     call setup_ancil_field("land_area_fraction", depository, ancil_fields, mesh_id, twod_mesh_id, twod=.true.)
 
+    ! Psuedo-level ancils to be read onto multi-data fields
+    call setup_ancil_field("tile_fraction_data", depository, ancil_fields, mesh_id, twod_mesh_id, twod=.true., ndata=9)
+
     !=====  SOIL ANCILS  =====
     call setup_ancil_field("soil_albedo", depository, ancil_fields, mesh_id, twod_mesh_id, twod=.true.)
     call setup_ancil_field("soil_carbon_content", depository, ancil_fields, mesh_id, twod_mesh_id, twod=.true.)
@@ -140,7 +143,7 @@ contains
     call setup_ancil_field("silhouette_area_orog", depository, ancil_fields, mesh_id, twod_mesh_id, twod=.true.)
 
     ! Now the field collection is set up, we will read all the fields in the collection
-    ! in gungho_model_data_mod (call to init_fd_ancils)
+    ! in gungho_model_data_mod
 
   end subroutine create_fd_ancils
 
@@ -152,34 +155,45 @@ contains
   !> @param[in] mesh_id The identifier given to the current 3d mesh
   !> @param[in] twod_mesh_id The identifier given to the current 2d mesh
   !> @param[in] twod Flag to determine if field is on 2D mesh or regular
-  subroutine setup_ancil_field(name, depository, ancil_fields, mesh_id, twod_mesh_id, twod)
+  subroutine setup_ancil_field( name, depository, ancil_fields, mesh_id, &
+                                twod_mesh_id, twod, ndata )
 
     implicit none
 
-    character(*), intent(in)                       :: name
-    type( field_collection_type ), intent( inout ) :: depository
-    type( field_collection_type ), intent( inout ) :: ancil_fields
-    integer(i_def), intent(in)                     :: mesh_id
-    integer(i_def), intent(in)                     :: twod_mesh_id
-    logical(l_def), optional, intent(in)           :: twod
+    character(*), intent(in)                   :: name
+    type(field_collection_type), intent(inout) :: depository
+    type(field_collection_type), intent(inout) :: ancil_fields
+    integer(i_def), intent(in)                 :: mesh_id
+    integer(i_def), intent(in)                 :: twod_mesh_id
+    logical(l_def), optional, intent(in)       :: twod
+    integer(i_def), optional, intent(in)       :: ndata
 
-    !Local variables
+    ! Local variables
     type(field_type)           :: new_field
+    integer(i_def)             :: ndat = 1
     integer(i_def), parameter  :: fs_order = 0
 
     ! Pointers
-    type(function_space_type), pointer  :: w3_space => null()
-    type(function_space_type), pointer  :: twod_space => null()
-    procedure(read_interface), pointer  :: tmp_read_ptr => null()
-    procedure(write_interface), pointer :: tmp_write_ptr => null()
-    type(field_type), pointer           :: tgt_ptr => null()
+    type(function_space_type),       pointer  :: w3_space => null()
+    type(function_space_type),       pointer  :: twod_space => null()
+    procedure(read_interface),       pointer  :: tmp_read_ptr => null()
+    procedure(write_interface),      pointer  :: tmp_write_ptr => null()
+    type(field_type),                pointer  :: tgt_ptr => null()
     class(pure_abstract_field_type), pointer  :: tmp_ptr => null()
 
-    w3_space => function_space_collection%get_fs(mesh_id, fs_order, W3)
-    twod_space => function_space_collection%get_fs(twod_mesh_id, fs_order, W3)
+    ! Set field ndata if argument is present, else leave as default value
+    if (present(ndata)) then
+      ndat = ndata
+    end if
+
+    ! Set up function spaces for field initialisation
+    w3_space   => function_space_collection%get_fs( mesh_id, fs_order, &
+                                                    W3, ndat )
+    twod_space => function_space_collection%get_fs( twod_mesh_id, fs_order, &
+                                                    W3, ndat )
 
     ! If field does not yet exist, then create it
-    if (.not. depository%field_exists( name ) ) then
+    if ( .not. depository%field_exists( name ) ) then
       if (present(twod)) then
         call new_field%initialise( twod_space, name=trim(name) )
       else
@@ -192,8 +206,8 @@ contains
     ! Get a field pointer from the depository
     tgt_ptr => depository%get_field(name)
 
-    !Set up field read behaviour for 2D and 3D fields
-    if (present(twod))then
+    ! Set up field read behaviour for 2D and 3D fields
+    if (present(twod)) then
       tmp_read_ptr => read_field_single_face
       tmp_write_ptr => write_field_single_face
     else
