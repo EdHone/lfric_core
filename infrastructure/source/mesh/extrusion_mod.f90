@@ -48,7 +48,7 @@ module extrusion_mod
     procedure, public :: get_reference_element
     procedure(extrude_method), public, deferred :: extrude
 
-    procedure :: extrusion_constructor
+    procedure, public :: extrusion_constructor
 
   end type extrusion_type
 
@@ -56,7 +56,7 @@ module extrusion_mod
     subroutine extrude_method( this, eta )
       import extrusion_type, r_def
       class(extrusion_type), intent(in)  :: this
-      real(r_def),           intent(out) :: eta(0:this%number_of_layers)
+      real(r_def),           intent(out) :: eta(0:)
     end subroutine extrude_method
   end interface
 
@@ -74,21 +74,6 @@ module extrusion_mod
     module procedure uniform_extrusion_constructor
   end interface uniform_extrusion_type
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Extrudes with specific UM configuration L38_29t_9s_40km
-  !>
-  type, public, extends(extrusion_type) :: um_L38_29t_9s_40km_extrusion_type
-    private
-  contains
-    private
-    procedure, public :: extrude => um_L38_29t_9s_40km_extrude
-  end type um_L38_29t_9s_40km_extrusion_type
-
-  interface um_L38_29t_9s_40km_extrusion_type
-    module procedure um_L38_29t_9s_40km_extrusion_constructor
-  end interface um_L38_29t_9s_40km_extrusion_type
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Extrudes with a @f$\left(\frac{layer}{n_{layers}}\right)^2@f$
   !>        distribution of layers.
   !>
@@ -116,20 +101,6 @@ module extrusion_mod
   interface geometric_extrusion_type
     module procedure geometric_extrusion_constructor
   end interface geometric_extrusion_type
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Extrudes using DCMIP scheme.
-  !>
-  type, public, extends(extrusion_type) :: dcmip_extrusion_type
-    private
-  contains
-    private
-    procedure, public :: extrude => dcmip_extrude
-  end type dcmip_extrusion_type
-
-  interface dcmip_extrusion_type
-    module procedure dcmip_extrusion_constructor
-  end interface dcmip_extrusion_type
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Makes an extrusion from an existing extrusion but with new levels
@@ -188,7 +159,7 @@ contains
     implicit none
 
     class(uniform_extrusion_type), intent(in)  :: this
-    real(r_def),                   intent(out) :: eta(0:this%number_of_layers)
+    real(r_def),                   intent(out) :: eta(0:)
 
     integer(i_def) :: k
 
@@ -198,57 +169,6 @@ contains
 
   end subroutine uniform_extrude
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Creates a um_L38_29t_9s_40km_extrusion_type object.
-  !>
-  !> @param[in] atmosphere_bottom Bottom of the atmosphere in meters.
-  !> @param[in] atmosphere_top Top of the atmosphere in meters.
-  !> @param[in] number_of_layers Number of layers in the atmosphere.
-  !>
-  !> @return New uniform_extrusion_type object.
-  !>
-  function um_L38_29t_9s_40km_extrusion_constructor( atmosphere_bottom, &
-                                                     atmosphere_top,    &
-                                                     number_of_layers ) result(new)
-
-    implicit none
-
-    real(r_def),    intent(in) :: atmosphere_bottom
-    real(r_def),    intent(in) :: atmosphere_top
-    integer(i_def), intent(in) :: number_of_layers
-
-    type(um_L38_29t_9s_40km_extrusion_type) :: new
-
-    call new%extrusion_constructor( atmosphere_bottom, atmosphere_top, &
-                                    number_of_layers )
-
-  end function um_L38_29t_9s_40km_extrusion_constructor
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Extrudes the mesh with specific UM configuration L38_29t_9s_40km
-  !>
-  !> @param[out] eta Nondimensional vertical coordinate.
-  !>
-  subroutine um_L38_29t_9s_40km_extrude( this, eta )
-
-    implicit none
-
-    class(um_L38_29t_9s_40km_extrusion_type), intent(in)  :: this
-    real(r_def),                   intent(out) :: eta(0:this%number_of_layers)
-
-    integer(i_def) :: k
-
-    if (this%number_of_layers /= 38)then
-      call log_event( "Extrusion L38_29t_9s_40km reqires 38 levels", log_level_error )
-    end if
-
-    do k = 0, this%number_of_layers
-      eta(k) = um_L38_29t_9s_40km_func(k)
-    end do
-
-  end subroutine um_L38_29t_9s_40km_extrude
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Creates a quadratic_extrusion_type object.
   !>
   !> @param[in] atmosphere_bottom Bottom of the atmosphere in meters.
@@ -285,7 +205,7 @@ contains
     implicit none
 
     class(quadratic_extrusion_type), intent(in)  :: this
-    real(r_def),                     intent(out) :: eta(0:this%number_of_layers)
+    real(r_def),                     intent(out) :: eta(0:)
 
     integer(i_def) :: k
 
@@ -331,7 +251,7 @@ contains
     implicit none
 
     class(geometric_extrusion_type), intent(in)  :: this
-    real(r_def),                     intent(out) :: eta(0:this%number_of_layers)
+    real(r_def),                     intent(out) :: eta(0:)
 
     integer(i_def)          :: k
     real(r_def), parameter  :: stretching_factor = 1.03_r_def
@@ -346,58 +266,6 @@ contains
     end do
 
   end subroutine geometric_extrude
-
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Creates a dcmip_extrusion_type object.
-  !>
-  !> @param[in] atmosphere_bottom Bottom of the atmosphere in meters.
-  !> @param[in] atmosphere_top Top of the atmosphere in meters.
-  !> @param[in] number_of_layers Number of layers in the atmosphere.
-  !>
-  !> @return New dcmip_extrusion_type object.
-  !>
-  function dcmip_extrusion_constructor( atmosphere_bottom, &
-                                        atmosphere_top,    &
-                                        number_of_layers ) result(new)
-
-    implicit none
-
-    real(r_def),    intent(in) :: atmosphere_bottom
-    real(r_def),    intent(in) :: atmosphere_top
-    integer(i_def), intent(in) :: number_of_layers
-
-    type(dcmip_extrusion_type) :: new
-
-    call new%extrusion_constructor( atmosphere_bottom, atmosphere_top, &
-                                    number_of_layers )
-
-  end function dcmip_extrusion_constructor
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Extrudes the mesh using the DCMIP scheme.
-  !>
-  !> For more information see DCMIP-TestCaseDocument_v1.7.pdf,
-  !> Appendix F.2. - Eq. 229.
-  !>
-  !> @param[out] eta Nondimensional vertical coordinate.
-  !>
-  subroutine dcmip_extrude( this, eta )
-
-    implicit none
-
-    class(dcmip_extrusion_type), intent(in)  :: this
-    real(r_def),                 intent(out) :: eta(0:this%number_of_layers)
-
-    real(r_def), parameter :: phi_flatten = 15.0_r_def
-
-    integer(i_def) :: k
-
-    do k = 0, this%number_of_layers
-      eta(k) = dcmip_func(real(k,r_def)/real(this%number_of_layers,r_def))
-    end do
-
-  end subroutine dcmip_extrude
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Creates a shifted_extrusion_type object.
@@ -429,7 +297,7 @@ contains
     implicit none
 
     class(shifted_extrusion_type), intent(in)  :: this
-    real(r_def),                   intent(out) :: eta(0:this%number_of_layers)
+    real(r_def),                   intent(out) :: eta(0:)
 
     real(r_def)    :: eta_old(0:this%number_of_layers-1)
     integer(i_def) :: k
@@ -578,51 +446,6 @@ contains
                     / (stretching_factor-1.0_r_def)
 
   end function geometric_func
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Helper function for generating DCMIP extrusion
-  !>
-  !> @param[in] eta_uni   Input value which increases incrementally with level number
-  !> @return    eta       Vertical eta coordinate
-  !>
-  function dcmip_func(eta_uni) result(eta)
-    implicit none
-
-    real(r_def), intent(in) :: eta_uni
-    real(r_def) :: eta
-
-    real(r_def), parameter :: phi_flatten = 15.0_r_def
-
-    eta = ( sqrt(phi_flatten*(eta_uni**2_i_def) + 1.0_r_def) &
-                    - 1.0_r_def ) / &
-                  ( sqrt(phi_flatten + 1.0_r_def) - 1.0_r_def )
-
-  end function dcmip_func
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Helper function for generating um_L38_29t_9s_40km extrusion
-  !>
-  !> @param[in] i         index for level
-  !> @return    eta       Vertical eta coordinate
-  !>
-  function um_L38_29t_9s_40km_func(i) result(eta)
-    implicit none
-
-    integer(i_def) :: i
-    real(r_def) :: eta
-    real(r_def) :: um_eta(0:38) = (/ 0.0, &
-        .0005095,  .0020380,  .0045854,  .0081519,  .0127373, &
-        .0183417,  .0249651,  .0326074,  .0412688,  .0509491, &
-        .0616485,  .0733668,  .0861040,  .0998603,  .1146356, &
-        .1304298,  .1472430,  .1650752,  .1839264,  .2037966, &
-        .2246857,  .2465938,  .2695209,  .2934670,  .3184321, &
-        .3444162,  .3714396,  .3998142,  .4298913,  .4620737, &
-        .4968308,  .5347160,  .5763897,  .6230643,  .6772068, &
-        .7443435,  .8383348, 1.0000000 /)
-
-    eta = um_eta(i)
-
-  end function um_L38_29t_9s_40km_func
 
 
 end module extrusion_mod

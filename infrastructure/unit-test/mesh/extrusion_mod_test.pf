@@ -15,7 +15,7 @@ module extrusion_mod_test
 
   private
   public :: test_uniform, test_shifted_uniform, test_quadratic, test_shifted_quadratic,   &
-            test_geometric, test_shifted_geometric, test_dcmip, test_shifted_dcmip
+            test_geometric, test_shifted_geometric
 
   ! Tests the base extrusion_type and derived extrusion methods.
   !
@@ -34,8 +34,6 @@ module extrusion_mod_test
     procedure, public :: test_shifted_quadratic
     procedure, public :: test_geometric
     procedure, public :: test_shifted_geometric
-    procedure, public :: test_dcmip
-    procedure, public :: test_shifted_dcmip
 
   end type extrusion_test_type
 
@@ -218,61 +216,6 @@ contains
     @assertEqual( expected, eta, tolerance )
 
   end subroutine test_shifted_geometric
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  @test
-  subroutine test_dcmip( this )
-
-    use extrusion_mod, only : dcmip_extrusion_type
-
-    implicit none
-
-    class(extrusion_test_type), intent(inout) :: this
-
-    integer(i_def), parameter :: layers = 5
-    real(r_def),    parameter :: expected(0:layers) &
-                                 = [0.0_r_def,   0.088_r_def, 0.281_r_def, &
-                                    0.510_r_def, 0.752_r_def, 1.0_r_def]
-    real(r_def),    parameter :: tolerance = 0.001_r_def
-
-    type(dcmip_extrusion_type) :: unit_under_test
-    real(r_def)                  :: eta(0:layers)
-
-    unit_under_test = dcmip_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
-
-    call unit_under_test%extrude( eta )
-    @assertEqual( expected, eta, tolerance )
-
-  end subroutine test_dcmip
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  @test
-  subroutine test_shifted_dcmip( this )
-
-    use extrusion_mod, only : dcmip_extrusion_type, &
-                              shifted_extrusion_type
-
-    implicit none
-
-    class(extrusion_test_type), intent(inout) :: this
-
-    integer(i_def), parameter :: layers = 5
-    real(r_def),    parameter :: expected(0:layers+1) &
-                                 = [0.0_r_def, 0.044_r_def,  0.1845_r_def,   &
-                                    0.3955_r_def, 0.631_r_def, 0.876_r_def, 1.0_r_def]
-    real(r_def),    parameter :: tolerance = 0.001_r_def
-
-    type(dcmip_extrusion_type)   :: base_extrusion
-    type(shifted_extrusion_type) :: unit_under_test
-    real(r_def)                  :: eta(0:layers+1)
-
-    base_extrusion = dcmip_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
-    unit_under_test = shifted_extrusion_type( base_extrusion )
-
-    call unit_under_test%extrude( eta )
-    @assertEqual( expected, eta, tolerance )
-
-  end subroutine test_shifted_dcmip
 
 
 end module extrusion_mod_test

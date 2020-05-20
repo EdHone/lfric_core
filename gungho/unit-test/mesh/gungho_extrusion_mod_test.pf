@@ -19,7 +19,7 @@ module gungho_extrusion_mod_test
   implicit none
 
   private
-  public test_planar, test_spherical
+  public test_planar, test_spherical, test_dcmip, test_shifted_dcmip
 
   @TestCase
   type, public, extends(MPITestCase) :: gungho_extrusion_test_type
@@ -30,6 +30,8 @@ module gungho_extrusion_mod_test
     procedure, public  :: tearDown
     procedure, public  :: test_planar
     procedure, public  :: test_spherical
+    procedure, public  :: test_dcmip
+    procedure, public  :: test_shifted_dcmip
     procedure          :: identify_extrusion
   end type gungho_extrusion_test_type
 
@@ -155,12 +157,68 @@ contains
   end subroutine test_spherical
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test( npes=[1] )
+  subroutine test_dcmip( this )
+
+    use gungho_extrusion_mod, only : dcmip_extrusion_type
+
+    implicit none
+
+    class(gungho_extrusion_test_type), intent(inout) :: this
+
+    integer(i_def), parameter :: layers = 5
+    real(r_def),    parameter :: expected(0:layers) &
+                                 = [0.0_r_def,   0.088_r_def, 0.281_r_def, &
+                                    0.510_r_def, 0.752_r_def, 1.0_r_def]
+    real(r_def),    parameter :: tolerance = 0.001_r_def
+
+    type(dcmip_extrusion_type) :: unit_under_test
+    real(r_def)                :: eta(0:layers)
+
+    unit_under_test = dcmip_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
+
+    call unit_under_test%extrude( eta )
+    @assertEqual( expected, eta, tolerance )
+
+  end subroutine test_dcmip
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test( npes=[1] )
+  subroutine test_shifted_dcmip( this )
+
+    use gungho_extrusion_mod, only : dcmip_extrusion_type
+    use extrusion_mod,        only : shifted_extrusion_type
+
+    implicit none
+
+    class(gungho_extrusion_test_type), intent(inout) :: this
+
+    integer(i_def), parameter :: layers = 5
+    real(r_def),    parameter :: expected(0:layers+1) &
+                                 = [0.0_r_def, 0.044_r_def,  0.1845_r_def,   &
+                                    0.3955_r_def, 0.631_r_def, 0.876_r_def, 1.0_r_def]
+    real(r_def),    parameter :: tolerance = 0.001_r_def
+
+    type(dcmip_extrusion_type)   :: base_extrusion
+    type(shifted_extrusion_type) :: unit_under_test
+    real(r_def)                  :: eta(0:layers+1)
+
+    base_extrusion = dcmip_extrusion_type( 1.0_r_def, 2.0_r_def, layers )
+    unit_under_test = shifted_extrusion_type( base_extrusion )
+
+    call unit_under_test%extrude( eta )
+    @assertEqual( expected, eta, tolerance )
+
+  end subroutine test_shifted_dcmip
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   function identify_extrusion( this, extrusion ) result(id)
 
-    use extrusion_mod, only : uniform_extrusion_type,   &
-                              quadratic_extrusion_type, &
-                              geometric_extrusion_type, &
-                              dcmip_extrusion_type
+    use extrusion_mod,        only : uniform_extrusion_type,   &
+                                     quadratic_extrusion_type, &
+                                     geometric_extrusion_type
+    use gungho_extrusion_mod, only : dcmip_extrusion_type
     implicit none
 
     class(gungho_extrusion_test_type), intent(in) :: this
