@@ -59,10 +59,8 @@ contains
     ! Number of degrees of freedom
     integer :: ndf_w3, undf_w3, ndf_wtheta, undf_wtheta
 
-    ! These are currently in ANY_SPACE_1
-    ! but need to change to DISCONTINOUS_SPACE_1
-    ! here and throughout code once LFRic ticket #1968 is on trunk
-    integer :: ndf_any_space_1_sd_orog, undf_any_space_1_sd_orog
+    ! These are in ANY_DISCONTINUOUS_SPACE_1
+    integer :: ndf_adspc1_sd_orog, undf_adspc1_sd_orog
 
     integer :: nlayers
 
@@ -77,7 +75,7 @@ contains
                               mr_v_proxy, mr_cl_proxy, mr_ci_proxy,   &
                               height_w3_proxy, height_wth_proxy
 
-    integer, pointer :: map_any_space_1_sd_orog(:,:) => null(), &
+    integer, pointer :: map_adspc1_sd_orog(:,:) => null(), &
                         map_w3(:,:) => null(),                  &
                         map_wtheta(:,:) => null()
 
@@ -114,7 +112,7 @@ contains
     ! Look-up dofmaps for each function space
     map_w3 => du_blk_proxy%vspace%get_whole_dofmap()
     map_wtheta => dtemp_blk_proxy%vspace%get_whole_dofmap()
-    map_any_space_1_sd_orog => sd_orog_proxy%vspace%get_whole_dofmap()
+    map_adspc1_sd_orog => sd_orog_proxy%vspace%get_whole_dofmap()
 
     ! Initialise number of DoFs for w3
     ndf_w3 = du_blk_proxy%vspace%get_ndf()
@@ -124,9 +122,9 @@ contains
     ndf_wtheta = dtemp_blk_proxy%vspace%get_ndf()
     undf_wtheta = dtemp_blk_proxy%vspace%get_undf()
 
-    ! Initialise number of DoFs for any_space_1_sd_orog
-    ndf_any_space_1_sd_orog = sd_orog_proxy%vspace%get_ndf()
-    undf_any_space_1_sd_orog = sd_orog_proxy%vspace%get_undf()
+    ! Initialise number of DoFs for adspc1_sd_orog
+    ndf_adspc1_sd_orog = sd_orog_proxy%vspace%get_ndf()
+    undf_adspc1_sd_orog = sd_orog_proxy%vspace%get_undf()
 
     ! Call kernels and communication routines
     if (sd_orog_proxy%is_dirty(depth=1)) then
@@ -149,7 +147,7 @@ contains
     do cell=1,mesh%get_last_edge_cell()
       ! Only call orographic_drag_kernel_code at points where the
       ! standard deviation of the subgrid orography is more than zero.
-      if ( sd_orog_proxy%data(map_any_space_1_sd_orog(1, cell)) > 0.0_r_def ) then
+      if ( sd_orog_proxy%data(map_adspc1_sd_orog(1, cell)) > 0.0_r_def ) then
 
         call orographic_drag_kernel_code(                                  &
                       nlayers, du_blk_proxy%data, dv_blk_proxy%data,       &
@@ -164,10 +162,10 @@ contains
                       height_w3_proxy%data, height_wth_proxy%data,         &
                       ndf_w3, undf_w3, map_w3(:,cell),                     &
                       ndf_wtheta, undf_wtheta, map_wtheta(:,cell),         &
-                      ndf_any_space_1_sd_orog, undf_any_space_1_sd_orog,   &
-                      map_any_space_1_sd_orog(:,cell) )
+                      ndf_adspc1_sd_orog, undf_adspc1_sd_orog,   &
+                      map_adspc1_sd_orog(:,cell) )
 
-      end if ! sd_orog_proxy%data(map_any_space_1_sd_orog(1, cell)) > 0.0_r_def
+      end if ! sd_orog_proxy%data(map_adspc1_sd_orog(1, cell)) > 0.0_r_def
 
     end do
 

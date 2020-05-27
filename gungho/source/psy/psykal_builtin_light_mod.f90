@@ -208,7 +208,7 @@ contains
     field_one_proxy  = field_one%get_proxy()
     field_two_proxy  = field_two%get_proxy()
 
-    do dof=1,result_proxy%vspace%get_last_dof_owned()
+    do dof=1,result_proxy%vspace%get_last_dof_annexed()
       result_proxy%data(dof) = field_one_proxy%data(dof) &
         - scalar * field_two_proxy%data(dof)
     end do
@@ -243,7 +243,7 @@ contains
     result_proxy = result_field%get_proxy()
     field_one_proxy  = field_one%get_proxy()
 
-    do dof=1, result_proxy%vspace%get_last_dof_owned()
+    do dof=1, result_proxy%vspace%get_last_dof_annexed()
       result_proxy%data(dof) = result_proxy%data(dof) &
         - scalar * field_one_proxy%data(dof)
     end do
