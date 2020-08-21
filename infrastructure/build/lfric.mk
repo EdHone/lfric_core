@@ -133,6 +133,10 @@ ALWAYS:
 #
 TARGET_DIR = $(patsubst $(PERCENT)/,$(PERCENT),$(dir $@))
 
+# Default tool executables.
+#
+export INKSCAPE ?= inkscape
+
 ##############################################################################
 # Build UML documentation
 #
@@ -153,7 +157,7 @@ uml-pdfs: $$(patsubst $$(SOURCE_DIR)/$$(PERCENT).puml, \
 .PRECIOUS: $(DOCUMENT_DIR)/%.pdf
 $(DOCUMENT_DIR)/%.pdf: $(DOCUMENT_DIR)/%.svg
 	$(call MESSAGE,Translating,$(notdir $<))
-	$Qconvert $< $@
+	$Q$(INKSCAPE) $< --export-pdf=$@
 
 .PRECIOUS: $(DOCUMENT_DIR)/%.svg
 $(DOCUMENT_DIR)/%.svg: $(SOURCE_DIR)/%.puml \
