@@ -26,7 +26,7 @@
 #       rose-stem suite.
 #
 # NOTE: This script is not intended to be a generic tool. Its purpose is to
-#       simplify test-suite validation steps for LFRic developers on the 
+#       simplify test-suite validation steps for LFRic developers on the
 #       LFRic respository. As such it will need some maintenance to be kept up
 #       to date with the HEAD of trunk as required. It is not expected to work
 #       as is with any other repository.

@@ -18,8 +18,8 @@ module function_space_mod
 use constants_mod,         only: i_def, i_native, i_halo_index, l_def, r_def
 use mesh_mod,              only: mesh_type
 use master_dofmap_mod,     only: master_dofmap_type
-use stencil_dofmap_mod,    only: stencil_dofmap_type, STENCIL_POINT,           &
-                                 generate_stencil_dofmap_id
+use stencil_dofmap_helper_functions_mod, &
+                           only: generate_stencil_dofmap_id
 use log_mod,               only: log_event, log_scratch_space                  &
                                , LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR              &
                                , LOG_LEVEL_INFO
@@ -341,6 +341,9 @@ contains
   !> Get the instance of a stencil dofmap with for a given id
   procedure, public   :: get_stencil_dofmap
 
+  !> Get the instance of a 2D stencil dofmap with for a given id
+  procedure, public   :: get_stencil_2D_dofmap
+
   ! Mesh colouring wrapper methods
   !> @brief Populates args with colouring info from member mesh.
   !>
@@ -437,10 +440,6 @@ subroutine init_function_space( self )
   integer(i_def) :: ncells_2d
   integer(i_def) :: ncells_2d_with_ghost
 
-
-  integer(i_def) :: st_shape      ! Stencil Shape
-  integer(i_def) :: st_extent     ! Stencil Extent
-
   integer(i_def) :: rc
   integer(i_def) :: idepth
   integer(i_def) :: halo_start, halo_finish
@@ -449,10 +448,6 @@ subroutine init_function_space( self )
 
   ncells_2d            = self%mesh % get_ncells_2d()
   ncells_2d_with_ghost = self%mesh % get_ncells_2d_with_ghost()
-
-  st_extent  = 0
-  st_shape = STENCIL_POINT
-
 
   select case (self%fs)
   case (W0, WTHETA, WCHI)
@@ -1207,12 +1202,12 @@ function is_writable(self) result(return_writable)
 
 end function is_writable
 
-!> Get the instance of a stencil dofmap with for a given shape and size
-!> @param[in] stencil_shape The shape identifier for the stencil dofmap to
-!create
+!> @brief Get the instance of a stencil dofmap for a given shape and size
+!> @param[in] stencil_shape The shape identifier for the stencil dofmap to create
 !> @param[in] stencil_extent The extent of the stencil excluding the centre cell
 !> @return map the stencil_dofmap object to return
 function get_stencil_dofmap(self, stencil_shape, stencil_extent) result(map)
+  use stencil_dofmap_mod,   only: stencil_dofmap_type
 
   implicit none
 
@@ -1272,6 +1267,73 @@ function get_stencil_dofmap(self, stencil_shape, stencil_extent) result(map)
     loop => loop%next
   end do
 end function get_stencil_dofmap
+
+!> @brief Get the instance of a 2D stencil dofmap for a given shape and size
+!> @param[in] stencil_shape The shape identifier for the stencil dofmap to create
+!> @param[in] stencil_extent The extent of the stencil excluding the centre cell
+!> @return map The stencil_dofmap object to return
+function get_stencil_2D_dofmap(self, stencil_shape, stencil_extent) result(map)
+
+  use stencil_2D_dofmap_mod, only: stencil_2D_dofmap_type
+
+  implicit none
+
+  class(function_space_type), intent(inout) :: self
+  integer(i_def),             intent(in) :: stencil_shape
+  integer(i_def),             intent(in) :: stencil_extent
+  type(stencil_2D_dofmap_type), pointer :: map ! return value
+
+  type(linked_list_item_type), pointer :: loop => null()
+
+  integer(i_def) :: id
+
+  map => null()
+
+  ! Calculate id of the stencil_dofmap we want
+  id = generate_stencil_dofmap_id( stencil_shape, stencil_extent )
+
+
+  ! point at the head of the stencil_dofmap linked list
+  loop => self%dofmap_list%get_head()
+
+  ! loop through list
+  do
+    if ( .not. associated(loop) ) then
+      ! At the end of list and we didn't find it
+      ! create stencil dofmap and add it
+
+      call self%dofmap_list%insert_item(stencil_2D_dofmap_type(stencil_shape, &
+                                                            stencil_extent,   &
+                                                            self%ndof_cell,   &
+                                                            self%mesh,        &
+                                                            self%master_dofmap))
+
+
+      ! At this point the desired stencil dofmap is the tail of the list
+      ! so just retrieve it and exit loop
+
+      loop => self%dofmap_list%get_tail()
+
+      ! 'cast' to the stencil_dofmap_type
+      select type(v => loop%payload)
+        type is (stencil_2D_dofmap_type)
+          map => v
+      end select
+      exit
+
+    end if
+    ! otherwise search list for the id we want
+    if ( id == loop%payload%get_id() ) then
+      ! 'cast' to the stencil_dofmap_type
+      select type(v => loop%payload)
+        type is (stencil_2D_dofmap_type)
+          map => v
+      end select
+      exit
+    end if
+    loop => loop%next
+  end do
+end function get_stencil_2D_dofmap
 
 !----------------------------------------------------------------------------
 !> @brief   Returns count of colours used in colouring member mesh.
