@@ -31,7 +31,7 @@ module io_dev_data_mod
   ! IO_Dev modules
   use io_dev_init_mod,                  only : create_io_dev_fields
   use io_dev_init_fields_alg_mod,       only : io_dev_init_fields_alg
-
+  use io_dev_checksum_alg_mod,          only : io_dev_checksum_alg
 
   implicit none
 
@@ -139,6 +139,14 @@ contains
     if ( write_diag ) then
       call write_state( model_data%core_fields )
     end if
+
+    !==================== Write checksum output =====================
+    ! Remove multi-data field from core fields as it cannot currently be passed
+    ! to Psyclone
+    call model_data%core_fields%remove_field( "multi_data_field" )
+
+    call io_dev_checksum_alg( model_data%core_fields )
+
 
   end subroutine output_model_data
 
