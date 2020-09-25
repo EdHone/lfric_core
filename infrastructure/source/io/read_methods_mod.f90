@@ -30,6 +30,7 @@ module read_methods_mod
   private
   public :: checkpoint_read_netcdf,  &
             checkpoint_read_xios,    &
+            read_field_node,         &
             read_field_edge,         &
             read_field_face,         &
             read_field_single_face,  &
@@ -105,6 +106,53 @@ subroutine checkpoint_read_xios(xios_field_name, file_name, field_proxy)
 
 end subroutine checkpoint_read_xios
 
+!> @brief   Read a field in UGRID format on the node domain via XIOS
+!>@param[in]    xios_field_name XIOS identifier for the field
+!>@param[inout] field_proxy     A field proxy containing the data to output
+!-------------------------------------------------------------------------------
+subroutine read_field_node(xios_field_name, field_proxy)
+
+  implicit none
+
+  character(len=*),               intent(in)    :: xios_field_name
+  class(field_parent_proxy_type), intent(inout) :: field_proxy
+
+  integer(i_def) :: i, undf
+  integer(i_def) :: domain_size, axis_size
+  real(dp_xios), allocatable :: recv_field(:)
+
+  undf = field_proxy%vspace%get_last_dof_owned()
+
+  ! Get the expected horizontal and vertical axis size
+  call xios_get_domain_attr('node', ni=domain_size)
+  call xios_get_axis_attr("vert_axis_full_levels", n_glo=axis_size)
+
+  ! Size the arrays to be what is expected
+  allocate(recv_field(domain_size*axis_size))
+
+  ! Read the data from XIOS to a temporary 1D array
+  call xios_recv_field(xios_field_name, recv_field)
+
+  ! Reshape the data to what we require for the LFRic field
+  select type(field_proxy)
+
+    type is (field_proxy_type)
+    do i = 0, axis_size-1
+      field_proxy%data( i+1 : undf : axis_size )  = &
+                  real(recv_field( i*(domain_size)+1 : (i+1)*domain_size ), r_def)
+    end do
+
+    type is (integer_field_proxy_type)
+    do i = 0, axis_size-1
+      field_proxy%data( i+1 : undf : axis_size )  = &
+                  int(recv_field( i*(domain_size)+1 : (i+1)*domain_size ), i_def)
+    end do
+
+  end select
+
+  deallocate(recv_field)
+
+end subroutine read_field_node
 
 !> @brief   Read a field in UGRID format on the edge domain via XIOS
 !>@param[in]    xios_field_name XIOS identifier for the field

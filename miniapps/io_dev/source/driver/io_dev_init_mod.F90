@@ -27,10 +27,11 @@ module io_dev_init_mod
   use initialization_config_mod,      only : init_option,                     &
                                              init_option_fd_start_dump
   ! I/O methods
-  use read_methods_mod,               only : read_field_edge,        &
-                                             read_field_face,        &
-                                             read_field_single_face, &
-                                             read_field_time_var,    &
+  use read_methods_mod,               only : read_field_node,                 &
+                                             read_field_edge,                 &
+                                             read_field_face,                 &
+                                             read_field_single_face,          &
+                                             read_field_time_var,             &
                                              read_state
   use write_methods_mod,              only : write_field_node,                &
                                              write_field_edge,                &
@@ -125,6 +126,9 @@ module io_dev_init_mod
     ! Add fields to dump_fields collection - fields for which read and write
     ! routines will be tested
 
+    tmp_field_ptr => core_fields%get_field( 'W0_field' )
+    call dump_fields%add_reference_to_field( tmp_field_ptr )
+
     tmp_field_ptr => core_fields%get_field( 'W2H_field' )
     call dump_fields%add_reference_to_field( tmp_field_ptr )
 
@@ -211,6 +215,7 @@ module io_dev_init_mod
 
     ! Set up I/O methods
     if ( fs_id == W0 ) then
+      tmp_read_ptr  => read_field_node
       tmp_write_ptr => write_field_node
 
     else if ( fs_id == W2H ) then

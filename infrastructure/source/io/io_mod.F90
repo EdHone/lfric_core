@@ -305,6 +305,7 @@ subroutine diagnostic_domain_init(mesh_id, chi)
 
   ! domain index to ensure processor decomposition independent
   ! read for the face domain
+  integer(i_def),allocatable :: W0_domain_index(:)
   integer(i_def),allocatable :: W2_domain_index(:)
   integer(i_def),allocatable :: W3_domain_index(:)
 
@@ -317,10 +318,11 @@ subroutine diagnostic_domain_init(mesh_id, chi)
 
   ! Variables for mesh information
   type(mesh_type), pointer :: local_mesh => null()
-  integer(i_def)           :: num_face_local
+  integer(i_def)           :: num_vert_local
   integer(i_def)           :: num_edge_local
-  integer(i_def)           :: nodes_per_face
+  integer(i_def)           :: num_face_local
   integer(i_def)           :: nodes_per_edge
+  integer(i_def)           :: nodes_per_face
 
   type(function_space_type), pointer :: output_field_fs   => null()
   type(function_space_type), pointer :: w2h_fs   => null()
@@ -469,9 +471,14 @@ subroutine diagnostic_domain_init(mesh_id, chi)
     ibegin_nodes = sum(all_undfs(1:get_comm_rank()))
   end if
 
+  ! Allocate domain_index for nodes (vertices)
+  num_vert_local = local_mesh%get_num_verts_owned_2d()
+  allocate(W0_domain_index(num_vert_local))
 
- ! Do Node domain setup
+  ! Populate domain_index for this rank
+  call proxy_coord_output(1)%vspace%get_global_vert_dof_id_2d(W0_domain_index)
 
+  ! Setup node domain
   call xios_set_domain_attr("node", ni_glo=global_undf,           &
                             ibegin=ibegin_nodes,                  &
                             ni=local_undf(1)/nfull_levels,        &
@@ -480,6 +487,10 @@ subroutine diagnostic_domain_init(mesh_id, chi)
                             latvalue_1d=nodes_lat)
   call xios_set_domain_attr("node", bounds_lon_1d=bnd_nodes_lon,  &
                             bounds_lat_1d=bnd_nodes_lat)
+
+  ! Pass local portion of domain_index to XIOS
+  call xios_set_domain_attr( "node", i_index=int( &
+                              W0_domain_index( 1 : (local_undf(1)/nfull_levels) ) ) )
 
   call xios_set_axis_attr("vert_axis_full_levels", &
                            n_glo=nfull_levels,     &
@@ -755,6 +766,7 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   deallocate(faces_lat, faces_lon, bnd_faces_lat, bnd_faces_lon)
   deallocate(bnd_edges_lat, bnd_edges_lon)
   deallocate(nodes_lat_full, nodes_lon_full)
+  deallocate(W0_domain_index)
   deallocate(W2_domain_index)
   deallocate(W3_domain_index)
   fractional_levels_half_faces => null()
