@@ -78,11 +78,11 @@
                     'module load meto-environment/lfric/intel/17.0.0.098'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cce/8.4.3'
+                    'module load meto-environment/lfric/cce/8.7.0'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
-            'tech' : ['module load cray-snplauncher']
+            'tech' : ['module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'queue' : {
             'build' : {
