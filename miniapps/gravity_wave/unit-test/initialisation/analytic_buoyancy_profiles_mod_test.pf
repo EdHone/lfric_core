@@ -94,9 +94,13 @@ contains
 
   subroutine tearDown( this )
 
+    use configuration_mod,        only: final_configuration
+
     implicit none
 
     class(analytic_buoyancy_profiles_test_type), intent(inout) :: this
+
+    call final_configuration()
 
     ! Finalise YAXT
     call xt_finalize()
@@ -110,12 +114,8 @@ contains
   subroutine test_all( this )
 
     use analytic_buoyancy_profiles_mod, only: analytic_buoyancy
-    use constants_mod,                  only: PI
-    use planet_config_mod,              only: scaled_radius, gravity
-    use generate_global_gw_fields_mod,  only: generate_global_gw_pert
-    use reference_profile_mod,          only: reference_profile
-    use idealised_config_mod,           only: test_gravity_wave
-    use coord_transform_mod,            only: xyz2llr
+    use planet_config_mod,              only: scaled_radius
+
     implicit none
 
     class(analytic_buoyancy_profiles_test_type), intent(inout) :: this
