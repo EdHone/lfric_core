@@ -16,6 +16,7 @@
 # terminal.
 #
 OPERATE_ON ?= infrastructure mesh_tools gungho lfric_atm \
+              lfricinputs                                \
               miniapps/skeleton                          \
               miniapps/diagnostics                       \
               miniapps/gravity_wave                      \

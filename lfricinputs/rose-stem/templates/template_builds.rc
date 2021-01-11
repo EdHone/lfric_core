@@ -1,0 +1,37 @@
+{# Set-up build related task definitions #}
+
+    [[fcm_make-{{util_name}}-{{build}}]]
+        inherit = {{build_family}}, METO_{{platform_fam}}_2_TASKS, {{platform_fam}}
+        [[[job]]]
+            execution retry delays = 2*PT1M
+        [[[environment]]]
+            CONFIG= {{build_family}}
+            LEVEL={{level}}
+	    LFRICINPUTS_UTIL={{util_name}}
+            ROSE_TASK_APP=fcm_make_{{util_name}}
+            ROSE_TASK_N_JOBS=2
+
+    [[configurate-{{util_name}}-{{build}}]]
+        inherit = {{build_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
+        [[[environment]]]
+            PYTHONPATH=$CYLC_SUITE_SHARE_DIR/fcm_make-{{util_name}}-{{build}}/extract/lfric/GPL/lib/python:
+            ROSE_TASK_APP=configurate
+            NAME={{util_name}}-{{build}}
+
+    [[psyclone-{{util_name}}-{{build}}]]
+        inherit = {{build_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
+        [[[environment]]]
+            ROSE_TASK_APP=psyclone
+            NAME={{util_name}}-{{build}}
+
+    [[fcm_make2-{{util_name}}-{{build}}]]
+         inherit = {{build_family}}, METO_{{platform_fam}}_2_TASKS, {{platform_fam}}
+         script = """
+                 rose task-run --verbose --define=fast-dest-root-cont=$FASTMEM --define='args=--archive'
+                 """
+        [[[environment]]]
+            CONFIG= {{build_family}}
+            LEVEL={{level}}
+	    LFRICINPUTS_UTIL={{util_name}}
+            ROSE_TASK_APP=fcm_make_{{util_name}}
+            ROSE_TASK_N_JOBS=2

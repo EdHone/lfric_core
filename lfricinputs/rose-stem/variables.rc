@@ -1,0 +1,67 @@
+{# Suite config variable definitions #}
+
+{# Set fixed release version the KGO corresponds to #}
+{% set BASE = "2020.09.1" %}
+
+{# Set relative KGO directory for each task #}
+{% do KGO_DIRS.update({
+  "um2lfric-spice_gfortran_gcc_safe-aquaplanet_N48L38_C48L38"        : BASE~"_t2441",
+  "um2lfric-spice_gfortran_gcc_rigorous-aquaplanet_N48L38_C48L38"    : BASE~"_t2441",
+  "um2lfric-spice_ifort_gcc_safe-aquaplanet_N48L38_C48L38"           : BASE~"_t2441",
+  "um2lfric-spice_ifort_gcc_rigorous-aquaplanet_N48L38_C48L38"       : BASE~"_t2441",
+
+  "um2lfric-spice_gfortran_gcc_safe-basicgagl_N96L38_C12L38"         : BASE~"_t2441",
+  "um2lfric-spice_gfortran_gcc_rigorous-basicgagl_N96L38_C12L38"     : BASE~"_t2441",
+  "um2lfric-spice_ifort_gcc_safe-basicgagl_N96L38_C12L38"            : BASE~"_t2441",
+  "um2lfric-spice_ifort_gcc_rigorous-basicgagl_N96L38_C12L38"        : BASE~"_t2441",
+
+  "lfric2um-spice_gfortran_gcc_safe-aquaplanet_C48L38_N48L38"        : BASE~"_t2409",
+  "lfric2um-spice_gfortran_gcc_rigorous-aquaplanet_C48L38_N48L38"    : BASE~"_t2409",
+  "lfric2um-spice_ifort_gcc_safe-aquaplanet_C48L38_N48L38"           : BASE~"_t2409",
+  "lfric2um-spice_ifort_gcc_rigorous-aquaplanet_C48L38_N48L38"       : BASE~"_t2409",
+
+  "scintelapi-spice_gfortran_gcc_rigorous-aquaplanet_C48L38_C48L38"  : BASE~"_t2441",
+  "scintelapi-spice_gfortran_gcc_safe-aquaplanet_C48L38_C48L38"      : BASE~"_t2441",
+  "scintelapi-spice_ifort_gcc_rigorous-aquaplanet_C48L38_C48L38"     : BASE~"_t2441",
+  "scintelapi-spice_ifort_gcc_safe-aquaplanet_C48L38_C48L38"         : BASE~"_t2441",
+
+  "integration-spice_gfortran_gcc_safe-um2um"                        : BASE~"_t2409",
+  "integration-spice_gfortran_gcc_rigorous-um2um"                    : BASE~"_t2409",
+  "integration-spice_ifort_gcc_safe-um2um"                           : BASE~"_t2409",
+  "integration-spice_ifort_gcc_rigorous-um2um"                       : BASE~"_t2409",
+
+  "integration-spice_gfortran_gcc_safe-lfric2lfric"                  : BASE~"_t2441",
+  "integration-spice_gfortran_gcc_rigorous-lfric2lfric"              : BASE~"_t2441",
+  "integration-spice_ifort_gcc_safe-lfric2lfric"                     : BASE~"_t2441",
+  "integration-spice_ifort_gcc_rigorous-lfric2lfric"                 : BASE~"_t2441",
+
+  "um2lfric-xc40_crayftn_craycc_safe-aquaplanet_N48L38_C48L38"       : BASE,
+  "um2lfric-xc40_crayftn_craycc_rigorous-aquaplanet_N48L38_C48L38"   : BASE,
+  "um2lfric-xc40_ifort_icc_safe-aquaplanet_N48L38_C48L38"            : BASE~"_t2441",
+  "um2lfric-xc40_ifort_icc_rigorous-aquaplanet_N48L38_C48L38"        : BASE~"_t2441",
+
+  "um2lfric-xc40_crayftn_craycc_safe-basicgagl_N96L38_C12L38"        : BASE,
+  "um2lfric-xc40_crayftn_craycc_rigorous-basicgagl_N96L38_C12L38"    : BASE,
+  "um2lfric-xc40_ifort_icc_safe-basicgagl_N96L38_C12L38"             : BASE~"_t2441",
+  "um2lfric-xc40_ifort_icc_rigorous-basicgagl_N96L38_C12L38"         : BASE~"_t2441",
+
+  "lfric2um-xc40_crayftn_craycc_safe-aquaplanet_C48L38_N48L38"       : BASE,
+  "lfric2um-xc40_crayftn_craycc_rigorous-aquaplanet_C48L38_N48L38"   : BASE,
+  "lfric2um-xc40_ifort_icc_safe-aquaplanet_C48L38_N48L38"            : BASE~"_t2409",
+  "lfric2um-xc40_ifort_icc_rigorous-aquaplanet_C48L38_N48L38"        : BASE~"_t2409",
+
+  "scintelapi-xc40_crayftn_craycc_safe-aquaplanet_C48L38_C48L38"     : BASE,
+  "scintelapi-xc40_crayftn_craycc_rigorous-aquaplanet_C48L38_C48L38" : BASE,
+  "scintelapi-xc40_ifort_icc_safe-aquaplanet_C48L38_C48L38"          : BASE~"_t2441",
+  "scintelapi-xc40_ifort_icc_rigorous-aquaplanet_C48L38_C48L38"      : BASE~"_t2441",
+
+  "integration-xc40_ifort_icc_safe-um2um"                            : BASE~"_t2409",
+  "integration-xc40_ifort_icc_rigorous-um2um"                        : BASE~"_t2409",
+  "integration-xc40_crayftn_craycc_safe-um2um"                       : BASE,
+  "integration-xc40_crayftn_craycc_rigorous-um2um"                   : BASE,
+
+  "integration-xc40_ifort_icc_safe-lfric2lfric"                      : BASE~"_t2441",
+  "integration-xc40_ifort_icc_rigorous-lfric2lfric"                  : BASE~"_t2441",
+  "integration-xc40_crayftn_craycc_safe-lfric2lfric"                 : BASE,
+  "integration-xc40_crayftn_craycc_rigorous-lfric2lfric"             : BASE,
+}) %}

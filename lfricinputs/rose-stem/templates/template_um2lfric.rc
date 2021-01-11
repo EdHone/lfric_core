@@ -1,0 +1,52 @@
+{# Set up um2lfric specific runtime tasks #}
+
+{% if include_mode == "graph" %}
+
+                fcm_make-um2lfric-{{build}} => \
+                configurate-um2lfric-{{build}} => \
+                psyclone-um2lfric-{{build}} => \
+                fcm_make2-um2lfric-{{build}}
+
+  {% if "crayftn" not in build %}
+                fcm_make2-um2lfric-{{build}} => \
+                um2lfric-{{build}}-{{config}} => \
+                rose_ana-um2lfric-{{build}}-{{config}}
+
+                generate_weights-um2lfric-{{config}} => \
+                um2lfric-{{build}}-{{config}}
+  {% endif %}
+
+{% endif %}
+
+{% if include_mode == "runtime" %}
+
+  {% set util_name = "um2lfric" %}
+  {% include "templates/template_builds.rc" %}
+
+    [[um2lfric-{{build}}-{{config}}]]
+        inherit = {{build_family}}, {{queue_fam}}, METO_{{platform_fam}}_{{num_tasks}}_TASKS, {{platform_fam}}
+        env-script = "eval $(rose task-env)"
+        script = "{{TASK_RUN}} --path= --path='share/fcm_make-um2lfric-{{build}}/build/bin'"
+	post-script = """
+                      find . -regex '.*PET0+\..+\.Log' -exec cp {} $ROSE_TASK_LOG_DIR \;
+                      find . -regex '.*PET0+\..+\.Log' -exec cat {} \;
+                      """
+
+        [[[environment]]]
+            ROSE_TASK_APP = {{um2lfric_configs[config]["app"]}}
+            ROSE_APP_OPT_CONF_KEYS = {{um2lfric_configs[config]["opt_config"]}}
+            NUMBER_OF_LAYERS = {{um2lfric_configs[config]["target_grid_levs"]}}
+            SOURCE_DUMP = {{um2lfric_configs[config]["source_dump"]}}
+	    TARGET_GRID_RES={{um2lfric_configs[config]["target_grid_res"]}}
+            LFRIC_MESH_FILE = {{um2lfric_configs[config]["lfric_mesh"]}}
+            WEIGHT_LOC = $ROSE_SUITE_DIR_REL/work/1/generate_weights-um2lfric-{{config}}
+
+    {% set task_name = "um2lfric-" + build + "-" + config %}
+    [[rose_ana-um2lfric-{{build}}-{{config}}]]
+        inherit = {{rose_ana_family}}, {{build_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
+        [[[environment]]]
+            SUITE_DIR=../um2lfric-{{build}}-{{config}}
+            KGO_DIR={{kgo_dir_base}}/{{task_name}}/{{KGO_DIRS[task_name]|default("no_kgo_var")}}
+            ROSE_TASK_APP=rose_ana_um2lfric
+
+{% endif %}

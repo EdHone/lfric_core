@@ -1,0 +1,55 @@
+{# Set up weight generation specific runtime tasks #}
+
+{% for config in um2lfric_configs %}
+
+    [[generate_weights-um2lfric-{{config}}]]
+        inherit = x86_weights
+        script = rose task-run --app-key=generate_weights
+        [[[environment]]]
+            MPIRUN_N_JOBS = 8
+            INTERPOLATION_DIRECTION = um2lfric
+            WEIGHT_GEN_OPTION = specified-resolution
+            UM_START_DUMP =
+            UM_GRID_RESOLUTION = {{um2lfric_configs[config]["source_grid_res"] | replace("N", "")}}
+            LFRIC_MESH_FILE = {{um2lfric_configs[config]["lfric_mesh"]}}
+        [[[directives]]]
+            --mem=16384
+            --ntasks=8
+
+{% endfor %}
+
+{% for config in lfric2um_configs %}
+
+    [[generate_weights-lfric2um-{{config}}]]
+        inherit = x86_weights
+        script = rose task-run --app-key=generate_weights
+        [[[environment]]]
+            MPIRUN_N_JOBS = 8
+            INTERPOLATION_DIRECTION = lfric2um
+            WEIGHT_GEN_OPTION = specified-resolution
+            UM_START_DUMP =
+            UM_GRID_RESOLUTION = {{lfric2um_configs[config]["target_grid_res"] | replace("N", "")}}
+            LFRIC_MESH_FILE = {{lfric2um_configs[config]["lfric_mesh"]}}
+        [[[directives]]]
+            --mem=16384
+            --ntasks=8
+
+{% endfor %}
+
+{% for config in skeleton_configs %}
+
+    [[generate_weights-skeleton-{{config}}]]
+        inherit = x86_weights
+        script = rose task-run --app-key=generate_weights
+        [[[environment]]]
+            MPIRUN_N_JOBS = 8
+            INTERPOLATION_DIRECTION = um2lfric
+            WEIGHT_GEN_OPTION = specified-resolution
+            UM_START_DUMP =
+            UM_GRID_RESOLUTION = {{skeleton_configs[config]["source_grid_res"] | replace("N", "")}}
+            LFRIC_MESH_FILE = {{skeleton_configs[config]["lfric_mesh"]}}
+        [[[directives]]]
+            --mem=16384
+            --ntasks=8
+
+{% endfor %}

@@ -1,0 +1,168 @@
+{# Define some runtime families #}
+
+    [[PLATFORM_X86]]
+
+    [[PLATFORM_XC40]]
+
+    [[WEIGHTS]]
+
+
+
+
+    [[LINUX]]
+        [[[environment]]]
+            PSYCLONE_DIR = /data/users/lfric/modules/packages.rhel7/psyclone
+            FASTMEM = \$TMPDIR
+            BIG_DATA_DIR = /data/users/lfric/data
+{% if SPICE %}
+        [[[directives]]]
+            --mem=16384
+            --gres=tmp:2048
+            --partition=rhel7
+        [[[job]]]
+            batch system = slurm
+            execution time limit = PT15M
+{% else %}
+        [[[remote]]]
+            host = {{ ROSE_ORIG_HOST }}
+        [[[job]]]
+            execution time limit = PT15M
+{% endif %}
+
+{% for tasks in [1, 2, 6, 12, 18, 24] %}
+    [[METO_LINUX_{{tasks}}_TASKS]]
+        [[[directives]]]
+            --ntasks={{tasks}}
+        [[[environment]]]
+            ROSE_LAUNCHER_PREOPTS = -n {{tasks}}
+{% endfor %}
+
+    [[METO_LINUX_NORMAL_QUEUE]]
+        [[[environment]]]
+            OMP_NUM_THREADS = 1
+            OMP_STACKSIZE   = 1g
+
+    [[meto-x86-ifort-gcc]]
+        inherit = PLATFORM_X86
+        pre-script = """
+                     module use /data/users/lfric/modules/modulefiles.rhel7
+                     module load environment/lfric/intel/17.0.1
+                     module load um_tools
+                     module list 2>&1
+                     unset F_UFMTENDIAN
+                     ulimit -s unlimited
+                     """
+
+    [[meto-x86-gfortran-gcc]]
+        inherit = PLATFORM_X86
+        pre-script = """
+                     module use /project/ukmo/rhel7/fortran/opt/gfortran/modulefiles
+                     module use /data/users/lfric/modules/modulefiles.rhel7
+                     module load environment/lfric/gnu/6.1.0
+                     module load um_tools
+                     module list 2>&1
+                     """
+
+    [[rose_ana_x86]]
+        inherit = PLATFORM_X86
+
+
+
+
+    [[XC40]]
+        [[[environment]]]
+            PSYCLONE_DIR=/home/d03/lfric/Data/modules/packages/psyclone
+            UMDIR = /projects/um1
+            FASTMEM = \$RAMTMP
+            BIG_DATA_DIR = /data/d03/lfric/data
+        [[[remote]]]
+            host = $(rose host-select xc)
+        [[[directives]]]
+            -S = /bin/bash
+        [[[job]]]
+            batch system = pbs
+            execution time limit = PT9M
+
+{% for tasks in [1, 2, 6] %}
+    [[METO_XC40_{{tasks}}_TASKS]]
+        [[[directives]]]
+            -l ncpus={{tasks}}
+            -l tmpsize = 2GB
+            -q = shared
+            -l mem = 8GB
+        [[[environment]]]
+            ROSE_LAUNCHER = mpiexec
+            ROSE_LAUNCHER_PREOPTS = -n {{tasks}}
+{% endfor %}
+
+{% for tasks in [36,72,144,288] %}
+    [[METO_XC40_{{tasks}}_TASKS]]
+        [[[environment]]]
+            NUM_NODES = {{(tasks/36) | round(0, 'ceil') | int}}
+            TOTAL_MPI_TASKS = {{tasks}}
+        [[[directives]]]
+            -l select = {{(tasks/36) | round(0, 'ceil') | int}}
+{% endfor %}
+
+    [[METO_XC40_NORMAL_QUEUE]]
+        [[[environment]]]
+            ROSE_LAUNCHER = aprun
+            CORES_PER_NODE = 36
+            NUMA_REGIONS_PER_NODE = 2
+            CORES_PER_NUMA_REGION = $((CORES_PER_NODE/NUMA_REGIONS_PER_NODE))
+            OMP_NUM_THREADS = 1
+            OMP_STACKSIZE   = 1g
+            HYPERTHREADS = 1
+            POTENTIAL_MPI_TASKS_PER_NUMA_REGION = \
+              $(((CORES_PER_NUMA_REGION*HYPERTHREADS)/OMP_NUM_THREADS))
+            MPI_TASKS_PER_NUMA_REGION = \
+              $((POTENTIAL_MPI_TASKS_PER_NUMA_REGION > \
+              TOTAL_MPI_TASKS?TOTAL_MPI_TASKS:POTENTIAL_MPI_TASKS_PER_NUMA_REGION))
+            ROSE_LAUNCHER_PREOPTS = \
+              -n $TOTAL_MPI_TASKS -ss -S $MPI_TASKS_PER_NUMA_REGION \
+              -d $OMP_NUM_THREADS -j $HYPERTHREADS
+        [[[directives]]]
+            -q = normal
+
+    [[meto-xc40-ifort-icc]]
+        inherit = PLATFORM_XC40
+        pre-script = """
+                     source /home/d03/lfric/Data/modules/setup
+                     module load meto-environment/lfric/intel/17.0.0.098
+                     module load cray-snplauncher python/v2.7.9 nctools/1.5.0
+                     module swap craype-haswell craype-ivybridge
+                     module load um_tools
+                     module list 2>&1
+                     """
+
+    [[meto-xc40-crayftn-craycc]]
+        inherit = PLATFORM_XC40
+        pre-script = """
+                     source /home/d03/lfric/Data/modules/setup
+                     module load meto-environment/lfric/cce/8.4.3
+                     module load cray-snplauncher python/v2.7.9 nctools/1.5.0
+                     module swap craype-haswell craype-ivybridge
+                     module load um_tools
+                     module list 2>&1
+                     """
+
+    [[rose_ana_xc40]]
+        inherit = PLATFORM_XC40
+
+
+
+
+    [[x86_weights]]
+        inherit = WEIGHTS, LINUX
+        pre-script = """
+                     module load gcc/8.1.0
+                     module load mpi/mpich/3.2.1/gnu/8.1.0
+                     module load scitools
+                     module load um_tools
+                     PATH=/project/um1/esmf/esmf7_1_0/apps/appsO/Linux.gfortran.64.mpi.default/:$PATH
+                     module list
+                     """
+{% if SPICE %}
+        [[[directives]]]
+            --partition=rhel7
+{% endif %}

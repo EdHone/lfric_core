@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simulation>
+
+  <!-- In this version we have ONE context  -->
+
+  <context id = "gungho_atm">
+
+    <calendar type = "Gregorian" start_date = "2016-01-01 15:00:00" time_origin = "2016-01-01 15:00:00" />
+
+    <axis_definition>
+      <axis id="vert_axis_half_levels" name="half_levels"/>
+      <axis id="vert_axis_full_levels" name="full_levels"/>
+      <axis id="veg_pseudo_levels" name="veg_pseudo_levels" n_glo="9"/>
+      <axis id="tile_pseudo_levels" name="tile_pseudo_levels" n_glo="11"/>
+      <axis id="snow_pseudo_levels" name="snow_pseudo_levels" n_glo="27"/>
+      <axis id="soil_pseudo_levels" name="soil_pseudo_levels" n_glo="4"/>
+      <axis id="plant_func_types" name="plant_func_types" n_glo="5"/>
+      <axis id="monthly_axis" name="monthly_axis" n_glo="12"/>
+    </axis_definition>
+
+    <domain_definition>
+      <domain id="node" name="Mesh2d_node" nvertex="1"/>
+      <domain id="face" name="Mesh2d_face" nvertex="4"/>
+      <domain id="edge" name="Mesh2d_edge" nvertex="2"/>
+      <domain id="checkpoint_W0" name="checkpoint_W0" nvertex="1"/>
+      <domain id="checkpoint_W1" name="checkpoint_W1" nvertex="1"/>
+      <domain id="checkpoint_W2" name="checkpoint_W2" nvertex="1"/>
+      <domain id="checkpoint_W3" name="checkpoint_W3" nvertex="1"/>
+      <domain id="checkpoint_Wtheta" name="checkpoint_Wtheta" nvertex="1"/>
+      <domain id="checkpoint_W3_2D" name="checkpoint_W3_2D" nvertex="1"/>
+      <domain id="checkpoint_pft" name="checkpoint_pft" nvertex="1"/>
+      <domain id="checkpoint_tile" name="checkpoint_tile" nvertex="1"/>
+      <domain id="checkpoint_sice" name="checkpoint_sice" nvertex="1"/>
+      <domain id="checkpoint_soil" name="checkpoint_soil" nvertex="1"/>
+      <domain id="checkpoint_snow" name="checkpoint_snow" nvertex="1"/>
+    </domain_definition>
+
+    <grid_definition>
+      <grid id="node_grid">
+	<domain domain_ref="node"/>
+	<axis axis_ref="vert_axis_full_levels"/>
+      </grid>
+      <grid id="half_level_face_grid">
+	<domain domain_ref="face"/>
+	<axis axis_ref="vert_axis_half_levels"/>
+      </grid>
+      <grid id="full_level_face_grid">
+	<domain domain_ref="face"/>
+	<axis axis_ref="vert_axis_full_levels"/>
+      </grid>
+      <grid id="half_level_edge_grid">
+	<domain domain_ref="edge"/>
+	<axis axis_ref="vert_axis_half_levels"/>
+      </grid>
+      <grid id="3D_monthly_grid">
+	<domain domain_ref="face"/>
+	<axis axis_ref="vert_axis_full_levels"/>
+	<axis axis_ref="monthly_axis"/>
+      </grid>
+      <grid id="pft_monthly_grid">
+	<domain domain_ref="face"/>
+	<axis axis_ref="plant_func_types"/>
+	<axis axis_ref="monthly_axis"/>
+      </grid>
+    </grid_definition>
+
+    <field_definition prec="8" >
+
+      <!-- Checkpoint group is compulsory -->
+      <!-- Checkpoint group -->
+      <field_group id="checkpoint_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
+      </field_group>
+
+    </field_definition>
+
+    <file_definition
+	type="one_file"
+	par_access="collective"
+	time_counter="none">
+
+      <!-- Definition of "lfric_diag" file is compulsory even if not used -->
+      <file id="lfric_diag" name="lfric_diag" output_freq="6h" convention="UGRID" enabled=".TRUE.">
+      </file>
+
+      <!-- File definition for writing an FD dump - this is compulsory -->
+      <file id="lfric_fd_dump" name="lfric_fd_dump" output_freq="1ts" convention="UGRID" enabled=".FALSE." >
+      </file>
+
+      <!-- File definition for lfric dump read -->
+      <file id="read_lfric_fd_dump" name="read_lfric_fd_dump" mode="read" output_freq="1ts" convention="UGRID" cyclic="true" enabled=".FALSE.">
+	<field id="read_ew_wind" name="ew_wind" long_name="eastward_wind" standard_name="eastward_wind" unit="m s-1" grid_ref="half_level_face_grid" operation="instant" />
+	<field id="read_ns_wind" name="ns_wind" long_name="northward_wind" standard_name="northward_wind" unit="m s-1" grid_ref="half_level_face_grid" operation="instant" />
+	<field id="read_upward_wind" name="upward_wind" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_rho" name="rho" long_name="air_density" unit="1" grid_ref="half_level_face_grid" operation="instant" />
+	<field id="read_m_v" name="m_v" long_name="humidity_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_m_cl" name="m_cl" long_name="cloud_liquid_water_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_m_cf" name="m_cf" long_name="cloud_ice_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_m_r" name="m_r" long_name="rain_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_zh" name="zh" long_name="boundary_layer_depth" unit="m" domain_ref="face" operation="instant" />
+	<field id="read_area_fraction" name="area_fraction" long_name="cloud_area_fraction" unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_bulk_fraction" name="bulk_fraction" long_name="cloud_bulk_fraction" unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_liquid_fraction" name="liquid_fraction" long_name="cloud_liquid_fraction" unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_frozen_fraction" name="frozen_fraction" long_name="cloud_frozen_fraction" unit="1" grid_ref="full_level_face_grid" operation="instant" />
+	<field id="read_z0msea" name="z0msea" long_name="sea_surface_roughness_length" unit="m" domain_ref="face" operation="instant" />
+	<field id="read_tstar" name="tstar" long_name="surface_temperature" standard_name="surface_temperature" unit="K" domain_ref="face" operation="instant" />
+	<field id="read_ozone" name="ozone" long_name="mass_fraction_of_ozone_in_air" standard_name="mass_fraction_of_ozone_in_air" unit="1" grid_ref="full_level_face_grid" operation="instant" />
+      </file>
+
+    </file_definition>
+
+  </context>
+
+  <context id = "xios">
+    <variable_definition>
+      <variable_group id = "buffer">
+        <variable id = "optimal_buffer_size" type = "string" >performance</variable>
+        <variable id = "buffer_factor_size" type = "double" >1.0</variable>
+      </variable_group>
+
+      <variable_group id = "parameters" >
+        <variable id = "using_server" type = "bool" >true</variable>
+        <variable id = "info_level" type = "int" >50</variable>
+        <variable id = "print_file" type="bool">true</variable>
+      </variable_group>
+    </variable_definition>
+  </context>
+
+</simulation>

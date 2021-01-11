@@ -1,0 +1,145 @@
+! *****************************COPYRIGHT*******************************
+! (C) Crown copyright Met Office. All rights reserved.
+! For further details please refer to the file LICENCE
+! which you should have received as part of this distribution.
+! *****************************COPYRIGHT*******************************
+MODULE generator_library_mod
+!
+! This module provides access to the generator library. It also contains
+! routines that creates/defines the library and finds the position index in the
+! library of a generator with a given identifier.
+!
+
+USE dependency_graph_mod, ONLY: field_generator
+USE log_mod,              ONLY: log_event, LOG_LEVEL_ERROR
+
+IMPLICIT NONE
+
+! Number of generators
+INTEGER, PARAMETER :: no_generators = 11
+
+! Generator array containing all generators
+TYPE(field_generator), TARGET :: generator_list(no_generators)
+
+CONTAINS
+
+SUBROUTINE init_generator_lib()
+!
+! This routine creates/defines the generator library
+!
+
+USE init_field_mod,      ONLY: init_field
+USE read_from_dump_mod,  ONLY: read_from_dump
+USE copy_field_data_mod, ONLY: copy_field_data
+USE a_times_X_mod,       ONLY: a_times_X
+USE X_plus_Y_mod,        ONLY: X_plus_Y
+USE aX_plus_bY_mod,      ONLY: aX_plus_bY
+USE X_minus_Y_mod,       ONLY: X_minus_Y
+USE X_times_Y_mod,       ONLY: X_times_Y
+USE X_divideby_Y_mod,    ONLY: X_divideby_Y
+USE X_powint_n_mod,      ONLY: X_powint_n
+USE X_powreal_a_mod,     ONLY: X_powreal_a
+
+IMPLICIT NONE
+
+! Iterable
+INTEGER :: l
+
+! init field operator
+l = 1
+generator_list(l)%identifier = 'init_field                    '
+generator_list(l)%generator => init_field
+
+! read from dump
+l = 2
+generator_list(l)%identifier = 'read_from_dump                '
+generator_list(l)%generator => read_from_dump
+
+! Copy data between fields
+l = 3
+generator_list(l)%identifier = 'copy_field_data               '
+generator_list(l)%generator => copy_field_data
+
+! scale field operator
+l = 4
+generator_list(l)%identifier = 'a_times_X                     '
+generator_list(l)%generator => a_times_X
+
+! Add two fields
+l = 5
+generator_list(l)%identifier = 'X_plus_Y                      '
+generator_list(l)%generator => X_plus_Y
+
+! Linearly combine two fields
+l = 6
+generator_list(l)%identifier = 'aX_plus_bY                    '
+generator_list(l)%generator => aX_plus_bY
+
+! Subtract two fields
+l = 7
+generator_list(l)%identifier = 'X_minus_Y                     '
+generator_list(l)%generator => X_minus_Y
+
+! Multiply two fields
+l = 8
+generator_list(l)%identifier = 'X_times_Y                     '
+generator_list(l)%generator => X_times_Y
+
+! Divide two fields
+l = 9
+generator_list(l)%identifier = 'X_divideby_Y                  '
+generator_list(l)%generator => X_divideby_Y
+
+! Raise field to power n, where n is an integer)
+l = 10
+generator_list(l)%identifier = 'X_powint_n                    '
+generator_list(l)%generator => X_powint_n
+
+! Raise field to power n, where n is a real
+l = 11
+generator_list(l)%identifier = 'X_powreal_a                   '
+generator_list(l)%generator => X_powreal_a
+
+END SUBROUTINE init_generator_lib
+
+
+FUNCTION generator_index(generator_id)
+!
+! This function returns the library position index of a generator with a given
+! id.
+!
+
+IMPLICIT NONE
+
+!
+! Arguments
+!
+! Generator identifier
+CHARACTER(LEN=*), INTENT(IN) :: generator_id
+
+!
+! Local variables
+!
+! Generator index
+INTEGER :: generator_index
+
+! Iterable
+INTEGER :: l
+
+! Loop over generator library items to find generator index corresponding to id
+generator_index = 0
+DO l = 1, no_generators
+  IF (trim(generator_id) == trim(generator_list(l)%identifier)) THEN
+    generator_index = l
+    EXIT
+  END IF
+END DO
+
+! Check if generator has been found, if not raise error.
+IF (generator_index == 0) THEN
+  CALL log_event('Generator not found in generator library', LOG_LEVEL_ERROR)
+END IF
+
+END FUNCTION generator_index
+
+END MODULE generator_library_mod

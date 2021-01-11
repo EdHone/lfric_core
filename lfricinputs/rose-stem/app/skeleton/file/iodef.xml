@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simulation>
+
+  <!-- In this version we have ONE context  -->
+
+
+  <context id = "gungho_atm">
+
+   <calendar type = "Gregorian" start_date = "2016-01-01 15:00:00" time_origin = "2016-01-01 15:00:00" />
+
+   <axis_definition>
+    <axis id="vert_axis_half_levels" name="half_levels"/>
+    <axis id="vert_axis_full_levels" name="full_levels"/>
+   </axis_definition>
+
+   <domain_definition>
+    <domain id="node" name="Mesh2d_node" nvertex="1"/>
+    <domain id="face" name="Mesh2d_face" nvertex="4"/>
+    <domain id="edge" name="Mesh2d_edge" nvertex="2"/>
+    <domain id="checkpoint_W0" name="checkpoint_W0" nvertex="1"/>
+    <domain id="checkpoint_W1" name="checkpoint_W1" nvertex="1"/>
+    <domain id="checkpoint_W2" name="checkpoint_W2" nvertex="1"/>
+    <domain id="checkpoint_W3" name="checkpoint_W3" nvertex="1"/>
+    <domain id="checkpoint_Wtheta" name="checkpoint_Wtheta" nvertex="1"/>
+    <domain id="checkpoint_W3_2D" name="checkpoint_W3_2D" nvertex="1"/>
+    <domain id="checkpoint_pft" name="checkpoint_pft" nvertex="1"/>
+    <domain id="checkpoint_tile" name="checkpoint_tile" nvertex="1"/>
+    <domain id="checkpoint_sice" name="checkpoint_sice" nvertex="1"/>
+    <domain id="checkpoint_soil" name="checkpoint_soil" nvertex="1"/>
+    <domain id="checkpoint_snow" name="checkpoint_snow" nvertex="1"/>
+   </domain_definition>
+
+   <grid_definition>
+    <grid id="node_grid">
+      <domain domain_ref="node"/>
+      <axis axis_ref="vert_axis_full_levels"/>
+    </grid>
+    <grid id="half_level_face_grid">
+      <domain domain_ref="face"/>
+      <axis axis_ref="vert_axis_half_levels"/>
+    </grid>
+    <grid id="full_level_face_grid">
+      <domain domain_ref="face"/>
+      <axis axis_ref="vert_axis_full_levels"/>
+    </grid>
+    <grid id="half_level_edge_grid">
+      <domain domain_ref="edge"/>
+      <axis axis_ref="vert_axis_half_levels"/>
+    </grid>
+   </grid_definition>
+
+   <field_definition prec="8" >
+
+     <!-- Skeleton fields used in checkpoint -->
+     <field_group id="skeleton_fields" freq_op="1ts" operation="once"  enabled=".TRUE." >
+       <field id="ew_wind" name="ew_wind" long_name="eastward_wind" standard_name="eastward_wind" unit="m s-1" grid_ref="half_level_face_grid" />
+       <field id="ns_wind" name="ns_wind" long_name="northward_wind" standard_name="northward_wind" unit="m s-1" grid_ref="half_level_face_grid" />
+       <field id="theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
+       <field id="ozone" name="ozone" long_name="mass_fraction_of_ozone_in_air" standard_name="mass_fraction_of_ozone_in_air" unit="1" grid_ref="full_level_face_grid" />
+       <field id="upward_wind" name="upward_wind" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="rho" name="rho" long_name="air_density" unit="1" grid_ref="half_level_face_grid" />
+       <field id="m_v" name="m_v" long_name="humidity_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" />
+       <field id="m_cl" name="m_cl" long_name="cloud_liquid_water_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" />
+       <field id="m_cf" name="m_cf" long_name="cloud_ice_mixing_ratio"  unit="1" grid_ref="full_level_face_grid" />
+       <field id="tstar" name="tstar" long_name="surface_temperature" standard_name="surface_temperature" unit="K" domain_ref="face" />
+     </field_group>
+
+     <!-- Checkpoint group is compulsory -->
+     <!-- Checkpoint group -->
+     <field_group id="checkpoint_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
+     </field_group>
+
+
+   </field_definition>
+
+   <file_definition
+      type="one_file"
+      par_access="collective"
+      time_counter="none">
+
+      <!-- File definition for checkpoint write -->
+      <file id="lfric_checkpoint_write" name="lfric_checkpoint_write" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+	<field field_ref="ew_wind"/>
+	<field field_ref="ns_wind"/>
+	<field field_ref="theta"/>
+	<field field_ref="ozone"/>
+	<field field_ref="upward_wind"/>
+	<field field_ref="rho" />
+	<field field_ref="m_v" />
+	<field field_ref="m_cl"/>
+	<field field_ref="m_cf"/>
+	<field field_ref="tstar"/>
+      </file>
+
+
+      <!-- Definition of "lfric_diag" file is compulsory even if not used -->
+      <file id="lfric_diag" name="lfric_diag" output_freq="10ts" convention="UGRID" enabled=".FALSE.">
+      </file>
+
+
+    </file_definition>
+
+  </context>
+
+  <context id = "xios">
+    <variable_definition>
+      <variable_group id = "buffer">
+        <variable id = "optimal_buffer_size" type = "string" >performance</variable>
+        <variable id = "buffer_factor_size" type = "double" >1.0</variable>
+      </variable_group>
+
+      <variable_group id = "parameters" >
+        <variable id = "using_server" type = "bool" >true</variable>
+        <variable id = "info_level" type = "int" >50</variable>
+        <variable id = "print_file" type="bool">true</variable>
+      </variable_group>
+    </variable_definition>
+  </context>
+
+</simulation>
