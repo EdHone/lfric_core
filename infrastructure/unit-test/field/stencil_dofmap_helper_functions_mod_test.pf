@@ -11,6 +11,7 @@ module stencil_dofmap_helper_functions_mod_test
   use pFUnit_Mod
   use stencil_2D_dofmap_mod,    only: stencil_2D_dofmap_type, STENCIL_2D_CROSS
   use master_dofmap_mod,        only: master_dofmap_type
+  use local_mesh_mod,           only: local_mesh_type
   use mesh_collection_mod,      only: mesh_collection_type, mesh_collection
   use mesh_mod,                 only: mesh_type, PLANE, PLANE_BI_PERIODIC
 
@@ -23,11 +24,13 @@ module stencil_dofmap_helper_functions_mod_test
   @TestCase
   type, extends(TestCase), public :: stencil_dofmap_helper_test_type
     private
+    type(local_mesh_type) :: unit_test_local_mesh
     integer(i_def) :: planar_mesh_id
     integer(i_def) :: biperiodic_mesh_id
   contains
     procedure setUp
     procedure tearDown
+    procedure get_local_mesh_ptr
     procedure test_get_stencil_cells
   end type stencil_dofmap_helper_test_type
 
@@ -39,16 +42,20 @@ contains
 
     class(stencil_dofmap_helper_test_type), intent(inout) :: this
 
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
     type(mesh_type) :: plane_mesh
     type(mesh_type) :: biperiodic_mesh
 
     ! Create top level mesh collection
     mesh_collection = mesh_collection_type()
 
+    call this%unit_test_local_mesh%initialise()
+    unit_test_local_mesh_ptr => this%get_local_mesh_ptr()
+
     ! Add canned meshes to the mesh collection
-    plane_mesh = mesh_type( PLANE )
+    plane_mesh = mesh_type( PLANE, unit_test_local_mesh_ptr )
     this%planar_mesh_id = mesh_collection%add_new_mesh( plane_mesh )
-    biperiodic_mesh = mesh_type( PLANE_BI_PERIODIC )
+    biperiodic_mesh = mesh_type( PLANE_BI_PERIODIC, unit_test_local_mesh_ptr )
     this%biperiodic_mesh_id = mesh_collection%add_new_mesh( biperiodic_mesh )
 
   end subroutine setUp
@@ -64,6 +71,16 @@ contains
     call mesh_collection%clear()
 
   end subroutine tearDown
+
+
+  function get_local_mesh_ptr(this) result(unit_test_local_mesh_ptr)
+    implicit none
+    class(stencil_dofmap_helper_test_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
+    unit_test_local_mesh_ptr => this%unit_test_local_mesh
+  end function get_local_mesh_ptr
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   @test
   subroutine test_get_stencil_cells(this)

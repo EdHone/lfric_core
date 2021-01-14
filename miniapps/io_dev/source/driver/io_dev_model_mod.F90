@@ -19,6 +19,8 @@ module io_dev_model_mod
   use init_clock_mod,             only : initialise_clock
   use io_mod,                     only : initialise_xios
   use linked_list_mod,            only : linked_list_type
+  use local_mesh_collection_mod,  only : local_mesh_collection, &
+                                         local_mesh_collection_type
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
@@ -152,9 +154,9 @@ module io_dev_model_mod
     ! Create the mesh
     allocate( global_mesh_collection, &
               source = global_mesh_collection_type() )
-
-    call init_mesh( local_rank, total_ranks, mesh_id, &
-                    twod_mesh_id=twod_mesh_id )
+    allocate( local_mesh_collection, &
+              source = local_mesh_collection_type() )
+    call init_mesh( local_rank, total_ranks, mesh_id, twod_mesh_id )
 
     ! Create FEM specifics (function spaces and chi field)
     call init_fem( mesh_id, chi_xyz, chi_sph, panel_id )

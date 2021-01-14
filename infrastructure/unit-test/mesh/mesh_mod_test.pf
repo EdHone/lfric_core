@@ -15,6 +15,7 @@ module mesh_mod_test
                                   global_mesh_collection
   use global_mesh_mod,      only: global_mesh_type
   use partition_mod,        only: partition_type
+  use local_mesh_mod,       only: local_mesh_type
   use mesh_mod,             only: mesh_type
   use mesh_collection_mod,  only: mesh_collection_type, &
                                   mesh_collection
@@ -48,10 +49,12 @@ module mesh_mod_test
     private
     type(global_mesh_type), pointer :: global_mesh => null()
     type(partition_type)            :: partition
+    type(local_mesh_type)           :: local_mesh
     type(uniform_extrusion_type)    :: extrusion
   contains
     procedure :: setUp
     procedure :: tearDown
+    procedure :: get_local_mesh_ptr
     procedure :: test_get_scalar
     procedure :: test_get_1d_array
     procedure :: test_get_2d_array
@@ -183,6 +186,8 @@ contains
     this%global_mesh => global_mesh_collection%get_global_mesh(global_mesh_id)
     this%partition   =  partition_type()
 
+    call this%local_mesh%initialise( this%global_mesh, this%partition )
+
     scaled_radius = radius/scaling
     this%extrusion = uniform_extrusion_type( scaled_radius, domain_top, nlayers )
 
@@ -205,6 +210,16 @@ contains
   end subroutine tearDown
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  function get_local_mesh_ptr(this) result(local_mesh_ptr)
+    implicit none
+    class(mesh_test_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: local_mesh_ptr
+    local_mesh_ptr => this%local_mesh
+  end function get_local_mesh_ptr
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   @Test( npes=[1] )
   subroutine test_get_scalar( this )
 
@@ -213,9 +228,14 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type (mesh_type) :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
     integer(i_def) :: test_integer
-    mesh_1 = mesh_type( this%global_mesh, &
+
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,  &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -368,11 +388,15 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type (mesh_type) :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
     real(r_def) :: test_real_array1(3)
     real(r_def) :: test_real_array2(3)
 
-    mesh_1 = mesh_type( this%global_mesh, &
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,   &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -423,15 +447,19 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type (mesh_type) :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
     integer(i_def), pointer :: adjacency(:,:) => null()
 
     real(r_def) :: test_real_array1_2d(3,8)
     real(r_def) :: test_real_array2_2d(3,8)
-    mesh_1 = mesh_type( this%global_mesh, &
+
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,   &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
-
     !-------------------------------------------------------------------
     ! Test get_cell_coords
     ! Note: Returns coords in cartesian coords [x,y,z]
@@ -478,10 +506,15 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type (mesh_type) :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
     real(r_def) :: test_real_array1_3d(3,8,5)
     real(r_def) :: test_real_array2_3d(3,8,5)
-    mesh_1 = mesh_type( this%global_mesh, &
+
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,   &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -552,10 +585,14 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type (mesh_type) :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
     integer(i_def) :: test_integer
 
-    mesh_1 = mesh_type( this%global_mesh, &
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,   &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -623,8 +660,12 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type(mesh_type)     :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
-    mesh_1 = mesh_type( this%global_mesh, &
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,  &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -651,10 +692,14 @@ contains
     class( mesh_test_type ), intent( inout ) :: this
 
     type(mesh_type)     :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
     type(domain_size_type) :: domain
     real(r_def)         :: test_real
 
-    mesh_1 = mesh_type( this%global_mesh, &
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,   &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -687,20 +732,26 @@ contains
 
     class( mesh_test_type ), intent( inout ) :: this
     type(mesh_type)      :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
     type(partition_type), pointer :: test_partition => null()
-    integer(i_def)       :: i
 
+    local_mesh_ptr => this%get_local_mesh_ptr()
 
-    mesh_1 = mesh_type( this%global_mesh, &
+    mesh_1 = mesh_type( local_mesh_ptr,  &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
 
     test_partition => mesh_1%get_partition()
 
-    do i=1, test_partition%get_num_cells_in_layer()
-      @assertEqual (test_partition%get_gid_from_lid(i), this%partition%get_gid_from_lid(i))
-    end do
+    ! Check the returned pointer to a partition is not null
+    @assertTrue( associated(test_partition) )
+
+    ! Check the partition in mesh is the same shape as the original partition
+    @assertEqual (test_partition%get_inner_depth(), this%partition%get_inner_depth())
+    @assertEqual (test_partition%get_last_edge_cell(), this%partition%get_last_edge_cell())
+    @assertEqual (test_partition%get_halo_depth(), this%partition%get_halo_depth())
 
   end subroutine test_get_partition
 
@@ -713,8 +764,12 @@ contains
 
     class( mesh_test_type ), intent( inout ) :: this
     type(mesh_type) :: mesh_1
+    type(local_mesh_type), pointer :: local_mesh_ptr
 
-    mesh_1 = mesh_type( this%global_mesh, &
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
+    mesh_1 = mesh_type( local_mesh_ptr,  &
+                        this%global_mesh, &
                         this%partition,   &
                         this%extrusion )
 
@@ -750,12 +805,18 @@ contains
     type(mesh_type), pointer :: source_mesh_ptr => null()
     type(mesh_type), pointer :: target_mesh_ptr => null()
 
+    type(local_mesh_type), pointer :: local_mesh_ptr
+
     integer(i_def), parameter :: npanels = 6
     type(ncdf_quad_type) :: file_handler
-    type(mesh_map_type), pointer :: mesh_map => null()
-    integer(i_def), allocatable  :: cell_map(:,:)
-    type(partition_type)         :: partition
-    type(uniform_extrusion_type) :: extrusion
+    type(mesh_map_type), pointer   :: mesh_map => null()
+    integer(i_def), allocatable    :: cell_map(:,:)
+    type(partition_type)           :: partition
+    type(local_mesh_type), target  :: source_local_mesh
+    type(local_mesh_type), pointer :: source_local_mesh_ptr
+    type(local_mesh_type), target  :: target_local_mesh
+    type(local_mesh_type), pointer :: target_local_mesh_ptr
+    type(uniform_extrusion_type)   :: extrusion
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
 
@@ -804,15 +865,21 @@ contains
 
     ! Generate the local meshes
     partition = partition_type(source_global_mesh_ptr, partitioner_ptr,1,1,1,0,1)
-    mesh = mesh_type( source_global_mesh_ptr, &
-                      partition,              &
+    call source_local_mesh%initialise( source_global_mesh_ptr, partition )
+    source_local_mesh_ptr => source_local_mesh
+    mesh = mesh_type( source_local_mesh_ptr, &
+                      source_global_mesh_ptr, &
+                      partition, &
                       extrusion )
     source_mesh_id = mesh_collection%add_new_mesh( mesh )
     call mesh%clear()
 
     partition = partition_type(target_global_mesh_ptr, partitioner_ptr,1,1,1,0,1)
-    mesh = mesh_type( target_global_mesh_ptr, &
-                      partition,              &
+    call target_local_mesh%initialise( target_global_mesh_ptr, partition )
+    target_local_mesh_ptr => target_local_mesh
+    mesh = mesh_type( target_local_mesh_ptr, &
+                      target_global_mesh_ptr, &
+                      partition, &
                       extrusion )
     target_mesh_id = mesh_collection%add_new_mesh( mesh )
     call mesh%clear()

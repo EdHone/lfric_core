@@ -28,7 +28,7 @@ USE, INTRINSIC :: iso_fortran_env, ONLY : int32, real64
 
 ! LFRic modules
 USE mesh_mod,        ONLY: mesh_type
-USE partition_mod,   ONLY: partition_type
+USE local_mesh_mod,  ONLY: local_mesh_type
 IMPLICIT NONE
 
 ! Arguments
@@ -38,7 +38,7 @@ TYPE(lfric_field_type), INTENT(IN)       :: field
 
 ! Local variables
 TYPE(mesh_type), POINTER :: mesh
-TYPE(partition_type), POINTER :: partition
+TYPE(local_mesh_type), POINTER :: local_mesh
 
 ! Local partition versions of weights arrays
 INTEGER(KIND=int32), ALLOCATABLE :: dst_address_local_tmp(:)
@@ -49,7 +49,7 @@ REAL(KIND=real64), ALLOCATABLE   :: remap_matrix_local_tmp(:,:)
 INTEGER(KIND=int32) :: local_links, i_link, w
 
 mesh => field % get_mesh()
-partition => mesh % get_partition()
+local_mesh => mesh % get_local_mesh()
 
 ! Initially allocate to be the same size as global arrays
 ALLOCATE( dst_address_local_tmp( weights%num_links ) )
@@ -64,12 +64,12 @@ DO i_link = 1, weights%num_links
   ! known to this partition. Also the partition will also contain halo cells. 
   ! However, we only want to select cells wholy owned by this partition. So reject
   ! any addresses that are -1 or greater than ncells_2D
-  IF ( partition % get_lid_from_gid(weights%dst_address(i_link)) /= -1 .AND.  &
-       partition % get_lid_from_gid(weights%dst_address(i_link)) <=          &
+  IF ( local_mesh % get_lid_from_gid(weights%dst_address(i_link)) /= -1 .AND.  &
+       local_mesh % get_lid_from_gid(weights%dst_address(i_link)) <=          &
          mesh % get_ncells_2d() ) THEN
     local_links = local_links + 1
     dst_address_local_tmp(local_links) = &
-                      partition % get_lid_from_gid(weights%dst_address(i_link))
+                      local_mesh % get_lid_from_gid(weights%dst_address(i_link))
     ! Weights and source address also need filtering
     src_address_local_tmp(local_links) = weights%src_address(i_link)
     src_address_local_2D_tmp(local_links, 1) = weights%src_address_2D(i_link, 1)

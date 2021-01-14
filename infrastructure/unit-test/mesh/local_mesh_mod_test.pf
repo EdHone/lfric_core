@@ -1,0 +1,188 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2020 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!> Test the local_mesh module
+!>
+module local_mesh_mod_test
+
+  use constants_mod,              only: i_def, i_native, &
+                                        str_max_filename, str_def
+  use global_mesh_collection_mod, only: global_mesh_collection_type, &
+                                        global_mesh_collection
+  use global_mesh_mod,            only: global_mesh_type
+  use local_mesh_mod,             only: local_mesh_type
+  use mpi_mod,                    only: store_comm, clear_comm, get_comm_size, get_comm_rank
+  use partition_mod,              only: partition_type, &
+                                        partitioner_planar, &
+                                        partitioner_interface
+  use pFUnit_Mod
+  use yaxt,                       only: xt_initialize, xt_finalize
+  use ugrid_mesh_data_mod,        only: ugrid_mesh_data_type
+
+  implicit none
+
+  private
+  public :: setUp, &
+            tearDown, &
+            test_local_mesh
+
+  @testCase
+  type, public, extends( MPITestCase ) :: local_mesh_test_type
+    private
+    integer :: total_ranks
+    integer :: local_rank
+  contains
+    procedure :: setUp
+    procedure :: tearDown
+    procedure :: test_local_mesh
+  end type local_mesh_test_type
+
+contains
+
+  subroutine setUp( this )
+
+    implicit none
+
+    class(local_mesh_test_type), intent( inout ) :: this
+
+    global_mesh_collection = global_mesh_collection_type()
+
+    ! Initialise YAXT
+    call xt_initialize(this%getMpiCommunicator())
+    !Store the MPI communicator for later use
+    call store_comm(this%getMpiCommunicator())
+
+    this%total_ranks = get_comm_size()
+    this%local_rank  = get_comm_rank()
+
+  end subroutine setUp
+
+  subroutine tearDown( this )
+
+    implicit none
+
+    class(local_mesh_test_type), intent( inout ) :: this
+
+    call global_mesh_collection%clear()
+
+    ! Finalise YAXT
+    call xt_finalize()
+    ! Clear the stored MPI communicator
+    call clear_comm()
+
+  end subroutine teardown
+
+  !> Test local mesh module functionality
+  !>
+  @Test(npes=[1, 4] )
+  subroutine test_local_mesh( this )
+
+    implicit none
+
+    class(local_mesh_test_type), intent( inout ) :: this
+
+    integer(i_native) :: num_processes
+    character(len = str_max_filename) :: filename
+    character(str_def) :: mesh_name
+    integer(i_def) :: npanels
+    type(ugrid_mesh_data_type) :: ugrid_mesh_data
+    type(global_mesh_type) :: global_mesh
+    type(global_mesh_type), pointer :: global_mesh_ptr => null()
+    integer(i_def) :: global_mesh_id
+    integer(i_def) :: xproc
+    integer(i_def) :: yproc
+    integer(i_def) :: max_stencil_depth
+    procedure (partitioner_interface), pointer :: partitioner_ptr => null()
+    type(partition_type) :: partition
+    type(local_mesh_type) :: local_mesh
+    character(str_def) :: name
+    integer(i_def) :: lid
+    integer(i_def) :: gid
+
+    ! Create a local mesh from partitioning a global mesh on 1 and 4 processors
+
+    num_processes = this%context%getNumProcesses()
+
+    filename = 'data/mesh_BiP8x8-6000x2000.nc'
+    mesh_name = 'unit_test'
+    npanels  = 1
+    call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
+    global_mesh = global_mesh_type( ugrid_mesh_data, npanels )
+    call ugrid_mesh_data%clear()
+    global_mesh_id = global_mesh%get_id()
+    call global_mesh_collection%add_new_global_mesh( global_mesh )
+    global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
+
+    partitioner_ptr => partitioner_planar
+    select case ( num_processes )
+      case (1)
+        xproc = 1
+        yproc = 1
+      case (4)
+        xproc = 2
+        yproc = 2
+    end select
+    max_stencil_depth = 1
+
+    partition = partition_type( global_mesh_ptr, &
+                                partitioner_ptr, &
+                                xproc, &
+                                yproc, &
+                                max_stencil_depth, &
+                                this%local_rank, &
+                                this%total_ranks )
+
+    call local_mesh%initialise( global_mesh_ptr, partition )
+
+    ! Check the local mesh has the correct name
+    name = local_mesh%get_mesh_name()
+    @assertEqual( trim(mesh_name), trim(name) )
+
+    select case ( num_processes )
+
+      ! Check the cell numbers in the local mesh are correct and
+      ! in the correct order (gid <-> lid is correct)
+      case (1)
+        lid = 1
+        gid = local_mesh%get_gid_from_lid( lid )
+        @assertEqual( 27, gid )
+
+        gid = 30
+        lid = local_mesh%get_lid_from_gid( gid )
+        @assertEqual( 4, lid )
+
+      case (4)
+        lid = 1
+        gid = local_mesh%get_gid_from_lid( lid )
+        select case ( this%local_rank )
+          case (0)
+            @assertEqual( 50, gid )
+          case (1)
+            @assertEqual( 54, gid )
+          case (2)
+            @assertEqual( 18, gid )
+          case (3)
+            @assertEqual( 22, gid )
+        end select
+
+        gid = 30
+        lid = local_mesh%get_lid_from_gid( gid )
+        select case ( this%local_rank )
+          case (0)
+            @assertEqual( 54, lid )
+          case (1)
+            @assertEqual( 54, lid )
+          case (2)
+            @assertEqual( 43, lid )
+          case (3)
+            @assertEqual( 3, lid )
+        end select
+
+    end select
+
+  end subroutine test_local_mesh
+
+end module local_mesh_mod_test

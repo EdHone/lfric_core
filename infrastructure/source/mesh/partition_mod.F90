@@ -76,6 +76,7 @@ module partition_mod
 
   contains
 
+    procedure, public :: get_global_cell_id
     procedure, public :: get_num_cells_in_layer
     procedure, public :: get_inner_depth
     procedure, public :: get_num_cells_inner
@@ -88,8 +89,6 @@ module partition_mod
     procedure, public :: get_num_cells_ghost
     procedure, public :: get_num_panels_global_mesh
     procedure, public :: get_cell_owner
-    procedure, public :: get_gid_from_lid
-    procedure, public :: get_lid_from_gid
     procedure, public :: partition_type_assign
     procedure, public :: clear
 
@@ -1131,6 +1130,23 @@ contains
 
   end subroutine apply_stencil
 
+
+  !---------------------------------------------------------------------------
+  !> @brief Returns the List of global cell ids known to this partition,
+  !> ordered with inner cells first followed by the edge cells and finally
+  !> the halo cells ordered by depth of halo
+  !> @return The list of global cell ids known to this partition
+  !>
+  function get_global_cell_id(self) result ( global_cell_id )
+    implicit none
+
+    class(partition_type), intent(in) :: self
+    integer(i_def), allocatable :: global_cell_id( : )
+
+    allocate( global_cell_id, source=self%global_cell_id)
+
+  end function get_global_cell_id
+
   !---------------------------------------------------------------------------
   !> @brief Gets the total of all inner, edge and all halo cells in a 2d slice
   !>        on the local partition.
@@ -1398,189 +1414,6 @@ contains
 
   end function get_cell_owner
 
-  !---------------------------------------------------------------------------
-  !> @brief Gets the global index of the cell that corresponds to the given
-  !>        local index on the local partition.
-  !>
-  !> @param[in] lid ID of a cell in local index space.
-  !>
-  !> @return ID of a cell in global index space.
-  !>
-  function get_gid_from_lid( self, lid ) result ( gid )
-
-    implicit none
-
-    class(partition_type), intent(in) :: self
-
-    integer(i_def), intent(in) :: lid           ! local index
-    integer(i_def)             :: gid           ! global index
-    integer(i_def)             :: nlayer        ! layer of supplied lid
-    integer(i_def)             :: lid_in_layer  ! supplied lid projected to bottom layer
-    integer(i_def)             :: num_in_list   ! total number of cells in partition
-    integer(i_def)             :: depth         ! loop counter over halo depths
-
-    num_in_list = self%num_edge + self%num_ghost
-    do depth = 1,self%inner_depth
-      num_in_list = num_in_list + self%num_inner(depth)
-    end do
-    do depth = 1,self%halo_depth
-      num_in_list = num_in_list + self%num_halo(depth)
-    end do
-    lid_in_layer = modulo(lid-1,(num_in_list))+1
-    nlayer = (lid-1)/(num_in_list)
-
-    gid = self%global_cell_id(lid_in_layer) + nlayer*(self%global_num_cells)
-
-  end function get_gid_from_lid
-
-  !---------------------------------------------------------------------------
-  !> @brief Gets the local index of the cell on the local partition that
-  !>        corresponds to the given global index.
-  !>
-  !> @param[in] gid Global index to search for on the local partition.
-  !>
-  !> @return Local index that corresponds to the given global index or -1 if
-  !>         the cell with the given global index is not present of the local
-  !>         partition
-  !>
-  function get_lid_from_gid( self, gid ) result ( lid )
-  !
-  ! Performs a search through the global cell lookup table looking for the
-  ! required global index.
-  !
-  ! The partitioned_cells array holds global indices in various groups:
-  ! the inner halos, then the edge cells, the halo cells and finally
-  ! the ghost cells. The cells are numerically ordered within the different
-  ! groups so a binary search can be used, but not between groups, so need to do
-  ! separate binary searches through the inner, edge, halo and ghost cells and
-  ! exit if a match is found
-  !
-    implicit none
-
-    class(partition_type), intent(in) :: self
-
-    integer(i_def), intent(in) :: gid           ! global index
-    integer(i_def)             :: lid           ! local index
-    integer(i_def)             :: nlayer        ! layer of supplied gid
-    integer(i_def)             :: gid_in_layer  ! supplied gid projected to bottom layer
-    integer(i_def)             :: depth         ! loop counter over halo depths
-    integer(i_def)             :: start_search  ! start point for a search
-    integer(i_def)             :: end_search    ! end point for a search
-    integer(i_def)             :: num_in_list   ! total number of cells in partition
-    integer(i_def)             :: num_halo      ! number of halo points already counted
-    integer(i_def)             :: num_inner! number of inner halo points already counted
-
-    num_in_list = self%num_edge
-    do depth = 1,self%inner_depth
-      num_in_list = num_in_list + self%num_inner(depth)
-    end do
-    do depth = 1,self%halo_depth
-      num_in_list = num_in_list + self%num_halo(depth)
-    end do
-
-    ! Set the default return code
-    lid = -1
-    ! If the supplied gid is not valid just return
-    if(gid < 1) return
-
-    ! The global index lookup table (partitioned_cells) only has the indices for
-    ! a single layer, so convert the full 3d global index into the global index
-    ! within the layer and a layer number
-    gid_in_layer = modulo(gid-1,self%global_num_cells) + 1
-    nlayer = (gid-1) / self%global_num_cells
-
-    ! Search though the inner halo cells - looking for the gid
-    end_search = 0
-    num_inner=0
-    do depth = self%inner_depth, 1, -1
-      start_search = end_search + 1
-      end_search = start_search + self%num_inner(depth) - 1
-      lid = binary_search( self%global_cell_id( start_search:end_search ), gid )
-      if(lid /= -1)then
-        lid = lid +  num_inner + nlayer*(num_in_list)  !convert back to 3d lid
-        return
-      end if
-      num_inner = num_inner + self%num_inner(depth)
-    end do
-
-    ! Search though edge cells - looking for the gid
-    start_search = end_search + 1
-    end_search = start_search + self%num_edge - 1
-    lid = binary_search( self%global_cell_id( start_search:end_search ), gid )
-    if(lid /= -1)then
-      lid = lid + num_inner + nlayer*(num_in_list)  !convert back to 3d lid
-      return
-    end if
-
-    ! Search though halo and ghost cells - looking for the gid
-    num_halo=0
-    do depth = 1,self%halo_depth +1
-      start_search = end_search + 1
-      if(depth <= self%halo_depth) then
-        end_search = start_search + self%num_halo(depth) - 1
-      else
-        end_search = start_search + self%num_ghost - 1
-      end if
-      lid = binary_search( self%global_cell_id( start_search:end_search ), gid )
-      if(lid /= -1)then
-        lid = lid + num_inner + self%num_edge + num_halo + &
-                                    nlayer*(num_in_list)  !convert back to 3d lid
-        return
-      end if
-      if(depth <= self%halo_depth) then
-        num_halo = num_halo + self%num_halo(depth)
-      end if
-    end do
-
-    ! No lid has been found in either the inner, edge or halo cells on this
-    ! partition, so return with lid=-1
-    return
-
-  end function get_lid_from_gid
-
-  !-------------------------------------------------------------------------------
-  ! Performs a binary search through the given array. PRIVATE function.
-  !-------------------------------------------------------------------------------
-  ! Details: Performs a binary search through the given array looking for a
-  !          particular entry and returns the index of the entry found or -1 if no
-  !          matching entry can be found. The values held in "array_to_be_searched"
-  !          must be in numerically increasing order.
-  ! Input:   array_to_be_searched  The array that will be searched for the given entry
-  !          value_to_find         The entry that is to be searched for
-  !-------------------------------------------------------------------------------
-  pure function binary_search( array_to_be_searched, value_to_find ) result ( id )
-
-    implicit none
-
-    integer(i_def), intent(in) :: array_to_be_searched( : )
-    integer(i_def), intent(in) :: value_to_find
-    integer(i_def)             :: bot, top  ! Lower and upper index limits between which to search for the value
-    integer(i_def)             :: id        ! Next index for refining the search. If an entry is found this will
-                                    ! contain the index of the matching entry
-
-    ! Set bot and top to be the whole array to begin with
-    bot = 1
-    top = size(array_to_be_searched)
-
-    search: do
-      ! If top is lower than bot then there is no more array to be searched
-      if(top < bot) exit search
-      ! Refine the search
-      id = (bot+top)/2
-      if(array_to_be_searched(id) == value_to_find)then  ! found matching entry
-        return
-      else if(array_to_be_searched(id) < value_to_find)then ! entry has to be between id and top
-        bot = id + 1
-      else ! entry has to be between bot and id
-        top = id - 1
-      endif
-    end do search
-
-    ! Didn't find a match - return failure code
-    id = -1
-
-  end function binary_search
-
   !-------------------------------------------------------------------------------
   ! Performs a simple bubble sort on an array. PRIVATE function.
   !-------------------------------------------------------------------------------
@@ -1613,5 +1446,6 @@ contains
     end do
 
   end subroutine bubble_sort
+
 
 end module partition_mod

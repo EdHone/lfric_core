@@ -174,7 +174,7 @@ subroutine init_xios_dimensions(mesh_id, twod_mesh_id, chi)
   type(field_proxy_type), target  :: proxy_coord_output(3)
 
   ! Variables for local and global mesh information
-  type(mesh_type), pointer :: local_mesh => null()
+  type(mesh_type), pointer :: mesh => null()
   integer(i_def)           :: num_face_local
   integer(i_def)           :: nodes_per_edge
   integer(i_def)           :: nodes_per_face
@@ -209,10 +209,10 @@ subroutine init_xios_dimensions(mesh_id, twod_mesh_id, chi)
   end do
 
   ! Get mesh information
-  local_mesh => coord_output(1)%get_mesh()
-  num_face_local = local_mesh%get_last_edge_cell()
-  nodes_per_face = local_mesh%get_nverts_per_cell_2d()
-  nodes_per_edge = local_mesh%get_nverts_per_edge()
+  mesh => coord_output(1)%get_mesh()
+  num_face_local = mesh%get_last_edge_cell()
+  nodes_per_face = mesh%get_nverts_per_cell_2d()
+  nodes_per_edge = mesh%get_nverts_per_edge()
 
   ! Calculate the local size of a W2H fs in order to determine
   ! how many edge dofs for the current partition
@@ -246,7 +246,7 @@ subroutine init_xios_dimensions(mesh_id, twod_mesh_id, chi)
   allocate(bnd_edges_lat(nodes_per_edge,num_edge_local))
 
   ! Calculate the node coords arrays and also the face and edge bounds
-  call calc_xios_domain_coords(local_mesh, coord_output, chi,  &
+  call calc_xios_domain_coords(mesh, coord_output, chi,        &
                                nfull_levels, num_face_local,   &
                                nodes_lon_full, nodes_lat_full, &
                                bnd_faces_lon, bnd_faces_lat,   &
@@ -382,7 +382,7 @@ end subroutine setup_xios_files
 !> @details Samples the chi field at nodal points, calculates cartesian coordinates.
 !>          For spherical geometry, converts to lat-lon in degrees for specified layer
 !>
-!> @param[in]     local_mesh            The id of the partitioned mesh
+!> @param[in]     mesh                  The id of the partitioned mesh
 !> @param[in]     nodal_coords          Input field
 !> @param[in]     chi                   Input coordinate field
 !> @param[in]     nlayers               The number of layers data is output on
@@ -394,7 +394,7 @@ end subroutine setup_xios_files
 !> @param[inout]  edge_bnds_lon_coords  Array of coords making up the edges
 !> @param[inout]  edge_bnds_lat_coords  Array of coords making up the edges
 !>
-subroutine calc_xios_domain_coords(local_mesh, nodal_coords, chi, &
+subroutine calc_xios_domain_coords(mesh, nodal_coords, chi,       &
                                    nlayers, ncells,               &
                                    lon_coords, lat_coords,        &
                                    face_bnds_lon_coords,          &
@@ -404,7 +404,7 @@ subroutine calc_xios_domain_coords(local_mesh, nodal_coords, chi, &
 
   implicit none
 
-  type(mesh_type), pointer, intent(in) :: local_mesh
+  type(mesh_type), pointer, intent(in) :: mesh
   type(field_type),   intent(in)       :: nodal_coords(3)
   type(field_type),   intent(in)       :: chi(:)
   integer(i_def),     intent(in)       :: nlayers
@@ -516,7 +516,7 @@ subroutine calc_xios_domain_coords(local_mesh, nodal_coords, chi, &
       endif
 
       ! Is the edge owned by this cell?
-      if (local_mesh%get_edge_cell_owner(df_x, cell) == cell) then
+      if (mesh%get_edge_cell_owner(df_x, cell) == cell) then
         edge_count = edge_count + 1
 
         edge_bnds_lon_coords(1,edge_count) = face_bnds_lon_coords(edge1,cell)

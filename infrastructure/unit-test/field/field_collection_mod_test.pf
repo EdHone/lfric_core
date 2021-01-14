@@ -28,6 +28,7 @@ module field_collection_mod_test
                                               field_collection_integer_iterator_type, &
                                               field_collection_r_solver_iterator_type
     use fs_continuity_mod,             only : W0, W2, W3
+    use local_mesh_mod,                only : local_mesh_type
     use pure_abstract_field_mod,       only : pure_abstract_field_type
     use yaxt,                          only : xt_initialize, xt_finalize
     use mpi_mod,                       only : store_comm, clear_comm
@@ -47,9 +48,11 @@ module field_collection_mod_test
     type(function_space_type), pointer :: w0_fs => null()
     type(function_space_type), pointer :: w2_fs => null()
     type(function_space_type), pointer :: w3_fs => null()
+    type(local_mesh_type)              :: unit_test_local_mesh
   contains
     procedure setUp
     procedure tearDown
+    procedure get_local_mesh_ptr
     procedure test_all
     procedure test_assignment_r_def
     procedure test_assignment_integer
@@ -68,6 +71,8 @@ contains
     implicit none
 
     class(field_collection_test_type), intent(inout) :: this
+
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
     type(mesh_type) :: unit_test_mesh
     integer(i_def)  :: mesh_id
 
@@ -83,10 +88,12 @@ contains
     ! Create top level halo_routing collection
     halo_routing_collection = halo_routing_collection_type()
 
-    ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
-    unit_test_mesh = mesh_type( PLANE_BI_PERIODIC )
-    mesh_id = mesh_collection%add_new_mesh( unit_test_mesh )
+    call this%unit_test_local_mesh%initialise()
+    unit_test_local_mesh_ptr => this%get_local_mesh_ptr()
 
+    ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
+    unit_test_mesh = mesh_type( PLANE_BI_PERIODIC, unit_test_local_mesh_ptr )
+    mesh_id = mesh_collection%add_new_mesh( unit_test_mesh )
 
     this%w0_fs => function_space_collection%get_fs( mesh_id, &
                                                     element_order, &
@@ -120,6 +127,16 @@ contains
   end subroutine tearDown
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  function get_local_mesh_ptr(this) result(unit_test_local_mesh_ptr)
+    implicit none
+    class(field_collection_test_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
+    unit_test_local_mesh_ptr => this%unit_test_local_mesh
+  end function get_local_mesh_ptr
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   @Test( npes=[1] )
   subroutine test_all( this )
 

@@ -10,6 +10,7 @@ module stencil_twod_dofmap_mod_test
   use constants_mod,            only : i_def, i_native
   use pFUnit_Mod
   use stencil_2D_dofmap_mod,    only: stencil_2D_dofmap_type, STENCIL_2D_CROSS
+  use local_mesh_mod,           only: local_mesh_type
   use master_dofmap_mod,        only: master_dofmap_type
   use mesh_collection_mod,      only: mesh_collection_type, mesh_collection
   use mesh_mod,                 only: mesh_type, PLANE, PLANE_BI_PERIODIC
@@ -24,9 +25,11 @@ module stencil_twod_dofmap_mod_test
     private
     integer(i_def) :: planar_mesh_id
     integer(i_def) :: biperiodic_mesh_id
+    type(local_mesh_type) :: unit_test_local_mesh
   contains
     procedure setUp
     procedure tearDown
+    procedure get_local_mesh_ptr
     procedure test_planar
     procedure test_biperiodic
   end type stencil_2D_dofmap_test_type
@@ -39,16 +42,20 @@ contains
 
     class(stencil_2D_dofmap_test_type), intent(inout) :: this
 
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
     type(mesh_type) :: planar_mesh
     type(mesh_type) :: biperiodic_mesh
 
     ! Create top level mesh collection
     mesh_collection = mesh_collection_type()
 
+    call this%unit_test_local_mesh%initialise()
+    unit_test_local_mesh_ptr => this%get_local_mesh_ptr()
+
     ! Add canned meshes to the mesh collection
-    planar_mesh = mesh_type( PLANE )
+    planar_mesh = mesh_type( PLANE, unit_test_local_mesh_ptr )
     this%planar_mesh_id = mesh_collection%add_new_mesh( planar_mesh )
-    biperiodic_mesh = mesh_type( PLANE_BI_PERIODIC )
+    biperiodic_mesh = mesh_type( PLANE_BI_PERIODIC, unit_test_local_mesh_ptr )
     this%biperiodic_mesh_id = mesh_collection%add_new_mesh( biperiodic_mesh )
 
   end subroutine setUp
@@ -64,6 +71,17 @@ contains
     call mesh_collection%clear()
 
   end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  function get_local_mesh_ptr(this) result(unit_test_local_mesh_ptr)
+    implicit none
+    class(stencil_2D_dofmap_test_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
+    unit_test_local_mesh_ptr => this%unit_test_local_mesh
+  end function get_local_mesh_ptr
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 @test
   subroutine test_planar(this)

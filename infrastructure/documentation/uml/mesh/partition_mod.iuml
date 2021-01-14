@@ -23,13 +23,11 @@ class partition_mod::partition_type {
   +<<operator =>> partition_type_assign(<<out>>dest: partition, <<in>>source: partition )
 
   +get_cell_owner( <<in>>cell_number: integer ) : integer
-  +get_gid_from_lid( <<in>>lid: integer ) : integer
   +get_halo_depth() : integer
   +get_inner_depth() : integer
   +get_last_edge_cell() : integer
   +get_last_halo_cell() : integer
   +get_last_inner_cell( <<in>>depth: integer ) : integer
-  +get_lid_from_gid( <<in>>gid: integer ) : integer
   +get_num_cells_edge() : integer
   +get_num_cells_ghost() : integer
   +get_num_panels_global_mesh() : integer

@@ -6,11 +6,17 @@
 !> @brief Local 3D mesh object.
 !>
 !> This module provides details for a mesh_type which is generated using a
-!> global mesh object and a partition object, along with some inputs that
-!> describe the vertical structure.
+!> local_mesh object, a global mesh object and a partition object, along with
+!> some inputs that describe the vertical structure.
+!>
+!> NOTE: Much information is duplicated between the local mesh and global
+!> mesh/partition objects. In the longer term, all information will be moved
+!> into the local mesh object, so the global mesh/partition objects will be
+!> no longer needed and will be removed. In the interim, there will be
+!> duplication
 !>
 !> It also contains a static mesh object for unit testing. This is returned
-!> if a mesh_object is instatiated with a single integer argument.
+!> if a mesh_object is instantiated with an integer argument and a local mesh.
 !>
 module mesh_mod
 
@@ -24,6 +30,7 @@ module mesh_mod
   use linked_list_mod,       only : linked_list_type, &
                                     linked_list_item_type
   use linked_list_data_mod,  only : linked_list_data_type
+  use local_mesh_mod,        only : local_mesh_type
   use log_mod,               only : log_event, log_scratch_space, &
                                     LOG_LEVEL_ERROR, LOG_LEVEL_TRACE, &
                                     LOG_LEVEL_INFO, LOG_LEVEL_DEBUG
@@ -57,6 +64,10 @@ module mesh_mod
 
     !> Describes the shape of an element on this mesh.
     class(reference_element_type), allocatable :: reference_element
+
+    !> The local_mesh object that describes the local mesh this mesh
+    !> is built on
+    type(local_mesh_type), pointer :: local_mesh
 
     !> The partition object that describes this local
     !> mesh's partition of the global mesh
@@ -198,6 +209,7 @@ module mesh_mod
     procedure, public :: get_mesh_name
     procedure, public :: get_global_mesh_id
     procedure, public :: get_partition
+    procedure, public :: get_local_mesh
     procedure, public :: get_nlayers
     procedure, public :: get_ncells_2d
     procedure, public :: get_ncells_2d_with_ghost
@@ -307,8 +319,10 @@ contains
 
   !============================================================================
   !> @brief Constructor for the mesh object
-  !> @param [in] global_mesh   Global mesh object on which the partition is
-  !>                           applied
+  !> @param [in] local_mesh    A pointer to a local mesh object holding 2d
+  !>                           information about the partitioned mesh
+  !> @param [in] global_mesh   A pointer to a global mesh object on which the
+  !>                           partition is applied
   !> @param [in] partition     Partition object to base 3D-Mesh on
   !> @param [in] extrusion     Mechnism by which extrusion is to be achieved.
   !> @param [in, optional]
@@ -317,7 +331,8 @@ contains
   !> @return                   3D-Mesh object based on the list of partitioned
   !>                           cells on the given global mesh
   !============================================================================
-  function mesh_constructor ( global_mesh,   &
+  function mesh_constructor ( local_mesh,    &
+                              global_mesh,   &
                               partition,     &
                               extrusion,     &
                               mesh_name )    &
@@ -325,6 +340,7 @@ contains
 
     implicit none
 
+    type(local_mesh_type),  intent(in), pointer  :: local_mesh
     type(global_mesh_type), intent(in), pointer  :: global_mesh
     type(partition_type),   intent(in)           :: partition
     class(extrusion_type),  intent(in)           :: extrusion
@@ -393,7 +409,7 @@ contains
     if (present(mesh_name)) then
       name = mesh_name
     else
-      name =  global_mesh%get_mesh_name()
+      name =  local_mesh%get_mesh_name()
     end if
 
     self%mesh_name = name
@@ -411,6 +427,7 @@ contains
     self%global_mesh_id = global_mesh_id
 
     self%partition            = partition
+    self%local_mesh           => local_mesh
     self%ncells_2d            = partition%get_num_cells_in_layer()
     self%ncells_2d_with_ghost = self%ncells_2d &
                                  + partition%get_num_cells_ghost()
@@ -472,7 +489,7 @@ contains
 
     do i=1, self%ncells_2d_with_ghost
 
-      cell_gid = partition%get_gid_from_lid(i)
+      cell_gid = local_mesh%get_gid_from_lid(i)
       self%cell_lid_gid_map(i) = cell_gid
 
       call global_mesh%get_vert_on_cell(cell_gid, self%vert_on_cell_2d_gid(:,i))
@@ -500,7 +517,7 @@ contains
         do counter=1, self%ncells_2d_with_ghost
           ! Loop over all cells in the partition, getting the cell
           ! global id.
-          tmp_int = partition%get_gid_from_lid(counter)
+          tmp_int = local_mesh%get_gid_from_lid(counter)
 
           ! Set the adjacent cell id to the local id if
           ! it's global appears in the partition
@@ -695,9 +712,9 @@ contains
 
     do i=1, self%ncells_2d_with_ghost
       ! Vertex ownership
-      call global_mesh%get_vert_on_cell(partition%get_gid_from_lid(i), verts)
+      call global_mesh%get_vert_on_cell(local_mesh%get_gid_from_lid(i), verts)
       do j=1, self%nverts_per_2d_cell
-        self%vert_cell_owner(j,i) = partition%get_lid_from_gid( &
+        self%vert_cell_owner(j,i) = local_mesh%get_lid_from_gid( &
                                    global_mesh%get_vert_cell_owner( verts(j) ) )
 
         if (self%vert_cell_owner(j,i) > 0) then
@@ -709,9 +726,9 @@ contains
       end do
 
       ! Edge ownership
-      call global_mesh%get_edge_on_cell(partition%get_gid_from_lid(i), edges)
+      call global_mesh%get_edge_on_cell(local_mesh%get_gid_from_lid(i), edges)
       do j=1, self%nedges_per_2d_cell
-        self%edge_cell_owner(j,i) = partition%get_lid_from_gid( &
+        self%edge_cell_owner(j,i) = local_mesh%get_lid_from_gid( &
                                    global_mesh%get_edge_cell_owner( edges(j) ) )
 
         if (self%edge_cell_owner(j,i) > 0) then
@@ -815,6 +832,21 @@ contains
 
   end function get_partition
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Gets a pointer to the local_mesh object that was used to
+  !>        create this mesh.
+  !>
+  !> @return Pointer to local_mesh object.
+  !>
+  function get_local_mesh(self) result(local_mesh)
+
+    implicit none
+    class(mesh_type),     target  :: self
+    type(local_mesh_type), pointer :: local_mesh
+
+    local_mesh => self%local_mesh
+
+  end function get_local_mesh
 
   !============================================================================
   ! Mesh Type Methods
@@ -1991,7 +2023,7 @@ contains
     integer(i_def),   intent(in) :: cell_lid  ! local index
     integer(i_def)               :: cell_gid  ! global index
 
-    cell_gid = self%partition%get_gid_from_lid(cell_lid)
+    cell_gid = self%local_mesh%get_gid_from_lid(cell_lid)
 
   end function get_gid_from_lid
 
@@ -2119,7 +2151,7 @@ contains
       allocate(target_lid_gid_map(ntarget_cells))
 
       do i=1, ntarget_cells
-        target_lid_gid_map(i) = target_partition%get_gid_from_lid(i)
+        target_lid_gid_map(i) = target_mesh%get_gid_from_lid(i)
       end do
 
       ! Get the global map for source to target meshes
@@ -2370,10 +2402,11 @@ contains
   !>                     [PLANE|PLANE_BI_PERIODIC].
   !>                     PLANE - returns a 5-layer non-biperiodic mesh
   !>                     PLANE_BI_PERIODIC - returns a 3-layer bi-periodic mesh
+  !> @param[in] local_mesh_ptr A pointer to a (unit test) local mesh object
   !> @return             A 3D-Mesh object based on a 3x3-cell global mesh
   !>                     with one partition.
   !============================================================================
-  function mesh_constructor_unit_test_data( mesh_cfg )  result( self )
+  function mesh_constructor_unit_test_data( mesh_cfg, local_mesh ) result(self)
 
     ! Mesh returned is based on a 3x3 partition with the following
     ! cell numbering.
@@ -2392,7 +2425,9 @@ contains
 
     implicit none
 
-    integer(i_def), intent(in) :: mesh_cfg
+    integer(i_def),         intent(in)           :: mesh_cfg
+    type(local_mesh_type),  intent(in), pointer  :: local_mesh
+
     type(mesh_type) :: self
 
     integer(i_def), parameter :: nverts_per_cell    = 8
@@ -2402,7 +2437,8 @@ contains
 
     type(uniform_extrusion_type) :: extrusion
 
-    self%partition       = partition_type()
+    self%local_mesh => local_mesh
+    self%partition = partition_type()
     self%nverts_per_cell = 8
     self%nedges_per_cell = 12
     self%nfaces_per_cell = 6

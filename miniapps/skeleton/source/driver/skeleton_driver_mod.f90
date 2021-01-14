@@ -28,6 +28,8 @@ module skeleton_driver_mod
   use io_mod,                     only : initialise_xios
   use io_config_mod,              only : write_diag, &
                                          use_xios_io
+  use local_mesh_collection_mod,  only : local_mesh_collection, &
+                                         local_mesh_collection_type
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
@@ -142,6 +144,9 @@ contains
 
     allocate( global_mesh_collection, &
               source = global_mesh_collection_type() )
+
+    allocate( local_mesh_collection, &
+              source = local_mesh_collection_type() )
 
     ! Create the mesh
     call init_mesh( local_rank, total_ranks, mesh_id, &

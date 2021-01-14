@@ -5,6 +5,7 @@
 class mesh_mod::mesh_type {
   -mesh_name: string
   -reference_element : reference_element_type <<allocatable>>
+  -local_mesh : local_mesh_type <<pointer>>
   -partition : partition_type
   -domain_size : domain_size_type
   -global_mesh_id : integer
@@ -51,8 +52,8 @@ class mesh_mod::mesh_type {
   -last_edge_cell_per_colour : integer[:] <<allocatable>>
   -mesh_maps : mesh_map_collection_type <<allocatable>>
 
-  +<<create>>  mesh_constructor( <<in>>global_mesh: global_mesh_type, <<in>>partition: partition_type, <<in>>extrusion: extrusion_type, <<in,optional>>mesh_name:string ) : mesh_type
-  +<<create>>  mesh_constructor_unit_test_data( <<in>>mesh_cfg: integer ) : mesh_type
+  +<<create>>  mesh_constructor( <<in>>local_mesh: local_mesh_type <<pointer>>, <<in>>global_mesh: global_mesh_type <<pointer>>, <<in>>partition: partition_type, <<in>>extrusion: extrusion_type, <<in,optional>>mesh_name:string ) : mesh_type
+  +<<create>>  mesh_constructor_unit_test_data( <<in>>mesh_cfg: integer, <<in>>local_mesh: local_mesh_type <<pointer>> ) : mesh_type
   +<<destroy>> mesh_destructor()
   +clear()
 

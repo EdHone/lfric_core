@@ -1,0 +1,344 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2020 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> @brief Local (partitioned) 2D mesh object.
+!>
+!> This module provides details for a mesh_type which is generated using a
+!> global mesh object and a partition object.
+!>
+module local_mesh_mod
+
+  use constants_mod,                  only: r_def, i_def, l_def, str_def
+  use global_mesh_mod,                only: global_mesh_type
+  use linked_list_data_mod,           only: linked_list_data_type
+  use log_mod,                        only: log_event, log_scratch_space, &
+                                            LOG_LEVEL_ERROR, LOG_LEVEL_TRACE
+  use partition_mod,                  only: partition_type
+
+  implicit none
+
+  private
+
+  type, extends(linked_list_data_type), public :: local_mesh_type
+    private
+  ! Tag name of mesh
+    character(str_def)          :: mesh_name
+  ! A List of global cell ids known to this local mesh, ordered with inner
+  ! cells first followed by the edge cells and finally the halo cells ordered
+  ! by depth of halo
+    integer(i_def), allocatable :: global_cell_id( : )
+  ! The number of "inner" cells in the <code>global_cell_id</code> list -
+  ! one entry for each depth of inner halo
+    integer(i_def), allocatable :: num_inner( : )
+  ! The depth to which inner halos are generated
+    integer(i_def)              :: inner_depth
+  ! The number of "edge" cells in the <code>global_cell_id</code> list
+    integer(i_def)              :: num_edge
+  ! The number of "halo" cells in the <code>global_cell_id</code> list -
+  ! one entry for each depth of halo
+    integer(i_def), allocatable :: num_halo( : )
+  ! The depth to which halos are generated
+    integer(i_def)              :: halo_depth
+  ! The number of "ghost" cells in the <code>global_cell_id</code> list
+    integer(i_def)              :: num_ghost
+  contains
+    procedure, public :: initialise_full
+    procedure, public :: initialise_unit_test
+    generic           :: initialise => initialise_full, &
+                                       initialise_unit_test
+    procedure, public :: clear
+    procedure, public :: get_mesh_name
+    procedure, public :: get_gid_from_lid
+    procedure, public :: get_lid_from_gid
+    final :: local_mesh_destructor
+  end type local_mesh_type
+
+  !> Counter variable to keep track of the next local mesh id number to uniquely
+  !! identify each different mesh
+  integer(i_def), save :: local_mesh_id_counter = 0
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Initialises a local mesh object from global mesh and partition
+  !>        objects
+  !>
+  !> This local mesh object holds the connectivities which fully describe
+  !> the 2D topology of the local (partitionied) mesh.
+  !>
+  !> @param [in] global_mesh   Global mesh object on which the partition is
+  !>                           applied
+  !> @param [in] partition     Partition object to base the local Mesh on
+  !> @param [in, optional]
+  !>             mesh_name     Mesh tag name to use for this mesh. If omitted,
+  !>                           the global mesh name it is based on will be used.
+  !> @return New local_mesh_type object.
+  !>
+  subroutine initialise_full ( self, &
+                               global_mesh,   &
+                               partition,     &
+                               mesh_name )
+    implicit none
+    class(local_mesh_type), intent(out)          :: self
+    type(global_mesh_type), intent(in), pointer  :: global_mesh
+    type(partition_type),   intent(in)           :: partition
+    character(str_def),     intent(in), optional :: mesh_name
+    integer(i_def) :: depth
+
+    ! Set name from either the given name - or the name of the global mesh
+    if (present(mesh_name)) then
+      self%mesh_name = mesh_name
+    else
+      self%mesh_name =  global_mesh%get_mesh_name()
+    end if
+
+    ! Extract the info that makes up a local mesh from the
+    ! global mesh and partition
+    local_mesh_id_counter = local_mesh_id_counter + 1
+    call self%set_id( local_mesh_id_counter )
+
+    self%global_cell_id = partition%get_global_cell_id()
+
+    self%inner_depth = partition%get_inner_depth()
+    allocate( self%num_inner(self%inner_depth) )
+    do depth = 1, self%inner_depth
+      self%num_inner( depth ) = partition%get_num_cells_inner( depth )
+    end do
+
+    self%num_edge = partition%get_num_cells_edge()
+
+    self%halo_depth = partition%get_halo_depth()
+    allocate( self%num_halo(self%halo_depth) )
+    do depth = 1, self%halo_depth
+      self%num_halo( depth ) = partition%get_num_cells_halo( depth )
+    end do
+
+    self%num_ghost = partition%get_num_cells_ghost()
+
+  end subroutine initialise_full
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Initialises a local mesh object for use in unit testing
+  !>
+  !> @return New local_mesh_type object.
+  !>
+  subroutine initialise_unit_test ( self )
+    implicit none
+    class(local_mesh_type), intent(out)          :: self
+
+    ! hard-coded simple local mesh for use in unit testing
+    self%mesh_name = 'unit_test'
+
+    local_mesh_id_counter = local_mesh_id_counter + 1
+    call self%set_id( local_mesh_id_counter )
+
+    allocate( self%global_cell_id(9) )
+    self%global_cell_id = [1,2,3,4,5,6,7,8,9]
+
+    self%inner_depth = 1
+    allocate( self%num_inner(self%inner_depth) )
+    self%num_inner(1) = 9
+
+    self%num_edge = 0
+
+    self%halo_depth  = 3
+    allocate( self%num_halo(self%halo_depth) )
+    self%num_halo(1) = 0
+    self%num_halo(2) = 0
+    self%num_halo(3) = 0
+
+    self%num_ghost = 0
+
+  end subroutine initialise_unit_test
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief Fortran destructor, called when object goes out of scope
+  !>
+  subroutine local_mesh_destructor(self)
+    implicit none
+    type (local_mesh_type), intent(inout) :: self
+
+    call self%clear()
+
+  end subroutine local_mesh_destructor
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief  Destroys a global_mesh object when it is finished with.
+  !>
+  subroutine clear(self)
+    implicit none
+    class (local_mesh_type), intent(inout) :: self
+
+    return
+  end subroutine clear
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> @brief  Returns mesh tag name.
+  !> @return mesh_name  Tag name of mesh
+  !>
+  function get_mesh_name( self ) result ( mesh_name )
+    implicit none
+    class(local_mesh_type), intent(in) :: self
+    character(str_def) :: mesh_name
+
+    mesh_name = self%mesh_name
+
+  end function get_mesh_name
+
+  !---------------------------------------------------------------------------
+  !> @brief Gets the global index of the cell that corresponds to the given
+  !>        local index on the local partition.
+  !>
+  !> @param[in] lid ID of a cell in local index space.
+  !>
+  !> @return ID of a cell in global index space.
+  !>
+  function get_gid_from_lid( self, lid ) result ( gid )
+
+    implicit none
+
+    class(local_mesh_type), intent(in) :: self
+
+    integer(i_def), intent(in) :: lid           ! local index
+    integer(i_def)             :: gid           ! global index
+
+    gid = self%global_cell_id(lid)
+
+  end function get_gid_from_lid
+
+  !---------------------------------------------------------------------------
+  !> @brief Gets the local index of the cell on the local partition that
+  !>        corresponds to the given global index.
+  !>
+  !> @param[in] gid Global index to search for on the local partition.
+  !>
+  !> @return Local index that corresponds to the given global index or -1 if
+  !>         the cell with the given global index is not present of the local
+  !>         partition
+  !>
+  function get_lid_from_gid( self, gid ) result ( lid )
+  !
+  ! Performs a search through the global cell lookup table looking for the
+  ! required global index.
+  !
+  ! The partitioned_cells array holds global indices in various groups:
+  ! the inner halos, then the edge cells, the halo cells and finally
+  ! the ghost cells. The cells are numerically ordered within the different
+  ! groups so a binary search can be used, but not between groups, so need to do
+  ! separate binary searches through the inner, edge, halo and ghost cells and
+  ! exit if a match is found
+  !
+    implicit none
+
+    class(local_mesh_type), intent(in) :: self
+    integer(i_def),         intent(in) :: gid  ! global index
+
+    integer(i_def) :: lid                     ! local index (returned)
+
+    integer(i_def) :: num_searched            ! Num cells alreadt searched
+    integer(i_def) :: depth                   ! loop counter over halo depths
+    integer(i_def) :: start_search            ! start point for a search
+    integer(i_def) :: end_search              ! end point for a search
+
+    ! Set the default return code
+    lid = -1
+    ! If the supplied gid is not valid just return
+    if(gid < 1) return
+
+    num_searched = 0
+    ! Search though the inner halo cells - looking for the gid
+    end_search = 0
+    do depth = self%inner_depth, 1, -1
+      start_search = end_search + 1
+      end_search = start_search + self%num_inner(depth) - 1
+
+      lid = binary_search( self%global_cell_id( start_search:end_search ), gid )
+      if(lid /= -1)then
+        lid = lid + num_searched
+        return
+      end if
+      num_searched = num_searched + self%num_inner(depth)
+    end do
+
+    ! Search though edge cells - looking for the gid
+    start_search = end_search + 1
+    end_search = start_search + self%num_edge - 1
+
+    lid = binary_search( self%global_cell_id( start_search:end_search ), gid )
+    if(lid /= -1)then
+      lid = lid + num_searched
+      return
+    end if
+    num_searched = num_searched + self%num_edge
+
+    ! Search though halo cells - looking for the gid
+    do depth = 1,self%halo_depth + 1
+      start_search = end_search + 1
+      if(depth <= self%halo_depth) then
+        end_search = start_search + self%num_halo(depth) - 1
+      else
+        end_search = start_search + self%num_ghost - 1
+      end if
+
+      lid = binary_search( self%global_cell_id( start_search:end_search ), gid )
+      if(lid /= -1)then
+        lid = lid + num_searched
+        return
+      end if
+      if(depth <= self%halo_depth) then
+        num_searched = num_searched + self%num_halo(depth)
+      end if
+    end do
+
+    ! No lid has been found in either the inner, edge, halo or ghost cells
+    ! on this partition, so return with lid=-1
+    return
+
+  end function get_lid_from_gid
+
+  !-------------------------------------------------------------------------------
+  ! Performs a binary search through the given integer array. PRIVATE function.
+  !-------------------------------------------------------------------------------
+  ! Details: Performs a binary search through the given array looking for a
+  !          particular entry and returns the index of the entry found or -1 if no
+  !          matching entry can't be found. The values held in
+  !          "array_to_be_searched" must be in numerically increasing order.
+  ! Input:   array_to_be_searched  The array that will be searched for the given entry
+  !          value_to_find         The entry that is to be searched for
+  !-------------------------------------------------------------------------------
+  pure function binary_search( array_to_be_searched, value_to_find ) result ( id )
+
+    implicit none
+
+    integer(i_def), intent(in) :: array_to_be_searched( : )
+    integer(i_def), intent(in) :: value_to_find
+    integer(i_def)             :: bot, top  ! Lower and upper index limits between which to search for the value
+    integer(i_def)             :: id        ! Next index for refining the search. If an entry is found this will
+                                            ! contain the index of the match
+
+    ! Set bot and top to be the whole array to begin with
+    bot = 1
+    top = size(array_to_be_searched)
+
+    search: do
+      ! If top is lower than bot then there is no more array to be searched
+      if(top < bot) exit search
+      ! Refine the search
+      id = (bot+top)/2
+      if(array_to_be_searched(id) == value_to_find)then  ! found matching entry
+        return
+      else if(array_to_be_searched(id) < value_to_find)then ! entry has to be between id and top
+        bot = id + 1
+      else ! entry has to be between bot and id
+        top = id - 1
+      endif
+    end do search
+
+    ! Didn't find a match - return failure code
+    id = -1
+
+  end function binary_search
+
+end module local_mesh_mod

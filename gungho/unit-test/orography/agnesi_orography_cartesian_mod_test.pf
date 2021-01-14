@@ -138,6 +138,7 @@ contains
   @Test( npes=[1] )
   subroutine test_agnesi_orography_cartesian(this)
 
+    use local_mesh_mod,                        only : local_mesh_type
     use mesh_mod,                              only : mesh_type
     use partition_mod,                         only : partition_type,        &
                                                       partitioner_interface, &
@@ -157,6 +158,8 @@ contains
     type(domain_size_type)                    :: domain_size
     type(partition_type)                      :: partition
     procedure(partitioner_interface), pointer :: partitioner_ptr => null()
+    type(local_mesh_type),            pointer :: local_mesh_ptr
+    type(local_mesh_type),            target  :: local_mesh
     type(uniform_extrusion_type)              :: extrusion
     ! Test parameters
     real(r_def), parameter :: tol = 1.0e-3_r_def
@@ -178,11 +181,13 @@ contains
                                 1,               &
                                 local_rank,      &
                                 total_ranks )
+    call local_mesh%initialise( global_mesh_ptr, partition )
+    local_mesh_ptr => local_mesh
 
     extrusion = uniform_extrusion_type( domain_bottom, domain_top, nlayers )
 
     ! Construct a mesh which is uniform in vertical for purpose of the test
-    mesh = mesh_type( global_mesh_ptr, partition, extrusion )
+    mesh = mesh_type( local_mesh_ptr, global_mesh_ptr, partition, extrusion )
 
     ! Get domain size required for the biperiodic coordinate transform
     domain_size = mesh%get_domain_size()

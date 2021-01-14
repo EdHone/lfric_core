@@ -44,6 +44,8 @@ program cma_test
   use configuration_mod,              only : read_configuration, &
                                              ensure_configuration
   use create_mesh_mod,                only : init_mesh
+  use local_mesh_collection_mod,      only : local_mesh_collection, &
+                                             local_mesh_collection_type
   use log_mod,                        only : log_event,         &
                                              log_scratch_space, &
                                              initialise_logging, &
@@ -232,6 +234,9 @@ program cma_test
 
   allocate( global_mesh_collection, &
             source = global_mesh_collection_type() )
+
+  allocate( local_mesh_collection, &
+            source = local_mesh_collection_type() )
 
   call init_mesh( local_rank, total_ranks, mesh_id )
 

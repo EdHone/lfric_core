@@ -20,6 +20,8 @@ module gravity_wave_grid_mod
   use function_space_collection_mod,  only : function_space_collection_type, &
                                              function_space_collection
   use function_space_chain_mod,       only : function_space_chain_type
+  use local_mesh_collection_mod,      only : local_mesh_collection, &
+                                             local_mesh_collection_type
   use log_mod,                        only : log_event,          &
                                              log_scratch_space,  &
                                              LOG_LEVEL_INFO
@@ -63,6 +65,9 @@ contains
 
     allocate( global_mesh_collection, &
               source = global_mesh_collection_type() )
+
+    allocate( local_mesh_collection, &
+              source = local_mesh_collection_type() )
 
     ! Get the rank information from the virtual machine
     total_ranks = get_comm_size()

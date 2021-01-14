@@ -25,6 +25,8 @@ USE field_mod,                  ONLY: field_type
 USE mod_wait,                   ONLY: init_wait
 USE linked_list_mod,            ONLY: linked_list_type
 USE lfricinp_setup_io_mod,      ONLY: init_lfricinp_files
+USE local_mesh_collection_mod,  ONLY: local_mesh_collection,                   &
+                                      local_mesh_collection_type
 
 ! Interface to mpi
 USE mpi_mod,                    ONLY: initialise_comm, store_comm,             &
@@ -118,6 +120,7 @@ CALL set_derived_config( .TRUE. )
 
 CALL log_event('Initialising mesh', LOG_LEVEL_INFO)
 ALLOCATE(global_mesh_collection, source = global_mesh_collection_type())
+ALLOCATE(local_mesh_collection, source = local_mesh_collection_type())
 
 CALL init_mesh(local_rank, total_ranks, mesh_id, twod_mesh_id)
 

@@ -13,8 +13,9 @@ module mesh_collection_mod_test
     use global_mesh_mod,      only : global_mesh_type
     use partition_mod,        only : partition_type
     use global_mesh_collection_mod,                                         &
-                              only : global_mesh_collection_type            &
-                                   , global_mesh_collection
+                              only : global_mesh_collection_type,           &
+                                     global_mesh_collection
+    use local_mesh_mod,       only : local_mesh_type
     use mesh_collection_mod,  only : mesh_collection_type,                  &
                                      mesh_collection
     use mesh_mod,             only : mesh_type, PLANE_BI_PERIODIC, PLANE
@@ -33,10 +34,12 @@ module mesh_collection_mod_test
     private
     type(global_mesh_type), pointer :: global_mesh => null()
     type(partition_type)            :: partition
+    type(local_mesh_type)           :: local_mesh
     type(uniform_extrusion_type)    :: extrusion
   contains
     procedure setUp
     procedure tearDown
+    procedure get_local_mesh_ptr
     procedure test_all
   end type mesh_collection_test_type
 
@@ -66,6 +69,7 @@ contains
     global_test_mesh_id = global_mesh_collection%add_unit_test_global_mesh()
     this%global_mesh => global_mesh_collection%get_global_mesh( global_test_mesh_id )
     this%partition   = partition_type()
+    call this%local_mesh%initialise( this%global_mesh, this%partition )
     this%extrusion   = uniform_extrusion_type( domain_bottom, &
                                                domain_top,    &
                                                nlayers )
@@ -92,6 +96,16 @@ contains
   end subroutine tearDown
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  function get_local_mesh_ptr(this) result(local_mesh_ptr)
+    implicit none
+    class(mesh_collection_test_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: local_mesh_ptr
+    local_mesh_ptr => this%local_mesh
+  end function get_local_mesh_ptr
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   @test( npes=[1] )
   subroutine test_all( this )
 
@@ -100,6 +114,7 @@ contains
     class(mesh_collection_test_type), intent(inout) :: this
 
     type(mesh_type), pointer :: mesh_ptr => null()
+    type(local_mesh_type), pointer :: local_mesh_ptr
     type(mesh_type) :: mesh
     type(mesh_type) :: unit_test_mesh
 
@@ -114,11 +129,16 @@ contains
     ! Create a mesh collection
     mesh_collection = mesh_collection_type()
 
+    local_mesh_ptr => this%get_local_mesh_ptr()
+
     ! Add a couple of meshes to the collection
-    mesh = mesh_type( this%global_mesh, this%partition, this%extrusion )
+    mesh = mesh_type( local_mesh_ptr,   &
+                      this%global_mesh, &
+                      this%partition,   &
+                      this%extrusion )
     mesh_id = mesh_collection%add_new_mesh( mesh )
 
-    unit_test_mesh = mesh_type( PLANE_BI_PERIODIC )
+    unit_test_mesh = mesh_type( PLANE_BI_PERIODIC, local_mesh_ptr )
     mesh_test_id = mesh_collection%add_new_mesh( unit_test_mesh )
 
     ! Two consecutively created meshes should have consecutive ids

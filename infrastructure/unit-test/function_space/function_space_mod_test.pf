@@ -56,6 +56,7 @@ module function_space_mod_test
                                     fs2htk0_basis_diff_function
 
   use function_space_mod,    only : function_space_type
+  use local_mesh_mod,        only : local_mesh_type
   use mesh_collection_mod,   only : mesh_collection_type, &
                                     mesh_collection
   use mesh_mod,              only : mesh_type
@@ -107,12 +108,14 @@ module function_space_mod_test
     integer(i_def)    :: dim_space
     integer(i_def)    :: dim_space_diff
 
+    type(local_mesh_type)    :: unit_test_local_mesh
     integer(i_def)           :: mesh_id
     real(r_def), allocatable :: test_diff_basis(:,:,:,:)
     real(r_def), allocatable :: test_basis(:,:,:,:)
   contains
     procedure setUp
     procedure tearDown
+    procedure get_local_mesh_ptr
     procedure test_space
     procedure test_get_whole_dofmap
     procedure test_stencil_point
@@ -203,6 +206,7 @@ contains
 
     class(test_function_space_type), intent(inout) :: this
 
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
     type(mesh_type) :: unit_test_mesh
 
     ! Initialise YAXT
@@ -210,10 +214,14 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
+    call this%unit_test_local_mesh%initialise()
+    unit_test_local_mesh_ptr => this%get_local_mesh_ptr()
+
     ! Create top level mesh collection
     mesh_collection = mesh_collection_type()
     ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
-    unit_test_mesh = mesh_type( PLANE_BI_PERIODIC )
+
+    unit_test_mesh = mesh_type( PLANE_BI_PERIODIC, unit_test_local_mesh_ptr )
     this%mesh_id = mesh_collection%add_new_mesh( unit_test_mesh )
 
     allocate( this%test_basis ( this%dim_space, &
@@ -248,6 +256,16 @@ contains
   end subroutine tearDown
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  function get_local_mesh_ptr(this) result(unit_test_local_mesh_ptr)
+    implicit none
+    class(test_function_space_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
+    unit_test_local_mesh_ptr => this%unit_test_local_mesh
+  end function get_local_mesh_ptr
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   @Test( npes=[1] )
   subroutine test_space( this )
 

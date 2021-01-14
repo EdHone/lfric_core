@@ -23,6 +23,8 @@ program solver_miniapp
                                                get_comm_size, get_comm_rank
   use global_mesh_collection_mod,       only : global_mesh_collection, &
                                                global_mesh_collection_type
+  use local_mesh_collection_mod,        only : local_mesh_collection, &
+                                               local_mesh_collection_type
   use field_mod,                        only : field_type
   use field_vector_mod,                 only : field_vector_type
   use solver_miniapp_alg_mod,           only : solver_miniapp_alg
@@ -120,6 +122,8 @@ program solver_miniapp
   ! Create the mesh and function space collection
   allocate( global_mesh_collection, &
             source = global_mesh_collection_type() )
+  allocate( local_mesh_collection, &
+            source = local_mesh_collection_type() )
 
   call init_mesh( local_rank, total_ranks, mesh_id )
 

@@ -15,6 +15,7 @@ module create_mesh_mod
   use extrusion_mod,              only: extrusion_type, &
                                         uniform_extrusion_type
   use global_mesh_mod,            only: global_mesh_type
+  use local_mesh_mod,             only: local_mesh_type
   use log_mod,                    only: log_event,         &
                                         log_scratch_space, &
                                         LOG_LEVEL_INFO,    &
@@ -754,6 +755,7 @@ subroutine create_3D_mesh_partition( local_rank, total_ranks, &
                                      extrusion, mesh_name )
 
   use global_mesh_collection_mod, only: global_mesh_collection
+  use local_mesh_collection_mod,  only: local_mesh_collection
   use partition_mod,              only: partitioner_cubedsphere_serial, &
                                         partitioner_cubedsphere,        &
                                         partitioner_planar
@@ -775,6 +777,11 @@ subroutine create_3D_mesh_partition( local_rank, total_ranks, &
                          optional   :: mesh_name
 
   type(global_mesh_type), pointer :: base_global_mesh => null()
+
+  type(local_mesh_type)          :: local_mesh
+  type(local_mesh_type), pointer :: local_mesh_ptr
+  integer(i_def)                 :: local_mesh_id
+
   type(partition_type) :: partition
 
   type(mesh_type)    :: mesh
@@ -802,7 +809,13 @@ subroutine create_3D_mesh_partition( local_rank, total_ranks, &
                               max_stencil_depth, &
                               local_rank, total_ranks )
 
-  mesh = mesh_type( base_global_mesh, &
+  ! Create local mesh
+  call local_mesh%initialise( base_global_mesh, partition )
+  local_mesh_id = local_mesh_collection%add_new_local_mesh(local_mesh)
+  local_mesh_ptr => local_mesh_collection%get_mesh_by_id( local_mesh_id )
+
+  mesh = mesh_type( local_mesh_ptr, &
+                    base_global_mesh, &
                     partition,        &
                     extrusion,        &
                     mesh_name=name )

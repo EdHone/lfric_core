@@ -12,12 +12,14 @@
 !
 module mesh_collection_mod
 
-  use constants_mod,      only: r_def, i_def, l_def, str_def, imdi
-  use mesh_mod,           only: mesh_type
-  use log_mod,            only: log_event, log_scratch_space, &
-                                LOG_LEVEL_WARNING, LOG_LEVEL_TRACE
-  use linked_list_mod,    only: linked_list_type, &
-                                linked_list_item_type
+  use constants_mod,             only: r_def, i_def, l_def, str_def, imdi
+  use mesh_mod,                  only: mesh_type
+  use local_mesh_collection_mod, only: local_mesh_collection
+  use local_mesh_mod,            only: local_mesh_type
+  use log_mod,                   only: log_event, log_scratch_space, &
+                                       LOG_LEVEL_WARNING, LOG_LEVEL_TRACE
+  use linked_list_mod,           only: linked_list_type, &
+                                       linked_list_item_type
 
   implicit none
 

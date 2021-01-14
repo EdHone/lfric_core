@@ -1,0 +1,24 @@
+' (c) Crown copyright 2019 Met Office. All rights reserved.
+' The file LICENCE, distributed with this code, contains details of the terms
+' under which the code may be used.
+
+class local_mesh_mod::local_mesh_type {
+  -mesh_name: string
+  -global_cell_id: integer[:] <<allocatable>>
+  -num_inner: integer[:] <<allocatable>>
+  -inner_depth: integer
+  -num_edge: integer
+  -num_halo: integer[:] <<allocatable>>
+  -halo_depth: integer
+  -num_ghost: integer
+
+  +<<destroy>> local_mesh_destructor()
+  +clear()
+
+  +initialise_full(<<in>>global_mesh: global_mesh_type, <<in>>partition: partition_type, <<in>><<optional>>mesh_name: string)
+  +initialise_unit_test()
+  +initialise() <<generic>>: initialise_full(...), initialise_unit_test(...)
+  +get_mesh_name(): string
+  +get_gid_from_lid(<<in>>lid: integer): integer
+  +get_lid_from_gid(<<in>>gid: integer): integer
+}

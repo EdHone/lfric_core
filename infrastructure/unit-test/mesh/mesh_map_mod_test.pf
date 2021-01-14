@@ -15,6 +15,7 @@ module mesh_map_mod_test
   use global_mesh_map_collection_mod,  only: global_mesh_map_collection_type
   use partition_mod,        only: partition_type, partitioner_interface, &
                                   partitioner_cubedsphere_serial
+  use local_mesh_mod,       only: local_mesh_type
   use mesh_mod,             only: mesh_type
   use mesh_map_mod,         only: mesh_map_type
   use mesh_collection_mod,  only: mesh_collection_type, mesh_collection
@@ -42,9 +43,6 @@ module mesh_map_mod_test
     type(global_mesh_type), pointer :: fine_global_mesh   => null()
     type(mesh_type),        pointer :: coarse_mesh => null()
     type(mesh_type),        pointer :: fine_mesh   => null()
-
-    integer(i_def), allocatable :: coarse_lid_gid_map(:)
-    integer(i_def), allocatable :: fine_lid_gid_map(:)
 
   contains
     procedure :: setUp
@@ -164,17 +162,17 @@ contains
     type(global_mesh_type), pointer :: global_mesh_ptr => null()
     type(global_mesh_type), pointer :: target_mesh_ptr => null()
 
-    type(global_mesh_type)       :: global_mesh
-    type(partition_type)         :: partition
-    type(uniform_extrusion_type) :: extrusion
-    type(mesh_type)              :: mesh
+    type(global_mesh_type)         :: global_mesh
+    type(partition_type)           :: partition
+    type(local_mesh_type), target  :: local_mesh
+    type(local_mesh_type), pointer :: local_mesh_ptr
+    type(uniform_extrusion_type)   :: extrusion
+    type(mesh_type)                :: mesh
 
     integer(i_def) :: mesh_id
-    integer(i_def) :: ncells
     integer(i_def) :: i,j
     integer(i_def) :: npanels
 
-    integer(i_def),     allocatable :: lid_gid_map(:)
     integer(i_def),     allocatable :: cell_map(:,:)
     character(str_def), allocatable :: target_mesh_names(:)
 
@@ -219,7 +217,7 @@ contains
     end do
     call file_handler%file_close()
 
-    ! Partition global meshes/ Setup LID-GID maps
+    ! Partition global meshes
     do i=1, size(mesh_names)
       global_mesh_ptr => global_mesh_collection % get_global_mesh(mesh_names(i))
 
@@ -227,31 +225,18 @@ contains
       partition = partition_type( global_mesh_ptr, partitioner_ptr, &
                                   xproc, yproc, max_stencil_depth,  &
                                   local_rank, total_ranks )
+      call local_mesh%initialise( global_mesh_ptr, partition )
+      local_mesh_ptr => local_mesh
       extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
 
-      mesh = mesh_type( global_mesh_ptr, &
+      mesh = mesh_type( local_mesh_ptr,  &
+                        global_mesh_ptr, &
                         partition,       &
                         extrusion )
 
       mesh_id = mesh_collection%add_new_mesh( mesh )
       call mesh%clear()
 
-      ncells = partition%get_num_cells_in_layer()
-
-      allocate(lid_gid_map(ncells))
-      do j=1, ncells
-        lid_gid_map(j) = partition%get_gid_from_lid(j)
-      end do
-
-      select case (trim(mesh_names(i)))
-      case ('C4')
-        allocate(this%coarse_lid_gid_map(ncells))
-        this%coarse_lid_gid_map = lid_gid_map
-      case ('C8')
-        allocate(this%fine_lid_gid_map(ncells))
-        this%fine_lid_gid_map = lid_gid_map
-      end select
-      deallocate(lid_gid_map)
     end do
 
     mesh_name='C4'

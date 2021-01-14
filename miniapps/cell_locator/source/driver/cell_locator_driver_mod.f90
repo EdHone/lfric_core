@@ -20,6 +20,8 @@ module cell_locator_driver_mod
   use field_mod,                      only : field_type
   use runtime_constants_mod,          only : create_runtime_constants
   use derived_config_mod,             only : set_derived_config
+  use local_mesh_collection_mod,      only : local_mesh_collection, &
+                                             local_mesh_collection_type
   use log_mod,                        only : log_event,         &
                                              log_set_level,     &
                                              log_scratch_space, &
@@ -97,6 +99,9 @@ contains
 
     allocate( global_mesh_collection, &
               source = global_mesh_collection_type() )
+
+    allocate( local_mesh_collection, &
+              source = local_mesh_collection_type() )
 
     ! Create the mesh
     call init_mesh( local_rank, total_ranks, mesh_id, &
