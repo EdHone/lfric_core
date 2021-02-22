@@ -573,7 +573,6 @@ subroutine create_3D_mesh_partitions( local_rank, total_ranks,  &
   use gungho_extrusion_mod,    only: create_extrusion,         &
                                      create_shifted_extrusion, &
                                      create_double_level_extrusion
-  use mesh_collection_mod,     only: mesh_collection
   use multigrid_config_mod,    only: chain_mesh_tags
 
   implicit none
@@ -598,16 +597,11 @@ subroutine create_3D_mesh_partitions( local_rank, total_ranks,  &
   type(uniform_extrusion_type)       :: extrusion_2d
 
   character(str_def) :: mesh_name
-  character(str_def) :: source_mesh_name
-  character(str_def) :: target_mesh_name
 
   integer(i_native) :: i
 
   integer(i_def), parameter :: one_layer = 1_i_def
   real(r_def),    parameter :: atmos_bottom = 0.0_r_def
-
-  type(mesh_type), pointer :: source_mesh => null()
-  type(mesh_type), pointer :: target_mesh => null()
 
 
   ! 1.0 Prime Mesh
@@ -700,23 +694,6 @@ subroutine create_3D_mesh_partitions( local_rank, total_ranks,  &
                                      chain_mesh_tags(i),      &
                                      extrusion_2d,            &
                                      mesh_name=mesh_name )
-    end do
-
-    do i=1, size(chain_mesh_tags)-1
-      source_mesh => mesh_collection%get_mesh(chain_mesh_tags(i))
-      target_mesh => mesh_collection%get_mesh(chain_mesh_tags(i+1))
-
-      call source_mesh%add_mesh_map(target_mesh)
-      call target_mesh%add_mesh_map(source_mesh)
-
-      source_mesh_name = trim(chain_mesh_tags(i))//'_2d'
-      target_mesh_name = trim(chain_mesh_tags(i+1))//'_2d'
-      source_mesh => mesh_collection%get_mesh(source_mesh_name)
-      target_mesh => mesh_collection%get_mesh(target_mesh_name)
-
-      call source_mesh%add_mesh_map(target_mesh)
-      call target_mesh%add_mesh_map(source_mesh)
-
     end do
 
   end if

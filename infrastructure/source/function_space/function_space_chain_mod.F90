@@ -27,7 +27,6 @@ module function_space_chain_mod
   use log_mod,                      only : log_event, log_scratch_space,    &
                                            LOG_LEVEL_ERROR, LOG_LEVEL_DEBUG
   use function_space_mod,           only : function_space_type
-  use mesh_mod,                     only : mesh_type
   use function_space_pointer_mod,   only : function_space_pointer_type
 
   implicit none
@@ -132,34 +131,9 @@ contains ! Module procedures
     class(function_space_chain_type) :: self
     type(function_space_type), intent(inout), pointer :: function_space
     type(function_space_pointer_type) :: this_function_space_pointer
-    type(function_space_pointer_type), pointer :: &
-                                       previous_function_space_pointer => null()
-    type(linked_list_item_type), pointer :: previous_list_item => null()
-    type(function_space_type), pointer :: previous_function_space => null()
-
-    previous_list_item => self%function_space_chain_list%get_tail()
-
-    if (associated(previous_list_item)) then
-
-      ! A mesh map "may" need to be created.
-      ! 'cast' to the function_space_pointer_type
-      select type(v => previous_list_item%payload)
-      type is (function_space_pointer_type)
-        previous_function_space_pointer => v
-      end select
-
-      previous_function_space => previous_function_space_pointer%get_target()
-
-      call create_function_space_chain_mesh_maps( previous_function_space, &
-                                                  function_space )
-    end if
 
     this_function_space_pointer = function_space_pointer_type(function_space)
     call self%function_space_chain_list%insert_item(this_function_space_pointer)
-
-    nullify(previous_function_space_pointer)
-    nullify(previous_list_item)
-    nullify(previous_function_space)
 
   end subroutine add
 
@@ -369,62 +343,4 @@ contains ! Module procedures
     call self%clear()
 
   end subroutine function_space_chain_destructor
-
-
-  !=============================================================================
-  !> @brief   Generates required mesh maps for the given function space source
-  !>          and target.
-  !> @details This routine is provide to generate mesh maps for partitioned
-  !>          meshes as they are added to the chain. In future, these maps will
-  !>          be read in from the NetCDF UGRID file.
-  !> @param[in] source_function_space Pointer to the source function space.
-  !> @param[in] target_function_space Pointer to the target function space.
-  !=============================================================================
-  subroutine create_function_space_chain_mesh_maps( source_function_space, &
-                                                    target_function_space )
-
-    implicit none
-
-    type(function_space_type), intent(in), pointer :: source_function_space
-    type(function_space_type), intent(in), pointer :: target_function_space
-
-    type(mesh_type), pointer :: source_mesh => null()
-    type(mesh_type), pointer :: target_mesh => null()
-
-    integer(i_def) :: source_mesh_id
-    integer(i_def) :: target_mesh_id
-
-    if ( associated(source_function_space) .and. &
-         associated(target_function_space) ) then
-
-      ! Get the local meshes associated with consecutive function spaces
-      source_mesh => source_function_space%get_mesh()
-      target_mesh => target_function_space%get_mesh()
-
-      ! The local and global mesh ids associated with the source and
-      ! target meshes
-      source_mesh_id = source_mesh%get_id()
-      target_mesh_id = target_mesh%get_id()
-
-      ! Mapping is only necessary if consecutive function spaces are on
-      ! different meshes.
-      if (source_mesh_id /= target_mesh_id) then
-
-        call source_mesh%add_mesh_map(target_mesh)
-        call target_mesh%add_mesh_map(source_mesh)
-
-      end if
-
-    else
-      write(log_scratch_space, '(A)') &
-      'Unassociated pointers to Source or Target function spaces.'
-      call log_event(log_scratch_space, LOG_LEVEL_ERROR)
-    end if
-
-    nullify(source_mesh)
-    nullify(target_mesh)
-
-  end subroutine create_function_space_chain_mesh_maps
-
-  !=============================================================================
 end module function_space_chain_mod

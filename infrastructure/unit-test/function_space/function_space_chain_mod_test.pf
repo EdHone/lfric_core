@@ -101,6 +101,8 @@ type(global_mesh_type), pointer :: target_global_mesh_ptr => null()
 type(global_mesh_type), pointer :: global_mesh_ptr    => null()
 type(global_mesh_type)          :: global_mesh
 type(mesh_type)                 :: mesh
+type(mesh_type), pointer        :: source_mesh => null()
+type(mesh_type), pointer        :: target_mesh => null()
 type(local_mesh_type)           :: local_mesh
 type(local_mesh_type), pointer  :: local_mesh_ptr
 
@@ -175,6 +177,13 @@ do i=1, size(mesh_names)
   call mesh%clear()
 end do
 
+! Add mesh maps
+do i=1, size(mesh_names)-1
+  source_mesh => mesh_collection%get_mesh(mesh_names(i))
+  target_mesh => mesh_collection%get_mesh(mesh_names(i+1))
+  call source_mesh%add_mesh_map(target_mesh)
+  call target_mesh%add_mesh_map(source_mesh)
+end do
 
 this%function_space1 => function_space_collection%get_fs( mesh_id(1), &
                                                           element_order, W0 )
