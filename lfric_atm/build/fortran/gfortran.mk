@@ -14,3 +14,7 @@ export FFLAGS_UM_PHYSICS = -fdefault-real-8
 # We reset the FFLAGS_WARNINGS variable here in order to prevent
 # -Werror induced build failures.
 FFLAGS_WARNINGS          = -Wall -Werror=character-truncation -Werror=unused-value
+# We remove bounds checking (applied by -fcheck=all) and underflow checking. The 
+# latter is due to regular permitting of exponents going to zero for small numbers
+# to imply total extinction of radiation passing through a medium
+FFLAGS_RUNTIME           = -fcheck=all,no-bounds -ffpe-trap=invalid,zero,overflow

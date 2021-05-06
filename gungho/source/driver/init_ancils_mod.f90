@@ -374,11 +374,14 @@ contains
 
     ! Read time data from ancil file, then cast to r_def
     call read_time_data(time_id, time_data_dpxios)
+    allocate( time_data( size(time_data_dpxios) ) )
     time_data = real(time_data_dpxios, kind=r_def)
-    deallocate(time_data_dpxios)
 
     ! Initialise time axis
     call time_axis%initialise( time_data, time_id )
+
+    deallocate(time_data)
+    deallocate(time_data_dpxios)
 
   end subroutine init_time_axis
 

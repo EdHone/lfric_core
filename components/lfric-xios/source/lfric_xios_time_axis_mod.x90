@@ -261,7 +261,6 @@ subroutine initialise( self, input_data, name, input_units, cyclic, &
 
     ! Until final clock/calendar implementation, the time is currently in the
     ! form of a real number of seconds (future work will introduce time units)
-
     ! Cycle backwards - find correct time window if its behind the start
     do n=1,size(self%time_data)
       if ( input_time < self%time_data(1) ) then

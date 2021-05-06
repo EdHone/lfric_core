@@ -172,7 +172,7 @@ contains
     ! in any kernel whos external code uses it.
     ! Ideally the UM/Jules code will be changed so that it is passed in
     ! through the argument list
-    allocate(f3_at_u(row_length,rows), source=rmdi)
+    allocate(f3_at_u(row_length,rows), source=1.0_r_um)
 
   end subroutine jules_control_init
 

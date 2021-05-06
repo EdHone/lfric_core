@@ -254,6 +254,7 @@ contains
                  setval_c(mid_in_col, 0.0_r_def),       &
                  setval_c(freeze_level, 0.0_r_def),     &
                  setval_c(mid_prec, 0.0_r_def),         &
+                 setval_c(deep_term, 0.0_r_def),        &
                  setval_c(shallow_prec, 0.0_r_def),     &
                  setval_c(deep_prec, 0.0_r_def),        &
                  setval_c(cape_diluted, 0.0_r_def),     &

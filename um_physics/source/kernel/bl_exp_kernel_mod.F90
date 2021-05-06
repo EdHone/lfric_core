@@ -35,6 +35,7 @@ module bl_exp_kernel_mod
                                      sea_surf_alg_fixed_roughness, &
                                      formdrag, formdrag_dist_drag
   use timestepping_config_mod, only: outer_iterations
+  use water_constants_mod,     only: tfs
 
   implicit none
 
@@ -896,6 +897,11 @@ contains
     allocate(r_rho_levels(0:row_length+1,0:rows+1,nlayers), source=rmdi)
     rho_wet_rsq = 1.0_r_um
 
+    ! Initialise those fields whose contents will not be fully set
+    fraca      = 0.0_r_um
+    fqw_surft  = 0.0_r_um
+    epot_surft = 0.0_r_um
+
     !-----------------------------------------------------------------------
     ! Mapping of LFRic fields into UM variables
     !-----------------------------------------------------------------------
@@ -1008,7 +1014,10 @@ contains
     end do
 
     ! Sea temperature
-    tstar_sea = 0.0_r_um
+    ! Default to temperature over frozen sea as the initialisation
+    ! that follows does not initialise sea points if they are fully
+    ! frozen
+    tstar_sea = tfs
     if (tile_fraction(tile_stencil(1,1)+first_sea_tile-1) > 0.0_r_def) then
       tstar_sea = real(tile_temperature(map_tile(1)+first_sea_tile-1), r_um)
     end if

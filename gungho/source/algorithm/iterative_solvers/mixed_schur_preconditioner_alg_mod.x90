@@ -382,14 +382,16 @@ contains
     ! r_rho already contains M3^-1 factor
     mt_lumped_inv => get_normalisation(wt_id)
     if ( element_order == 0 ) then
-      call invoke( opt_apply_variable_hx_kernel_type( r_p, u_term, mt_lumped_inv, rhs0%vector(igh_d), &
+      call invoke( setval_c( r_p, 0.0_r_def ),  &
+                   opt_apply_variable_hx_kernel_type( r_p, u_term, mt_lumped_inv, rhs0%vector(igh_d), &
                                                       compound_div, p3theta, ptheta2, m3_rho_star,&
                                                       minus_one), &
                    matrix_vector_kernel_type(r_p, rhs0%vector(igh_t), p3theta), &
                    dg_matrix_vector_kernel_type(self%rhs_p, r_p, m3_inv), &
                    inc_X_plus_Y(self%rhs_p, rhs0%vector(igh_p)) )
     else
-      call invoke( apply_variable_hx_kernel_type( r_p, u_term, mt_lumped_inv, rhs0%vector(igh_d),  &
+      call invoke( setval_c( r_p, 0.0_r_def ),  &
+                   apply_variable_hx_kernel_type( r_p, u_term, mt_lumped_inv, rhs0%vector(igh_d),  &
                                                   compound_div, p3theta, ptheta2, m3_rho_star,&
                                                   minus_one), &
                    matrix_vector_kernel_type(r_p, rhs0%vector(igh_t), p3theta), &

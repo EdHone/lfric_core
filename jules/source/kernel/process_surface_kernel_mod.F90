@@ -90,12 +90,16 @@ contains
     real(kind=r_def) :: tot_ice, tot_land
 
     ! Set land tile fractions from ancillary
-    tot_land = sum(land_tile_fraction(map_land(1):map_land(1)+n_land_tile-1))
-    do i = 1, n_land_tile
-      tile_fraction(map_tile(1)+i-1) = land_tile_fraction(map_land(1)+i-1) &
-                                     * land_area_fraction(map_2d(1))       &
-                                     / tot_land
-    end do
+    if (land_area_fraction(map_2d(1)) > 0.0_r_def) then
+      tot_land = sum(land_tile_fraction(map_land(1):map_land(1)+n_land_tile-1))
+      do i = 1, n_land_tile
+        tile_fraction(map_tile(1)+i-1) = land_tile_fraction(map_land(1)+i-1) &
+                                       * land_area_fraction(map_2d(1))       &
+                                       / tot_land
+      end do
+    else
+      tile_fraction(map_tile(1):map_tile(1)+n_land_tile-1) = 0.0_r_def
+    end if
 
     ! Set the sea ice fraction from an ancillary
     tot_ice = 0.0_r_def

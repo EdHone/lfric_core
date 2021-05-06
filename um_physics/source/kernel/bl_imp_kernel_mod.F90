@@ -31,6 +31,7 @@ module bl_imp_kernel_mod
                                      lowest_level_flux
   use planet_config_mod,      only : cp
   use surface_config_mod,     only : formdrag, formdrag_dist_drag
+  use water_constants_mod,    only : tfs
 
   implicit none
 
@@ -710,7 +711,16 @@ contains
     kent = 2
     kent_dsc = 2
     olr = 300.0_r_um
-    tstbtrans = 0.0_r_um
+    tstbtrans      = 0.0_r_um
+    fqw_surft      = 0.0_r_um
+    cdr10m_u       = 0.0_r_um
+    cdr10m_v       = 0.0_r_um
+    conv_rain      = 0.0_r_um
+    conv_snow      = 0.0_r_um
+    cca0           = 0.0_r_um
+    epot_surft     = 0.0_r_um
+    tscrndcl_ssi   = 0.0_r_um
+    tscrndcl_surft = 0.0_r_um
 
     !-----------------------------------------------------------------------
     ! Mapping of LFRic fields into UM variables
@@ -819,14 +829,21 @@ contains
     end do
 
     ! Sea temperature
-    tstar_sea = 0.0_r_um
+    ! Default to temperature over frozen sea as the initialisation
+    ! that follows does not initialise sea points if they are fully
+    ! frozen
+    tstar_sea = tfs
     if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
       tstar_sea = real(tile_temperature(map_tile(1)+first_sea_tile-1), r_um)
     end if
 
     ! Sea-ice temperatures
+    ftl_ice         = 0.0_r_um
+    fqw_ice         = 0.0_r_um
+    tstar_sice      = 0.0_r_um
+    tstar_sice_ncat = 0.0_r_um
+
     i_sice = 0
-    tstar_sice = 0.0_r_um
     if (ice_fract(1, 1) > 0.0_r_um) then
       do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
         i_sice = i_sice + 1

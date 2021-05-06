@@ -218,8 +218,17 @@
                                          },
                             }
                            )',
-    'check_compilers("lfric_atm", "scm_bl_pc2_mphys_rad", "fast-debug",
-                     resolution=("BiP4x4-10000x10000",600.0))',
+    'run_application("lfric_atm", "basic_gal7_copy", checkkgo=False,
+                     resolutions=[("C12",1800.0)],
+                     env={"crun":1, "nrun":4,
+                          "directives":{"C12":{"mpi_parts":6,
+                                               "threads":1,
+                                               "wallclock":"00:12:00"},
+                                       },
+                         }
+                     )',
+    'check_compilers("lfric_atm", "basic_gal7_copy", "full-debug",
+                     resolution=("C12",1800.0))',
     'canned_test("lfric_atm")'
   ],
   'nightly': [
@@ -232,12 +241,21 @@
                      env={"crun":1, "nrun":36,
                           "directives":{"C48":{"mpi_parts":24,
                                                "threads":1,
-                                               "wallclock":"00:20:00"},
+                                               "wallclock":"00:30:00"},
                                        },
                          },
                      plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
                      )',
-    'run_with_restart_check("lfric_atm", "thai_ben1", 2,
+     'run_application("lfric_atm", "basic_gal7_copy", checkkgo=False,
+                     resolutions=[("C48",1800.0)],
+                     env={"crun":1, "nrun":4,
+                          "directives":{"C48":{"mpi_parts":24,
+                                               "threads":1,
+                                               "wallclock":"00:30:00"},
+                                       },
+                         }
+                     )',
+   'run_with_restart_check("lfric_atm", "thai_ben1", 2,
                             resolutions=[("C24",1800.0)],
                             env={"crun":1, "nrun":72,
                             "directives":{"C24":{"mpi_parts":6,
@@ -247,36 +265,22 @@
                             },
 			    plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
                            )',
-    'publish_commit'
+     'check_compilers("lfric_atm", "basic_gal7_copy", "full-debug",
+                     resolution=("C48",1800.0))',
+   'publish_commit'
   ],
   'nightly-full-debug': [
-    'run_application("lfric_atm", "scm_dry_bl",
-                     resolutions=[("BiP4x4-10000x10000",600.0)],
-		     env={"crun":1, "nrun":48},
-                     plotstr="plot_scm.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR")',
-    'run_application("lfric_atm", "aquaplanet",
+    'run_application("lfric_atm", "basic_gal7", checkkgo=False,
                      resolutions=[("C12",1800.0)],
-                     env={"crun":2, "nrun":12,
+                     env={"crun":1, "nrun":32,
                           "directives":{"C12":{"mpi_parts":6,
                                                "threads":1,
                                                "wallclock":"00:12:00"},
                                        },
-                         },
-                     plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
+                         }
                      )',
-    'run_application("lfric_atm", "basic_gal7",
-                     resolutions=[("C12",1800.0)],
-                     env={"crun":2, "nrun":72,
-                          "directives":{"C12":{"mpi_parts":6,
-                                               "threads":1,
-                                               "wallclock":"00:12:00"},
-                                       },
-                         },
-                     plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
-                     )',
-    'check_compilers("lfric_atm", "scm_dry_bl", "full-debug",
-                     resolution=("BiP4x4-10000x10000",600.0),
-                     publish=True)',
+    'check_compilers("lfric_atm", "basic_gal7", "full-debug",
+                     resolution=("C12",1800.0))',
     'publish_commit'
   ],
 
