@@ -70,18 +70,22 @@ contains
 
     integer(i_def), parameter :: nfaces_v = 2
     integer(i_def), parameter :: nlayers = 8
+    integer(i_def), parameter :: mol_order = 2
+    integer(i_def), parameter :: ndata = (mol_order+1)*nfaces_v
     integer(i_def), parameter :: ndf_w3 = 1
     integer(i_def), parameter :: ndf_wx = 8
+    integer(i_def), parameter :: ndf_c  = 1
     integer(i_def), parameter :: undf_w3 = ndf_w3*nlayers
     integer(i_def), parameter :: undf_wx = ndf_wx*nlayers
-    integer(i_def), parameter :: global_order = 2
+    integer(i_def), parameter :: undf_c  = ndata*nlayers
     integer(i_def), parameter :: nqp_h = 1
     integer(i_def), parameter :: nqp_v = 3
     integer(i_def), parameter :: nqp_f = 1
     integer(i_def), dimension(ndf_w3) :: map_w3
     integer(i_def), dimension(ndf_wx) :: map_wx
+    integer(i_def), dimension(ndf_c)  :: map_c
 
-    real(r_def), dimension(global_order+1,2,undf_w3) :: coeff
+    real(r_def), dimension(undf_c)  :: coeff
     real(r_def), dimension(undf_w3) :: mdw3
     real(r_def), dimension(undf_wx) :: x, y, z
 
@@ -104,7 +108,7 @@ contains
     wqp_v(:) = (/5.0_r_def, 8.0_r_def, 5.0_r_def/)/18.0_r_def
 
     map_w3(1) = 1
-
+    map_c(1) = 1
     do df = 1,ndf_wx
       map_wx(df) = 1 + (df-1)*nlayers
     end do
@@ -147,6 +151,11 @@ contains
                                       coeff,                     &
                                       mdw3,                      &
                                       x, y, z,                   &
+                                      ndata,                     &
+                                      mol_order,                 &
+                                      ndf_c,                     &
+                                      undf_c,                    &
+                                      map_c,                     &
                                       ndf_w3,                    &
                                       undf_w3,                   &
                                       map_w3,                    &
@@ -155,8 +164,6 @@ contains
                                       map_wx,                    &
                                       basis_wx,                  &
                                       face_basis_wx,             &
-                                      global_order,              &
-                                      nfaces_v,                  &
                                       nqp_h, nqp_v, wqp_h, wqp_v,&
                                       nfaces_v, nqp_f, wqp_f )
 
@@ -167,16 +174,22 @@ contains
     end if
 
     answer = (/ 2.0_r_def, 5.0_r_def, -1.0_r_def /)/6.0_r_def
-    @assertEqual(answer, coeff(:,1,2), use_tol)
-
+    do df = 0,2
+      @assertEqual(answer(df+1), coeff(df + ndata + map_c(1)), use_tol)
+    end do
     answer = (/ -1.0_r_def, 5.0_r_def, 2.0_r_def /)/6.0_r_def
-    @assertEqual(answer, coeff(:,2,2), use_tol)
+    do df = 0,2
+      @assertEqual(answer(df+1), coeff(df + (mol_order+1) + ndata + map_c(1)), use_tol)
+    end do
 
     answer = (/ 2.0_r_def, 5.0_r_def, -1.0_r_def /)/6.0_r_def
-    @assertEqual(answer, coeff(:,2,1), use_tol)
-
+    do df = 0,2
+      @assertEqual(answer(df+1), coeff(df + (mol_order+1) + map_c(1)), use_tol)
+    end do
     answer = (/ -1.0_r_def, 5.0_r_def, 2.0_r_def /)/6.0_r_def
-    @assertEqual(answer, coeff(:,1,nlayers), use_tol)
+    do df = 0,2
+      @assertEqual(answer(df+1), coeff(df + (nlayers-1)*ndata + map_c(1)), use_tol)
+    end do
 
   end subroutine test_uniform_mesh
 
@@ -195,18 +208,23 @@ contains
 
     integer(i_def), parameter :: nfaces_v = 2
     integer(i_def), parameter :: nlayers = 8
+    integer(i_def), parameter :: logspace = 0
+    integer(i_def), parameter :: mol_order = 2
+    integer(i_def), parameter :: ndata = (mol_order+1)*nfaces_v
     integer(i_def), parameter :: ndf_w3 = 1
     integer(i_def), parameter :: ndf_wx = 8
+    integer(i_def), parameter :: ndf_c  = 1
     integer(i_def), parameter :: undf_w3 = ndf_w3*nlayers
     integer(i_def), parameter :: undf_wx = ndf_wx*nlayers
-    integer(i_def), parameter :: global_order = 2
+    integer(i_def), parameter :: undf_c  = ndata*nlayers
     integer(i_def), parameter :: nqp_h = 1
     integer(i_def), parameter :: nqp_v = 3
     integer(i_def), parameter :: nqp_f = 1
     integer(i_def), dimension(ndf_w3) :: map_w3
     integer(i_def), dimension(ndf_wx) :: map_wx
+    integer(i_def), dimension(ndf_c)  :: map_c
 
-    real(r_def), dimension(global_order+1,2,undf_w3) :: coeff
+    real(r_def), dimension(undf_c)  :: coeff
     real(r_def), dimension(undf_w3) :: mdw3
     real(r_def), dimension(undf_wx) :: x, y, z
 
@@ -240,6 +258,7 @@ contains
     wqp_v(:) = (/5.0_r_def, 8.0_r_def, 5.0_r_def/)/18.0_r_def
 
     map_w3(1) = 1
+    map_c(1) = 1
 
     do df = 1,ndf_wx
       map_wx(df) = 1 + (df-1)*nlayers
@@ -346,6 +365,11 @@ contains
                                       coeff,                     &
                                       mdw3,                      &
                                       x, y, z,                   &
+                                      ndata,                     &
+                                      mol_order,                 &
+                                      ndf_c,                     &
+                                      undf_c,                    &
+                                      map_c,                     &
                                       ndf_w3,                    &
                                       undf_w3,                   &
                                       map_w3,                    &
@@ -354,8 +378,6 @@ contains
                                       map_wx,                    &
                                       basis_wx,                  &
                                       face_basis_wx,             &
-                                      global_order,              &
-                                      nfaces_v,                  &
                                       nqp_h, nqp_v, wqp_h, wqp_v,&
                                       nfaces_v, nqp_f, wqp_f )
 
@@ -376,22 +398,25 @@ contains
       flux = 0.0_r_def
 
       call poly1d_vert_flux_code( nlayers,              &
-                                 flux,                 &
-                                 wind,                 &
-                                 density,              &
-                                 coeff,                &
-                                 ndf_w2,               &
-                                 undf_w2,              &
-                                 map_w2,               &
-                                 basis,                &
-                                 ndf_w3,               &
-                                 undf_w3,              &
-                                 map_w3,               &
-                                 global_order,         &
-                                 nfaces_v,             &
-                                 outward_normals,      &
-                                 .false. )
-
+                                  flux,                 &
+                                  wind,                 &
+                                  density,              &
+                                  coeff,                &
+                                  ndata,                &
+                                  mol_order,            &
+                                  logspace,             &
+                                  ndf_w2,               &
+                                  undf_w2,              &
+                                  map_w2,               &
+                                  basis,                &
+                                  ndf_w3,               &
+                                  undf_w3,              &
+                                  map_w3,               &
+                                  ndf_c,                &
+                                  undf_c,               &
+                                  map_c,                &
+                                  nfaces_v,             &
+                                  outward_normals )
       if ( r_def == real64 ) then
         use_tol = tol
       else

@@ -23,6 +23,7 @@ use argument_mod,      only : arg_type, func_type,         &
                               GH_REAL, GH_INTEGER,         &
                               GH_INC, GH_READ, GH_BASIS,   &
                               CELL_COLUMN, GH_EVALUATOR,   &
+                              ANY_DISCONTINUOUS_SPACE_1,   &
                               outward_normals_to_vertical_faces
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : W2, W3
@@ -38,13 +39,14 @@ private
 !> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_flux_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                                   &
-       arg_type(GH_FIELD,  GH_REAL,    GH_INC,  W2),                    &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ, W2),                    &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ, W3),                    &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ, W3),                    &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                        &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)                         &
+  type(arg_type) :: meta_args(7) = (/                                        &
+       arg_type(GH_FIELD,  GH_REAL,    GH_INC,   W2),                        &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,  W2),                        &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,  W3),                        &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,  ANY_DISCONTINUOUS_SPACE_1), &
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                             &
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                             &
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)                              &
        /)
   type(func_type) :: meta_funcs(1) = (/                                 &
        func_type(W2, GH_BASIS)                                          &
@@ -71,6 +73,11 @@ contains
 !! @param[in]  wind Wind field
 !! @param[in]  density Tracer density
 !! @param[in]  coeff Array of polynomial coefficients for interpolation
+!! @param[in]  ndata Number of data points per dof location
+!! @param[in]  global_order Desired order of polynomial reconstruction
+!! @param[in]  logspace If true (=1), then perform interpolation in log space;
+!!             this should be a logical but this is not currently supported in
+!!             PSyclone, see Issue #1248
 !! @param[in]  ndf_w2 Number of degrees of freedom per cell
 !! @param[in]  undf_w2 Number of unique degrees of freedom for the flux &
 !!                     wind fields
@@ -79,18 +86,22 @@ contains
 !! @param[in]  ndf_w3 Number of degrees of freedom per cell
 !! @param[in]  undf_w3 Number of unique degrees of freedom for the density field
 !! @param[in]  map_w3 Cell dofmaps for the density space
-!! @param[in]  global_order Desired order of polynomial reconstruction
+!! @param[in]  ndf_c Number of degrees of freedom per cell for the coeff space
+!! @param[in]  undf_c Total number of degrees of freedom for the coeff space
+!! @param[in]  map_c Dofmap for the coeff space
 !! @param[in]  nfaces_re_v Number of vertical faces (used by PSyclone to size
 !!                         coeff array)
 !! @param[in]  outward_normals_to_vertical_faces Vector of normals to the
 !!                                               reference element vertical
 !!                                               "outward faces"
-!! @param[in]  logspace If true, then perform interpolation in log space
 subroutine poly1d_vert_flux_code( nlayers,                           &
                                   flux,                              &
                                   wind,                              &
                                   density,                           &
                                   coeff,                             &
+                                  ndata,                             &
+                                  global_order,                      &
+                                  logspace,                          &
                                   ndf_w2,                            &
                                   undf_w2,                           &
                                   map_w2,                            &
@@ -98,38 +109,45 @@ subroutine poly1d_vert_flux_code( nlayers,                           &
                                   ndf_w3,                            &
                                   undf_w3,                           &
                                   map_w3,                            &
-                                  global_order,                      &
+                                  ndf_c,                             &
+                                  undf_c,                            &
+                                  map_c,                             &
                                   nfaces_re_v,                       &
-                                  outward_normals_to_vertical_faces, &
-                                  logspace )
+                                  outward_normals_to_vertical_faces )
 
   implicit none
 
   ! Arguments
   integer(kind=i_def), intent(in)                    :: nlayers
+  integer(kind=i_def), intent(in)                    :: ndata
   integer(kind=i_def), intent(in)                    :: ndf_w3
   integer(kind=i_def), intent(in)                    :: undf_w3
   integer(kind=i_def), intent(in)                    :: ndf_w2
   integer(kind=i_def), intent(in)                    :: undf_w2
+  integer(kind=i_def), intent(in)                    :: ndf_c
+  integer(kind=i_def), intent(in)                    :: undf_c
   integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
+  integer(kind=i_def), dimension(ndf_c),  intent(in) :: map_c
   integer(kind=i_def), dimension(ndf_w3), intent(in) :: map_w3
   integer(kind=i_def), intent(in)                    :: global_order, nfaces_re_v
 
   real(kind=r_def), dimension(undf_w2), intent(inout) :: flux
   real(kind=r_def), dimension(undf_w2), intent(in)    :: wind
   real(kind=r_def), dimension(undf_w3), intent(in)    :: density
-
-  real(kind=r_def), dimension(global_order+1, nfaces_re_v, undf_w3), intent(in) :: coeff
+  ! ndata = (global_order+1)*nfaces_re_v
+  ! (i, j, map(df) + k ) => i - 1 + (j-1)*nfaces_re_v + k*ndata + map_c(df)
+  real(kind=r_def), dimension(undf_c),  intent(in)    :: coeff
 
   real(kind=r_def), dimension(3,ndf_w2,ndf_w2), intent(in) :: basis_w2
 
   real(kind=r_def), intent(in)  :: outward_normals_to_vertical_faces(:,:)
 
-  logical, intent(in) :: logspace
+  integer(kind=i_def), intent(in) :: logspace
 
   ! Internal variables
   integer(kind=i_def)            :: k, df, ij, p, stencil, order, id, &
-                                    m, ijkp, boundary_offset, vertical_order
+                                    m, ijkp, boundary_offset, vertical_order, &
+                                    idx
   integer(kind=i_def)            :: vert_offset
   real(kind=r_def)               :: direction
   real(kind=r_def), dimension(2) :: v_dot_n
@@ -178,7 +196,7 @@ subroutine poly1d_vert_flux_code( nlayers,                           &
       ! Check if this is the upwind cell
       direction = wind(map_w2(df) + k )*v_dot_n(id)
       if ( direction >= 0.0_r_def ) then
-        if (logspace) then
+        if (logspace == 1_i_def) then
           ! Interpolate log(tracer)
           ! I.e. polynomial = exp(c_1*log(tracer_1) + c_2*log(tracer_2) + ...)
           !                 = tracer_1**c_1*tracer_2**c_2...
@@ -190,15 +208,17 @@ subroutine poly1d_vert_flux_code( nlayers,                           &
           polynomial_density = 1.0_r_def
           do p = 1,order+1
             ijkp = ij + k + smap(p,order) + boundary_offset
+            idx = p - 1 + (id-1)*(global_order + 1) + k*ndata + map_c(1)
             polynomial_density = polynomial_density &
-                               * abs(density( ijkp ))**coeff( p, id, ij+k )
+                               * abs(density( ijkp ))**coeff( idx )
           end do
         else
           polynomial_density = 0.0_r_def
           do p = 1,order+1
             ijkp = ij + k + smap(p,order) + boundary_offset
+            idx = p - 1 + (id-1)*(global_order + 1) + k*ndata + map_c(1)
             polynomial_density = polynomial_density &
-                               + density( ijkp )*coeff( p, id, ij+k )
+                               + density( ijkp )*coeff( idx )
           end do
         end if
         flux(map_w2(df) + k ) = wind(map_w2(df) + k)*polynomial_density
@@ -221,22 +241,24 @@ subroutine poly1d_vert_flux_code( nlayers,                           &
   id = 1
   if ( order > 0 ) boundary_offset = 1
   df = id + vert_offset
-  if (logspace) then
+  if (logspace == 1_i_def) then
     ! Interpolate log(tracer)
     ! I.e. polynomial = exp(c_1*log(tracer_1) + c_2*log(tracer_2) + ...)
     !                 = tracer_1**c_1*tracer_2**c_2...
     polynomial_density = 1.0_r_def
     do p = 1,order+1
       ijkp = ij + k + smap(p,order) + boundary_offset
+      idx = p - 1 + (id-1)*(global_order + 1) + k*ndata + map_c(1)
       polynomial_density = polynomial_density &
-                         * abs(density( ijkp ))**coeff( p, id, ij+k )
+                         * abs(density( ijkp ))**coeff( idx )
     end do
   else
     polynomial_density = 0.0_r_def
     do p = 1,order+1
       ijkp = ij + k + smap(p,order) + boundary_offset
+      idx = p - 1 + (id-1)*(global_order + 1) + k*ndata + map_c(1)
       polynomial_density = polynomial_density &
-                         + density( ijkp )*coeff( p, id, ij+k )
+                         + density( ijkp )*coeff( idx )
     end do
   end if
   flux(map_w2(df) + k ) = wind(map_w2(df) + k)*polynomial_density
@@ -245,22 +267,24 @@ subroutine poly1d_vert_flux_code( nlayers,                           &
   id = 2
   if ( order > 0 ) boundary_offset =  -1
   df = id + vert_offset
-  if (logspace) then
+  if (logspace == 1_i_def) then
     ! Interpolate log(tracer)
     ! I.e. polynomial = exp(c_1*log(tracer_1) + c_2*log(tracer_2) + ...)
     !                 = tracer_1**c_1*tracer_2**c_2...
     polynomial_density = 1.0_r_def
     do p = 1,order+1
       ijkp = ij + k + smap(p,order) + boundary_offset
+      idx = p - 1 + (id-1)*(global_order + 1) + k*ndata + map_c(1)
       polynomial_density = polynomial_density &
-                         * abs(density( ijkp ))**coeff( p, id, ij+k )
+                         * abs(density( ijkp ))**coeff( idx )
     end do
   else
     polynomial_density = 0.0_r_def
     do p = 1,order+1
       ijkp = ij + k + smap(p,order) + boundary_offset
+      idx = p - 1 + (id-1)*(global_order + 1) + k*ndata + map_c(1)
       polynomial_density = polynomial_density &
-                         + density( ijkp )*coeff( p, id, ij+k )
+                         + density( ijkp )*coeff( idx )
     end do
   end if
   flux(map_w2(df) + k ) = wind(map_w2(df) + k)*polynomial_density

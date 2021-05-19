@@ -90,16 +90,22 @@ contains
     integer(i_def), parameter :: ndf_wx = 8
     integer(i_def), parameter :: ndf_pid = 1
     integer(i_def), parameter :: stencil_size = 5
-    integer(i_def), parameter :: order = 2
+    integer(i_def), parameter :: mol_order = 2
     integer(i_def), parameter :: nqp = 3
     integer(i_def), parameter :: nqp_h = nqp**2
     integer(i_def), parameter :: nqp_v = 2
     integer(i_def), parameter :: nqp_e = 1
+    integer(i_def), parameter :: nfaces = 4
     integer(i_def), parameter :: undf_wt = (nlayers+1)*stencil_size
     integer(i_def), parameter :: undf_wx = ndf_wx*nlayers*stencil_size
     integer(i_def), parameter :: undf_pid = stencil_size
-    integer(i_def), dimension(ndf_wt,stencil_size) :: smap_wt
-    integer(i_def), dimension(ndf_wx,stencil_size) :: smap_wx
+    integer(i_def), parameter :: ndata = (mol_order+1)*nfaces
+    integer(i_def), parameter :: ndf_c = 2
+    integer(i_def), parameter :: undf_c = (nlayers+1)*ndata
+
+    integer(i_def), dimension(ndf_c)                :: map_c
+    integer(i_def), dimension(ndf_wt,stencil_size)  :: smap_wt
+    integer(i_def), dimension(ndf_wx,stencil_size)  :: smap_wx
     integer(i_def), dimension(ndf_pid,stencil_size) :: smap_pid
 
 
@@ -109,10 +115,10 @@ contains
     real(r_def), dimension(nqp_v), parameter :: wqp_v = (/ 0.5_r_def, 0.5_r_def /)
     real(r_def), dimension(nqp_e), parameter :: wqp_e = (/ 1.0_r_def /)
 
-    real(r_def), dimension(order+1,4,undf_wt) :: coeff
-    real(r_def), dimension(undf_wt)           :: mdwt
-    real(r_def), dimension(undf_wx)           :: x, y, z
-    real(r_def), dimension(undf_pid)          :: panel_id
+    real(r_def), dimension(undf_c)   :: coeff
+    real(r_def), dimension(undf_wt)  :: mdwt
+    real(r_def), dimension(undf_wx)  :: x, y, z
+    real(r_def), dimension(undf_pid) :: panel_id
 
     real(r_def), dimension(stencil_size) :: stencil_dx, stencil_dy
     real(r_def), dimension(3) :: xq, wqp
@@ -121,6 +127,7 @@ contains
     real(r_def), parameter :: dy = 3.0_r_def
     real(r_def), parameter :: dz = 4.0_r_def
     real(r_def), parameter :: dv = dx*dy*dz
+    real(r_def), parameter :: h0 = 0.0_r_def
 
     integer(i_def) :: k, df, s, ij, i, j
 
@@ -144,6 +151,8 @@ contains
         smap_wx(df,s) = 1 + (df-1)*nlayers + (s-1)*nlayers*ndf_wx
       end do
     end do
+
+    map_c(:) = (/ 1, 1+ndata /)
 
     stencil_dx = (/ 0.0_r_def, -dx, 0.0_r_def, dx, 0.0_r_def /)
     stencil_dy = (/ 0.0_r_def, 0.0_r_def, -dy, 0.0_r_def, dy /)
@@ -214,36 +223,42 @@ contains
     call poly1d_advective_coeffs_code(nlayers,                   &
                                       coeff,                     &
                                       mdwt,                      &
-                                      x, y, z,                   &
-                                      panel_id,                  &
-                                      ndf_wt,                    &
-                                      undf_wt,                   &
                                       stencil_size,              &
                                       smap_wt,                   &
-                                      ndf_wx,                    &
-                                      undf_wx,                   &
+                                      x, y, z,                   &
                                       stencil_size,              &
                                       smap_wx,                   &
+                                      panel_id,                  &
+                                      stencil_size,              &
+                                      smap_pid,                  &
+                                      ndata,                     &
+                                      mol_order,                 &
+                                      nfaces,                    &
+                                      h0,                        &
+                                      ndf_c,                     &
+                                      undf_c,                    &
+                                      map_c,                     &
+                                      ndf_wt,                    &
+                                      undf_wt,                   &
+                                      smap_wt(:,1),              &
+                                      ndf_wx,                    &
+                                      undf_wx,                   &
+                                      smap_wx(:,1),              &
                                       basis_wx,                  &
                                       edge_basis_wx,             &
                                       ndf_pid, undf_pid,         &
-                                      stencil_size,              &
-                                      smap_pid,                  &
-                                      order,                     &
-                                      4_i_def,                   &
-                                      0.0_r_def,                 &
+                                      smap_pid(:,1),             &
                                       nqp_h, nqp_v, wqp_h, wqp_v,&
-                                      4_i_def, nqp_e, wqp_e )
+                                      nfaces, nqp_e, wqp_e )
 
     answer = (/  5.0_r_def/6.0_r_def,  2.0_r_def/6.0_r_def, -1.0_r_def/6.0_r_def /)
 
     if ( r_def == real64 ) then
       use_tol = tol
     else
-      use_tol = 10.0_r_def*spacing( maxval( coeff(:,1,1) ) )
+      use_tol = 10.0_r_def*spacing( maxval( coeff(1:mol_order+1) ) )
     end if
-    @assertEqual(answer, coeff(:,1,1), use_tol)
-
+    @assertEqual(answer, coeff(1:mol_order+1), use_tol)
   end subroutine test_all
 
   subroutine tearDown( this )

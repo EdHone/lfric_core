@@ -20,7 +20,9 @@ use argument_mod,         only : arg_type, func_type,   &
                                  GH_FIELD, GH_SCALAR,   &
                                  GH_REAL, GH_INTEGER,   &
                                  GH_READWRITE, GH_READ, &
-                                 GH_BASIS, CELL_COLUMN, GH_EVALUATOR
+                                 GH_BASIS, CELL_COLUMN, &
+                                 GH_EVALUATOR,          &
+                                 ANY_DISCONTINUOUS_SPACE_1
 use constants_mod,        only : r_def, i_def
 use fs_continuity_mod,    only : W2, Wtheta
 use kernel_mod,           only : kernel_type
@@ -35,45 +37,24 @@ private
 !> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_adv_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                         &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, Wtheta), &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),     &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      Wtheta), &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      Wtheta), &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),              &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)               &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                       &
-       func_type(W2, GH_BASIS)                                &
+  type(arg_type) :: meta_args(7) = (/                                            &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, Wtheta),                    &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                        &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      Wtheta),                    &
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1), &
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                 &
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                 &
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)                                  &
        /)
   integer :: operates_on = CELL_COLUMN
 contains
   procedure, nopass :: poly1d_vert_adv_code
 end type
 
-type, public, extends(kernel_type) :: poly1d_vert_adv_old_kernel_type
-  private
-  type(arg_type) :: meta_args(6) = (/                         &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, Wtheta), &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),     &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      Wtheta), &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ,      Wtheta), &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),              &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)               &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                       &
-       func_type(W2, GH_BASIS)                                &
-       /)
-  integer :: operates_on = CELL_COLUMN
-contains
-  procedure, nopass :: poly1d_vert_adv_old_code
-end type
-
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
 public :: poly1d_vert_adv_code
-public :: poly1d_vert_adv_old_code
 
 contains
 
@@ -83,6 +64,11 @@ contains
 !! @param[in]  wind Wind field
 !! @param[in]  tracer Tracer field to advect
 !! @param[in]  coeff Array of polynomial coefficients for interpolation
+!! @param[in]  ndata Number of data points per dof location
+!! @param[in]  global_order Desired order of polynomial reconstruction
+!! @param[in]  logspace If true (=1), then perform interpolation in log space;
+!!             this should be a logical but this is not currently supported in
+!!             PSyclone, see Issue #1248
 !! @param[in]  ndf_wt Number of degrees of freedom per cell
 !! @param[in]  undf_wt Number of unique degrees of freedom for the tracer field
 !! @param[in]  map_wt Cell dofmaps for the tracer space
@@ -90,25 +76,26 @@ contains
 !! @param[in]  undf_w2 Number of unique degrees of freedom for the flux &
 !!                     wind fields
 !! @param[in]  map_w2 Dofmap for the cell at the base of the column
-!! @param[in]  basis_w2 Basis function array evaluated at wt nodes
-!! @param[in]  global_order Desired order of polynomial reconstruction
-!! @param[in]  nfaces_v Number of vertical faces (used by PSyclone to size
-!!                      coeff array)
-!! @param[in]  logspace If true, then perform interpolation in log space
+!! @param[in]  ndf_c Number of degrees of freedom per cell for the coeff space
+!! @param[in]  undf_c Total number of degrees of freedom for the coeff space
+!! @param[in]  map_c Dofmap for the coeff space
 subroutine poly1d_vert_adv_code( nlayers,              &
                                  advective,            &
                                  wind,                 &
                                  tracer,               &
                                  coeff,                &
+                                 ndata,                &
+                                 global_order,         &
+                                 logspace,             &
                                  ndf_wt,               &
                                  undf_wt,              &
                                  map_wt,               &
                                  ndf_w2,               &
                                  undf_w2,              &
                                  map_w2,               &
-                                 global_order,         &
-                                 nfaces_v,             &
-                                 logspace )
+                                 ndf_c,                &
+                                 undf_c,               &
+                                 map_c)
 
   implicit none
 
@@ -120,20 +107,23 @@ subroutine poly1d_vert_adv_code( nlayers,              &
   integer(kind=i_def), intent(in)                    :: undf_w2
   integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
   integer(kind=i_def), dimension(ndf_wt), intent(in) :: map_wt
-  integer(kind=i_def), intent(in)                    :: global_order, nfaces_v
+  integer(kind=i_def), intent(in)                    :: ndf_c
+  integer(kind=i_def), intent(in)                    :: undf_c
+  integer(kind=i_def), dimension(ndf_c),  intent(in) :: map_c
+  integer(kind=i_def), intent(in)                    :: ndata
+  integer(kind=i_def), intent(in)                    :: global_order
 
   real(kind=r_def), dimension(undf_wt), intent(inout) :: advective
   real(kind=r_def), dimension(undf_w2), intent(in)    :: wind
   real(kind=r_def), dimension(undf_wt), intent(in)    :: tracer
+  real(kind=r_def), dimension(undf_c),  intent(in)    :: coeff
 
-  real(kind=r_def), dimension(global_order+1, nfaces_v, undf_wt), intent(in) :: coeff
-
-  logical, intent(in) :: logspace
+  integer(kind=i_def), intent(in) :: logspace
 
   ! Internal variables
   integer(kind=i_def)            :: k, ij, p, stencil, order, &
                                     m, ijkp, direction, boundary_offset, &
-                                    vertical_order, km
+                                    vertical_order, km, idx
 
   real(kind=r_def)                         :: w, tracer_p, tracer_m
 
@@ -169,7 +159,7 @@ subroutine poly1d_vert_adv_code( nlayers,              &
     ! At the boundaries reduce to centred linear interpolation
     if ( km == 0 .and. direction == 0 ) order = 1
 
-    if (logspace) then
+    if (logspace == 1_i_def) then
       ! Interpolate log(tracer)
       ! I.e. polynomial = exp(c_1*log(tracer_1) + c_2*log(tracer_2) + ...)
       !                 = tracer_1**c_1*tracer_2**c_2...
@@ -182,14 +172,16 @@ subroutine poly1d_vert_adv_code( nlayers,              &
 
       do p = 1,order+1
         ijkp = ij + km + smap(p,order) + direction
-        tracer_m = tracer_m  * abs(tracer( ijkp ))**coeff( p, direction+1, ij+km )
+        idx = p - 1 + direction*(global_order+1) + km*ndata + map_c(1)
+        tracer_m = tracer_m  * abs(tracer( ijkp ))**coeff( idx )
       end do
     else
       tracer_m = 0.0_r_def
 
       do p = 1,order+1
         ijkp = ij + km + smap(p,order) + direction
-        tracer_m = tracer_m  + tracer( ijkp )*coeff( p, direction+1, ij+km )
+        idx = p - 1 + direction*(global_order+1) + km*ndata + map_c(1)
+        tracer_m = tracer_m  + tracer( ijkp )*coeff( idx )
       end do
     end if
 
@@ -203,7 +195,7 @@ subroutine poly1d_vert_adv_code( nlayers,              &
     boundary_offset = 0
     if ( k == nlayers - 1 .and. direction == 1)  boundary_offset = -1
 
-    if (logspace) then
+    if (logspace == 1_i_def) then
       ! Interpolate log(tracer)
       ! I.e. polynomial = exp(c_1*log(tracer_1) + c_2*log(tracer_2) + ...)
       !                 = tracer_1**c_1*tracer_2**c_2...
@@ -211,14 +203,16 @@ subroutine poly1d_vert_adv_code( nlayers,              &
 
       do p = 1,order+1
         ijkp = ij + k + smap(p,order) + direction + boundary_offset
-        tracer_p = tracer_p  * abs(tracer( ijkp ))**coeff( p, direction+1, ij+k )
+        idx = p - 1 + direction*(global_order+1) + k*ndata + map_c(1)
+        tracer_p = tracer_p  * abs(tracer( ijkp ))**coeff( idx )
       end do
     else
       tracer_p = 0.0_r_def
 
       do p = 1,order+1
         ijkp = ij + k + smap(p,order) + direction + boundary_offset
-        tracer_p = tracer_p  + tracer( ijkp )*coeff( p, direction+1, ij+k )
+        idx = p - 1 + direction*(global_order+1) + k*ndata + map_c(1)
+        tracer_p = tracer_p  + tracer( ijkp )*coeff( idx )
       end do
     end if
 
@@ -230,136 +224,5 @@ subroutine poly1d_vert_adv_code( nlayers,              &
 
   deallocate( smap )
 end subroutine poly1d_vert_adv_code
-
-!> @brief Computes the vertical fluxes for a tracer density.
-!>        Uses the old method where the averaged velocity
-!>        at cell centres is used to determine the upwind
-!>        direction.
-!! @param[in]  nlayers Number of layers
-!! @param[in,out] advective Advective update to increment
-!! @param[in]  wind Wind field
-!! @param[in]  tracer Tracer field to advect
-!! @param[in]  coeff Array of polynomial coefficients for interpolation
-!! @param[in]  ndf_wt Number of degrees of freedom per cell
-!! @param[in]  undf_wt Number of unique degrees of freedom for the tracer field
-!! @param[in]  map_wt Cell dofmaps for the tracer space
-!! @param[in]  ndf_w2 Number of degrees of freedom per cell
-!! @param[in]  undf_w2 Number of unique degrees of freedom for the flux &
-!!                     wind fields
-!! @param[in]  map_w2 Dofmap for the cell at the base of the column
-!! @param[in]  basis_w2 Basis function array evaluated at wt nodes
-!! @param[in]  global_order Desired order of polynomial reconstruction
-!! @param[in]  nfaces_v Number of vertical faces (used by PSyclone to size
-!!                      coeff array)
-!! @param[in]  logspace If true, then perform interpolation in log space
-subroutine poly1d_vert_adv_old_code( nlayers,              &
-                                     advective,            &
-                                     wind,                 &
-                                     tracer,               &
-                                     coeff,                &
-                                     ndf_wt,               &
-                                     undf_wt,              &
-                                     map_wt,               &
-                                     ndf_w2,               &
-                                     undf_w2,              &
-                                     map_w2,               &
-                                     global_order,         &
-                                     nfaces_v,             &
-                                     logspace )
-
-  implicit none
-
-  ! Arguments
-  integer(kind=i_def), intent(in)                    :: nlayers
-  integer(kind=i_def), intent(in)                    :: ndf_wt
-  integer(kind=i_def), intent(in)                    :: undf_wt
-  integer(kind=i_def), intent(in)                    :: ndf_w2
-  integer(kind=i_def), intent(in)                    :: undf_w2
-  integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
-  integer(kind=i_def), dimension(ndf_wt), intent(in) :: map_wt
-  integer(kind=i_def), intent(in)                    :: global_order, nfaces_v
-
-  real(kind=r_def), dimension(undf_wt), intent(inout) :: advective
-  real(kind=r_def), dimension(undf_w2), intent(in)    :: wind
-  real(kind=r_def), dimension(undf_wt), intent(in)    :: tracer
-
-  real(kind=r_def), dimension(global_order+1, nfaces_v, undf_wt), intent(in) :: coeff
-
-  logical, intent(in) :: logspace
-
-  ! Internal variables
-  integer(kind=i_def)            :: k, ij, p, stencil, order, &
-                                    m, ijkp, direction, boundary_offset, &
-                                    vertical_order
-
-  real(kind=r_def)                         :: w
-  real(kind=r_def), dimension(0:nlayers-1) :: polynomial_tracer
-
-  integer(kind=i_def), allocatable, dimension(:,:) :: smap
-
-  ! Ensure that we reduce the order if there are only a few layers
-  vertical_order = min(global_order, nlayers-1)
-
-  ! Compute the offset map for all even orders up to order
-  allocate( smap(global_order+1,0:global_order) )
-  smap(:,:) = 0
-  do m = 0,global_order
-    do stencil = 1,m+1
-      smap(stencil,m) = - m/2 + (stencil-1)
-    end do
-  end do
-
-  ij = map_wt(1)
-
-  ! Reconstruct upwind tracer at cell centres with stencil
-  ! direction determined by w at W3 points
-  do k = 0, nlayers - 1
-
-    ! Check if this is the upwind cell
-    w = sign(1.0_r_def,wind(map_w2(5) + k ) + wind(map_w2(6) + k ))
-    ! w > 0, direction = 0
-    ! w < 0, direction = 1
-    direction = int( 0.5_r_def*(abs(w)-w),i_def )
-
-    order = min(vertical_order, min(2*(k+1), 2*(nlayers-1 - (k-1))))
-    ! At the boundaries reduce to centred linear interpolation
-    if ( ( k == 0           .and. direction == 0) .or. &
-         ( k == nlayers - 1 .and. direction == 1) ) order = 1
-
-    ! Offset at the top boundary to ensure we use the correct entries
-    boundary_offset = 0
-    if ( k == nlayers - 1 .and. direction == 1)  boundary_offset = -1
-
-    if (logspace) then
-      ! Interpolate log(tracer)
-      ! I.e. polynomial = exp(c_1*log(tracer_1) + c_2*log(tracer_2) + ...)
-      !                 = tracer_1**c_1*tracer_2**c_2...
-      polynomial_tracer(k) = 1.0_r_def
-
-      do p = 1,order+1
-        ijkp = ij + k + smap(p,order) + direction + boundary_offset
-        polynomial_tracer(k) = polynomial_tracer(k) &
-                             * abs(tracer( ijkp ))**coeff( p, direction+1, ij+k )
-      end do
-    else
-      polynomial_tracer(k) = 0.0_r_def
-
-      do p = 1,order+1
-        ijkp = ij + k + smap(p,order) + direction + boundary_offset
-        polynomial_tracer(k) = polynomial_tracer(k) &
-                             + tracer( ijkp )*coeff( p, direction+1, ij+k )
-      end do
-    end if
-  end do
-
-  do k = 1, nlayers - 1
-    advective(map_wt(1) + k ) = advective(map_wt(1) + k ) &
-                              + wind(map_w2(5) + k )      &
-                              *(polynomial_tracer(k)      &
-                              - polynomial_tracer(k-1))
-  end do
-
-  deallocate( smap )
-end subroutine poly1d_vert_adv_old_code
 
 end module poly1d_vert_adv_kernel_mod

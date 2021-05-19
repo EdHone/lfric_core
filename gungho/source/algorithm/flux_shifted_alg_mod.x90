@@ -4,7 +4,21 @@
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
 
-!> @brief Compute the flux F of a vartiable rho by a wind U: F = rho*U
+!> @brief Compute the flux F of a variable rho by a wind U: F = rho*U
+!> @todo There are number of workarounds in this algorithm for aspects which
+!!       aren't yet supported by PSyclone/LFRic:
+!!       1. Issue #868 Multidata fields are not natively supported in PSyclone.
+!!                     Currently we treat these as normal fields but need to
+!!                     additionally pass in ndata_h or ndata_v to the kernels
+!!                     as extra integer arguments.
+!!       2. Issue #1246 Region stencils require both the global maximum size of
+!!                      the stencil and local column size of the stencil.
+!!                      PSyclone currently only passes in the local size and so
+!!                      until this is resolved we also pass in the global maximum
+!!                      size as an integer argument.
+!!       3. Issue #1248 There is no PSyclone support for passing logical types
+!!                      to kernels and so as an itermediate solution we create
+!!                      an integer argument that = 1 (.true.) or = 0 (.false.).
 module flux_shifted_alg_mod
 
   use constants_mod,                  only: r_def, i_def
@@ -21,14 +35,13 @@ module flux_shifted_alg_mod
                                             spherical_coord_system_xyz
   use function_space_mod,             only: function_space_type
   use operator_mod,                   only: operator_type
-  use psykal_lite_mol_shifted_mod,    only: psykal_lite_mol_shifted_flux_init,      &
-                                            psykal_lite_mol_shifted_flux_final,     &
-                                            invoke_poly1d_shifted_flux,             &
-                                            invoke_poly1d_shifted_flux_coeffs,      &
-                                            invoke_poly1d_shifted_vert_flux,        &
-                                            invoke_poly1d_shifted_vert_flux_coeffs, &
-                                            invoke_poly2d_shifted_flux,             &
-                                            invoke_poly2d_shifted_flux_coeffs
+  use poly1d_flux_kernel_mod,         only: poly1d_flux_kernel_type
+  use poly1d_vert_flux_kernel_mod,    only: poly1d_vert_flux_kernel_type
+  use poly1d_flux_coeffs_kernel_mod,  only: poly1d_flux_coeffs_kernel_type
+  use poly1d_vert_flux_coeffs_kernel_mod, &
+                                      only: poly1d_vert_flux_coeffs_kernel_type
+  use poly2d_flux_kernel_mod,         only: poly2d_flux_kernel_type
+  use poly2d_flux_coeffs_kernel_mod,  only: poly2d_flux_coeffs_kernel_type
   use quadrature_rule_gaussian_mod,   only: quadrature_rule_gaussian_type
   use quadrature_xyoz_mod,            only: quadrature_xyoz_type
   use quadrature_face_mod,            only: quadrature_face_type
@@ -49,12 +62,13 @@ module flux_shifted_alg_mod
 
   private
 
-  integer(i_def)                  :: flux_stencil_extent, &
-                                     flux2d_stencil_size
+  integer(i_def)      :: flux_stencil_extent, &
+                         flux2d_stencil_size
   ! Interpolation coefficients needed for nonuniform fv operators
-  type( field_type ), allocatable :: flux_coeffs(:,:), &
-                                     vert_flux_coeffs(:,:)
-  integer(i_def)                  :: nfaces_re_h, nfaces_re_v
+  type( field_type )  :: flux_coeffs, &
+                         vert_flux_coeffs
+  integer(i_def)      :: nfaces_re_h, nfaces_re_v
+  integer(i_def)      :: ndata_h, ndata_v
 
   public  :: flux_shifted_alg
   public  :: flux_shifted_alg_init
@@ -81,7 +95,7 @@ contains
     integer(i_def),  intent(in) :: mesh_id
 
     integer(i_def)              :: flux_stencil_size,  &
-                                   direction, polynomial
+                                   polynomial
     type( field_type ), pointer :: chi_sph(:) => null()
     type( field_type ), pointer :: panel_id => null()
     type( field_type ), pointer :: md_w3 => null()
@@ -97,12 +111,13 @@ contains
     integer(i_def)                         :: face_quad_order
     integer(i_def)                         :: nqp_xy, nqp_z, nqp_xyz
     real(r_def)                            :: transform_radius, chi3_max
+    type( function_space_type ),   pointer :: multidata_fs => null()
 
     if ( operators == operators_fv ) then
       ! This setup is only needed for FV methods
       if ( element_order == 0 ) then
         ! Compute stencil extents
-        flux_stencil_extent = int(real(fv_flux_order+1)/2.0,i_def)
+        flux_stencil_extent = fv_flux_order/2_i_def
         !======================================================================!
         ! Compute stencil for nonuniform polynomial fit
         ! Initialise PSy layer arrays (this will not be needed when
@@ -135,10 +150,6 @@ contains
           end do
           flux_stencil_size = flux2d_stencil_size
         end if
-        call psykal_lite_mol_shifted_flux_init(w3_field, &
-                                               fv_flux_order, flux_stencil_size, &
-                                               nfaces_re_h, nfaces_re_v)
-
         chi_sph => get_coordinates(mesh_id)
         panel_id => get_panel_id(mesh_id)
 
@@ -167,38 +178,38 @@ contains
 
         call log_event( "Gungho: computing horizontal flux coeffs", LOG_LEVEL_INFO )
         md_w3 => get_mass_matrix_diagonal(w3_shift_id)
-        allocate( flux_coeffs(flux_stencil_size, nfaces_re_h) )
-        do direction = 1, nfaces_re_h
-          do polynomial = 1,flux_stencil_size
-              call flux_coeffs(polynomial, direction)%initialise( vector_space = w3_fs )
-          end do
-        end do
+        ! Create multi-data space and field for the vertical flux coefficients
+        ndata_h = nfaces_re_h*flux_stencil_size
+        multidata_fs => function_space_collection%get_fs( mesh_id, element_order, W3, ndata_h )
+        call flux_coeffs%initialise( vector_space = multidata_fs, ndata_first = .true. )
         if ( oned_reconstruction ) then
-          call invoke_poly1d_shifted_flux_coeffs( flux_coeffs, md_w3, chi_sph, panel_id, &
-                                                  qr, qrf, fv_flux_order,                &
-                                                  flux_stencil_extent, nfaces_re_h,      &
-                                                  transform_radius )
+          call invoke( poly1d_flux_coeffs_kernel_type(                             &
+                                          flux_coeffs, md_w3, flux_stencil_extent, &
+                                          chi_sph, flux_stencil_extent,            &
+                                          panel_id, flux_stencil_extent,           &
+                                          ndata_h, fv_flux_order,                  &
+                                          transform_radius, qr, qrf ) )
         else
-          call invoke_poly2d_shifted_flux_coeffs( flux_coeffs, md_w3, chi_sph, panel_id, &
-                                                  qr, qrf, fv_flux_order,                &
-                                                  flux2d_stencil_size, nfaces_re_h,      &
-                                                  transform_radius )
+          call invoke(poly2d_flux_coeffs_kernel_type( flux_coeffs, md_w3, flux_stencil_extent, &
+                                          chi_sph, flux_stencil_extent, panel_id,              &
+                                          flux_stencil_extent, ndata_h, fv_flux_order,         &
+                                          flux2d_stencil_size, transform_radius,               &
+                                          qr, qrf) )
         end if
-        call log_event( "Gungho: computing vertical flux coeffs", LOG_LEVEL_INFO )
         ! Vertical flux coeffs
-        allocate( vert_flux_coeffs(fv_flux_order+1, nfaces_re_v) )
-        do direction = 1, nfaces_re_v
-          do polynomial = 1,fv_flux_order+1
-            call vert_flux_coeffs(polynomial, direction)%initialise( vector_space = w3_fs )
-          end do
-        end do
+        call log_event( "Gungho: computing vertical flux coeffs", LOG_LEVEL_INFO )
+        ! Create multi-data space and field for the vertical flux coefficients
+        ndata_v = nfaces_re_v*(fv_flux_order+1)
+        multidata_fs => function_space_collection%get_fs( mesh_id, element_order, W3, ndata_v )
+        call vert_flux_coeffs%initialise( vector_space = multidata_fs, ndata_first = .true. )
         ! Quadrature rule on vertical faces with 1 point in both horizontal and
         ! vertical directions
         nqp_xyz = 1
         qrf = quadrature_face_type(nqp_xyz, .false., .true.,                   &
                                    reference_element, gaussian_quadrature)
-        call invoke_poly1d_shifted_vert_flux_coeffs( vert_flux_coeffs, md_w3, chi_sph,     &
-                                                     qr, qrf, fv_flux_order, nfaces_re_v )
+        call invoke( poly1d_vert_flux_coeffs_kernel_type(                      &
+                            vert_flux_coeffs, md_w3, chi_sph, ndata_v,         &
+                            fv_flux_order, qr, qrf ) )
 
         !======================================================================!
       else
@@ -217,14 +228,6 @@ contains
   subroutine flux_shifted_alg_final()
 
     implicit none
-
-    if ( operators == operators_fv .and. &
-         element_order == 0 ) then
-      deallocate( flux_coeffs, vert_flux_coeffs )
-      ! Deallocate PSy layer arrays (this will not be needed when
-      ! multi-dimensional field arrays are supported)
-      call psykal_lite_mol_shifted_flux_final()
-    end if
 
   end subroutine flux_shifted_alg_final
 
@@ -255,12 +258,14 @@ contains
   type(function_space_type), pointer  :: u_fs  => null()
 
   integer(kind=i_def) :: mesh_id
-  logical             :: logspace_loc
+  integer(i_def) :: logspace_loc
+  integer(i_def) :: stencil_extent
 
-  if (.not.present(logspace))then
-    logspace_loc=.false.
-  else
-    logspace_loc=logspace
+  ! Psyclone doesn't support the passing of logicals to kernels
+  ! so we have to set up an integer instead
+  logspace_loc = 0_i_def
+  if ( present(logspace) ) then
+    if ( logspace ) logspace_loc = 1_i_def
   end if
 
   mesh_id = mass_flux%get_mesh_id()
@@ -274,20 +279,21 @@ contains
       ! Set default value to be 0 and then update the mass flux
       ! in cases where the wind is nonzero using an upwind reconstruction
       call invoke( setval_c( mass_flux, 0.0_r_def) )
-      if ( oned_reconstruction ) then
-        ! Use 1d flux reconstruction
-        call invoke_poly1d_shifted_flux( mass_flux, wind, density, flux_coeffs, &
-                                         fv_flux_order, flux_stencil_extent, nfaces_re_h )
-      else
-        ! Use 2d flux reconstruction
-        call invoke_poly2d_shifted_flux( mass_flux, wind, density, flux_coeffs, &
-                                         fv_flux_order, flux2d_stencil_size, nfaces_re_h )
-      end if
-      ! Compute vertical components of mass flux
-      call invoke_poly1d_shifted_vert_flux( mass_flux, wind, density,   &
-                                            vert_flux_coeffs,           &
-                                            fv_flux_order, nfaces_re_v, &
-                                            logspace=logspace_loc)
+     if ( oned_reconstruction ) then
+       ! Use 1d flux reconstruction
+       call invoke( poly1d_flux_kernel_type( mass_flux, wind, density, flux_stencil_extent, &
+                                             flux_coeffs, fv_flux_order, ndata_h ) )
+     else
+       ! Use 2d flux reconstruction
+       stencil_extent = fv_flux_order/2
+       call invoke( poly2d_flux_kernel_type( mass_flux, wind, density, stencil_extent, &
+                                flux_coeffs, ndata_h, flux2d_stencil_size) )
+     end if
+     ! Compute vertical components of mass flux
+     call invoke( poly1d_vert_flux_kernel_type( mass_flux, wind, density,   &
+                                                vert_flux_coeffs,           &
+                                                ndata_v, fv_flux_order,     &
+                                                logspace_loc) )
 
     case(operators_fem)
       ! Project density*wind into the mass flux space

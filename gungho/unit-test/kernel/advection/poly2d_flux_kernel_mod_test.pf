@@ -42,28 +42,32 @@ contains
     real(r_def) :: answer, use_tol
 
     integer(i_def), parameter :: nlayers = 1
-    integer(i_def), parameter :: ndf_w2 = 4
-    integer(i_def), parameter :: ndf_w3 = 1
-    integer(i_def), parameter :: nfaces_h = 4
     integer(i_def), parameter :: stencil_size = 5
+    integer(i_def), parameter :: nfaces_h = 4
+    integer(i_def), parameter :: ndata = stencil_size*nfaces_h
+    integer(i_def), parameter :: ndf_w2 = 4
+    integer(i_def), parameter :: ndf_c  = 1
+    integer(i_def), parameter :: ndf_w3 = 1
     integer(i_def), parameter :: undf_w2 = ndf_w2*nlayers
     integer(i_def), parameter :: undf_w3 = ndf_w3*nlayers*stencil_size
+    integer(i_def), parameter :: undf_c  = ndata*nlayers
     integer(i_def), parameter :: order = 2
 
     integer(i_def), dimension(ndf_w2)              :: map_w2
+    integer(i_def), dimension(ndf_c)               :: map_c
     integer(i_def), dimension(ndf_w3,stencil_size) :: smap
 
     real(r_def), dimension(3,ndf_w2,ndf_w2)  :: basis_w2
     real(r_def), allocatable, dimension(:,:) :: outward_normals_to_horizontal_faces
 
-    real(r_def), dimension(undf_w2)           :: flux
-    real(r_def), dimension(undf_w2)           :: wind
-    real(r_def), dimension(undf_w3)           :: density
-    real(r_def), dimension(stencil_size,nfaces_h,undf_w3) :: coeff
+    real(r_def), dimension(undf_w2) :: flux
+    real(r_def), dimension(undf_w2) :: wind
+    real(r_def), dimension(undf_w3) :: density
+    real(r_def), dimension(undf_c)  :: coeff
 
     smap(1,:) = (/ 1, 2, 3, 4, 5 /)
     map_w2(:) = (/ 1, 2, 3, 4 /)
-
+    map_c(1) = 1
     ! Get canned information for the reference cube
     call get_outward_normals_to_horizontal_faces(outward_normals_to_horizontal_faces)
 
@@ -77,8 +81,8 @@ contains
 
     density(:) = (/ 3.0_r_def, 1.0_r_def, 1.0_r_def, 5.0_r_def, 5.0_r_def /)
 
-    coeff(:,2,1) = (/ 5.0_r_def/6.0_r_def, 0.0_r_def, 2.0_r_def/6.0_r_def, 0.0_r_def, -1.0_r_def/6.0_r_def /)
-    coeff(:,3,1) = (/ 5.0_r_def/6.0_r_def, -1.0_r_def/6.0_r_def, 0.0_r_def, 2.0_r_def/6.0_r_def, 0.0_r_def /)
+    coeff(6:10) = (/ 5.0_r_def/6.0_r_def, 0.0_r_def, 2.0_r_def/6.0_r_def, 0.0_r_def, -1.0_r_def/6.0_r_def /)
+    coeff(11:15) = (/ 5.0_r_def/6.0_r_def, -1.0_r_def/6.0_r_def, 0.0_r_def, 2.0_r_def/6.0_r_def, 0.0_r_def /)
 
     flux = -1.0_r_def
 
@@ -86,16 +90,21 @@ contains
                            flux,                 &
                            wind,                 &
                            density,              &
+                           stencil_size,         &
+                           smap,                 &
                            coeff,                &
+                           ndata,                &
+                           stencil_size,         &
                            ndf_w2,               &
                            undf_w2,              &
                            map_w2,               &
                            basis_w2,             &
                            ndf_w3,               &
                            undf_w3,              &
-                           stencil_size,         &
-                           smap,                 &
-                           stencil_size,         &
+                           smap(:,1),            &
+                           ndf_c,                &
+                           undf_c,               &
+                           map_c,                &
                            nfaces_h,             &
                            outward_normals_to_horizontal_faces )
 

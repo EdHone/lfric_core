@@ -19,13 +19,14 @@
 !>          This method is only valid for lowest order elements
 module poly1d_vert_flux_coeffs_kernel_mod
 
-use argument_mod,      only : arg_type, func_type,   &
-                              GH_FIELD, GH_SCALAR,   &
-                              GH_REAL, GH_INTEGER,   &
-                              GH_WRITE, GH_READ,     &
-                              ANY_SPACE_1,           &
-                              GH_BASIS, CELL_COLUMN, &
-                              GH_QUADRATURE_XYoZ,    &
+use argument_mod,      only : arg_type, func_type,       &
+                              GH_FIELD, GH_SCALAR,       &
+                              GH_REAL, GH_INTEGER,       &
+                              GH_WRITE, GH_READ,         &
+                              ANY_SPACE_1,               &
+                              GH_BASIS, CELL_COLUMN,     &
+                              GH_QUADRATURE_XYoZ,        &
+                              ANY_DISCONTINUOUS_SPACE_1, &
                               GH_QUADRATURE_face
 use constants_mod,     only : r_def, i_def, EPS
 use fs_continuity_mod, only : W3
@@ -40,12 +41,12 @@ private
 !> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_vert_flux_coeffs_kernel_type
   private
-  type(arg_type) :: meta_args(5) = (/                           &
-       arg_type(GH_FIELD,   GH_REAL,    GH_WRITE, W3),          &
-       arg_type(GH_FIELD,   GH_REAL,    GH_READ,  W3),          &
-       arg_type(GH_FIELD*3, GH_REAL,    GH_READ,  ANY_SPACE_1), &
-       arg_type(GH_SCALAR,  GH_INTEGER, GH_READ),               &
-       arg_type(GH_SCALAR,  GH_INTEGER, GH_READ)                &
+  type(arg_type) :: meta_args(5) = (/                                         &
+       arg_type(GH_FIELD,   GH_REAL,    GH_WRITE, ANY_DISCONTINUOUS_SPACE_1), &
+       arg_type(GH_FIELD,   GH_REAL,    GH_READ,  W3),                        &
+       arg_type(GH_FIELD*3, GH_REAL,    GH_READ,  ANY_SPACE_1),               &
+       arg_type(GH_SCALAR,  GH_INTEGER, GH_READ),                             &
+       arg_type(GH_SCALAR,  GH_INTEGER, GH_READ)                              &
        /)
   type(func_type) :: meta_funcs(1) = (/                         &
        func_type(ANY_SPACE_1, GH_BASIS)                         &
@@ -72,6 +73,11 @@ contains
 !> @param[in] chi1 1st component of the physical coordinate field
 !> @param[in] chi2 2nd component of the physical coordinate field
 !> @param[in] chi3 3rd component of the physical coordinate field
+!> @param[in] ndata Number of data points per dof location
+!> @param[in] global_order Desired polynomial order for flux computations
+!> @param[in] ndf_c Number of degrees of freedom per cell for the coeff space
+!> @param[in] undf_c Total number of degrees of freedom for the coeff space
+!> @param[in] map_c Dofmap for the coeff space
 !> @param[in] ndf_w3 Number of degrees of freedom per cell for W3
 !> @param[in] undf_w3 Total number of degrees of freedom for W3
 !> @param[in] map_w3 Dofmap of the tracer field
@@ -82,9 +88,6 @@ contains
 !!                     quadrature points
 !> @param[in] face_basis_wx Basis function of the coordinate space evaluated on
 !!                          quadrature points on the vertical faces
-!> @param[in] global_order Desired polynomial order for flux computations
-!> @param[in] nfaces_re_v Number of vertical faces( used by PSyclone to size
-!!                        coeff array)
 !> @param[in] nqp_h Number of horizontal quadrature points
 !> @param[in] nqp_v Number of vertical quadrature points
 !> @param[in] wqp_h Weights of horizontal quadrature points
@@ -96,6 +99,11 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
                                         coeff,                      &
                                         mdw3,                       &
                                         chi1, chi2, chi3,           &
+                                        ndata,                      &
+                                        global_order,               &
+                                        ndf_c,                      &
+                                        undf_c,                     &
+                                        map_c,                      &
                                         ndf_w3,                     &
                                         undf_w3,                    &
                                         map_w3,                     &
@@ -104,8 +112,6 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
                                         map_wx,                     &
                                         basis_wx,                   &
                                         face_basis_wx,              &
-                                        global_order,               &
-                                        nfaces_re_v,                &
                                         nqp_h, nqp_v, wqp_h, wqp_v, &
                                         nfaces_qr, nqp_f, wqp_f )
 
@@ -118,19 +124,21 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
   implicit none
 
   ! Arguments
-  integer(kind=i_def), intent(in) :: global_order, nfaces_re_v
+  integer(kind=i_def), intent(in) :: global_order
   integer(kind=i_def), intent(in) :: nlayers
-  integer(kind=i_def), intent(in) :: ndf_w3, undf_w3, &
+  integer(kind=i_def), intent(in) :: ndata
+  integer(kind=i_def), intent(in) :: ndf_c,  undf_c,  &
+                                     ndf_w3, undf_w3, &
                                      ndf_wx, undf_wx
   integer(kind=i_def), intent(in) :: nqp_v, nqp_h, nqp_f, nfaces_qr
 
+  integer(kind=i_def), dimension(ndf_c),  intent(in) :: map_c
   integer(kind=i_def), dimension(ndf_w3), intent(in) :: map_w3
   integer(kind=i_def), dimension(ndf_wx), intent(in) :: map_wx
 
-  real(kind=r_def), dimension(undf_w3), intent(in)  :: mdw3
-  real(kind=r_def), dimension(undf_wx), intent(in)  :: chi1, chi2, chi3
-
-  real(kind=r_def), dimension(global_order+1, nfaces_re_v, undf_w3), intent(inout) :: coeff
+  real(kind=r_def), dimension(undf_w3), intent(in)    :: mdw3
+  real(kind=r_def), dimension(undf_wx), intent(in)    :: chi1, chi2, chi3
+  real(kind=r_def), dimension(undf_c),  intent(inout) :: coeff
 
   real(kind=r_def), dimension(1,ndf_wx,nqp_h,nqp_v),     intent(in) :: basis_wx
   real(kind=r_def), dimension(1,ndf_wx,nqp_f,nfaces_qr), intent(in) :: face_basis_wx
@@ -142,7 +150,7 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
   ! Local variables
   integer(kind=i_def) :: k, ijk, df, qv0, qh0, stencil, nmonomial, qp, &
                          m, face, order, boundary_offset, offset, &
-                         vertical_order
+                         vertical_order, ijkp
   integer(kind=i_def), allocatable, dimension(:,:)         :: smap
   real(kind=r_def)                                         :: xx, fn, z0, zq, spherical, planar
   real(kind=r_def),              dimension(3)              :: x0, xq
@@ -211,6 +219,11 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
       if ( k == nlayers - 1 ) boundary_offset = -1
     end if
 
+    ! Initialise polynomial coefficients to zero
+    do df = 0, ndata-1
+      coeff(map_c(1) + k*ndata + df) = 0.0_r_def
+    end do
+
     ! Compute the coefficients of each cell in the stencil for
     ! each edge when this is the upwind cell
     face_loop: do face = 1,2
@@ -250,8 +263,6 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
       ! Manipulate the integrals of monomials,
       call matrix_invert(int_monomial,inv_int_monomial,nmonomial)
 
-      ! Initialise polynomial coeffficients to zero
-      coeff(:,face,map_w3(1)+k) = 0.0_r_def
       ! Loop over quadrature points on this face
       face_quadrature_loop: do qp = 1,nqp_f
 
@@ -275,7 +286,8 @@ subroutine poly1d_vert_flux_coeffs_code(nlayers,                    &
           delta(:) = 0.0_r_def
           delta(stencil) = 1.0_r_def
           beta = matmul(inv_int_monomial,delta)
-          coeff(stencil,face,map_w3(1)+k) = dot_product(monomial,beta)*area(stencil)
+          ijkp = stencil - 1 + (face-1)*(global_order+1) + k*ndata + map_c(1)
+          coeff(ijkp) = dot_product(monomial,beta)*area(stencil)
         end do
       end do face_quadrature_loop
     end do face_loop

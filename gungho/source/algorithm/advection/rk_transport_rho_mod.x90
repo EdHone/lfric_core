@@ -9,6 +9,20 @@
 !> @details An algorithm for timstepping the 3D transport equation using a
 !>          multistage explicit Runge-Kutta algorithm and also to perform
 !>          a splitting strategy.
+!> @todo There are number of workarounds in this algorithm for aspects which
+!!       aren't yet supported by PSyclone/LFRic:
+!!       1. Issue #868 Multidata fields are not natively supported in PSyclone.
+!!                     Currently we treat these as normal fields but need to
+!!                     additionally pass in ndata_h or ndata_v to the kernels
+!!                     as extra integer arguments.
+!!       2. Issue #1246 Region stencils require both the global maximum size of
+!!                      the stencil and local column size of the stencil.
+!!                      PSyclone currently only passes in the local size and so
+!!                      until this is resolved we also pass in the global maximum
+!!                      size as an integer argument.
+!!       3. Issue #1248 There is no PSyclone support for passing logical types
+!!                      to kernels and so as an itermediate solution we create
+!!                      an integer argument that = 1 (.true.) or = 0 (.false.).
 !-----------------------------------------------------------------------------
 module rk_transport_rho_mod
 
@@ -41,19 +55,17 @@ module rk_transport_rho_mod
                                                oned_reconstruction,            &
                                                consistent_metric,              &
                                                cfl_mol_3d_stab
-  ! PsyKAl-lite kernels
-  use psykal_lite_mol_mod,               only: psykal_lite_mol_flux_init,      &
-                                               invoke_poly1d_flux,             &
-                                               invoke_poly1d_flux_coeffs,      &
-                                               invoke_poly1d_vert_flux,        &
-                                               invoke_poly1d_vert_flux_coeffs, &
-                                               invoke_poly2d_flux,             &
-                                               invoke_poly2d_flux_coeffs
 
   ! PsyKAl PSYClone kernels
-  use rrho_kernel_mod,                   only: rrho_kernel_type
-  use rtheta_kernel_mod,                 only: rtheta_kernel_type
-  use poly_advective_kernel_mod,         only: poly_advective_kernel_type
+  use rrho_kernel_mod,                    only: rrho_kernel_type
+  use rtheta_kernel_mod,                  only: rtheta_kernel_type
+  use poly_advective_kernel_mod,          only: poly_advective_kernel_type
+  use poly1d_flux_kernel_mod,             only: poly1d_flux_kernel_type
+  use poly1d_vert_flux_kernel_mod,        only: poly1d_vert_flux_kernel_type
+  use poly1d_flux_coeffs_kernel_mod,      only: poly1d_flux_coeffs_kernel_type
+  use poly1d_vert_flux_coeffs_kernel_mod, only: poly1d_vert_flux_coeffs_kernel_type
+  use poly2d_flux_kernel_mod,             only: poly2d_flux_kernel_type
+  use poly2d_flux_coeffs_kernel_mod,      only: poly2d_flux_coeffs_kernel_type
 
   ! Derived Types
   use field_mod,                         only: field_type
@@ -71,7 +83,8 @@ module rk_transport_rho_mod
   use flux_alg_mod, only: flux_coeffs, vert_flux_coeffs, &
                           flux_stencil_extent,           &
                           flux2d_stencil_size,           &
-                          nfaces_re_h, nfaces_re_v
+                          nfaces_re_h, nfaces_re_v,      &
+                          ndata_h, ndata_v
 
   implicit none
 
@@ -169,23 +182,28 @@ contains
         call log_event( "Gungho: computing horizontal flux coeffs", LOG_LEVEL_INFO )
         md_w3 => get_mass_matrix_diagonal(w3_id)
         if ( oned_reconstruction ) then
-          call invoke_poly1d_flux_coeffs( flux_coeffs, md_w3, chi_sph,      &
-                                          panel_id, qr, qrf, fv_flux_order, &
-                                          flux_stencil_extent, nfaces_h,    &
-                                          transform_radius )
+          call invoke( poly1d_flux_coeffs_kernel_type(                             &
+                                          flux_coeffs, md_w3, flux_stencil_extent, &
+                                          chi_sph, flux_stencil_extent,            &
+                                          panel_id, flux_stencil_extent,           &
+                                          ndata_h, fv_flux_order,                  &
+                                          transform_radius,qr, qrf ) )
         else
-          call invoke_poly2d_flux_coeffs( flux_coeffs, md_w3, chi_sph,      &
-                                          panel_id, qr, qrf, fv_flux_order, &
-                                          flux2d_stencil_size, nfaces_h,    &
-                                          transform_radius )
+          call invoke( poly2d_flux_coeffs_kernel_type(                                 &
+                                          flux_coeffs, md_w3, flux_stencil_extent,     &
+                                          chi_sph, flux_stencil_extent, panel_id,      &
+                                          flux_stencil_extent, ndata_h, fv_flux_order, &
+                                          flux2d_stencil_size, transform_radius,       &
+                                          qr, qrf) )
         end if
         call log_event( "Gungho: computing vertical flux coeffs", LOG_LEVEL_INFO )
 
         nqp_xyz = 1
         qrf = quadrature_face_type(nqp_xyz, .false., .true.,                  &
                                    reference_element, gaussian_quadrature)
-        call invoke_poly1d_vert_flux_coeffs( vert_flux_coeffs, md_w3, chi_sph, &
-                                             qr, qrf, fv_flux_order, nfaces_v )
+        call invoke( poly1d_vert_flux_coeffs_kernel_type(     &
+                            vert_flux_coeffs, md_w3, chi_sph, &
+                            ndata_v, fv_flux_order, qr, qrf ) )
       else
         call log_event( "Gungho: subgrid mappings needed for FV MoL with high &
                          order elements", LOG_LEVEL_ERROR )
@@ -216,11 +234,13 @@ contains
     type( function_space_type ), pointer :: rho_fs   => null()
 
     integer(i_def) :: stage, st
-
+    integer(i_def) :: logspace
+    integer(i_def) :: stencil_extent
 
     ! Temps for retrieving objects back from runtime constants
     type(operator_type), pointer :: mm_w3_inv => null()
     type(field_type), pointer    :: mt_lumped_inv => null()
+
     mt_lumped_inv => get_inverse_lumped_mass_matrix(wt_id)
 
     if ( subroutine_timers ) call timer('rk_transport_rho_alg')
@@ -251,23 +271,22 @@ contains
       ! in cases where the wind is nonzero using an upwind reconstruction
       call invoke( setval_c(mass_flux, 0.0_r_def) )
       if ( oned_reconstruction ) then
-         call invoke_poly1d_flux( mass_flux, u, rho, flux_coeffs,    &
-                                 fv_flux_order, flux_stencil_extent, &
-                                 nfaces_h )
-
+         call invoke( poly1d_flux_kernel_type(mass_flux, u, rho, flux_stencil_extent, &
+                                              flux_coeffs, fv_flux_order, ndata_h) )
       else
         ! Use 2d flux code
-         call invoke_poly2d_flux( mass_flux, u, rho, flux_coeffs,      &
-                                  fv_flux_order, flux2d_stencil_size,  &
-                                  nfaces_h )
+         stencil_extent = fv_flux_order/2_i_def
+         call invoke( poly2d_flux_kernel_type( mass_flux, u, rho, stencil_extent, &
+                                  flux_coeffs, ndata_h, flux2d_stencil_size) )
 
       end if
 
       ! Compute vertical components of mass flux
-       call invoke_poly1d_vert_flux( mass_flux, u, rho,       &
-                                     vert_flux_coeffs,        &
-                                     fv_flux_order, nfaces_v, &
-                                     logspace=.false. )
+      logspace = 0_i_def
+      call invoke( poly1d_vert_flux_kernel_type( mass_flux, u, rho,      &
+                                                 vert_flux_coeffs,       &
+                                                 ndata_v, fv_flux_order, &
+                                                 logspace) )
 
       ! Compute rrho = div(F)
       call invoke( rrho_kernel_type(rr_prediction(stage), mass_flux, qr), &
@@ -341,8 +360,6 @@ contains
 
     implicit none
 
-    if (allocated(flux_coeffs)     )     deallocate(flux_coeffs     )
-    if (allocated(vert_flux_coeffs))     deallocate(vert_flux_coeffs)
     if (allocated(rr_prediction)   )     deallocate(rr_prediction   )
 
   end subroutine rk_transport_rho_final

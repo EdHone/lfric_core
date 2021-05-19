@@ -5,50 +5,60 @@
 !-----------------------------------------------------------------------------
 
 !> @brief Compute the advective update A of a variable f by a wind U: A = U.grad(f)
-
+!> @todo There are number of workarounds in this algorithm for aspects which
+!!       aren't yet supported by PSyclone/LFRic:
+!!       1. Issue #868 Multidata fields are not natively supported in PSyclone.
+!!                     Currently we treat these as normal fields but need to
+!!                     additionally pass in ndata_h or ndata_v to the kernels
+!!                     as extra integer arguments.
+!!       2. Issue #1246 Region stencils require both the global maximum size of
+!!                      the stencil and local column size of the stencil.
+!!                      PSyclone currently only passes in the local size and so
+!!                      until this is resolved we also pass in the global maximum
+!!                      size as an integer argument.
+!!       3. Issue #1248 There is no PSyclone support for passing logical types
+!!                      to kernels and so as an itermediate solution we create
+!!                      an integer argument that = 1 (.true.) or = 0 (.false.).
 module advective_update_alg_mod
 
-  use constants_mod,                  only: r_def, i_def
-  use geometric_constants_mod,        only: get_coordinates,                &
-                                            get_panel_id
-  use fem_constants_mod,              only: get_mass_matrix_diagonal,       &
-                                            get_inverse_lumped_mass_matrix, &
-                                            wt_id
-  use field_mod,                      only: field_type
-  use finite_element_config_mod,      only: element_order,          &
-                                            nqp_exact,              &
-                                            spherical_coord_system, &
-                                            spherical_coord_system_xyz
-  use function_space_mod,             only: function_space_type
-  use psykal_lite_mol_mod,            only: psykal_lite_mol_adv_init,       &
-                                            psykal_lite_mol_adv_final,      &
-                                            invoke_poly1d_adv_recon,        &
-                                            invoke_poly1d_advective_coeffs, &
-                                            invoke_poly2d_adv_recon,        &
-                                            invoke_poly2d_advective_coeffs, &
-                                            invoke_poly1d_vert_adv_coeffs,  &
-                                            invoke_poly1d_vert_adv
-  use quadrature_rule_gauss_lobatto_mod, &
-                                      only: quadrature_rule_gauss_lobatto_type
-  use quadrature_rule_gaussian_mod,   only: quadrature_rule_gaussian_type
-  use quadrature_xyoz_mod,            only: quadrature_xyoz_type
-  use quadrature_face_mod,            only: quadrature_face_type
-  use quadrature_edge_mod,            only: quadrature_edge_type
-  use rtheta_kernel_mod,              only: rtheta_kernel_type
-  use rtheta_bd_kernel_mod,           only: rtheta_bd_kernel_type
-  use transport_config_mod,           only: operators,            &
-                                            fv_advective_order,   &
-                                            operators_fv,         &
-                                            operators_fem,        &
-                                            oned_reconstruction,  &
-                                            enforce_monotonicity, &
-                                            consistent_metric
-  use log_mod,                        only: log_event,         &
-                                            LOG_LEVEL_ERROR,   &
-                                            LOG_LEVEL_INFO
-  use io_config_mod,                  only: subroutine_timers
-  use timer_mod,                      only: timer
-  use poly_advective_kernel_mod,      only: poly_advective_kernel_type
+  use constants_mod,                      only: r_def, i_def
+  use geometric_constants_mod,            only: get_coordinates,                &
+                                                get_panel_id
+  use fem_constants_mod,                  only: get_mass_matrix_diagonal,       &
+                                                get_inverse_lumped_mass_matrix, &
+                                                wt_id
+  use field_mod,                          only: field_type
+  use finite_element_config_mod,          only: element_order,          &
+                                                nqp_exact,              &
+                                                spherical_coord_system, &
+                                                spherical_coord_system_xyz
+  use function_space_mod,                 only: function_space_type
+  use quadrature_rule_gauss_lobatto_mod,  only: quadrature_rule_gauss_lobatto_type
+  use quadrature_rule_gaussian_mod,       only: quadrature_rule_gaussian_type
+  use quadrature_xyoz_mod,                only: quadrature_xyoz_type
+  use quadrature_face_mod,                only: quadrature_face_type
+  use quadrature_edge_mod,                only: quadrature_edge_type
+  use rtheta_kernel_mod,                  only: rtheta_kernel_type
+  use rtheta_bd_kernel_mod,               only: rtheta_bd_kernel_type
+  use transport_config_mod,               only: operators,            &
+                                                fv_advective_order,   &
+                                                operators_fv,         &
+                                                operators_fem,        &
+                                                oned_reconstruction,  &
+                                                enforce_monotonicity, &
+                                                consistent_metric
+  use log_mod,                            only: log_event,         &
+                                                LOG_LEVEL_ERROR,   &
+                                                LOG_LEVEL_INFO
+  use io_config_mod,                      only: subroutine_timers
+  use timer_mod,                          only: timer
+  use poly_advective_kernel_mod,          only: poly_advective_kernel_type
+  use poly1d_adv_recon_kernel_mod,        only: poly1d_adv_recon_kernel_type
+  use poly1d_vert_adv_coeffs_kernel_mod,  only: poly1d_vert_adv_coeffs_kernel_type
+  use poly1d_advective_coeffs_kernel_mod, only: poly1d_advective_coeffs_kernel_type
+  use poly1d_vert_adv_kernel_mod,         only: poly1d_vert_adv_kernel_type
+  use poly2d_advective_coeffs_kernel_mod, only: poly2d_advective_coeffs_kernel_type
+  use poly2d_adv_recon_kernel_mod,        only: poly2d_adv_recon_kernel_type
 
   implicit none
 
@@ -58,13 +68,14 @@ module advective_update_alg_mod
   ! These are made puplic to be used by other transport modules
   integer(i_def), public                  :: advective_stencil_extent, &
                                              advective2d_stencil_size
-  type( field_type ), public, allocatable :: adv_coeffs(:,:),  &
-                                             vert_adv_coeffs(:,:)
+  type( field_type ), public              :: adv_coeffs, &
+                                             vert_adv_coeffs
   type( field_type ), public              :: advective_av
   type( field_type ), public              :: advective_av_chi3, &
                                              wt_metrics, chi3_at_wt
   integer(i_def), public                  :: nfaces_re_h, nfaces_re_v
   type(field_type), public                :: w1_multiplicity
+  integer(i_def), public                  :: ndata_h, ndata_v
 
 
   public :: advective_update_alg_init
@@ -83,7 +94,7 @@ contains
   !>
   subroutine advective_update_alg_init( mesh_id )
 
-    use fs_continuity_mod,                 only: W1, Wtheta
+    use fs_continuity_mod,                 only: W1, Wtheta, W3
     use function_space_collection_mod,     only: function_space_collection
     use multiplicity_kernel_mod,           only: multiplicity_kernel_type
     use sample_field_kernel_mod,           only: sample_field_kernel_type
@@ -95,7 +106,7 @@ contains
     integer(i_def),  intent(in) :: mesh_id
 
     integer(i_def)              :: advective_stencil_size, &
-                                   direction, polynomial
+                                   polynomial
     type( field_type ), pointer :: chi_sph(:) => null()
     type( field_type ), pointer :: md_wt => null()
     type( field_type ), pointer :: panel_id => null()
@@ -113,6 +124,7 @@ contains
     integer(i_def)                         :: edge_quad_order
     integer(i_def)                         :: nqp_xy, nqp_z, nqp_xyz
     real(r_def)                            :: transform_radius, chi3_max
+    type( function_space_type ),   pointer :: multidata_fs => null()
 
     if ( operators == operators_fv ) then
       ! This setup is only needed for FV methods
@@ -148,15 +160,11 @@ contains
           end do
           advective_stencil_size = advective2d_stencil_size
         end if
-        allocate( adv_coeffs(advective_stencil_size, nfaces_re_h) )
-        do direction = 1, nfaces_re_h
-          do polynomial = 1,advective_stencil_size
-              call adv_coeffs(polynomial, direction)%initialise( vector_space = wt_fs )
-          end do
-        end do
-        call psykal_lite_mol_adv_init(wt_field, fv_advective_order,        &
-                                      advective_stencil_size, nfaces_re_h, &
-                                      nfaces_re_v)
+
+        ! Create multi-data space and field for the horizontal advective coefficients
+        ndata_h = nfaces_re_h*advective_stencil_size
+        multidata_fs => function_space_collection%get_fs( mesh_id, element_order, Wtheta, ndata_h )
+        call adv_coeffs%initialise( vector_space = multidata_fs, ndata_first = .true. )
 
         chi_sph => get_coordinates(mesh_id)
         panel_id => get_panel_id(mesh_id)
@@ -196,26 +204,30 @@ contains
         w1_fs => function_space_collection%get_fs( mesh_id, element_order, W1 )
         call advective_av%initialise( vector_space =  w1_fs )
         if ( oned_reconstruction ) then
-          call invoke_poly1d_advective_coeffs( adv_coeffs, md_wt, chi_sph, panel_id, &
-                                               qr, qre, fv_advective_order,          &
-                                               advective_stencil_extent, nfaces_re_h,&
-                                               transform_radius )
+          call invoke( poly1d_advective_coeffs_kernel_type(                                 &
+                                               adv_coeffs, md_wt, advective_stencil_extent, &
+                                               chi_sph, advective_stencil_extent,           &
+                                               panel_id, advective_stencil_extent,          &
+                                               ndata_h, fv_advective_order, nfaces_re_h,    &
+                                               transform_radius, qr, qre ) )
         else
-          call invoke_poly2d_advective_coeffs( adv_coeffs, md_wt, chi_sph, panel_id, &
-                                               qr, qre, fv_advective_order,          &
-                                               advective2d_stencil_size,             &
-                                               nfaces_re_h, transform_radius )
+          call invoke( poly2d_advective_coeffs_kernel_type(                                 &
+                                               adv_coeffs, md_wt, advective_stencil_extent, &
+                                               chi_sph, advective_stencil_extent,           &
+                                               panel_id, advective_stencil_extent,          &
+                                               ndata_h, fv_advective_order, nfaces_re_h,    &
+                                               advective2d_stencil_size, transform_radius,  &
+                                               qr, qre ) )
         end if
         ! Vertical advective coeffs
         call log_event( "Gungho: computing vertical advective coeffs", LOG_LEVEL_INFO )
-        allocate( vert_adv_coeffs(fv_advective_order+1, nfaces_re_v) )
-        do direction = 1, nfaces_re_v
-          do polynomial = 1, fv_advective_order+1
-            call vert_adv_coeffs(polynomial, direction)%initialise( vector_space = wt_fs )
-          end do
-        end do
-        call invoke_poly1d_vert_adv_coeffs( vert_adv_coeffs, chi_sph, &
-                                            fv_advective_order, nfaces_re_v )
+        ! Create multi-data space and field for the vertical advective coefficients
+        ndata_v = nfaces_re_v*(fv_advective_order+1)
+        multidata_fs => function_space_collection%get_fs( mesh_id, element_order, Wtheta, ndata_v )
+        call vert_adv_coeffs%initialise( vector_space = multidata_fs, ndata_first = .true. )
+
+        call invoke( poly1d_vert_adv_coeffs_kernel_type(vert_adv_coeffs, chi_sph, &
+                                                        ndata_v, fv_advective_order) )
         if ( consistent_metric ) then
           call advective_av_chi3%initialise(vector_space = w1_fs )
           call wt_metrics%initialise(vector_space = wt_fs )
@@ -246,14 +258,6 @@ contains
 
     implicit none
 
-    if ( operators == operators_fv .and. &
-         element_order == 0 ) then
-      deallocate( adv_coeffs,  vert_adv_coeffs )
-      ! Deallocate PSy layer arrays (this will not be needed when
-      ! multi-dimensional field arrays are supported)
-      call psykal_lite_mol_adv_final()
-    end if
-
   end subroutine advective_update_alg_final
 
   !=============================================================================
@@ -274,10 +278,10 @@ contains
 
     implicit none
 
-    type(field_type), intent(in)           :: adv_field, wind
-    type(field_type), intent(inout)        :: rhs
-    real(kind=r_def), intent(in)           :: dt
-    logical, optional, intent(in) :: logspace
+    type(field_type),  intent(in)          :: adv_field, wind
+    type(field_type),  intent(inout)       :: rhs
+    real(kind=r_def),  intent(in)          :: dt
+    logical, optional, intent(in)          :: logspace
 
     type(quadrature_xyoz_type)             :: qr
     type(quadrature_face_type)             :: qrf
@@ -289,12 +293,11 @@ contains
     integer(kind=i_def)                    :: mono_stencil
     type(field_type)                       :: consistent_wind, u_grad_f
 
-    logical :: logspace_loc
+    integer(kind=i_def) :: logspace_loc
 
-    if (.not.present(logspace))then
-      logspace_loc=.false.
-    else
-      logspace_loc=logspace
+    logspace_loc = 0
+    if ( present(logspace) ) then
+      if ( logspace ) logspace_loc = 1
     end if
 
     mt_lumped_inv => get_inverse_lumped_mass_matrix(wt_id)
@@ -316,24 +319,28 @@ contains
                      sample_field_kernel_type(advective_av_chi3, w1_multiplicity, chi3_at_wt) )
       end if
       if ( oned_reconstruction ) then
-       ! Use 1d reconstruction
-        call invoke_poly1d_adv_recon( advective_av, wind, adv_field, adv_coeffs, &
-                                      fv_advective_order, advective_stencil_extent, nfaces_re_h )
+        ! Use 1d reconstruction
+        call invoke( poly1d_adv_recon_kernel_type( advective_av, wind, adv_field,        &
+                                                   advective_stencil_extent, adv_coeffs, &
+                                                   ndata_h, fv_advective_order ) )
         ! Horizontal advection of metric terms
         if ( consistent_metric ) &
-          call invoke_poly1d_adv_recon( advective_av_chi3, wind, chi3_at_wt, adv_coeffs, &
-                                        fv_advective_order, advective_stencil_extent, nfaces_re_h )
+          call invoke( poly1d_adv_recon_kernel_type( advective_av_chi3, wind, chi3_at_wt,  &
+                                                     advective_stencil_extent, adv_coeffs, &
+                                                     ndata_h, fv_advective_order ) )
       else
-       ! Use 2d reconstruction
-        call invoke_poly2d_adv_recon( advective_av, wind, adv_field, adv_coeffs,       &
-                                      fv_advective_order, advective2d_stencil_size,    &
-                                      nfaces_re_h )
+        ! Use 2d reconstruction
+        call invoke( poly2d_adv_recon_kernel_type( advective_av, wind, adv_field, &
+                                                   advective_stencil_extent,      &
+                                                   adv_coeffs, ndata_h,           &
+                                                   advective2d_stencil_size ) )
+
         ! Horizontal advection of metric terms
         if ( consistent_metric ) &
-          call invoke_poly2d_adv_recon( advective_av_chi3, wind, chi3_at_wt, adv_coeffs, &
-                                        fv_advective_order, advective2d_stencil_size,    &
-                                        nfaces_re_h )
-
+          call invoke( poly2d_adv_recon_kernel_type( advective_av_chi3, wind, chi3_at_wt, &
+                                                     advective_stencil_extent,            &
+                                                     adv_coeffs, ndata_h,                 &
+                                                     advective2d_stencil_size ) )
       end if
       ! Compute horizontal advective update
       call invoke( poly_advective_kernel_type(u_grad_f, wind, advective_av) )
@@ -345,9 +352,10 @@ contains
                      consistent_wind_kernel_type(consistent_wind, wind, wt_metrics, chi_sph) )
       end if
       ! Compute vertical component of advective update
-      call invoke_poly1d_vert_adv( u_grad_f, consistent_wind, adv_field, &
-                                   vert_adv_coeffs, fv_advective_order, nfaces_re_v, &
-                                   logspace = logspace_loc )
+      call invoke( poly1d_vert_adv_kernel_type( u_grad_f, consistent_wind, adv_field, &
+                                                vert_adv_coeffs, ndata_v,             &
+                                                fv_advective_order,                   &
+                                                logspace_loc ) )
 
     case(operators_fem)
       ! Use project u.grad(adv_field) into the adv_field function space

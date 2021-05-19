@@ -23,6 +23,7 @@ use argument_mod,      only : arg_type, func_type,         &
                               GH_INC, GH_READ,             &
                               STENCIL, CROSS, GH_BASIS,    &
                               CELL_COLUMN, GH_EVALUATOR,   &
+                              ANY_DISCONTINUOUS_SPACE_1,   &
                               outward_normals_to_horizontal_faces
 use constants_mod,     only : r_def, i_def
 use fs_continuity_mod, only : W2, W3
@@ -38,13 +39,13 @@ private
 !> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: poly1d_flux_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                                     &
-       arg_type(GH_FIELD,  GH_REAL,    GH_INC,  W2),                      &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ, W2),                      &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ, W3, STENCIL(CROSS)),      &
-       arg_type(GH_FIELD,  GH_REAL,    GH_READ, W3),                      &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                          &
-       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)                           &
+  type(arg_type) :: meta_args(6) = (/                                        &
+       arg_type(GH_FIELD,  GH_REAL,    GH_INC,   W2),                        & ! Flux
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,  W2),                        & ! Wind
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,  W3, STENCIL(CROSS)),        & ! Density
+       arg_type(GH_FIELD,  GH_REAL,    GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! coeffs
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                             & ! order
+       arg_type(GH_SCALAR, GH_INTEGER, GH_READ)                              & ! ndata
        /)
   type(func_type) :: meta_funcs(1) = (/                                   &
        func_type(W2, GH_BASIS)                                            &
@@ -70,7 +71,11 @@ contains
 !! @param[in,out] flux Mass flux field to compute
 !! @param[in]  wind Wind field
 !! @param[in]  density Tracer density
+!! @param[in]  stencil_size Size of the stencil (number of cells)
+!! @param[in]  stencil_map Dofmaps for the stencil
 !! @param[in]  coeff Array of polynomial coefficients for interpolation
+!! @param[in]  order Desired order of polynomial reconstruction
+!! @param[in]  ndata Number of data points per dof location
 !! @param[in]  ndf_w2 Number of degrees of freedom per cell
 !! @param[in]  undf_w2 Number of unique degrees of freedom for the flux &
 !!             wind fields
@@ -78,9 +83,10 @@ contains
 !! @param[in]  basis_w2 Basis function array evaluated at w2 nodes
 !! @param[in]  ndf_w3 Number of degrees of freedom per cell
 !! @param[in]  undf_w3 Number of unique degrees of freedom for the density field
-!! @param[in]  stencil_size Size of the stencil (number of cells)
-!! @param[in]  stencil_map Dofmaps for the stencil
-!! @param[in]  order Desired order of polynomial reconstruction
+!! @param[in]  map_w3 Dofmap for the cell at the base of the column for the density field
+!! @param[in]  ndf_c Number of degrees of freedom per cell for the coeff space
+!! @param[in]  undf_c Total number of degrees of freedom for the coeff space
+!! @param[in]  map_c Dofmap for the coeff space
 !! @param[in]  nfaces_re_h Number of horizontal neighbours
 !! @param[in]  outward_normals_to_horizontal_faces Vector of normals to the
 !!                                                 reference element horizontal
@@ -89,16 +95,21 @@ subroutine poly1d_flux_code( nlayers,              &
                              flux,                 &
                              wind,                 &
                              density,              &
+                             stencil_size,         &
+                             stencil_map,          &
                              coeff,                &
+                             order,                &
+                             ndata,                &
                              ndf_w2,               &
                              undf_w2,              &
                              map_w2,               &
                              basis_w2,             &
                              ndf_w3,               &
                              undf_w3,              &
-                             stencil_size,         &
-                             stencil_map,          &
-                             order,                &
+                             map_w3,               &
+                             ndf_c,                &
+                             undf_c,               &
+                             map_c,                &
                              nfaces_re_h,          &
                              outward_normals_to_horizontal_faces )
 
@@ -108,9 +119,14 @@ subroutine poly1d_flux_code( nlayers,              &
   integer(kind=i_def), intent(in)                    :: nlayers
   integer(kind=i_def), intent(in)                    :: ndf_w3
   integer(kind=i_def), intent(in)                    :: undf_w3
+  integer(kind=i_def), dimension(ndf_w3), intent(in) :: map_w3
   integer(kind=i_def), intent(in)                    :: ndf_w2
   integer(kind=i_def), intent(in)                    :: undf_w2
   integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
+  integer(kind=i_def), intent(in)                    :: ndf_c
+  integer(kind=i_def), intent(in)                    :: undf_c
+  integer(kind=i_def), dimension(ndf_c),  intent(in) :: map_c
+  integer(kind=i_def), intent(in)                    :: ndata
   integer(kind=i_def), intent(in)                    :: order
   integer(kind=i_def), intent(in)                    :: stencil_size
   integer(kind=i_def), intent(in)                    :: nfaces_re_h
@@ -118,18 +134,18 @@ subroutine poly1d_flux_code( nlayers,              &
   real(kind=r_def), dimension(undf_w2), intent(inout) :: flux
   real(kind=r_def), dimension(undf_w2), intent(in)    :: wind
   real(kind=r_def), dimension(undf_w3), intent(in)    :: density
-
-  real(kind=r_def), dimension(order+1, nfaces_re_h, undf_w3), intent(in) :: coeff
+  real(kind=r_def), dimension(undf_c),  intent(in)    :: coeff
 
   real(kind=r_def), dimension(3,ndf_w2,ndf_w2), intent(in) :: basis_w2
 
   integer(kind=i_def), dimension(ndf_w3,stencil_size), intent(in) :: stencil_map
 
-  real(kind=r_def),    intent(in)  :: outward_normals_to_horizontal_faces(:,:)
+  real(kind=r_def), intent(in) :: outward_normals_to_horizontal_faces(3,nfaces_re_h)
 
   ! Internal variables
-  integer(kind=i_def)                      :: k, df, ij, p, face, stencil, &
-                                               stencil_depth, depth, face_mod
+  integer(kind=i_def)                      :: k, df, p, face, stencil, &
+                                              stencil_depth, depth, face_mod, &
+                                              ijkp
   real(kind=r_def)                         :: direction
   real(kind=r_def), dimension(nfaces_re_h) :: v_dot_n
   real(kind=r_def)                         :: polynomial_density
@@ -163,8 +179,6 @@ subroutine poly1d_flux_code( nlayers,              &
     v_dot_n(df) =  dot_product(basis_w2(:,df,df),outward_normals_to_horizontal_faces(:,df))
   end do
 
-  ij = stencil_map(1,1)
-
   ! Horizontal flux computation
   do k = 0, nlayers - 1
     do df = 1,nfaces_re_h
@@ -174,8 +188,9 @@ subroutine poly1d_flux_code( nlayers,              &
         polynomial_density = 0.0_r_def
         do p = 1,order+1
           stencil = map1d(p,df)
+          ijkp = p - 1 + (df-1)*(order+1) + k*ndata + map_c(1)
           polynomial_density = polynomial_density &
-                             + density( stencil_map(1,stencil) + k )*coeff( p, df, ij+k )
+                             + density( stencil_map(1,stencil) + k )*coeff( ijkp )
         end do
         flux(map_w2(df) + k ) = wind(map_w2(df) + k)*polynomial_density
       end if
