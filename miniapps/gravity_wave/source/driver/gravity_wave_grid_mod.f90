@@ -36,12 +36,12 @@ module gravity_wave_grid_mod
 contains
 
   !> @brief Initialises grid related information used by the model
-  !> @param [inout] mesh_id The identifier of the primary mesh
-  !> @param [inout] twod_mesh_id The identifier of the primary 2d mesh
-  !> @param [inout] chi_xyz (X,Y,Z) coordinate fields
-  !> @param [inout] chi_sph Spherical coordinate fields
-  !> @param [inout] panel_id 2D field giving cubed sphere panel ids
-  !> @param [inout] multigrid_function_space_chain An ordered  list of function
+  !> @param [in,out] mesh_id The identifier of the primary mesh
+  !> @param [in,out] twod_mesh_id The identifier of the primary 2d mesh
+  !> @param [in,out] chi_xyz (X,Y,Z) coordinate fields
+  !> @param [in,out] chi_sph Spherical coordinate fields
+  !> @param [in,out] panel_id 2D field giving cubed sphere panel ids
+  !> @param [in,out] multigrid_function_space_chain An ordered  list of function
   !>                                               spaces used by multigrid
   subroutine initialise_grid(mesh_id, twod_mesh_id,      &
                              chi_xyz, chi_sph, panel_id, &

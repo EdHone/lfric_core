@@ -44,10 +44,15 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use timestepping_config_mod,   only : method_semi_implicit, &
-                                          runge_kutta_method_ssp3
-    use feign_config_mod,          only : feign_planet_config, &
-                                          feign_timestepping_config
+    use chi_transform_mod,          only : init_chi_transforms
+    use timestepping_config_mod,    only : method_semi_implicit, &
+                                           runge_kutta_method_ssp3
+    use feign_config_mod,           only : feign_finite_element_config, &
+                                           feign_planet_config,         &
+                                           feign_timestepping_config
+    use finite_element_config_mod,  only : cellshape_quadrilateral, &
+                                           spherical_coord_system_xyz
+
     implicit none
 
     class(held_suarez_test_type), intent(inout) :: this
@@ -56,6 +61,15 @@ contains
     call xt_initialize(this%getMpiCommunicator())
     ! Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
+
+    call feign_finite_element_config(      &
+        cellshape=cellshape_quadrilateral, &
+        coordinate_order=0_i_def,          &
+        element_order=0_i_def,             &
+        rehabilitate=.true.,               &
+        spherical_coord_order=0_i_def,     &
+        spherical_coord_system=spherical_coord_system_xyz, &
+        vorticity_in_w1=.false. )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
                               rd=rd, cp=cp, p_zero=p_zero,                 &
@@ -69,10 +83,15 @@ contains
                                    spinup_period=0.0_r_def, spinup_alpha=.false.,     &
                                    spinup_winds=.false.    )
 
+    call init_chi_transforms()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
+
+    use chi_transform_mod, only: final_chi_transforms
+    use configuration_mod, only: final_configuration
 
     implicit none
 
@@ -82,6 +101,10 @@ contains
     call xt_finalize()
     ! Clear the stored MPI communicator
     call clear_comm()
+
+    ! Finalise namelists
+    call final_configuration()
+    call final_chi_transforms()
 
   end subroutine tearDown
 
@@ -131,6 +154,7 @@ contains
 
     ! Test field data
     real(r_def), allocatable :: chi_data(:,:)
+    real(r_def), allocatable :: panel_id(:)
     real(r_def), allocatable :: u_data(:)
     real(r_def), allocatable :: theta_data(:)
     real(r_def), allocatable :: exner_data(:)
@@ -165,6 +189,7 @@ contains
 
     ! Create the data arrays
     allocate(chi_data(undf_w3,3))
+    allocate(panel_id(undf_w3))
     allocate(u_data(undf_w2))
     allocate(theta_data(undf_wth))
     allocate(exner_data(undf_wth))
@@ -210,8 +235,10 @@ contains
                               chi_data(:,1),                        &
                               chi_data(:,2),                        &
                               chi_data(:,3),                        &
+                              panel_id(:),                          &
                               ndf_wth, undf_wth, map_wth(:,cell),   &
-                              ndf_w3, undf_w3, map_w3(:,cell) &
+                              ndf_w3, undf_w3, map_w3(:,cell),      &
+                              ndf_w3, undf_w3, map_w3(:,cell)       &
                             )
 
     ! du is incremented so need to initialize
@@ -237,6 +264,7 @@ contains
     deallocate(map_w2)
     deallocate(map_wth)
     deallocate(chi_data)
+    deallocate(panel_id)
     deallocate(u_data)
     deallocate(theta_data)
     deallocate(exner_data)

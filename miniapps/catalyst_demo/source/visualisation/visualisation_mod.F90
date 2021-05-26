@@ -19,11 +19,11 @@ module visualisation_mod
   use function_space_collection_mod, only: function_space_collection
   use project_output_mod,            only: project_output
   use diagnostic_alg_mod,            only: scalar_nodal_diagnostic_alg
-  use geometric_constants_mod,       only: get_coordinates
+  use geometric_constants_mod,       only: get_coordinates, get_panel_id
   use log_mod,                       only: log_event,       &
                                            LOG_LEVEL_ERROR, &
                                            LOG_LEVEL_INFO
-  use psykal_lite_mod,               only: invoke_nodal_coordinates_kernel, &
+  use psykal_lite_mod,               only: invoke_nodal_xyz_coordinates_kernel, &
                                            invoke_pointwise_convert_xyz2llr
 
   implicit none
@@ -336,6 +336,7 @@ subroutine create_vtk_grid(mesh_id)
   real(r_def) :: coords(3)
   type(function_space_type), pointer :: output_field_fs => null()
   type(field_type), pointer :: chi(:) => null()
+  type(field_type), pointer :: panel_id => null()
   type(field_type) :: coord_output(3)
   type(field_proxy_type), target  :: proxy_coord_output(3)
   integer(i_def), pointer :: map_f(:) => null()
@@ -383,12 +384,13 @@ subroutine create_vtk_grid(mesh_id)
 
   ! Convert field to physical nodal output & sample chi on nodal points;
   ! convert result to lon, lat, rad if requested
-  chi => get_coordinates()
-  call invoke_nodal_coordinates_kernel(coord_output, chi)
+  chi => get_coordinates(mesh_id)
+  panel_id => get_panel_id(mesh_id)
+  call invoke_nodal_xyz_coordinates_kernel(coord_output, chi, panel_id)
   if ( geometry == geometry_spherical .and. vis_llr_projection ) then
      call invoke_pointwise_convert_xyz2llr(coord_output)
   end if
-  nullify(chi)
+  nullify(chi, panel_id)
 
   ! Assemble vertex ids and coordinates in buffers
   allocate(cell_points(ndofs_per_cell*ncells_vtk))

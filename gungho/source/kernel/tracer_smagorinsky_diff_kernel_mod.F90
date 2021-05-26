@@ -9,11 +9,13 @@
 !>
 module tracer_smagorinsky_diff_kernel_mod
 
-  use argument_mod,          only : arg_type,          &
-                                    GH_FIELD, GH_REAL, &
-                                    GH_READ, GH_WRITE, &
-                                    ANY_SPACE_9,       &
+  use argument_mod,          only : arg_type,                  &
+                                    GH_FIELD, GH_REAL,         &
+                                    GH_READ, GH_WRITE,         &
+                                    ANY_SPACE_9,               &
+                                    ANY_DISCONTINUOUS_SPACE_3, &
                                     CELL_COLUMN, STENCIL, CROSS
+  use chi_transform_mod,     only : chi2xyz
   use constants_mod,         only : r_def, i_def
   use fs_continuity_mod,     only : Wtheta
   use kernel_mod,            only : kernel_type
@@ -30,11 +32,12 @@ module tracer_smagorinsky_diff_kernel_mod
 
   type, public, extends(kernel_type) :: tracer_smagorinsky_diff_kernel_type
     private
-    type(arg_type) :: meta_args(4) = (/                                   &
-         arg_type(GH_FIELD,   GH_REAL, GH_WRITE, Wtheta),                 &
-         arg_type(GH_FIELD,   GH_REAL, GH_READ,  Wtheta, STENCIL(CROSS)), &
-         arg_type(GH_FIELD,   GH_REAL, GH_READ,  Wtheta),                 &
-         arg_type(GH_FIELD*3, GH_REAL, GH_READ,  ANY_SPACE_9)             &
+    type(arg_type) :: meta_args(5) = (/                                     &
+         arg_type(GH_FIELD,   GH_REAL, GH_WRITE, Wtheta),                   &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ,  Wtheta, STENCIL(CROSS)),   &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ,  Wtheta),                   &
+         arg_type(GH_FIELD*3, GH_REAL, GH_READ,  ANY_SPACE_9),              &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_3) &
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -60,6 +63,7 @@ contains
 !! @param[in] chi1 First coordinate field
 !! @param[in] chi2 Second coordinate field
 !! @param[in] chi3 Third coordinate field
+!! @param[in] panel_id Field describing the IDs of the mesh panels
 !! @param[in] ndf_wt Number of degrees of freedom per cell for theta space
 !! @param[in] undf_wt  Number of unique degrees of freedom for theta space
 !! @param[in] map_wt Cell dofmap for theta space
@@ -67,37 +71,45 @@ contains
 !! @param[in] undf_chi Number of unique degrees of freedom for chi space
 !! @param[in] map_chi Array holding the dofmap for the cell at the base of
 !!                    the column for chi
-
+!! @param[in] ndf_pid Number of degrees of freedom per cell for panel ID
+!! @param[in] undf_pid Number of unique degrees of freedom for panel ID
+!! @param[in] map_pid Dofmap for the cell at the base of the column for panel_id
 subroutine tracer_smagorinsky_diff_code( nlayers,                               &
                                          theta_inc,                             &
                                          theta_n,                               &
                                          map_wt_stencil_size, map_wt_stencil,   &
                                          visc_h,                                &
                                          chi1, chi2, chi3,                      &
+                                         panel_id,                              &
                                          ndf_wt, undf_wt, map_wt,               &
-                                         ndf_chi, undf_chi, map_chi             &
+                                         ndf_chi, undf_chi, map_chi,            &
+                                         ndf_pid, undf_pid, map_pid             &
                                         )
 
   implicit none
 
   ! Arguments
   integer(kind=i_def), intent(in) :: nlayers
-  integer(kind=i_def), intent(in) :: ndf_wt, undf_wt, ndf_chi, undf_chi
+  integer(kind=i_def), intent(in) :: ndf_wt, undf_wt
+  integer(kind=i_def), intent(in) :: ndf_chi, undf_chi
+  integer(kind=i_def), intent(in) :: ndf_pid, undf_pid
   integer(kind=i_def), intent(in) :: map_wt_stencil_size
   integer(kind=i_def), dimension(ndf_wt,map_wt_stencil_size), intent(in)  :: map_wt_stencil
-  integer(kind=i_def), dimension(ndf_wt), intent(in)  :: map_wt
-  integer(kind=i_def), dimension(ndf_chi),intent(in)  :: map_chi
+  integer(kind=i_def), dimension(ndf_wt),  intent(in)  :: map_wt
+  integer(kind=i_def), dimension(ndf_chi), intent(in)  :: map_chi
+  integer(kind=i_def), dimension(ndf_pid), intent(in)  :: map_pid
 
   real(kind=r_def), dimension(undf_wt),  intent(inout) :: theta_inc
   real(kind=r_def), dimension(undf_wt),  intent(in)    :: theta_n
   real(kind=r_def), dimension(undf_wt),  intent(in)    :: visc_h
   real(kind=r_def), dimension(undf_chi), intent(in)    :: chi1, chi2, chi3
+  real(kind=r_def), dimension(undf_pid), intent(in)    :: panel_id
 
   ! Internal variables
-  integer(kind=i_def) :: k, df
+  integer(kind=i_def) :: k, df, ipanel
   real(kind=r_def)    :: d2dx, d2dy
   real(kind=r_def), dimension(0:nlayers-1) :: idx2, idy2
-  real(kind=r_def), dimension(ndf_chi)     :: chi1_e, chi2_e
+  real(kind=r_def), dimension(ndf_chi)     :: chi_x_e, chi_y_e, chi_z_e
 
   !  ----------
   !  |    |   |
@@ -111,14 +123,16 @@ subroutine tracer_smagorinsky_diff_code( nlayers,                               
   !  |_> x
   !
 
+  ipanel = int(panel_id(map_pid(1)), i_def)
+
   ! Compute horizontal grid spacing
   do k = 0, nlayers - 1
     do df = 1,ndf_chi
-      chi1_e(df) = chi1(map_chi(df)+k)
-      chi2_e(df) = chi2(map_chi(df)+k)
+      call chi2xyz(chi1(map_chi(df)+k), chi2(map_chi(df)+k), chi3(map_chi(df)+k), &
+                   ipanel, chi_x_e(df), chi_y_e(df), chi_z_e(df))
     end do
-    idx2(k) = 1.0_r_def/(maxval(chi1_e) - minval(chi1_e))**2
-    idy2(k) = 1.0_r_def/(maxval(chi2_e) - minval(chi2_e))**2
+    idx2(k) = 1.0_r_def/(maxval(chi_x_e) - minval(chi_x_e))**2
+    idy2(k) = 1.0_r_def/(maxval(chi_y_e) - minval(chi_y_e))**2
   end do
 
   ! Horizontal theta diffusion

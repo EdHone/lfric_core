@@ -74,10 +74,10 @@ module io_dev_data_mod
 contains
 
   !> @brief Create the fields contained in model_data
-  !> @param[inout] model_data   The working data set for a model run
-  !> @param[in]    mesh_id      The identifier given to the current 3d mesh
-  !> @param[in]    twod_mesh_id The identifier given to the current 2d mesh
-  !> @param[in]    clock        The model clock object
+  !> @param[in,out] model_data   The working data set for a model run
+  !> @param[in]     mesh_id      The identifier given to the current 3d mesh
+  !> @param[in]     twod_mesh_id The identifier given to the current 2d mesh
+  !> @param[in]     clock        The model clock object
   subroutine create_model_data( model_data, &
                                 mesh_id,    &
                                 twod_mesh_id )
@@ -99,21 +99,22 @@ contains
   end subroutine create_model_data
 
   !> @brief Initialises the working data set dependent of namelist configuration
-  !> @param[inout] model_data The working data set for a model run
-  !> @param[in]    chi_xyz    A size 3 array of fields holding the mesh
-  !>                          (X,Y,Z) coordinates
-  !> @param[in]    clock      The model clock object
-  subroutine initialise_model_data( model_data, chi_xyz, clock )
+  !> @param[in,out] model_data The working data set for a model run
+  !> @param[in]     chi_sph    A size 3 array of fields holding the mesh coordinates
+  !> @param[in]     panel_id   A field with the IDs of mesh panels
+  !> @param[in]     clock      The model clock object
+  subroutine initialise_model_data( model_data, chi_sph, panel_id, clock )
 
     implicit none
 
     type( io_dev_data_type ), intent(inout) :: model_data
-    type( field_type ),       intent(in)    :: chi_xyz(3)
+    type( field_type ),       intent(in)    :: chi_sph(3)
+    type( field_type ),       intent(in)    :: panel_id
     class( clock_type ),      intent(in)    :: clock
 
     ! Initialise all the model fields here analytically - setting data value
     ! equal to product of x, y and z coordinates
-    call io_dev_init_fields_alg( model_data%core_fields, chi_xyz )
+    call io_dev_init_fields_alg( model_data%core_fields, chi_sph, panel_id )
 
     !---------------------------------------------------------------
     ! Now we make separate init calls based on model configuration
@@ -140,8 +141,8 @@ contains
   end subroutine initialise_model_data
 
   !> @brief Updates the working data set dependent of namelist configuration
-  !> @param[inout] model_data The working data set for a model run
-  !> @param[in]    clock      The model clock object
+  !> @param[in,out] model_data The working data set for a model run
+  !> @param[in]     clock      The model clock object
   subroutine update_model_data( model_data, clock )
 
     implicit none
@@ -175,7 +176,7 @@ contains
 
 
   !> @brief Writes out a checkpoint and dump file dependent on namelist options
-  !> @param[inout] model_data The working data set for the model run
+  !> @param[in,out] model_data The working data set for the model run
   subroutine output_model_data( model_data )
 
     implicit none
@@ -196,8 +197,8 @@ contains
   end subroutine output_model_data
 
   !> @brief Routine to destroy all the field collections in the working data set
-  !> @param[inout] model_data The working data set for a model run
-  !> @param[in]    clock      The model clock object
+  !> @param[in,out] model_data The working data set for a model run
+  !> @param[in]     clock      The model clock object
   subroutine finalise_model_data( model_data, clock )
 
     implicit none

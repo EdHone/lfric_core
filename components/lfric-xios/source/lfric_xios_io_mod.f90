@@ -40,7 +40,8 @@ module lfric_xios_io_mod
   use mpi_mod,                       only: get_comm_size, &
                                            get_comm_rank, &
                                            all_gather
-  use psykal_lite_mod,               only: invoke_nodal_coordinates_kernel
+  use psykal_lite_mod,               only: invoke_nodal_xyz_coordinates_kernel, &
+                                           invoke_nodal_coordinates_kernel
   use psykal_builtin_light_mod,      only: invoke_pointwise_convert_xyz2llr
   use xios,                          only: xios_duration,      &
                                            xios_fieldgroup,    &
@@ -77,6 +78,8 @@ module lfric_xios_io_mod
     integer           :: twod_mesh_id
     class(field_type), &
       pointer         :: chi(:)            => null()
+    class(field_type), &
+      pointer         :: panel_id          => null()
     procedure(populate_filelist_if), &
       pointer, nopass :: populate_filelist => null()
     !
@@ -114,12 +117,14 @@ contains
   !> @param[in] mesh_id            Identifier for the primary mesh.
   !> @param[in] twod_mesh_id       Identifier for the primary 2D mesh.
   !> @param[in] chi                Co-ordinate fields.
+  !> @param[in] panel_id           Field with IDs of mesh panels.
   !> @param[in] populate_filelist  Model procedure to fill file list.
   !>
   subroutine initialise_setup_xios( this,         &
                                     mesh_id,      &
                                     twod_mesh_id, &
                                     chi,          &
+                                    panel_id,     &
                                     populate_filelist )
 
     implicit none
@@ -128,12 +133,14 @@ contains
     integer,                intent(in)          :: mesh_id
     integer,                intent(in)          :: twod_mesh_id
     class(field_type),      intent(in), target  :: chi(:)
+    class(field_type),      intent(in), target  :: panel_id
     procedure(populate_filelist_if), &
                             intent(in), pointer :: populate_filelist
 
     this%mesh_id           = mesh_id
     this%twod_mesh_id      = twod_mesh_id
     this%chi               => chi
+    this%panel_id          => panel_id
     this%populate_filelist => populate_filelist
 
   end subroutine initialise_setup_xios
@@ -155,7 +162,7 @@ contains
     file_list = linked_list_type()
     select type(context)
       class is (lfric_xios_context_type)
-        call init_xios_dimensions(this%mesh_id, this%twod_mesh_id, this%chi)
+        call init_xios_dimensions(this%mesh_id, this%twod_mesh_id, this%chi, this%panel_id)
         call this%populate_filelist( file_list, context%get_clock() )
         call setup_xios_files( file_list, context%get_clock() )
 
@@ -174,6 +181,7 @@ contains
   !> @param[in]  mesh_id           Mesh id
   !> @param[in]  twod_mesh_id      2D Mesh id
   !> @param[in]  chi               Coordinate field
+  !> @param[in]  panel_id          Field containing IDs of mesh panels.
   !> @param[in]  populate_filelist Optional procedure to build file list.
   !>
   subroutine initialise_xios( context,          &
@@ -182,6 +190,7 @@ contains
                               mesh_id,          &
                               twod_mesh_id,     &
                               chi,              &
+                              panel_id,         &
                               start_step,       &
                               end_step,         &
                               spinup_period,    &
@@ -196,6 +205,7 @@ contains
     integer(i_def),         intent(in)               :: mesh_id
     integer(i_def),         intent(in)               :: twod_mesh_id
     class(field_type),      intent(in)               :: chi(:)
+    class(field_type),      intent(in)               :: panel_id
     character(*),           intent(in)               :: start_step
     character(*),           intent(in)               :: end_step
     real(r_second),         intent(in)               :: spinup_period
@@ -211,10 +221,10 @@ contains
     integer :: rc
 
     if (present (populate_filelist)) then
-      call callback%initialise( mesh_id, twod_mesh_id, chi, populate_filelist )
+      call callback%initialise( mesh_id, twod_mesh_id, chi, panel_id, populate_filelist )
     else
       dummy_pointer => dummy_populate
-      call callback%initialise( mesh_id, twod_mesh_id, chi, dummy_pointer )
+      call callback%initialise( mesh_id, twod_mesh_id, chi, panel_id, dummy_pointer )
     end if
 
     allocate( lfric_xios_context_type::context, stat=rc )
@@ -244,8 +254,9 @@ contains
   !>  @param[in]  mesh_id       Mesh id
   !>  @param[in]  twod_mesh_id  2D Mesh id
   !>  @param[in]  chi           Coordinate field
+  !>  @param[in]  panel_id      Field with IDs of mesh panels
   !>
-  subroutine init_xios_dimensions(mesh_id, twod_mesh_id, chi)
+  subroutine init_xios_dimensions(mesh_id, twod_mesh_id, chi, panel_id)
 
     implicit none
 
@@ -253,6 +264,7 @@ contains
     integer(i_def),   intent(in) :: mesh_id
     integer(i_def),   intent(in) :: twod_mesh_id
     type(field_type), intent(in) :: chi(:)
+    type(field_type), intent(in) :: panel_id
 
     ! Local variables
     integer(i_def) :: i
@@ -285,7 +297,6 @@ contains
     integer(i_native) :: fs_index
 
     ! Variables needed to compute output domain coordinates in lat-long
-    type( field_type ) :: chi_w0(3)
     type( field_type ) :: sample_chi(3)
     type( field_type ) :: coord_output(3)
     ! Field proxies (to calculate domain coordinate info)
@@ -323,7 +334,6 @@ contains
     ! Set up fields to hold the output coordinates
     output_field_fs => function_space_collection%get_fs( mesh_id, element_order, W0 )
     do i = 1,3
-      call chi_w0(i)%initialise( vector_space = output_field_fs )
       call coord_output(i)%initialise( vector_space = output_field_fs )
       proxy_coord_output(i) = coord_output(i)%get_proxy()
     end do
@@ -349,13 +359,16 @@ contains
     coord_dim_full = size(proxy_coord_output(1)%data) / nfull_levels
     coord_dim_owned = local_undf(1) / nfull_levels
 
-    ! Sample chi on W0 function space to prevent "unzipping"of cubed-sphere mesh
+    ! Obtain sample_chi, which will be used for setting up XIOS coordinates
     if ( geometry == geometry_spherical .and. topology == topology_fully_periodic ) then
-      call invoke_nodal_coordinates_kernel(chi_w0, chi)
+      ! Sample chi on W0 function space to prevent "unzipping" of cubed-sphere mesh
       do i = 1,3
-        call chi_w0(i)%copy_field(sample_chi(i))
+        call sample_chi(i)%initialise( vector_space = output_field_fs )
       end do
+      ! Convert to (X,Y,Z) coordinates in Wchi
+      call invoke_nodal_xyz_coordinates_kernel(sample_chi, chi, panel_id)
     else
+      ! For planar geometries just re-use existing chi
       do i = 1,3
         call chi(i)%copy_field(sample_chi(i))
       end do

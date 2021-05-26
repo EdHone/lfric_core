@@ -20,7 +20,7 @@ module cell_locator_api_mod
   use function_space_mod,            only: function_space_type
   use function_space_collection_mod, only: function_space_collection
   use project_output_mod,            only: project_output
-  use geometric_constants_mod,       only: get_coordinates
+  use geometric_constants_mod,       only: get_coordinates, get_panel_id
   use log_mod,                       only: log_event,       &
                                            LOG_LEVEL_ERROR, &
                                            LOG_LEVEL_INFO
@@ -28,7 +28,7 @@ module cell_locator_api_mod
                                            vtk_grid_filename, &
                                            num_cells_per_bucket, &
                                            rescale_z, z_lo, z_hi
-  use psykal_lite_mod,               only: invoke_nodal_coordinates_kernel
+  use psykal_lite_mod,               only: invoke_nodal_xyz_coordinates_kernel
   use psykal_builtin_light_mod,      only: invoke_pointwise_convert_xyz2llr
 
   use mpi_mod,                       only: get_comm_size, get_comm_rank
@@ -201,6 +201,7 @@ module cell_locator_api_mod
     integer(i_def)                              :: ndofs_per_cell, idof
     type(function_space_type), pointer          :: output_field_fs => null()
     type(field_type), pointer                   :: chi(:) => null()
+    type(field_type), pointer                   :: panel_id => null()
     type(field_type)                            :: coord_output(3)
     type(field_proxy_type), target              :: proxy_coord_output(3)
     integer(i_def), pointer                     :: map_f(:) => null()
@@ -263,9 +264,10 @@ module cell_locator_api_mod
     ! Convert field to physical nodal output & sample chi on nodal points;
     ! convert result to lon, lat, rad if requested
     chi => get_coordinates(mesh_id)
-    call invoke_nodal_coordinates_kernel( coord_output, chi )
+    panel_id => get_panel_id(mesh_id)
+    call invoke_xyz_nodal_coordinates_kernel( coord_output, chi, panel_id )
 
-    nullify( chi )
+    nullify( chi, panel_id )
 
     ! Assemble vertex coordinates
     allocate( self%vert_coords(ncells_local*nlayers*ndofs_per_cell*3) )

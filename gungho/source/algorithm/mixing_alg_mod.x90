@@ -38,7 +38,7 @@ contains
     use tracer_viscosity_kernel_mod,   only: tracer_viscosity_kernel_type
     use momentum_viscosity_kernel_mod, only: momentum_viscosity_kernel_type
     use timestepping_config_mod,       only: dt
-    use geometric_constants_mod,       only: get_coordinates_xyz
+    use geometric_constants_mod,       only: get_coordinates, get_panel_id
 
     implicit none
 
@@ -56,7 +56,10 @@ contains
     ! Increment fields
     type( field_type ) :: du, dtheta
 
-    type( field_type ), pointer :: chi_xyz(:) => null()
+    type( field_type ), pointer :: chi_sph(:) => null()
+    type( field_type ), pointer :: panel_id => null()
+
+    integer( i_def )   :: mesh_id
 
     !--------------------------------------------------------------------
     ! Apply horizontal Smagorinsky subgrid mixing
@@ -67,12 +70,19 @@ contains
     ! Apply viscosity
     !--------------------------------------------------------------------
     if ( viscosity ) then
+
       call log_event( 'Applying Viscosity', LOG_LEVEL_INFO )
+      mesh_id = theta%get_mesh_id()
+
       call dtheta%initialise( theta%get_function_space() )
       call du%initialise( u%get_function_space() )
-      chi_xyz => get_coordinates_xyz(u%get_mesh_id())
-      call invoke( tracer_viscosity_kernel_type( dtheta, theta, 1, chi_xyz ), &
-                   momentum_viscosity_kernel_type( du, u, 1, chi_xyz ),       &
+
+      chi_sph => get_coordinates(mesh_id)
+      panel_id => get_panel_id(mesh_id)
+      call invoke( tracer_viscosity_kernel_type( dtheta, theta, 1,            &
+                                                 chi_sph, panel_id ),         &
+                   momentum_viscosity_kernel_type( du, u, 1,                  &
+                                                   chi_sph, panel_id ),       &
                    inc_X_plus_bY( theta, dt, dtheta ),                        &
                    inc_X_plus_bY( u,     dt, du ) )
     end if

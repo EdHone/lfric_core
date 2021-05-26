@@ -6,28 +6,28 @@
 !> @brief Algorithms to do field processing to produce generic and specific
 !>        diagnostics for different I/O methods
 module diagnostic_alg_mod
-  use constants_mod,                 only: i_def, r_def, str_max_filename
-  use finite_element_config_mod,     only: element_order
-  use base_mesh_config_mod,          only: geometry,               &
-                                           geometry_spherical
-  use mesh_mod,                      only: mesh_type
-  use mesh_collection_mod,           only: mesh_collection
-  use function_space_collection_mod, only: function_space_collection
-  use fs_continuity_mod,             only: W1, W2, W3, Wtheta, W2H
-  use field_mod,                     only: field_type
-  use operator_mod,                  only: operator_type
-  use nodal_coordinates_kernel_mod,  only: nodal_coordinates_kernel_type
-  use psykal_lite_mod,               only: invoke_compute_dof_level_kernel
-  use psykal_builtin_light_mod,      only: invoke_convert_cart2sphere_vector, &
-                                           invoke_pointwise_convert_xyz2llr
-  use fem_constants_mod,             only: get_rmultiplicity
-  use geometric_constants_mod,       only: get_coordinates_xyz, &
-                                           get_coordinates,     &
-                                           get_panel_id
-  use project_output_mod,            only: project_output
-  use log_mod,                       only: log_event,         &
-                                           log_scratch_space, &
-                                           LOG_LEVEL_INFO
+  use constants_mod,                    only: i_def, r_def, str_max_filename
+  use finite_element_config_mod,        only: element_order
+  use base_mesh_config_mod,             only: geometry, &
+                                              geometry_spherical
+  use mesh_mod,                         only: mesh_type
+  use mesh_collection_mod,              only: mesh_collection
+  use function_space_collection_mod,    only: function_space_collection
+  use fs_continuity_mod,                only: W1, W2, W3, Wtheta, W2H
+  use field_mod,                        only: field_type
+  use operator_mod,                     only: operator_type
+  use nodal_xyz_coordinates_kernel_mod, only: nodal_xyz_coordinates_kernel_type
+  use psykal_lite_mod,                  only: invoke_compute_dof_level_kernel
+  use psykal_builtin_light_mod,         only: invoke_convert_cart2sphere_vector, &
+                                              invoke_pointwise_convert_xyz2llr
+  use fem_constants_mod,                only: get_rmultiplicity
+  use geometric_constants_mod,          only: get_coordinates_xyz, &
+                                              get_coordinates,     &
+                                              get_panel_id
+  use project_output_mod,               only: project_output
+  use log_mod,                          only: log_event,         &
+                                              log_scratch_space, &
+                                              LOG_LEVEL_INFO
   implicit none
 
   private
@@ -44,10 +44,10 @@ module diagnostic_alg_mod
 contains
 
   !> @details Calculates the l2 error norm for wind divergence
-  !> @param[inout] divergence  Divergence field
-  !> @param[inout] l2          l2 norm
-  !> @param[in] u              3D wind field
-  !> @param[in] mesh_id        Mesh_id
+  !> @param[in,out] divergence  Divergence field
+  !> @param[in,out] l2          l2 norm
+  !> @param[in] u               3D wind field
+  !> @param[in] mesh_id         Mesh_id
   subroutine divergence_diagnostic_alg(divergence, l2, u, mesh_id)
     use dg_matrix_vector_kernel_mod,  only: dg_matrix_vector_kernel_type
     use fem_constants_mod,            only: get_mass_matrix, &
@@ -85,7 +85,7 @@ contains
   !>          It is capable of calculating the error at each timestep by using
   !>          set_rho_alg algorithm which will return the analytic density value
   !>          at each timestep.
-  !> @param[inout] l2  l2 norm
+  !> @param[in,out] l2   l2 norm
   !> @param[in] rho_num  Density
   !> @param[in] timestep Timestep
   subroutine density_diagnostic_alg(l2, rho_num, timestep)
@@ -197,11 +197,11 @@ contains
 
   !> @details Splits a 3D wind field into Horizontal (on W2H) and Vertical (on W2V)
   !>          fields after projecting to physical space using the Piola transform
-  !> @param[inout] u1_wind  Meridional wind component
-  !> @param[inout] u2_wind  Zonal wind component
-  !> @param[inout] u3_wind  Vertical wind component
-  !> @param[in] wind        3D wind field
-  !> @param[in] mesh_id     Mesh_id
+  !> @param[in,out] u1_wind  Meridional wind component
+  !> @param[in,out] u2_wind  Zonal wind component
+  !> @param[in,out] u3_wind  Vertical wind component
+  !> @param[in] wind         3D wind field
+  !> @param[in] mesh_id      Mesh_id
   subroutine split_wind_diagnostic_alg(u1_wind, u2_wind, u3_wind, &
                                        wind, mesh_id)
 
@@ -256,7 +256,7 @@ contains
 
     ! Convert coordinate field to physical space
 
-    call invoke( nodal_coordinates_kernel_type(physical_chi, chi_xyz) )
+    call invoke( nodal_xyz_coordinates_kernel_type(physical_chi, chi_sph, panel_id) )
 
     ! Convert 3D wind field to 3 components using the Piola transform
 
@@ -284,13 +284,13 @@ contains
 
   !> @details Generic diagnostic processing for a scalar field to nodal format
   !>          Allows optional projection to W3
-  !> @param[inout] output_field      The output field
-  !> @param[inout] nodal_coordinates Coordinates of the output field
-  !> @param[inout] level             Levels of the output field
-  !> @param[in] field_name           Name of the field to be output
-  !> @param[in] field                The input field
-  !> @param[in] mesh_id              Mesh_id
-  !> @param[in] W3_project           Logical to allow projection to W3
+  !> @param[in,out] output_field      The output field
+  !> @param[in,out] nodal_coordinates Coordinates of the output field
+  !> @param[in,out] level             Levels of the output field
+  !> @param[in] field_name            Name of the field to be output
+  !> @param[in] field                 The input field
+  !> @param[in] mesh_id               Mesh_id
+  !> @param[in] W3_project            Logical to allow projection to W3
   subroutine scalar_nodal_diagnostic_alg(output_field, nodal_coordinates, level, &
                                          field_name, field,                      &
                                          mesh_id, W3_project)
@@ -306,12 +306,13 @@ contains
     logical,          intent(in)    :: W3_project
 
     ! Local variables
-    type(field_type), pointer       :: chi_xyz(:) => null()
+    type(field_type), pointer       :: chi_sph(:) => null()
+    type(field_type), pointer       :: panel_id => null()
     integer(i_def)                  :: i
 
-
     ! get chi field
-    chi_xyz => get_coordinates_xyz(mesh_id)
+    chi_sph => get_coordinates(mesh_id)
+    panel_id => get_panel_id(mesh_id)
 
     ! Check if projection required, setup output field and filename
 
@@ -357,7 +358,7 @@ contains
     call output_field(1)%copy_field_properties(level)
 
     ! Convert field to physical nodal output & sample chi on nodal points
-    call invoke( nodal_coordinates_kernel_type(nodal_coordinates, chi_xyz) )
+    call invoke( nodal_xyz_coordinates_kernel_type(nodal_coordinates, chi_sph, panel_id) )
 
     ! If in spherical geometry,
     ! convert the coordinate field to (longitude, latitude, radius)
@@ -372,12 +373,12 @@ contains
   end subroutine scalar_nodal_diagnostic_alg
 
   !> @details Generic diagnostic processing for a vector field to nodal format
-  !> @param[inout] output_field      The output field
-  !> @param[inout] output_dim        Dimension of the output field
-  !> @param[inout] nodal_coordinates Coordinates of the output field
-  !> @param[inout] level             Levels of the output field
-  !> @param[in] field_name           Name of the field to be output
-  !> @param[in] field                The input field
+  !> @param[in,out] output_field      The output field
+  !> @param[in,out] output_dim        Dimension of the output field
+  !> @param[in,out] nodal_coordinates Coordinates of the output field
+  !> @param[in,out] level             Levels of the output field
+  !> @param[in] field_name            Name of the field to be output
+  !> @param[in] field                 The input field
   subroutine vector_nodal_diagnostic_alg(output_field, output_dim, &
                                          nodal_coordinates, level, &
                                          field_name, field)
@@ -421,7 +422,7 @@ contains
     call field%copy_field_properties(level)
 
     ! Convert field to physical nodal output & sample chi on nodal points
-    call invoke( nodal_coordinates_kernel_type(nodal_coordinates, chi_xyz) )
+    call invoke( nodal_xyz_coordinates_kernel_type(nodal_coordinates, chi_sph, panel_id) )
 
     output_fs = field%which_function_space()
 
@@ -472,7 +473,7 @@ contains
 
   !> @details Generic diagnostic processing for a scalar field output in ugrid format
   !>          Allows optional projection to W3
-  !> @param[inout] output_field       The output field
+  !> @param[in,out] output_field      The output field
   !> @param[in] field_name            The field name to use for output
   !> @param[in] field                 The input field
   !> @param[in] mesh_id               Mesh_id

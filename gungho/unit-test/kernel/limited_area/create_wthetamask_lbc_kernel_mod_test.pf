@@ -37,10 +37,14 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use feign_config_mod,     only: feign_base_mesh_config
     use base_mesh_config_mod, only: partitioner_planar,      &
                                     geometry_planar,         &
                                     topology_non_periodic
+    use feign_config_mod,          only : feign_base_mesh_config,  &
+                                          feign_finite_element_config
+    use finite_element_config_mod, only : cellshape_quadrilateral, &
+                                          spherical_coord_system_xyz
+
     implicit none
 
     class(create_wthetamask_lbc_test_type), intent(inout) :: this
@@ -56,6 +60,16 @@ contains
                                  topology        = topology_non_periodic, &
                                  fplane          = .false.,               &
                                  f_lat_deg       = 0.0_r_def )
+
+    call feign_finite_element_config(                                  &
+                    cellshape=cellshape_quadrilateral,                 &
+                    coordinate_order=0_i_def,                          &
+                    element_order=0_i_def,                             &
+                    rehabilitate=.true.,                               &
+                    spherical_coord_order=0_i_def,                     &
+                    spherical_coord_system=spherical_coord_system_xyz, &
+                    vorticity_in_w1=.false. )
+
 
   end subroutine setUp
 

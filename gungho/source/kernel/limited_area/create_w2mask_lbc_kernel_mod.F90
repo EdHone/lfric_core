@@ -18,17 +18,19 @@
 !!          If rim_width_ew >=0 then use W2 Dirichlet boundary conditions in x.
 module create_w2mask_lbc_kernel_mod
 
-  use argument_mod,         only : arg_type, func_type, &
-                                   GH_SCALAR, GH_FIELD, &
-                                   GH_REAL, GH_INTEGER, &
-                                   GH_READ, GH_INC,     &
-                                   GH_BASIS,            &
-                                   CELL_COLUMN, GH_EVALUATOR
-  use constants_mod,        only : r_def, i_def, l_def
-  use fs_continuity_mod,    only : W2, Wchi
-  use kernel_mod,           only : kernel_type
-  use base_mesh_config_mod, only : geometry,            &
-                                   geometry_spherical
+  use argument_mod,              only : arg_type, func_type, &
+                                        GH_SCALAR, GH_FIELD, &
+                                        GH_REAL, GH_INTEGER, &
+                                        GH_READ, GH_INC,     &
+                                        GH_BASIS,            &
+                                        CELL_COLUMN, GH_EVALUATOR
+  use constants_mod,             only : r_def, i_def, l_def
+  use fs_continuity_mod,         only : W2, Wchi
+  use kernel_mod,                only : kernel_type
+  use base_mesh_config_mod,      only : geometry,            &
+                                        geometry_spherical
+  use finite_element_config_mod, only : spherical_coord_system, &
+                                        spherical_coord_system_xyz
 
   implicit none
 
@@ -182,7 +184,8 @@ subroutine create_w2mask_lbc_code( nlayers,      &
     enddo
 
     ! Change of coordinates for spherical geometry
-    if ( geometry == geometry_spherical ) then
+    if ( geometry == geometry_spherical .and. &
+         spherical_coord_system == spherical_coord_system_xyz ) then
       ! in alpha beta space - and only pick the face where x(2)>0
       if ( x(2) > 0.0_r_def ) then
         query_value_ns = atan2(x(3),x(2))

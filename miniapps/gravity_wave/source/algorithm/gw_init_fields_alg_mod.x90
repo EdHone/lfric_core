@@ -86,7 +86,7 @@ contains
 
     call log_event( 'gravity_wave: Initialising prognostic fields', LOG_LEVEL_INFO )
 
-    call invoke( initial_buoyancy_kernel_type(buoyancy, chi_xyz) )
+    call invoke( initial_buoyancy_kernel_type(buoyancy, chi_sph, panel_id) )
     ! Initialise U and p according to formulation
     call r_u % initialise( vector_space = wind%get_function_space() )
     call invoke( name = 'Initialise U and p',     &

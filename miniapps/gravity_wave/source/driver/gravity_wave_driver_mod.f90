@@ -136,7 +136,8 @@ contains
   call initialise_io( model_communicator, &
                       mesh_id,            &
                       twod_mesh_id,       &
-                      chi_xyz,            &
+                      chi_sph,            &
+                      panel_id,           &
                       xios_ctx,           &
                       io_context )
 

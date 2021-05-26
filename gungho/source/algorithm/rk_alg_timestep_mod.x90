@@ -303,8 +303,10 @@ contains
     ! Apply viscosity
     if ( viscosity ) then
       call log_event( 'Applying Viscosity', LOG_LEVEL_INFO )
-      call invoke(tracer_viscosity_kernel_type(   inc(igh_t), state(igh_t), 1, chi_xyz), &
-                  momentum_viscosity_kernel_type( inc(igh_u), state(igh_u), 1, chi_xyz), &
+      call invoke(tracer_viscosity_kernel_type(   inc(igh_t), state(igh_t), 1, &
+                                                  chi_sph, panel_id ), &
+                  momentum_viscosity_kernel_type( inc(igh_u), state(igh_u), 1, &
+                                                  chi_sph, panel_id ), &
                   setval_c(inc(igh_d), 0.0_r_def) )
       call bundle_axpy(dt, inc, state, state, bundle_size)
     end if

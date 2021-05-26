@@ -30,8 +30,12 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use feign_config_mod, only: feign_mixing_config
+    use chi_transform_mod,         only : init_chi_transforms
+    use feign_config_mod,          only : feign_finite_element_config, &
+                                          feign_mixing_config
     use mixing_config_mod,         only : method_3d_smag
+    use finite_element_config_mod, only : cellshape_quadrilateral, &
+                                          spherical_coord_system_xyz
 
     implicit none
 
@@ -47,17 +51,32 @@ contains
                               viscosity_mu  = 10.0_r_def, &
                               mix_factor    = 0.0_r_def,  &
                               method        = method_3d_smag )
+
+    call feign_finite_element_config(      &
+        cellshape=cellshape_quadrilateral, &
+        coordinate_order=0_i_def,          &
+        element_order=0_i_def,             &
+        rehabilitate=.true.,               &
+        spherical_coord_order=0_i_def,     &
+        spherical_coord_system=spherical_coord_system_xyz, &
+        vorticity_in_w1=.false. )
+
+    call init_chi_transforms()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use configuration_mod, only: final_configuration
+    use chi_transform_mod,  only: final_chi_transforms
+    use configuration_mod,  only: final_configuration
 
     implicit none
 
     class(tracer_viscosity_test_type), intent(inout) :: this
 
+    ! Finalise namelists
+    call final_chi_transforms()
     call final_configuration()
 
     ! Finalise YAXT
@@ -74,6 +93,7 @@ contains
     use tracer_viscosity_kernel_mod, only: tracer_viscosity_code
 
     use get_unit_test_m3x3_dofmap_mod,       only: get_w0_m3x3_dofmap,      &
+                                                   get_w3_m3x3_dofmap,      &
                                                    get_wtheta_m3x3_dofmap,  &
                                                    get_m3x3_stencil_dofmap_cross
     use get_unit_test_m3x3_q3x3x3_sizes_mod, only: get_w0_m3x3_q3x3x3_size, &
@@ -96,11 +116,13 @@ contains
     real(r_def), allocatable :: t_data(:)
 
     integer(i_def) :: ndf_chi, undf_chi
+    integer(i_def) :: ndf_pid, undf_pid
     integer(i_def) :: ndf_t, undf_t
     integer(i_def) :: stencil_t_size
 
     integer(i_def), allocatable :: map_chi(:,:)
     integer(i_def), allocatable :: map_t(:,:)
+    integer(i_def), allocatable :: map_pid(:,:)
     integer(i_def), allocatable :: stencil_map_t(:,:,:)
 
     integer(i_def) :: ndf_w0, undf_w0
@@ -112,6 +134,7 @@ contains
     integer(i_def) :: nqp_h, nqp_v
 
     real(r_def), allocatable :: chi_data(:,:)
+    real(r_def), allocatable :: panel_id(:)
 
     integer(i_def), allocatable :: map_w0(:,:)
     integer(i_def), allocatable :: map_wtheta(:,:)
@@ -121,6 +144,9 @@ contains
     ! Get infrastructure support data
     !=====================================
     nlayers = 3
+
+    ndf_pid = 1
+    undf_pid = 9
 
     ! Get sizes
     call get_w0_m3x3_q3x3x3_size( ndf_w0, undf_w0, ncells,         &
@@ -132,12 +158,16 @@ contains
                                   nqp_h, nqp_v, nlayers )
     ! Get maps
     call get_w0_m3x3_dofmap( map_w0 )
+    call get_w3_m3x3_dofmap( map_pid, 1 )
     call get_wtheta_m3x3_dofmap( map_wtheta )
     call get_m3x3_stencil_dofmap_cross( stencil_cross_wtheta, map_wtheta )
     stencil_cross_size = 5
 
     ! Compute coordinates
     allocate(chi_data(3,undf_w0))
+    allocate(panel_id(undf_pid))
+
+    panel_id(:) = 1.0_r_def
 
     call get_w0_3x3x3_field(chi_data(1,:), chi_data(2,:), chi_data(3,:), &
                             dx, dy, dz, map_w0, nlayers)
@@ -175,23 +205,29 @@ contains
                                 chi_data(1,:),           &
                                 chi_data(2,:),           &
                                 chi_data(3,:),           &
+                                panel_id,                &
                                 ndf_t,                   &
                                 undf_t,                  &
                                 stencil_map_t(:,1,cell), &
                                 ndf_chi,                 &
                                 undf_chi,                &
-                                map_chi(:,cell) )
+                                map_chi(:,cell),         &
+                                ndf_pid,                 &
+                                undf_pid,                &
+                                map_pid(:,cell)          )
 
      answer = 0.0_r_def
      @assertEqual(answer, t_inc_data(stencil_map_t(1,1,cell) ), tol)
 
      deallocate( map_chi )
      deallocate( map_t )
+     deallocate( map_pid )
      deallocate( t_data )
      deallocate( t_inc_data )
      deallocate( stencil_map_t )
 
      deallocate( chi_data )
+     deallocate( panel_id )
      deallocate( map_w0 )
      deallocate( map_wtheta )
      deallocate( stencil_cross_wtheta )

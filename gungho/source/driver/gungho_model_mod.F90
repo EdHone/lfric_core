@@ -314,7 +314,8 @@ contains
                             communicator,                  &
                             mesh_id,                       &
                             twod_mesh_id,                  &
-                            chi_xyz,                       &
+                            chi_sph,                       &
+                            panel_id,                      &
                             timestep_start,                &
                             timestep_end,                  &
                             real(spinup_period, r_second), &

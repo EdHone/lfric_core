@@ -12,6 +12,7 @@ module momentum_viscosity_kernel_mod_test
 
   use get_unit_test_m3x3_dofmap_mod,       only : get_w0_m3x3_dofmap,      &
                                                   get_w2_m3x3_dofmap,      &
+                                                  get_w3_m3x3_dofmap,      &
                                                   get_m3x3_stencil_dofmap_cross
   use get_unit_test_3x3x3_chi_mod,         only : get_w0_3x3x3_field
   use pFUnit_Mod
@@ -37,8 +38,12 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use feign_config_mod,          only : feign_mixing_config
+    use chi_transform_mod,         only : init_chi_transforms
+    use feign_config_mod,          only : feign_finite_element_config, &
+                                          feign_mixing_config
     use mixing_config_mod,         only : method_3d_smag
+    use finite_element_config_mod, only : cellshape_quadrilateral, &
+                                          spherical_coord_system_xyz
 
     implicit none
 
@@ -55,17 +60,31 @@ contains
                               mix_factor    = 0.0_r_def,  &
                               method        = method_3d_smag )
 
+    call feign_finite_element_config(      &
+        cellshape=cellshape_quadrilateral, &
+        coordinate_order=0_i_def,          &
+        element_order=0_i_def,             &
+        rehabilitate=.true.,               &
+        spherical_coord_order=0_i_def,     &
+        spherical_coord_system=spherical_coord_system_xyz, &
+        vorticity_in_w1=.false. )
+
+    call init_chi_transforms()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
+    use chi_transform_mod,        only: final_chi_transforms
     use configuration_mod,        only: final_configuration
 
     implicit none
 
     class(momentum_viscosity_test_type), intent(inout) :: this
 
+    ! Finalise namelists
+    call final_chi_transforms()
     call final_configuration()
 
     ! Finalise YAXT
@@ -95,19 +114,24 @@ contains
 
     ! Variables for testing momentum_viscosity
     integer(i_def) :: nlayers, ncells, cell
-    integer(i_def) :: ndf_w0, undf_w0, ndf_w2, undf_w2
+    integer(i_def) :: ndf_w0, undf_w0, ndf_w2, undf_w2, ndf_pid, undf_pid
     integer(i_def) :: dim_space, dim_space_diff
     integer(i_def) :: nqp_h, nqp_v
 
     integer(i_def), allocatable :: map_w0(:,:)
     integer(i_def), allocatable :: map_w2(:,:)
+    integer(i_def), allocatable :: map_pid(:,:)
     integer(i_def), allocatable :: stencil_map_w2(:,:,:)
 
     real(r_def), allocatable :: u(:)
     real(r_def), allocatable :: u_inc(:)
     real(r_def), allocatable :: chi1(:), chi2(:), chi3(:)
+    real(r_def), allocatable :: panel_id(:)
 
-    nlayers=3
+    nlayers = 3
+    ndf_pid = 1
+    undf_pid = 9
+
     call get_w0_m3x3_q3x3x3_size( ndf_w0, undf_w0, ncells, &
                                   dim_space, dim_space_diff, &
                                   nqp_h, nqp_v, &
@@ -121,10 +145,15 @@ contains
     call get_w2_m3x3_dofmap(map_w2)
     call get_m3x3_stencil_dofmap_cross(stencil_map_w2, map_w2)
 
+    call get_w3_m3x3_dofmap( map_pid, 1 )
+
     ! Compute coordinates
     allocate(chi1(undf_w0))
     allocate(chi2(undf_w0))
     allocate(chi3(undf_w0))
+    allocate(panel_id(undf_pid))
+
+    panel_id(:) = 1.0_r_def
 
     call get_w0_3x3x3_field(chi1, chi2, chi3, dx, dy, dz, &
                             map_w0, nlayers)
@@ -144,9 +173,11 @@ contains
                                  chi1, &
                                  chi2, &
                                  chi3, &
+                                 panel_id, &
                                  ndf_w2, undf_w2, &
                                  map_w2(:,cell), &
-                                 ndf_w0, undf_w0, map_w0(:,cell) &
+                                 ndf_w0, undf_w0, map_w0(:,cell), &
+                                 ndf_pid, undf_pid, map_pid(:,cell)  &
                                 )
 
     answer = 0.0_r_def
@@ -159,8 +190,10 @@ contains
     deallocate(chi1)
     deallocate(chi2)
     deallocate(chi3)
+    deallocate(panel_id)
     deallocate(map_w0)
     deallocate(map_w2)
+    deallocate(map_pid)
     deallocate(stencil_map_w2)
 
   end subroutine test_all

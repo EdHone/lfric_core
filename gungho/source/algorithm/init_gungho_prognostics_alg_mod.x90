@@ -9,6 +9,7 @@ module init_gungho_prognostics_alg_mod
 
   use log_mod,                         only: log_event,         &
                                              log_scratch_space, &
+                                             LOG_LEVEL_ERROR,   &
                                              LOG_LEVEL_INFO,    &
                                              LOG_LEVEL_ERROR,   &
                                              LOG_LEVEL_TRACE
@@ -24,8 +25,9 @@ module init_gungho_prognostics_alg_mod
 
   use finite_element_config_mod,       only: element_order, &
                                              nqp_exact
-  use base_mesh_config_mod,            only: geometry, &
-                                             geometry_spherical
+  use base_mesh_config_mod,            only: geometry,           &
+                                             geometry_spherical, &
+                                             geometry_planar
   use formulation_config_mod,          only: use_moisture,         &
                                              transport_only
   use initial_pressure_config_mod,     only: method,           &
@@ -42,8 +44,6 @@ module init_gungho_prognostics_alg_mod
   use io_mod,                          only: ts_fname
 
   ! PsyKAl-lite kernels
-  use psykal_lite_mod,                 only: invoke_initial_exner_sample_kernel,&
-                                             invoke_hydrostatic_exner_kernel
   use field_bundle_mod,                only: set_bundle_scalar
 
   ! PsyKAl PSYClone kernels
@@ -52,6 +52,7 @@ module init_gungho_prognostics_alg_mod
   use initial_u_kernel_mod,            only: initial_u_kernel_type
   use enforce_bc_kernel_mod,           only: enforce_bc_kernel_type
   use initial_theta_kernel_mod,        only: initial_theta_kernel_type
+  use initial_exner_sample_kernel_mod, only: initial_exner_sample_kernel_type
   use project_pressure_kernel_mod,     only: project_pressure_kernel_type
   use sample_eos_rho_kernel_mod,       only: sample_eos_rho_kernel_type
   use hydrostatic_exner_kernel_mod,    only: hydrostatic_exner_kernel_type
@@ -139,15 +140,19 @@ contains
     call log_event( "Gungho: Initialising prognostic fields", LOG_LEVEL_INFO )
 
     ! Initialise theta
-    call invoke( initial_theta_kernel_type( theta, chi_xyz ) )
+    call invoke( initial_theta_kernel_type( theta, chi_sph, panel_id ) )
 
     initial_time = 0.0_r_def
 
     ! Initialise U according to formulation
     if (smp_init_wind) then
+      if ( geometry /= geometry_planar ) then
+        call log_event('Sampling initial wind only implemented for planar geometry', &
+                       LOG_LEVEL_ERROR)
+      end if
       call invoke( name = "get_u_from_sampling", &
                    setval_c( u, 0.0_r_def ),     &
-                   sample_initial_u_kernel_type( u, chi_xyz ) )
+                   sample_initial_u_kernel_type( u, chi_sph ) )
     else
       if ( profile == profile_sbr_streamfunction .or.  &
            profile == profile_dcmip301_streamfunction .or. &
@@ -195,14 +200,17 @@ contains
         height_wth => get_height(Wtheta, mesh_id)
 
         ! Initialize exner assuming hydrostatic balance
-        call invoke_hydrostatic_exner_kernel( exner, theta, moist_dyn, height_wth, &
-                                              height_w3, chi_xyz )
+        call invoke( hydrostatic_exner_kernel_type( exner, theta, moist_dyn, &
+                                                    height_wth, height_w3,   &
+                                                    chi_sph, panel_id ),     &
         ! Diagnose density from equation of state
-        call invoke( sample_eos_rho_kernel_type( rho, exner, theta,                &
+                     sample_eos_rho_kernel_type( rho, exner, theta,          &
                                                  moist_dyn(gas_law) ) )
       case(method_sampled)
-        call invoke( initial_rho_sample_kernel_type( rho, chi_xyz, initial_time ) )
-        call invoke_initial_exner_sample_kernel( exner, chi_xyz, initial_time )
+        call invoke( initial_rho_sample_kernel_type( rho, chi_sph, &
+                                                     panel_id, initial_time ), &
+                     initial_exner_sample_kernel_type( exner, chi_sph, &
+                                                       panel_id, initial_time ) )
       case(method_projected)
         call invoke( set_rho_kernel_type   ( rho,   chi_sph, panel_id, initial_time, qr ), &
                      set_exner_kernel_type ( exner, chi_sph, panel_id, initial_time, qr ) )
@@ -227,14 +235,15 @@ contains
         call invoke( moist_dyn_factors_kernel_type( moist_dyn, mr ) )
       else
         ! Initialise moisture and update factors for moist dynamics
-        call invoke( initial_mr_kernel_type( theta, exner, rho, mr, chi_xyz ),     &
-                     moist_dyn_factors_kernel_type( moist_dyn, mr ) )
+        call invoke( initial_mr_kernel_type( theta, exner, rho, mr ), &
+                     moist_dyn_factors_kernel_type( moist_dyn, mr )   )
         ! Recalculate hydrostatic pressure and dry density
         height_w3 => get_height(W3, mesh_id)
         height_wth => get_height(Wtheta, mesh_id)
-        call invoke_hydrostatic_exner_kernel( exner, theta, moist_dyn, height_wth, &
-                                              height_w3, chi_xyz )
-        call invoke( sample_eos_rho_kernel_type( rho, exner, theta,                &
+        call invoke( hydrostatic_exner_kernel_type( exner, theta, moist_dyn, &
+                                                    height_wth, height_w3,   &
+                                                    chi_sph, panel_id ),     &
+                     sample_eos_rho_kernel_type( rho, exner, theta,          &
                                                  moist_dyn(gas_law) ) )
       end if
     else

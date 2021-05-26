@@ -222,10 +222,10 @@
     'run_application("gungho", "robert",
                      resolutions=[("BiP50x4-20x20",2.5)],
                      env={"crun":3, "nrun":144,
-                          "directives":{"default":{"mpi_parts":5, 
+                          "directives":{"default":{"mpi_parts":5,
                                                    "panel_decomp":' + row + ',
                                                    "use_xios":"False"}}},
-                     plotstr="robert_plot.py ' + appDiagStemName + 
+                     plotstr="robert_plot.py ' + appDiagStemName +
                              ' $NODAL_DATA_DIR 50 4 theta:w3projection_xi2 T000000:T000100:T000200:T000300:T000400 $PLOT_DIR")',
     'run_application( "gungho", "robert-moist",           resolutions=[("BiP50x4-20x20",2.0)], env={"crun":3, "nrun":100,
                           "directives":{"default":{"mpi_parts":5, "panel_decomp":' + row +',

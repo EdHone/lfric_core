@@ -80,12 +80,8 @@ subroutine rotation_vector_sphere(ndf_chi, ngp_h, ngp_v, chi_1, chi_2, chi_3, &
 ! Compute the rotation vector Omega = (0, 2*cos(lat), 2*sin(lat)) on quadrature points
 !-------------------------------------------------------------------------------
 
-use coord_transform_mod,       only: xyz2llr,                    &
-                                     alphabetar2llr,             &
-                                     sphere2cart_vector
-use finite_element_config_mod, only: spherical_coord_system,     &
-                                     spherical_coord_system_abh, &
-                                     spherical_coord_system_xyz
+use chi_transform_mod,       only: chi2llr
+use coord_transform_mod,     only: sphere2cart_vector
 
 implicit none
 
@@ -114,18 +110,7 @@ do j = 1, ngp_v
     end do
 
     ! Need to obtain longitude, latitude and radius from position vector
-    if ( spherical_coord_system == spherical_coord_system_xyz ) then
-      ! coords is (X,Y,Z)
-      call xyz2llr(coords(1), coords(2), coords(3), long, lat, r)
-    else if ( spherical_coord_system == spherical_coord_system_abh ) then
-      ! coords is (alpha, beta, h)
-      r = coords(3) + scaled_radius
-      call alphabetar2llr(coords(1), coords(2), r, panel_id, long, lat)
-    else
-      call log_event('rotation vector is not implemented ' // &
-                     'with your spherical coordinate system', &
-                     LOG_LEVEL_ERROR)
-    end if
+    call chi2llr(coords(1), coords(2), coords(3), panel_id, long, lat, r)
 
     ! Get (long,lat,r) components of planet rotation vector
     rotation_vec(1,i,j) = 0.0_r_def

@@ -42,9 +42,13 @@ contains
     use base_mesh_config_mod,       only : geometry_planar,    &
                                            partitioner_planar, &
                                            topology_fully_periodic
-    use feign_config_mod,           only : feign_base_mesh_config, &
-                                           feign_idealised_config, &
+    use chi_transform_mod,          only : init_chi_transforms
+    use feign_config_mod,           only : feign_base_mesh_config,      &
+                                           feign_finite_element_config, &
+                                           feign_idealised_config,      &
                                            feign_initial_density_config
+    use finite_element_config_mod,  only : cellshape_quadrilateral, &
+                                           spherical_coord_system_xyz
     use idealised_config_mod,       only : test_constant_field
     use initial_density_config_mod, only : tracer_background
 
@@ -70,6 +74,15 @@ contains
                                  topology=topology_fully_periodic,     &
                                  fplane=.false., f_lat_deg=45.0_r_def )
 
+    call feign_finite_element_config(      &
+        cellshape=cellshape_quadrilateral, &
+        coordinate_order=0_i_def,          &
+        element_order=0_i_def,             &
+        rehabilitate=.true.,               &
+        spherical_coord_order=0_i_def,     &
+        spherical_coord_system=spherical_coord_system_xyz, &
+        vorticity_in_w1=.false. )
+
     call feign_initial_density_config( tracer_background=1.0_r_def, &
                                        tracer_max=0.0_r_def,        &
                                        r1=0.0_r_def, x1=0.0_r_def,  &
@@ -78,11 +91,14 @@ contains
                                        y2=0.0_r_def, z2=0.0_r_def)
     call feign_idealised_config( test=test_constant_field )
 
+    call init_chi_transforms()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
+    use chi_transform_mod, only: final_chi_transforms
     use configuration_mod, only: final_configuration
 
     implicit none
@@ -96,7 +112,7 @@ contains
 
     ! Finalise namelists
     call final_configuration()
-
+    call final_chi_transforms()
 
   end subroutine tearDown
 
@@ -119,7 +135,7 @@ contains
 
     ! Fields
     real(kind=r_def), allocatable    :: chi_1(:), chi_2(:), chi_3(:)
-    real(kind=r_def), allocatable    :: rho(:)
+    real(kind=r_def), allocatable    :: rho(:), panel_id(:)
 
     ! Basis functions
     real(kind=r_def),    allocatable :: basis_w0(:,:,:,:)
@@ -157,6 +173,7 @@ contains
     allocate(chi_1(undf_w0))
     allocate(chi_2(undf_w0))
     allocate(chi_3(undf_w0))
+    allocate(panel_id(undf_w3))
     cell = 1
     do j = 1,3
       do i = 1,3
@@ -169,6 +186,8 @@ contains
       end do
     end do
 
+    panel_id(:) = 1.0_r_def
+
     ! Make up initial wrong fields
     allocate( rho(undf_w3) )
     rho(:) = 0.0_r_def
@@ -176,10 +195,12 @@ contains
     call initial_rho_sample_kernel_code( nlayers,                 &
                                          rho,                     &
                                          chi_1, chi_2, chi_3,     &
+                                         panel_id,                &
                                          initial_time,            &
                                          ndf_w3, undf_w3, map_w3, &
                                          ndf_w0, undf_w0, map_w0, &
-                                         basis_w0 )
+                                         basis_w0,                &
+                                         ndf_w3, undf_w3, map_w3 )
 
     ! Check if the values in the first column are now equal to the answer
     @assertEqual( answer, rho(1), tol )
@@ -190,6 +211,7 @@ contains
     deallocate( chi_1 )
     deallocate( chi_2 )
     deallocate( chi_3 )
+    deallocate( panel_id )
     deallocate( map_w0 )
     deallocate( map_w3 )
     deallocate( basis_w0 )

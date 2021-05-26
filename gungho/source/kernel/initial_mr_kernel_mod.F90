@@ -16,7 +16,7 @@ module initial_mr_kernel_mod
     use argument_mod,                  only: arg_type,          &
                                              GH_FIELD, GH_REAL, &
                                              GH_WRITE, GH_READ, &
-                                             ANY_SPACE_9, CELL_COLUMN
+                                             CELL_COLUMN
     use fs_continuity_mod,             only: W3, Wtheta
     use constants_mod,                 only: r_def, i_def
     use kernel_mod,                    only: kernel_type
@@ -36,12 +36,11 @@ module initial_mr_kernel_mod
     !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
     type, public, extends(kernel_type) :: initial_mr_kernel_type
         private
-        type(arg_type) :: meta_args(5) = (/                       &
+        type(arg_type) :: meta_args(4) = (/                       &
              arg_type(GH_FIELD,   GH_REAL, GH_READ,  Wtheta),     &
              arg_type(GH_FIELD,   GH_REAL, GH_READ,  W3),         &
              arg_type(GH_FIELD,   GH_REAL, GH_READ,  W3),         &
-             arg_type(GH_FIELD*6, GH_REAL, GH_WRITE, Wtheta),     &
-             arg_type(GH_FIELD*3, GH_REAL, GH_READ,  ANY_SPACE_9) &
+             arg_type(GH_FIELD*6, GH_REAL, GH_WRITE, Wtheta)      &
              /)
         integer :: operates_on = CELL_COLUMN
     contains
@@ -65,38 +64,29 @@ contains
     !! @param[in,out] mr_ci Ice cloud mixing ratio
     !! @param[in,out] mr_s Snow mixing ratio
     !! @param[in,out] mr_g Graupel mixing ratio
-    !! @param[in] chi_1 X component of the chi coordinate field
-    !! @param[in] chi_2 Y component of the chi coordinate field
-    !! @param[in] chi_3 Z component of the chi coordinate field
     !! @param[in] ndf_wtheta The number of degrees of freedom per cell for wtheta
     !! @param[in] undf_wtheta The number of total degrees of freedom for wtheta
     !! @param[in] map_wtheta Integer array holding the dofmap for the cell at the base of the column
     !! @param[in] ndf_w3 Number of degrees of freedom per cell for w3
     !! @param[in] undf_w3 Number of unique degrees of freedom  for w3
     !! @param[in] map_w3 Dofmap for the cell at the base of the column for w3
-    !! @param[in] ndf_chi Number of degrees of freedom per cell for chi
-    !! @param[in] undf_chi Number of total degrees of freedom for chi
-    !! @param[in] map_chi Dofmap for the cell at the base of the column
-    subroutine initial_mr_code(nlayers, theta, exner, rho, mr_v, mr_cl, mr_r, mr_ci, &
-                               mr_s, mr_g, chi_1, chi_2, chi_3,                      &
-                               ndf_wtheta, undf_wtheta, map_wtheta,                  &
-                               ndf_w3, undf_w3, map_w3,                              &
-                               ndf_chi, undf_chi, map_chi)
+    subroutine initial_mr_code(nlayers, theta, exner, rho,           &
+                               mr_v, mr_cl, mr_r, mr_ci, mr_s, mr_g, &
+                               ndf_wtheta, undf_wtheta, map_wtheta,  &
+                               ndf_w3, undf_w3, map_w3)
 
         implicit none
 
         ! Arguments
-        integer(kind=i_def), intent(in) :: nlayers, ndf_wtheta, ndf_chi, undf_wtheta, undf_chi
+        integer(kind=i_def), intent(in) :: nlayers, ndf_wtheta, undf_wtheta
         integer(kind=i_def), intent(in) :: ndf_w3, undf_w3
         integer(kind=i_def), dimension(ndf_wtheta), intent(in)  :: map_wtheta
         integer(kind=i_def), dimension(ndf_w3), intent(in)      :: map_w3
-        integer(kind=i_def), dimension(ndf_chi), intent(in)     :: map_chi
         real(kind=r_def), dimension(undf_wtheta), intent(inout) :: mr_v, mr_cl, mr_r, mr_ci
         real(kind=r_def), dimension(undf_wtheta), intent(inout) :: mr_s, mr_g
         real(kind=r_def), dimension(undf_wtheta), intent(in)    :: theta
         real(kind=r_def), dimension(undf_w3), intent(in)        :: exner
         real(kind=r_def), dimension(undf_w3), intent(in)        :: rho
-        real(kind=r_def), dimension(undf_chi), intent(in)       :: chi_1, chi_2, chi_3
 
         ! Internal variables
         integer(kind=i_def)                 :: k, df, kp1

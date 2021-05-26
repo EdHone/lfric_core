@@ -52,7 +52,8 @@ module init_catalyst_demo_mod
   contains
 
   subroutine init_catalyst_demo( mesh_id, twod_mesh_id, multigrid_mesh_ids, &
-                                 chi, multigrid_function_space_chain,       &
+                                 chi_xyz, chi_sph, panel_id,                &
+                                 multigrid_function_space_chain,            &
                                  wind, pressure, buoyancy )
 
     implicit none
@@ -66,7 +67,9 @@ module init_catalyst_demo_mod
     ! Prognostic fields
     type( field_type ), intent(inout)        :: wind, pressure, buoyancy
     ! Coordinate field
-    type( field_type ), intent(inout)        :: chi(:)
+    type( field_type ), intent(inout)        :: chi_xyz(:)
+    type( field_type ), intent(inout)        :: chi_sph(:)
+    type( field_type ), intent(inout)        :: panel_id
     integer(i_def)                           :: buoyancy_space
 
     integer(i_def) :: i
@@ -182,7 +185,7 @@ module init_catalyst_demo_mod
     ! Create runtime_constants object. This in turn creates various things
     ! needed by the timestepping algorithms such as mass matrix operators, mass
     ! matrix diagonal fields and the geopotential field
-    call create_runtime_constants(mesh_id, twod_mesh_id, chi)
+    call create_runtime_constants(mesh_id, twod_mesh_id, chi_xyz, chi_sph, panel_id)
 
     ! Initialise prognostic fields
     call gw_init_fields_alg(wind, pressure, buoyancy)

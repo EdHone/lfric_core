@@ -220,7 +220,7 @@ contains
     call create_physical_op_constants(mesh_id, chi_sph, panel_id)
 
     if ( limited_area ) then
-      call create_limited_area_constants(mesh_id, chi_xyz)
+      call create_limited_area_constants(mesh_id, chi_sph)
     end if
 
     if ( moisture_conservation ) then

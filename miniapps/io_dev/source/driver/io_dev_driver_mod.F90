@@ -85,7 +85,7 @@ module io_dev_driver_mod
                             twod_mesh_id )
 
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, chi_xyz, io_context%get_clock() )
+    call initialise_model_data( model_data, chi_sph, panel_id, io_context%get_clock() )
 
 
   end subroutine initialise

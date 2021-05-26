@@ -174,7 +174,7 @@ contains
     use moist_dyn_mod,                     only : num_moist_factors
     use matrix_vector_kernel_mod,          only : matrix_vector_kernel_type
     use convert_hdiv_field_kernel_mod,     only : convert_hdiv_field_kernel_type
-    use nodal_coordinates_kernel_mod,      only : nodal_coordinates_kernel_type
+    use nodal_xyz_coordinates_kernel_mod,  only : nodal_xyz_coordinates_kernel_type
     use psykal_builtin_light_mod,          only : invoke_convert_cart2sphere_vector
     use mass_matrix_solver_alg_mod,        only : mass_matrix_solver_alg
 
@@ -234,7 +234,7 @@ contains
       end do
 
       ! Convert coordinate field to physical space, i.e. to chi at W2 nodes.
-      call invoke( nodal_coordinates_kernel_type(physical_chi, chi_xyz) )
+      call invoke( nodal_xyz_coordinates_kernel_type(physical_chi, chi_sph, panel_id) )
 
       ! Convert to standard SI units (m/s) in spherical coordinates.
       if ( geometry == geometry_spherical ) then

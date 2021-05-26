@@ -14,20 +14,92 @@ module compute_latlon_kernel_mod_test
   use get_unit_test_q3x3x3_basis_mod, &
     only : get_wchi_q3x3x3_basis
 
-  use compute_latlon_kernel_mod, only: compute_latlon_code
   use pFUnit_Mod
+  use yaxt,       only : xt_initialize, xt_finalize
+  use mpi_mod,    only : store_comm, clear_comm
 
   implicit none
 
   private
-  public compute_latlon_code_test
+  public test_all
+
+  @TestCase
+  type, extends(MPITestCase), public  :: compute_latlon_kernel_test_type
+    private
+  contains
+    procedure setUp
+    procedure tearDown
+    procedure test_all
+  end type compute_latlon_kernel_test_type
 
 contains
 
-  @test
-  subroutine compute_latlon_code_test
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine setUp( this )
+
+    use chi_transform_mod,          only : init_chi_transforms
+    use feign_config_mod,           only : feign_finite_element_config
+    use finite_element_config_mod,  only : cellshape_quadrilateral, &
+                                           spherical_coord_system_xyz
+
+
+    use extrusion_config_mod, only: method_uniform
 
     implicit none
+
+    class(compute_latlon_kernel_test_type), intent(inout) :: this
+
+    integer(kind=i_def) :: nlayers
+
+
+    ! Initialise YAXT
+    call xt_initialize(this%getMpiCommunicator())
+    ! Store the MPI communicator for later use
+    call store_comm(this%getMpiCommunicator())
+
+    call feign_finite_element_config(      &
+        cellshape=cellshape_quadrilateral, &
+        coordinate_order=0_i_def,          &
+        element_order=0_i_def,             &
+        rehabilitate=.true.,               &
+        spherical_coord_order=0_i_def,     &
+        spherical_coord_system=spherical_coord_system_xyz, &
+        vorticity_in_w1=.false. )
+
+    call init_chi_transforms()
+
+  end subroutine setUp
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tearDown( this )
+
+    use chi_transform_mod, only: final_chi_transforms
+    use configuration_mod, only: final_configuration
+
+    implicit none
+
+    class(compute_latlon_kernel_test_type), intent(inout) :: this
+
+    ! Finalise YAXT
+    call xt_finalize()
+    ! Clear the stored MPI communicator
+    call clear_comm()
+
+    ! Finalise namelists
+    call final_configuration()
+    call final_chi_transforms()
+
+  end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test( npes=[1] )
+  subroutine test_all( this )
+
+    use compute_latlon_kernel_mod, only: compute_latlon_code
+
+    implicit none
+
+    class(compute_latlon_kernel_test_type), intent(inout) :: this
 
     real(r_def),    parameter :: tol = 1.0e-12_r_def
     integer(i_def), parameter :: nlayers = 1
@@ -36,7 +108,7 @@ contains
     integer(i_def) :: ndf_w3, undf_w3, ndf_chi, undf_chi
     integer(i_def) :: unused
     integer(i_def), allocatable :: map_w3(:,:), map_chi(:,:)
-    real(r_def), allocatable :: chi_1(:), chi_2(:), chi_3(:)
+    real(r_def), allocatable :: chi_1(:), chi_2(:), chi_3(:), panel_id(:)
     real(r_def), allocatable :: basis_chi(:,:,:,:)
 
     real(r_def), allocatable :: latitude(:), longitude(:)
@@ -59,20 +131,24 @@ contains
     allocate( chi_1(undf_chi) )
     allocate( chi_2(undf_chi) )
     allocate( chi_3(undf_chi) )
+    allocate( panel_id(undf_w3) )
     allocate( lat_answer(undf_w3) )
     allocate( lon_answer(undf_w3) )
 
     chi_1(:) = 1.0_r_def
     chi_2(:) = 2.0_r_def
     chi_3(:) = 1.0_r_def
+    panel_id(:) = 1.0_r_def
 
     ! Call the kernel
     call compute_latlon_code(nlayers,                         &
                              latitude, longitude,             &
                              chi_1, chi_2, chi_3,             &
+                             panel_id,                        &
                              ndf_w3, undf_w3, map_w3(:,1),    &
                              ndf_chi, undf_chi, map_chi(:,1), &
-                             basis_chi(:,:,1,:)               &
+                             basis_chi(:,:,1,:),              &
+                             ndf_w3, undf_w3, map_w3          &
                             )
 
     !Test the answer
@@ -88,9 +164,10 @@ contains
     deallocate( chi_1 )
     deallocate( chi_2 )
     deallocate( chi_3 )
+    deallocate( panel_id )
     deallocate( lat_answer )
     deallocate( lon_answer )
 
-  end subroutine compute_latlon_code_test
+  end subroutine test_all
 
 end module compute_latlon_kernel_mod_test

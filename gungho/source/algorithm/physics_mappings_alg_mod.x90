@@ -104,12 +104,14 @@ contains
   !> @param[in]    source_field Wind field in the source (native) space
   subroutine map_physics_winds(u1_field, u2_field, u3_field, source_field)
 
-    use base_mesh_config_mod,          only: geometry, &
-                                             geometry_spherical
-    use convert_hdiv_field_kernel_mod, only: convert_hdiv_field_kernel_type
-    use nodal_coordinates_kernel_mod,  only: nodal_coordinates_kernel_type
-    use psykal_builtin_light_mod,      only: invoke_convert_cart2sphere_vector
-    use geometric_constants_mod,       only: get_coordinates, get_coordinates_xyz, get_panel_id
+    use base_mesh_config_mod,             only: geometry, &
+                                                geometry_spherical
+    use convert_hdiv_field_kernel_mod,    only: convert_hdiv_field_kernel_type
+    use nodal_xyz_coordinates_kernel_mod, only: nodal_xyz_coordinates_kernel_type
+    use psykal_builtin_light_mod,         only: invoke_convert_cart2sphere_vector
+    use geometric_constants_mod,          only: get_coordinates, &
+                                                get_coordinates_xyz, &
+                                                get_panel_id
 
     implicit none
 
@@ -149,7 +151,7 @@ contains
         call u1_field%copy_field_properties(physical_chi(1))
         call u1_field%copy_field_properties(physical_chi(2))
         call u1_field%copy_field_properties(physical_chi(3))
-        call invoke( nodal_coordinates_kernel_type(physical_chi, chi_xyz) )
+        call invoke( nodal_xyz_coordinates_kernel_type(physical_chi, chi_sph, panel_id) )
         call invoke_convert_cart2sphere_vector( wind_map, physical_chi )
       end if
 

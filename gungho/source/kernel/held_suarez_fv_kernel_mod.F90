@@ -16,12 +16,13 @@
 !>
 module held_suarez_fv_kernel_mod
 
-  use argument_mod,             only: arg_type,              &
-                                      GH_FIELD, GH_REAL,     &
-                                      GH_READ, GH_READWRITE, &
+  use argument_mod,             only: arg_type,                  &
+                                      GH_FIELD, GH_REAL,         &
+                                      GH_READ, GH_READWRITE,     &
+                                      ANY_DISCONTINUOUS_SPACE_3, &
                                       ANY_SPACE_9, CELL_COLUMN
   use constants_mod,            only: r_def, i_def
-  use coord_transform_mod,      only: xyz2ll
+  use chi_transform_mod,        only: chi2llr
   use calc_exner_pointwise_mod, only: calc_exner_pointwise
   use fs_continuity_mod,        only: Wtheta
   use held_suarez_forcings_mod, only: held_suarez_newton_frequency, &
@@ -43,11 +44,12 @@ module held_suarez_fv_kernel_mod
   !>
   type, public, extends(kernel_type) :: held_suarez_fv_kernel_type
     private
-    type(arg_type) :: meta_args(4) = (/                           &
-         arg_type(GH_FIELD,   GH_REAL, GH_READWRITE, Wtheta),     &
-         arg_type(GH_FIELD,   GH_REAL, GH_READ,      Wtheta),     &
-         arg_type(GH_FIELD,   GH_REAL, GH_READ,      Wtheta),     &
-         arg_type(GH_FIELD*3, GH_REAL, GH_READ,      ANY_SPACE_9) &
+    type(arg_type) :: meta_args(5) = (/                                         &
+         arg_type(GH_FIELD,   GH_REAL, GH_READWRITE, Wtheta),                   &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ,      Wtheta),                   &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ,      Wtheta),                   &
+         arg_type(GH_FIELD*3, GH_REAL, GH_READ,      ANY_SPACE_9),              &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_3) &
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -66,9 +68,10 @@ contains
 !! @param[in,out] dtheta Real array, theta increment data
 !! @param[in] theta Real array, theta data
 !! @param[in] exner_in_wth_in_wth Real array. The exner pressure in wth
-!! @param[in] chi_1 The physical x coordinate in chi
-!! @param[in] chi_2 The physical y coordinate in chi
-!! @param[in] chi_3 The physical z coordinate in chi
+!! @param[in] chi_1 First component of the chi coordinate field
+!! @param[in] chi_2 Second component of the chi coordinate field
+!! @param[in] chi_3 Third component of the chi coordinate field
+!! @param[in] panel_id A field giving the ID for mesh panels
 !! @param[in] ndf_wth The number of degrees of freedom per cell for wth
 !! @param[in] undf_wth The number of unique degrees of freedom for wth
 !! @param[in] map_wth Integer array holding the dofmap for the cell at the
@@ -77,11 +80,16 @@ contains
 !! @param[in] undf_chi The number of unique degrees of freedom for chi
 !! @param[in] map_chi Integer array holding the dofmap for the cell at the
 !>            base of the column for chi
+!! @param[in] ndf_pid  Number of degrees of freedom per cell for panel_id
+!! @param[in] undf_pid Number of unique degrees of freedom for panel_id
+!! @param[in] map_pid  Dofmap for the cell at the base of the column for panel_id
 subroutine held_suarez_fv_code(nlayers,                     &
                                dtheta, theta, exner_in_wth, &
                                chi_1, chi_2, chi_3,         &
+                               panel_id,                    &
                                ndf_wth, undf_wth, map_wth,  &
-                               ndf_chi, undf_chi, map_chi   &
+                               ndf_chi, undf_chi, map_chi,  &
+                               ndf_pid, undf_pid, map_pid   &
                                )
 
   implicit none
@@ -91,31 +99,34 @@ subroutine held_suarez_fv_code(nlayers,                     &
 
   integer(kind=i_def), intent(in) :: ndf_wth, undf_wth
   integer(kind=i_def), intent(in) :: ndf_chi, undf_chi
+  integer(kind=i_def), intent(in) :: ndf_pid, undf_pid
 
   real(kind=r_def), dimension(undf_wth), intent(inout) :: dtheta
   real(kind=r_def), dimension(undf_wth), intent(in)    :: theta
   real(kind=r_def), dimension(undf_wth), intent(in)    :: exner_in_wth
   real(kind=r_def), dimension(undf_chi), intent(in)    :: chi_1, chi_2, chi_3
+  real(kind=r_def), dimension(undf_pid), intent(in)    :: panel_id
 
   integer(kind=i_def), dimension(ndf_wth),  intent(in) :: map_wth
   integer(kind=i_def), dimension(ndf_chi),  intent(in) :: map_chi
+  integer(kind=i_def), dimension(ndf_pid),  intent(in) :: map_pid
 
   ! Internal variables
-  integer(kind=i_def)         :: k, df, loc
+  integer(kind=i_def)         :: k, df, loc, ipanel
 
   real(kind=r_def)            :: theta_eq, exner
-  real(kind=r_def)            :: lat, lon
+  real(kind=r_def)            :: lat, lon, radius
 
   real(kind=r_def) :: exner0 ! lowest level exner value
   real(kind=r_def) :: sigma  ! exner/exner0
 
-  real(kind=r_def) :: x, y, z
+  real(kind=r_def) :: coords(3)
   real(kind=r_def), dimension(ndf_chi)  :: chi_1_at_dof, chi_2_at_dof, chi_3_at_dof
   real(kind=r_def) :: pert(nlayers+1)
 
-  x=0.0_r_def
-  y=0.0_r_def
-  z=0.0_r_def
+  coords(:) = 0.0_r_def
+
+  ipanel = int(panel_id(map_pid(1)), i_def)
 
   ! Calculate x,y and z at the centre of the lowest cell
   do df = 1, ndf_chi
@@ -123,12 +134,12 @@ subroutine held_suarez_fv_code(nlayers,                     &
     chi_1_at_dof(df) = chi_1( loc )
     chi_2_at_dof(df) = chi_2( loc )
     chi_3_at_dof(df) = chi_3( loc )
-    x=x+chi_1( loc )/ndf_chi
-    y=y+chi_2( loc )/ndf_chi
-    z=z+chi_3( loc )/ndf_chi
+    coords(1) = coords(1) + chi_1( loc )/ndf_chi
+    coords(2) = coords(2) + chi_2( loc )/ndf_chi
+    coords(3) = coords(3) + chi_3( loc )/ndf_chi
   end do
 
-  call xyz2ll(x, y, z, lon, lat)
+  call chi2llr(coords(1), coords(2), coords(3), ipanel, lon, lat, radius)
 
   exner0 = exner_in_wth(map_wth(1))
 
