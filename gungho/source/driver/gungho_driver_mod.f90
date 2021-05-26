@@ -31,9 +31,10 @@ module gungho_driver_mod
   use io_context_mod,             only : io_context_type
   use log_mod,                    only : log_event,         &
                                          log_scratch_space, &
-                                         LOG_LEVEL_ALWAYS
+                                         LOG_LEVEL_ALWAYS,  &
+                                         LOG_LEVEL_INFO
   use variable_fields_mod,        only : update_variable_fields
-
+  use esm_couple_config_mod,      only : l_esm_couple_test
 
   implicit none
 
@@ -102,6 +103,13 @@ contains
     call initialise_model( clock,   &
                            mesh_id, &
                            model_data )
+
+    ! Placeholder for ESM coupling initialisation code.
+    ! Check we have a value for related namelist control variable
+    write(log_scratch_space,'(A,L1)') program_name//': Couple flag l_esm_couple_test: ', &
+                                     l_esm_couple_test
+    call log_event(log_scratch_space, LOG_LEVEL_INFO)
+
 
   end subroutine initialise
 
