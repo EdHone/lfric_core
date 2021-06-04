@@ -112,9 +112,9 @@ contains
     type( field_type ),       intent(in)    :: panel_id
     class( clock_type ),      intent(in)    :: clock
 
-    ! Initialise all the model fields here analytically - setting data value
-    ! equal to product of x, y and z coordinates
+    ! Initialise all the model fields here analytically
     call io_dev_init_fields_alg( model_data%core_fields, chi_sph, panel_id )
+
 
     !---------------------------------------------------------------
     ! Now we make separate init calls based on model configuration
@@ -157,7 +157,9 @@ contains
 
     case ( time_variation_analytic )
       call log_event( "IO_Dev: Updating fields analytically", LOG_LEVEL_INFO )
-      call io_dev_timestep_alg( model_data%alg_fields, clock )
+      if (model_data%alg_fields%get_length() /= 0) then
+        call io_dev_timestep_alg( model_data%alg_fields, clock )
+      end if
 
     case ( time_variation_ancil )
       call log_event( "IO_Dev: Updating fields from time_varying ancillary", LOG_LEVEL_INFO )
@@ -206,13 +208,15 @@ contains
       type(io_dev_data_type), intent(inout) :: model_data
       class(clock_type),      intent(in)    :: clock
 
-      !=================== Write fields to checkpoint files ====================!
+      !=================== Write fields to checkpoint files ====================
       if ( checkpoint_write ) then
         call write_checkpoint( model_data%core_fields, clock )
       end if
 
-      !==================== Write checksum output =====================
-      call io_dev_checksum_alg( model_data%alg_fields )
+      !======================== Write checksum output ==========================
+      if (model_data%alg_fields%get_length() /= 0) then
+        call io_dev_checksum_alg( model_data%alg_fields )
+      end if
 
       ! Clear all the fields in each field collection
       call model_data%core_fields%clear()

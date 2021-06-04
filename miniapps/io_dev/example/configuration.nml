@@ -3,6 +3,7 @@
   field_initialisation  = 'analytic'
   time_variation        = 'none'
   ancil_update_freq     = 1
+  field_kind            = 'real'
 /
 !==============================================================================
 

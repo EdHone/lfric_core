@@ -4,7 +4,7 @@
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
 
-!> Test the
+!> Test the IO_Dev initialisation kernel
 !>
 module io_dev_init_kernel_mod_test
 

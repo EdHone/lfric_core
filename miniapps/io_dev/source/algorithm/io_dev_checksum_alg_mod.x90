@@ -51,7 +51,6 @@ contains
       iter_index = iter_index + 1
       select type(fld)
         type is (field_type)
-
         call invoke( X_innerproduct_X(tmp_checksum, fld) )
         checksum_bundle(iter_index) = tmp_checksum
 

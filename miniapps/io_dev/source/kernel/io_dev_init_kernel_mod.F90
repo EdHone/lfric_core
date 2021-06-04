@@ -8,6 +8,7 @@
 !>          this kernel is adapted from nodal_coordinates_kernel, and initialises
 !>          each data point to the product of its X, Y and Z coordinates
 module io_dev_init_kernel_mod
+
 use kernel_mod,              only : kernel_type
 use argument_mod,            only : arg_type, func_type,       &
                                     GH_FIELD, GH_REAL,         &
