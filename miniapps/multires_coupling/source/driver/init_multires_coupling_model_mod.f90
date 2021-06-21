@@ -22,7 +22,8 @@ module init_multires_coupling_model_mod
                                              local_mesh_collection_type
   use mpi_mod,                        only : get_comm_size, get_comm_rank
   use multires_coupling_config_mod,   only : multires_coupling_mesh_tags
-  use formulation_config_mod,         only : use_multires_coupling
+  use formulation_config_mod,         only : l_multigrid, &
+                                             use_multires_coupling
 
   implicit none
 
@@ -118,6 +119,7 @@ contains
                     prime_double_level_mesh_id,      &
                     multigrid_mesh_ids,              &
                     multigrid_2D_mesh_ids,           &
+                    l_multigrid,                     &
                     multires_coupling_mesh_ids,      &
                     multires_coupling_2D_mesh_ids,   &
                     multires_coupling_mesh_tags,     &
@@ -131,6 +133,7 @@ contains
                    prime_double_level_chi_sph,                             &
                    multigrid_mesh_ids, multigrid_2D_mesh_ids,              &
                    chi_mg_sph, panel_id_mg,                                &
+                   l_multigrid,                                            &
                    multires_coupling_mesh_ids,                             &
                    multires_coupling_2D_mesh_ids,                          &
                    chi_sph_fields, chi_xyz_fields, panel_id_fields,        &

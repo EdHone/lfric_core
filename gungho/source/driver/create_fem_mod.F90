@@ -23,7 +23,6 @@ module create_fem_mod
                                              halo_routing_collection
   use field_mod,                      only : field_type
   use fs_continuity_mod,              only : W0, W1, W2, W3, Wtheta, Wchi
-  use formulation_config_mod,         only : l_multigrid
   use function_space_mod,             only : function_space_type
   use function_space_collection_mod,  only : function_space_collection_type, &
                                              function_space_collection
@@ -60,12 +59,14 @@ module create_fem_mod
     !> @param[in]     multigrid_2d_mesh_ids          Optional, 2d-mesh id array for multigrid function spaces chain
     !> @param[in,out] chi_mg_sph                     Optional, Spherically-based coordinates for multigrid meshes
     !> @param[in,out] panel_id_mg                    Optional, Field giving the ID of the mesh panels for multigrid meshes
+    !> @param[in]     use_multigrid                  Optional, Configuration switch for multigrid
     !> @param[in]     multires_coupling_mesh_ids     Optional, mesh id array for multires_coupling chi fields
     !> @param[in]     multires_coupling_2d_mesh_ids  Optional, 2d-mesh id array for multires_coupling chi fields
     !> @param[in,out] chi_multires_coupling_sph      Optional, Spherically-based coordinates for multires_coupling meshes
     !> @param[in,out] chi_multires_coupling_xyz      Optional, XYZ spatial coordinates for multires_coupling meshes
     !> @param[in,out] panel_id_multires_coupling     Optional, Field giving the ID of the mesh panels for multires_coupling meshes
     !> @param[in]     use_multires_coupling          Optional, Logical flag to enable multiresolution atmospheric coupling
+
     !==================================================================================
     subroutine init_fem( mesh_id, chi_xyz, chi_sph, panel_id,                  &
                          shifted_mesh_id, shifted_chi_xyz, shifted_chi_sph,    &
@@ -73,10 +74,12 @@ module create_fem_mod
                          double_level_chi_sph,                                 &
                          multigrid_mesh_ids, multigrid_2D_mesh_ids,            &
                          chi_mg_sph, panel_id_mg,                              &
+                         use_multigrid,                                        &
                          multires_coupling_mesh_ids,                           &
                          multires_coupling_2D_mesh_ids,                        &
                          chi_multires_coupling_sph, chi_multires_coupling_xyz, &
-                         panel_id_multires_coupling, use_multires_coupling )
+                         panel_id_multires_coupling,                           &
+                         use_multires_coupling )
 
     implicit none
 
@@ -96,6 +99,7 @@ module create_fem_mod
     integer(i_def),   optional, intent(in)    :: multigrid_2d_mesh_ids(:)
     type(field_type), optional, intent(inout), allocatable :: chi_mg_sph(:,:)
     type(field_type), optional, intent(inout), allocatable :: panel_id_mg(:)
+    logical(l_def),   optional, intent(in)    :: use_multigrid
     integer(i_def),   optional, intent(in)    :: multires_coupling_mesh_ids(:)
     integer(i_def),   optional, intent(in)    :: multires_coupling_2d_mesh_ids(:)
     type(field_type), optional, intent(inout), allocatable :: chi_multires_coupling_sph(:,:)
@@ -123,12 +127,13 @@ module create_fem_mod
 
     ! Set control flags
     !=================================================================
-    if ( l_multigrid                    .and. &
-         present(multigrid_mesh_ids)    .and. &
-         present(multigrid_2d_mesh_ids) .and. &
-         present(chi_mg_sph)            .and. &
-         present(panel_id_mg) ) create_multigrid_fs_chain = .true.
-
+    if ( present(use_multigrid) ) then
+      if ( use_multigrid                  .and. &
+           present(multigrid_mesh_ids)    .and. &
+           present(multigrid_2d_mesh_ids) .and. &
+           present(chi_mg_sph)            .and. &
+           present(panel_id_mg) ) create_multigrid_fs_chain = .true.
+    end if
     if (present(use_multires_coupling)) then
       if ( use_multires_coupling                  .and. &
            present(multires_coupling_mesh_ids)    .and. &

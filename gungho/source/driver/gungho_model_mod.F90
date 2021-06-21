@@ -282,7 +282,8 @@ contains
                     shifted_mesh_id       = shifted_mesh_id,      &
                     double_level_mesh_id  = double_level_mesh_id, &
                     multigrid_mesh_ids    = multigrid_mesh_ids,   &
-                    multigrid_2D_mesh_ids = multigrid_2D_mesh_ids )
+                    multigrid_2D_mesh_ids = multigrid_2D_mesh_ids,&
+                    use_multigrid         = l_multigrid )
 
     call init_fem( mesh_id, chi_xyz, chi_sph, panel_id,           &
                    shifted_mesh_id       = shifted_mesh_id,       &
@@ -294,7 +295,8 @@ contains
                    multigrid_mesh_ids    = multigrid_mesh_ids,    &
                    multigrid_2D_mesh_ids = multigrid_2D_mesh_ids, &
                    chi_mg_sph            = chi_mg_sph,            &
-                   panel_id_mg           = panel_id_mg            )
+                   panel_id_mg           = panel_id_mg,           &
+                   use_multigrid         = l_multigrid )
 
 
     ! Full global meshes no longer required, so reclaim

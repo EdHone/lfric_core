@@ -76,7 +76,8 @@ contains
     ! Create the mesh
     call init_mesh( local_rank, total_ranks, mesh_id,     &
                     twod_mesh_id=twod_mesh_id,            &
-                    multigrid_mesh_ids=multigrid_mesh_ids )
+                    multigrid_mesh_ids=multigrid_mesh_ids,&
+                    use_multigrid=l_multigrid )
 
     ! Create FEM specifics (function spaces and chi field)
     call init_fem(mesh_id, chi_xyz, chi_sph, panel_id)

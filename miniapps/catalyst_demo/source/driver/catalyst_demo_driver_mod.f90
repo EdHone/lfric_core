@@ -16,6 +16,7 @@ module catalyst_demo_driver_mod
   use derived_config_mod,             only: set_derived_config
   use field_mod,                      only: field_type
   use finite_element_config_mod,      only: element_order
+  use formulation_config_mod,         only: l_multigrid
   use function_space_chain_mod,       only: function_space_chain_type
   use global_mesh_collection_mod,     only: global_mesh_collection, &
                                             global_mesh_collection_type
@@ -167,7 +168,8 @@ contains
   ! Create the mesh
   call init_mesh( local_rank, total_ranks, mesh_id, &
                   twod_mesh_id=twod_mesh_id,        &
-                  multigrid_mesh_ids=multigrid_mesh_ids )
+                  multigrid_mesh_ids=multigrid_mesh_ids, &
+                  use_multigrid=l_multigrid )
 
   !----------------------------------------------------------------------------
   ! FEM init

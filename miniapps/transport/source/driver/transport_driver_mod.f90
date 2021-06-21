@@ -20,6 +20,7 @@ module transport_driver_mod
   use create_mesh_mod,                only: init_mesh
   use derived_config_mod,             only: set_derived_config
   use field_mod,                      only: field_type
+  use formulation_config_mod,         only: l_multigrid
   use global_mesh_collection_mod,     only: global_mesh_collection, &
                                             global_mesh_collection_type
   use init_transport_mod,             only: init_transport
@@ -229,7 +230,8 @@ contains
                     twod_mesh_id=twod_mesh_id,             &
                     shifted_mesh_id=shifted_mesh_id,       &
                     multigrid_mesh_ids=multigrid_mesh_ids, &
-                    multigrid_2d_mesh_ids=multigrid_2d_mesh_ids )
+                    multigrid_2d_mesh_ids=multigrid_2d_mesh_ids, &
+                    use_multigrid=l_multigrid )
 
     ! FEM initialisation
     call init_fem( mesh_id, chi_xyz, chi_sph, panel_id,    &
@@ -237,7 +239,8 @@ contains
                    shifted_chi_xyz=shifted_chi_xyz,        &
                    shifted_chi_sph=shifted_chi_sph,        &
                    multigrid_mesh_ids=multigrid_mesh_ids,  &
-                   multigrid_2d_mesh_ids=multigrid_2d_mesh_ids )
+                   multigrid_2d_mesh_ids=multigrid_2d_mesh_ids, &
+                   use_multigrid=l_multigrid )
 
     ! Transport initialisation
     call init_transport( mesh_id, twod_mesh_id, chi_xyz, chi_sph, panel_id, &
