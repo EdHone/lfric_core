@@ -334,7 +334,7 @@ contains
     ! Loop counters
     integer(i_def) :: i, j
 
-    integer(kind=i_def),allocatable :: gid_from_lid(:)
+
 
     ! Vertices connected to local 2d cell.
     integer(i_def), allocatable :: vert_on_cell_2d (:,:)
@@ -347,13 +347,6 @@ contains
 
     ! Id of the Global mesh use to create mesh
     integer(i_def) :: global_mesh_id
-
-    ! Number of panels in the global mesh.
-    ! Used to optimise colouring algorithm
-    integer(i_def) :: n_panels
-
-    !> integer Number of cells in the global 2D mesh
-    integer(i_def) :: ncells_global_mesh
 
     ! Surface Coordinates in [long, lat, radius] (Units: Radians/metres)
     real(r_def), allocatable :: vertex_coords_2d(:,:)
@@ -572,37 +565,16 @@ contains
                                   self%reference_element%get_number_faces(),            &
                                   self%ncells_2d_with_ghost )
 
-    ! Some of the mesh colouring algorithms implement colouring depending on the
-    ! global cell location (and number of panels), so obtain global IDs for all
-    ! the local cells.
-    ! Colour algorithm may access cells beyond the local partition when searching
-    ! for neighbours, so make the array big enough.
-    ncells_global_mesh = global_mesh%get_ncells()
-    allocate(gid_from_lid(ncells_global_mesh))
-
-    ! Set default global ID as 0: to apply to cells outside local partition
-    gid_from_lid(:)=0
-
-    ! Global ID is set only for cells in local partition
-    do i = 1,self%get_ncells_2d()
-      gid_from_lid(i) = self%get_gid_from_lid(i)
-    end do
-
-    n_panels = local_mesh%get_num_panels_global_mesh()
-
     call set_colours( self%get_ncells_2d(),                                 &
                       self%cell_next,                                       &
                       self%ncolours,                                        &
                       self%ncells_per_colour,                               &
                       self%cells_in_colour,                                 &
                       self%reference_element%get_number_horizontal_faces(), &
-                      n_panels,                                             &
-                      ncells_global_mesh,                                   &
-                      gid_from_lid(:) )
+                      self%local_mesh )
 
     call init_last_cell_per_colour(self)
 
-    if (allocated( gid_from_lid) ) deallocate(gid_from_lid)
 
     if (allocated( vert_on_cell_2d ))  deallocate(vert_on_cell_2d)
     if (allocated( edge_on_cell_2d ))  deallocate(edge_on_cell_2d)

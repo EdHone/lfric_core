@@ -96,6 +96,8 @@ module local_mesh_mod
                                    local_mesh_map_collection
   ! Number of panels in the global mesh
     integer(i_def)              :: npanels
+  ! Number of cells in the global mesh
+    integer(i_def)              :: ncells_global_mesh
   contains
     procedure, public  :: initialise_full
     procedure, public  :: initialise_unit_test
@@ -130,6 +132,7 @@ module local_mesh_mod
     procedure, public  :: get_num_cells_ghost
     procedure, public  :: get_cell_owner
     procedure, public  :: get_num_panels_global_mesh
+    procedure, public  :: get_ncells_global_mesh
     procedure, public  :: get_gid_from_lid
     procedure, public  :: get_lid_from_gid
     procedure, public  :: add_local_mesh_map
@@ -333,6 +336,8 @@ contains
               source = local_mesh_map_collection_type() )
 
     self%npanels = partition%get_num_panels_global_mesh()
+
+    self%ncells_global_mesh = global_mesh%get_ncells()
 
     deallocate( vert_lid_gid_map )
     deallocate( edge_lid_gid_map )
@@ -1082,6 +1087,22 @@ contains
     number_of_panels = self%npanels
 
   end function get_num_panels_global_mesh
+
+  !---------------------------------------------------------------------------
+  !> @brief Gets the number cells in the global mesh.
+  !>
+  !> @return Number of cells in the global mesh
+  !>
+  function get_ncells_global_mesh ( self ) result ( ncells_global_mesh )
+
+    implicit none
+
+    class(local_mesh_type), intent(in) :: self
+    integer(i_def) :: ncells_global_mesh
+
+    ncells_global_mesh = self%ncells_global_mesh
+
+  end function get_ncells_global_mesh
 
   !---------------------------------------------------------------------------
   !> @brief Gets the global index of the cell that corresponds to the given

@@ -109,6 +109,7 @@ contains
     integer(i_def) :: nedges_per_cell
     integer(i_def) :: nverts_per_cell
     integer(i_def) :: num_panels_global_mesh
+    integer(i_def) :: ncells_global_mesh
     integer(i_def) :: num_cells_in_layer
     integer(i_def) :: inner_depth
     integer(i_def) :: halo_depth
@@ -188,6 +189,8 @@ contains
     @assertEqual( 4, nverts_per_cell )
     num_panels_global_mesh = local_mesh%get_num_panels_global_mesh()
     @assertEqual( 1, num_panels_global_mesh )
+    ncells_global_mesh = local_mesh%get_ncells_global_mesh()
+    @assertEqual( 64, ncells_global_mesh )
 
     select case ( num_processes )
 

@@ -41,7 +41,6 @@ class mesh_mod::mesh_type {
   -ncolours : integer
   -ncells_per_colour : integer[:] <<allocatable>>
   -cells_in_colour : integer[::] <<allocatable>>
-  -ncells_global_mesh : integer
   -ncells_per_colour_subset : integer[::] <<allocatable>>
   -last_inner_cell_per_colour : integer[::] <<allocatable>>
   -last_halo_cell_per_colour : integer[::] <<allocatable>>
