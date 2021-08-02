@@ -28,6 +28,12 @@ module vector_mod
      !> @param[in] alpha  real
      !> @param[inout] x  vector
      procedure (aypx_interface),          deferred :: aypx
+     !> Compute z = a*x + b*y
+     !> @param[in] a  real
+     !> @param[in] x  vector
+     !> @param[in] b  real
+     !> @param[in] y  vector
+     procedure (axpby_interface),          deferred :: axpby
      !> Compute norm of the field vector, returns a real scalar
      !! n = sqrt( sum_i( v_i*v_i ))
      procedure (norm_interface),          deferred :: norm
@@ -87,6 +93,21 @@ module vector_mod
        real(kind=r_def),            intent(in)    :: alpha
        class(abstract_vector_type), intent(inout) :: x
      end subroutine aypx_interface
+  end interface
+
+  abstract interface
+     !> Compute z = a*x + b*y
+     !> @param[in] a  real
+     !> @param[in] x  vector
+     !> @param[in] a  real
+     !> @param[in] x  vector
+     subroutine axpby_interface(self, a, x, b, y)
+       import :: abstract_vector_type
+       import :: r_def
+       class(abstract_vector_type), intent(inout) :: self
+       real(kind=r_def),            intent(in)    :: a, b
+       class(abstract_vector_type), intent(in)    :: x, y
+     end subroutine axpby_interface
   end interface
 
   abstract interface

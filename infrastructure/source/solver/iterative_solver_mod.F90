@@ -350,6 +350,48 @@ module iterative_solver_mod
      end subroutine
   end interface
 
+  !! ---  Chebyshev type declaration and interfaces --- !!
+
+  type, public, extends(abstract_iterative_solver_type) :: chebyshev_type
+     private
+     real(kind=r_def) :: lmin, lmax
+     logical(kind=l_def) :: diagnostic_norm
+     integer(kind=i_def) :: fixed_iter
+   contains
+     procedure :: apply => chebyshev_solve
+     procedure :: chebyshev_solve
+  end type chebyshev_type
+
+  ! overload the default structure constructor
+  interface chebyshev_type
+     module procedure chebyshev_constructor
+  end interface
+
+  ! the constructor will be in a submodule
+  interface
+     module function chebyshev_constructor( lin_op, prec, r_tol, a_tol, max_iter, lmin, lmax, diagnostic_norm, fixed_iter) &
+          result(self)
+       class(abstract_linear_operator_type), target, intent(in) :: lin_op
+       class(abstract_preconditioner_type),  target, intent(in) :: prec
+       real(kind=r_def),                             intent(in) :: r_tol
+       real(kind=r_def),                             intent(in) :: a_tol
+       integer(kind=i_def),                          intent(in) :: max_iter
+       real(kind=r_def),                             intent(in) :: lmin
+       real(kind=r_def),                             intent(in) :: lmax
+       logical(kind=l_def),                          intent(in) :: diagnostic_norm
+       integer(kind=i_def),                          intent(in) :: fixed_iter
+       type(chebyshev_type) :: self
+     end function
+  end interface
+
+  interface
+     module subroutine chebyshev_solve(self, x, b)
+       class(chebyshev_type),       intent(inout) :: self
+       class(abstract_vector_type), intent(inout) :: x
+       class(abstract_vector_type), intent(inout) :: b
+     end subroutine
+  end interface
+
 end module iterative_solver_mod
 
 !  Submodule with procedures for conjugate gradient !!
@@ -1506,5 +1548,124 @@ contains
     end if
 
   end subroutine jacobi_solve
-
 end submodule jacobi_smod
+
+
+submodule(iterative_solver_mod) chebyshev_smod
+contains
+  !> constructs a <code>chebyshev</code> solver
+  !! sets the values for the solver such as the residual (r_tol) and
+  !! points the linear operator and preconditioner at those passed in.
+  !> @param[in] lin_op The linear operator the solver will use
+  !> @param[in] prec The preconditioner the solver will use
+  !> @param[in] r_tol real, the relative tolerance halting condition
+  !> @param[in] a_tol real, the absolute tolerance halting condition
+  !> @param[in] max_inter, integer the maximum number of iterations
+  !> @param[in] lmin Lower bound on the eigenvalues of the matrix
+  !> @param[in] lmax Upper bound on the eigenvalues of the matrix
+  !> @param[in] diagnostic_norm, logical controls printing (and computation) of residual
+  !> @param[in] fixed_iter Number of iterations to perform
+  !!norm
+  !> @return the constructed chebyshev solver
+  module function chebyshev_constructor(lin_op, prec, r_tol, a_tol, max_iter, lmin, lmax, diagnostic_norm, fixed_iter) result(self)
+    implicit none
+    class(abstract_linear_operator_type), target, intent(in) :: lin_op
+    class(abstract_preconditioner_type),  target, intent(in) :: prec
+    real(kind=r_def),                             intent(in) :: r_tol
+    real(kind=r_def),                             intent(in) :: a_tol
+    integer(kind=i_def),                          intent(in) :: max_iter
+    real(kind=r_def),                             intent(in) :: lmin
+    real(kind=r_def),                             intent(in) :: lmax
+    logical(kind=l_def),                          intent(in) :: diagnostic_norm
+    integer(kind=i_def),                          intent(in) :: fixed_iter
+    type(chebyshev_type) :: self
+
+    self%lin_op          => lin_op
+    self%prec            => prec
+    self%r_tol           = r_tol
+    self%a_tol           = a_tol
+    self%max_iter        = max_iter
+    self%lmin            = lmin
+    self%lmax            = lmax
+    self%diagnostic_norm = diagnostic_norm
+    self%fixed_iter      = fixed_iter
+
+  end function
+
+  !> chebyshev solve. Over-rides the abstract interface to do the actual solve.
+  !> @param[inout] b an abstract vector which will be an actual vector of unkown extended type
+  !! This the "RHS" or boundary conditions,
+  !> @param[inout] x an abstract vector which is the solution
+  !> @param[self] The solver which has pointers to the lin_op and preconditioner
+  module subroutine chebyshev_solve(self, x, b)
+    implicit none
+    class(chebyshev_type),       intent(inout) :: self
+    class(abstract_vector_type), intent(inout) :: x
+    class(abstract_vector_type), intent(inout) :: b
+
+    integer(i_def) :: iter
+    real(r_def) :: init_norm, final_norm
+    real(r_def) :: a1, a2, w, a_over_b, wa_over_b
+
+    class(abstract_vector_type), allocatable :: z
+    class(abstract_vector_type), allocatable :: r
+    class(abstract_vector_type), allocatable :: xp
+    class(abstract_vector_type), allocatable :: xo
+
+    ! Chebyshev iteration for solving M y = f with preconditioner D
+
+    ! Set initial guess
+    call x%set_scalar(0.0_r_def)
+    call x%duplicate(xp)
+    call xp%set_scalar(0.0_r_def)
+    call x%duplicate(xo)
+    call xo%set_scalar(0.0_r_def)
+    call x%duplicate(z)
+    call x%duplicate(r)
+
+    if ( self%diagnostic_norm ) init_norm = max(1.0_r_def, b%norm())
+
+    ! Set up scalars
+    a1 = 2.0_r_def/(self%lmax - self%lmin)
+    a2 = (self%lmax + self%lmin)/(self%lmax - self%lmin)
+    a_over_b = a1/a2
+    w = 1.0_r_def
+
+    do iter = 1, self%fixed_iter
+
+      ! r = b-M*xo
+      call self%lin_op%apply(xo,z)
+      call r%axpby(1.0_r_def, b, -1.0_r_def, z)
+
+      ! z = D^{-1}.r
+      call self%prec%apply(r,z)
+
+      ! x = w*(a/b*z+xo) + (1-w)*xp
+      w = 1.0_r_def/(1.0_r_def - w/(4.0_r_def*a2**2))
+      wa_over_b = w * a_over_b
+      call x%axpby(wa_over_b, z, w, xo)
+      call x%axpy(1.0_r_def-w,xp)
+
+      if ( iter < self%max_iter ) then
+        ! xp = xo
+        call xp%copy(xo)
+
+        ! xo = x
+        call xo%copy(x)
+      end if
+
+    end do
+    ! residiual = norm(b - M*x)
+    if ( self%diagnostic_norm ) then
+      call self%lin_op%apply(x,z) ! z = M.x
+      call z%axpy(-1.0_r_def, b)  ! z = M.x-b
+      final_norm = z%norm()
+      write(log_scratch_space, &
+          '("chebyshev[",I4,"], redidual = ",E16.8)') self%fixed_iter, final_norm/init_norm
+      call log_event(log_scratch_space,LOG_LEVEL_INFO)
+    end if
+
+  end subroutine chebyshev_solve
+
+end submodule chebyshev_smod
+

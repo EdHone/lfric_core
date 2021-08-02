@@ -40,7 +40,8 @@ module mass_matrix_solver_alg_mod
                                                 gcr_type,                       &
                                                 conjugate_gradient_type,        &
                                                 precondition_only_type,         &
-                                                jacobi_type
+                                                jacobi_type,                    &
+                                                chebyshev_type
 
 
   use io_config_mod,                      only: subroutine_timers
@@ -50,8 +51,7 @@ module mass_matrix_solver_alg_mod
 
   private
 
-  public :: mass_matrix_solver_alg
-
+  public  :: mass_matrix_solver_alg
 contains
 !=============================================================================!
   !> @details Combined initialisation, run and finalise procedure for the mass matrix solver to solve My = x
@@ -71,14 +71,17 @@ contains
                                            method_gcr,                         &
                                            method_prec_only,                   &
                                            method_jacobi,                      &
+                                           method_chebyshev,                   &
                                            preconditioner,                     &
                                            preconditioner_diagonal,            &
                                            preconditioner_none,                &
-                                           diagnostic_norm
+                                           diagnostic_norm,                    &
+                                           fixed_iterations
     use fem_constants_mod,           only: get_mass_matrix,                    &
                                            get_mass_matrix_diagonal,           &
                                            get_inverse_w3_mass_matrix
-    use fs_continuity_mod,           only: W1, W2, W3, W2v
+    use fs_continuity_mod,           only: W1, W2, W3, W2v, W2h, Wtheta, W0
+    use fs_eigenvalues_mod,          only: get_minmax_eigenvalues
     use dg_matrix_vector_kernel_mod, only: dg_matrix_vector_kernel_type
     implicit none
 
@@ -105,6 +108,8 @@ contains
     type(operator_type), pointer    :: mass_matrix => null()
     type(field_type),    pointer    :: mass_matrix_diagonal => null()
     type(field_vector_type)         :: vec_mm_diagonal
+
+    real(kind=r_def)                :: lmin, lmax
 
     if ( subroutine_timers ) call timer('mass_matrix_solver_alg')
 
@@ -140,6 +145,8 @@ contains
          allocate ( precondition_only_type :: mass_matrix_solver )
       case(METHOD_JACOBI)
          allocate ( jacobi_type :: mass_matrix_solver )
+      case(METHOD_CHEBYSHEV)
+         allocate ( chebyshev_type :: mass_matrix_solver )
       case default
          call log_event("Unknown mass matrix solver specified",LOG_LEVEL_ERROR)
       end select
@@ -167,6 +174,23 @@ contains
 
       mass_matrix          => get_mass_matrix(fs, mesh_id)
       mass_matrix_diagonal => get_mass_matrix_diagonal(fs, mesh_id)
+
+      select case ( fs )
+        case ( W0 )
+          call log_event('Mass matrix solve for W0 space',LOG_LEVEL_INFO)
+        case ( W1 )
+          call log_event('Mass matrix solve for W1 space',LOG_LEVEL_INFO)
+        case ( W2 )
+          call log_event('Mass matrix solve for W2 space',LOG_LEVEL_INFO)
+        case ( W2h )
+          call log_event('Mass matrix solve for W2h space',LOG_LEVEL_INFO)
+        case ( W2v )
+          call log_event('Mass matrix solve for W2v space',LOG_LEVEL_INFO)
+        case ( Wtheta )
+          call log_event('Mass matrix solve for Wt space',LOG_LEVEL_INFO)
+        case default
+          call log_event('Unsupported function space in solver algorithm', LOG_LEVEL_ERROR )
+      end select
 
       mass_matrix_operator = mass_matrix_operator_type(mass_matrix, apply_bc)
 
@@ -233,6 +257,16 @@ contains
                                            tolerance,                  &
                                            solver_a_tol,               &
                                            maximum_iterations)
+      type is ( chebyshev_type )
+         call get_minmax_eigenvalues(lmin, lmax, fs)
+         mass_matrix_solver = chebyshev_type( mass_matrix_operator,       &
+                                              mass_matrix_preconditioner, &
+                                              tolerance,                  &
+                                              solver_a_tol,               &
+                                              maximum_iterations,         &
+                                              lmin, lmax,                 &
+                                              diagnostic_norm,            &
+                                              fixed_iterations)
       class default
          call log_event("Can not initialise mass matrix solver",LOG_LEVEL_ERROR)
       end select

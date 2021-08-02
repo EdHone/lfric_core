@@ -28,7 +28,7 @@
   cellshape        = 'quadrilateral'
   element_order    = 0
   rehabilitate     = .true.
-  vorticity_in_w1  = .true.
+  vorticity_in_w1  = .false.
   coord_order      = 1
   coord_system     = 'alphabetaz'
 /
@@ -145,11 +145,13 @@
 /
 
 &solver
-  method                         = 'bicgstab'
+  method                         = 'chebyshev'
   preconditioner                 = 'diagonal'
-  maximum_iterations             = 399
+  maximum_iterations             = 400
+  fixed_iterations               = 13
   tolerance                      = 1.0e-12
   gcrk                           = 18
+  diagnostic_norm                = .true.
 /
 
 &mixed_solver

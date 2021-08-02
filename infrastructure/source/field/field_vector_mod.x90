@@ -75,10 +75,18 @@ module field_vector_mod
      procedure, public  :: copy => field_vector_type_assign
      !> Return the size of a vector of this type
      procedure, public  :: vector_size => get_size_field_vector
+     !> Compute z = a*x + b*y
+     !> @param[in] a  real
+     !> @param[in] b  real
+     !> @param[in] x  vector, an array of fields
+     !> @param[in] y  vector, an array of fields
+     !> @param[in, out] z  vector, an array of fields
+     procedure, public  :: axpby => axpby_field_vector
 
 !   private procedure of the type which either implement the vector API
      procedure, private :: set_field_vector_scalar
      procedure, private :: axpy_field_vector
+     procedure, private :: axpby_field_vector
      procedure, private :: norm_field_vector
      procedure, private :: field_norm_field_vector
      procedure, private :: dot_field_vector
@@ -171,6 +179,34 @@ contains
        call log_event(log_scratch_space,LOG_LEVEL_ERROR)
     end select
   end subroutine axpy_field_vector
+
+  ! computes z = a*x + b*y on a field vector
+  subroutine axpby_field_vector(self, a, x, b, y)
+    implicit none
+    class(field_vector_type),    intent(inout) :: self
+    real(kind=r_def),            intent(in)    :: a, b
+    class(abstract_vector_type), intent(in)    :: x, y
+    integer(kind=i_def) :: fctr, nfctr
+
+    select type(x)
+    type is(field_vector_type)
+      select type(y)
+      type is(field_vector_type)
+        nfctr =  size(self%vector)
+        do fctr = 1, nfctr
+           call invoke(aX_plus_bY( self%vector(fctr), a, x%vector(fctr), b, y%vector(fctr) ))
+        end do
+      class default
+         write(log_scratch_space,'(A)') &
+              "field_vector_mod:axpby_field_vector: type of y is not field_vector_type"
+         call log_event(log_scratch_space,LOG_LEVEL_ERROR)
+      end select
+    class default
+       write(log_scratch_space,'(A)') &
+            "field_vector_mod:axpby_field_vector: type of x is not field_vector_type"
+       call log_event(log_scratch_space,LOG_LEVEL_ERROR)
+    end select
+  end subroutine axpby_field_vector
 
   ! sets a field to a scalar. If a field has not previously been set in
   ! the vector (array of fields) then there is no function space information
