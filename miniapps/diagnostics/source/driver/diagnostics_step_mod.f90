@@ -8,19 +8,20 @@
 module diagnostics_step_mod
 
     use clock_mod,                      only : clock_type
+    use colours__prognostics__meta_mod, only : colours__prognostics__meta_type
+    use colours__diagnostics__meta_mod, only : colours__diagnostics__meta_type
+    use colours__non_spatial__meta_mod, only : colours__non_spatial__meta_type
     use constants_mod,                  only : i_def, str_def, r_def
-    use diagnostics_alg_mod,            only : diagnostics_alg
     use field_mod,                      only : field_type
     use field_parent_mod,               only : field_parent_type
     use field_collection_mod,           only : field_collection_type, &
                                                field_collection_iterator_type
+    use hex_alg_mod,                    only : hex_alg
     use io_config_mod,                  only : write_diag
     use gungho_model_data_mod,          only : model_data_type
-    use colours__prognostics__meta_mod, only : colours__prognostics__meta_type
-    use colours__diagnostics__meta_mod, only : colours__diagnostics__meta_type
-    use colours__non_spatial__meta_mod, only : colours__non_spatial__meta_type
     use log_mod,                        only : log_event, LOG_LEVEL_INFO
     use non_spatial_alg_mod,            only : non_spatial_alg
+    use spread_alg_mod,                 only : spread_alg
 
     implicit none
 
@@ -64,37 +65,55 @@ contains
         ! Demonstrate here that fields can be obtained from their field
         ! collection in model_data, or directly from the depository
 
+        prognostics_meta = colours__prognostics__meta_type()
+        diagnostics_meta = colours__diagnostics__meta_type()
         ! Use the metadata to get field collection from model_data
         ! Get individual fields using their unique IDs
-        prognostics_meta = colours__prognostics__meta_type()
         prognostic_fields => model_data%get_field_collection( prognostics_meta%name )
-        red => prognostic_fields%get_field( prognostics_meta%red%get_unique_id() )
-        green => prognostic_fields%get_field( prognostics_meta%green%get_unique_id() )
-        blue => prognostic_fields%get_field( prognostics_meta%blue%get_unique_id() )
+
+        if (prognostic_fields%field_exists( &
+                prognostics_meta%red%get_unique_id() )) then
+            red => prognostic_fields%get_field( prognostics_meta%red%get_unique_id() )
+            call spread_alg(red)
+        end if
+        if (prognostic_fields%field_exists( &
+                prognostics_meta%green%get_unique_id() )) then
+            green => prognostic_fields%get_field( prognostics_meta%green%get_unique_id() )
+            call spread_alg(green)
+        end if
+        if (prognostic_fields%field_exists( &
+                prognostics_meta%blue%get_unique_id() )) then
+            blue => prognostic_fields%get_field( prognostics_meta%blue%get_unique_id() )
+            call spread_alg(blue)
+        end if
 
         ! Get an individual field from depository
-        diagnostics_meta = colours__diagnostics__meta_type()
+        ! hex only exists if red, green and blue are all on so can assume
+        ! they are present
         hex_id = diagnostics_meta%hex%get_unique_id()
-        hex => model_data%depository%get_field( hex_id )
-
-        ! Call an algorithm
-        call diagnostics_alg(&
-                red, &
-                green, &
-                blue, &
-                hex &
-                )
+        if (model_data%depository%field_exists(hex_id)) then
+            hex => model_data%depository%get_field( hex_id )
+          call hex_alg(red, green, blue, hex)
+        end if
 
         ! Write the fields
         if (write_diag) then
-            call log_event("Writing " // red%get_name(), LOG_LEVEL_INFO)
-            call red%write_field(red%get_name())
-            call log_event("Writing " // green%get_name(), LOG_LEVEL_INFO)
-            call green%write_field(green%get_name())
-            call log_event("Writing " // blue%get_name(), LOG_LEVEL_INFO)
-            call blue%write_field(blue%get_name())
-            call log_event("Writing " // hex%get_name(), LOG_LEVEL_INFO)
-            call hex%write_field(hex%get_name())
+            if(associated(red)) then
+              call log_event("Writing " // red%get_name(), LOG_LEVEL_INFO)
+              call red%write_field(red%get_name())
+            end if
+            if(associated(green)) then
+              call log_event("Writing " // green%get_name(), LOG_LEVEL_INFO)
+              call green%write_field(green%get_name())
+            end if
+            if(associated(blue)) then
+              call log_event("Writing " // blue%get_name(), LOG_LEVEL_INFO)
+              call blue%write_field(blue%get_name())
+            end if
+            if(associated(hex)) then
+              call log_event("Writing " // hex%get_name(), LOG_LEVEL_INFO)
+              call hex%write_field(hex%get_name())
+            end if
         end if
 
         ! Check non-spatial fields are present

@@ -1,0 +1,47 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!>@brief algorithm to merge red, green & blue fields into a hexadecimal field
+module hex_alg_mod
+
+    use log_mod,                only : log_event, &
+                                       LOG_LEVEL_INFO
+    use field_mod,              only : field_type
+    use rgb_to_hex_kernel_mod,  only : rgb_to_hex_kernel_type
+
+    implicit none
+
+    private
+
+    public :: hex_alg
+
+contains
+
+    !> @details An algorithm for producing the hex diagnostic
+    !> @param[in] red  A prognostic field object
+    !> @param[in] green  A prognostic field object
+    !> @param[in] blue  A prognostic field object
+    !> @param[inout] hex  A diagnostic field object
+    subroutine hex_alg(red, green, blue, hex)
+
+        implicit none
+
+        ! Prognostic fields
+        type(field_type), pointer, intent(in) :: red, green, blue
+
+        ! Diagnostic fields
+        type(field_type), pointer, intent(inout) :: hex
+
+        ! post-process for diagnostic field
+        call log_event("diagnostics: calculating hex", LOG_LEVEL_INFO)
+        call invoke(rgb_to_hex_kernel_type(hex, red, green, blue))
+
+
+        call log_event("diagnostics: finished algorithm", LOG_LEVEL_INFO)
+
+    end subroutine hex_alg
+
+end module hex_alg_mod

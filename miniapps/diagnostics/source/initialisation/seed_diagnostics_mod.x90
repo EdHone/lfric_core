@@ -42,12 +42,8 @@ contains
         prognostics_meta = colours__prognostics__meta_type()
         prognostic_fields => model_data%get_field_collection( prognostics_meta%name )
 
-        ! Get individual fields from prognostics field collection
-        red => prognostic_fields%get_field( prognostics_meta%red%get_unique_id() )
-        green => prognostic_fields%get_field( prognostics_meta%green%get_unique_id() )
-        blue => prognostic_fields%get_field( prognostics_meta%blue%get_unique_id() )
-
-        ! Seed the data, spread over all faces
+        ! Get individual fields from prognostics field collection and Seed the
+        ! data, spread over all faces
 
         ! see link for c3 seed data and a tool to help derive cell numbers. This data now comes from the config data
         ! - diagnostics_miniapp:seed_[red|green|blue]
@@ -57,17 +53,23 @@ contains
         ! /LFRic_Inputs_Project/dofmap%20seeding%20C3%20for%20diagnostics%20miniapp.xlsx?
         ! d=we44efdd746ac416f86ec8b161d7ea9c0&csf=1&e=4bFiJg
 
-        if (associated(red)) then
+        if (prognostic_fields%field_exists( &
+                prognostics_meta%red%get_unique_id() )) then
+            red => prognostic_fields%get_field( prognostics_meta%red%get_unique_id() )
             do i=1, size(seed_red)
                 call invoke_set_target_data_point_kernel(red, seed_red(i), 1, max) !bottom layer
             end do
         end if
-        if (associated(green)) then
+        if (prognostic_fields%field_exists( &
+                prognostics_meta%green%get_unique_id() )) then
+            green => prognostic_fields%get_field( prognostics_meta%green%get_unique_id() )
             do i=1, size(seed_green)
                 call invoke_set_target_data_point_kernel(green, seed_green(i), 2, max) !middle layer
             end do
         end if
-        if (associated(blue)) then
+        if (prognostic_fields%field_exists( &
+                prognostics_meta%blue%get_unique_id() )) then
+            blue => prognostic_fields%get_field( prognostics_meta%blue%get_unique_id() )
             do i=1, size(seed_blue)
                 call invoke_set_target_data_point_kernel(blue, seed_blue(i), 3, max) !top layer
             end do

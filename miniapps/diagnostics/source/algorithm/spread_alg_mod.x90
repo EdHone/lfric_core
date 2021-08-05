@@ -1,0 +1,50 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!>@brief Barebones algorithm to help the development of miniapps
+module spread_alg_mod
+
+    use constants_mod,                  only : i_def
+    use log_mod,                        only : log_event, &
+                                               LOG_LEVEL_INFO
+    use field_mod,                      only : field_type, &
+                                               field_proxy_type
+    use spread_kernel_mod,              only : spread_kernel_type
+    use psykal_lite_integer_maths_mod,  only : invoke_integer_inc_X_plus_Y
+
+    implicit none
+
+    private
+
+    public :: spread_alg
+
+contains
+    !> @details An algorithm for spreading a value over the map.
+    !> @param[inout] field  A prognostic field object
+    subroutine spread_alg(field)
+
+      implicit none
+
+      type(field_type), pointer, intent(inout) :: field
+      type(field_type) :: field_var
+      type(field_proxy_type) :: field_proxy
+      integer(i_def)         :: ndata
+
+      call log_event( &
+              "diagnostics: Running algorithm for "//field%get_name(), &
+              LOG_LEVEL_INFO &
+              )
+      call field%copy_field_properties(field_var, 'field_var')
+      field_proxy = field%get_proxy()
+      ndata = field_proxy%vspace%get_ndata()
+      call invoke(spread_kernel_type(field, 1, field_var, ndata))
+      call log_event( &
+              "diagnostics: Combining Variance with original", &
+              LOG_LEVEL_INFO &
+              )
+      call invoke_integer_inc_X_plus_Y(field, field_var)
+    end subroutine spread_alg
+end module spread_alg_mod

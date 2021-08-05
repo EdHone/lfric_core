@@ -71,7 +71,7 @@ contains
             function_space = W3, &
             order = 0, &
             io_driver = "write_field_face", &
-            trigger = "__checksum: true;", &
+            trigger = "__checksum: true; field_config:colours:diagnostics=colours__hex: true;", &
             description = "A red prognostic field", &
             data_type = REAL_TYPE, &
             time_step = STANDARD_TIMESTEP, &
@@ -88,7 +88,7 @@ contains
             function_space = W3, &
             order = 0, &
             io_driver = "write_field_face", &
-            trigger = "__checksum: true;", &
+            trigger = "__checksum: true; field_config:colours:diagnostics=colours__hex: true;", &
             description = "A green prognostic field", &
             data_type = REAL_TYPE, &
             time_step = STANDARD_TIMESTEP, &
@@ -106,7 +106,7 @@ contains
             function_space = W3, &
             order = 0, &
             io_driver = "write_field_face", &
-            trigger = "__checksum: true;", &
+            trigger = "__checksum: true; field_config:colours:diagnostics=colours__hex: true;", &
             description = "A blue prognostic field", &
             data_type = REAL_TYPE, &
             time_step = STANDARD_TIMESTEP, &

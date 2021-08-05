@@ -206,7 +206,6 @@ contains
   !>
   subroutine run()
 
-    use diagnostics_alg_mod,        only : diagnostics_alg
     use diagnostics_step_mod,       only : diagnostics_step
 
     implicit none
