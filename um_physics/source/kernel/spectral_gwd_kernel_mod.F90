@@ -206,7 +206,7 @@ contains
 
     ! call USSP code from UM
     call gw_ussp(nlayers, rows, row_length,                                  &
-                 global_row_length, n_proc,                                  &
+                 global_row_length,                                          &
                  r_rho_levels, r_theta_levels, p_theta_levels,               &
                  sin_theta_latitude, theta, wetrho_rsq, u_on_p, v_on_p,      &
                  totalppn, timestep, du_on_p, dv_on_p, dtemp_on_t,           &
