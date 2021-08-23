@@ -25,6 +25,7 @@ module gungho_driver_mod
                                          output_model_data, &
                                          finalise_model_data
   use gungho_step_mod,            only : gungho_step
+  use initial_output_mod,         only : write_initial_output
   use io_config_mod,              only : write_diag, &
                                          diagnostic_frequency, &
                                          nodal_output_on_w3
@@ -93,14 +94,8 @@ contains
     call initialise_model_data( model_data, clock )
 
     ! Initial output
-    ! We only want these once at the beginning of a run
-    if (clock%is_initialisation() .and. write_diag) then
-        ! Calculation and output of diagnostics
-        call gungho_diagnostics_driver( mesh_id,    &
-                                        model_data, &
-                                        clock,      &
-                                        nodal_output_on_w3 )
-    end if
+    call write_initial_output( mesh_id, model_data, &
+                               io_context, nodal_output_on_w3 )
 
     ! Model configuration initialisation
     call initialise_model( clock,   &

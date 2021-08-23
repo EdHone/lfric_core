@@ -969,6 +969,23 @@
 {%-                   endfor %}
 {%-                 endif %}
 
+{# #############################################################################}
+{# CHECK INITIAL OUTPUT #}
+
+    [[check_initial_output]]
+
+        script = rose task-run --app-key=check_initial_output
+
+        [[[environment]]]
+            APP_NAME   = {{projectName}}
+            TARGET_OPT = {{TARGET_OPT}}
+
+        [[[directives]]]
+{%-                   for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%-                   endfor %}
+
+
 {#- ##########################################################################}
 {#- PUBLISH THE APP OUTPUT                                                   #}
 {%-                 if 'publish_' + configuration_label_res + '_run' in scheduledTasks %}

@@ -34,6 +34,7 @@ module lfric_xios_clock_mod
   contains
     private
     procedure, public :: initialise
+    procedure, public :: initial_step
     procedure, public :: tick
   end type lfric_xios_clock_type
 
@@ -96,6 +97,24 @@ contains
 
   end subroutine initialise
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> Performs the first clock step during the intialisation phase - updates
+  !> XIOS calendar without ticking model clock
+  !>
+  subroutine initial_step( this )
+
+    implicit none
+
+    class(lfric_xios_clock_type), intent(inout) :: this
+
+    if ( this%is_initialisation() ) then
+      if ( this%uses_timer ) call timer('xios_update_calendar')
+      call xios_update_calendar( this%get_step() - this%get_first_step() + 1 )
+      if ( this%uses_timer ) call timer('xios_update_calendar')
+    end if
+
+  end subroutine initial_step
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Advances the clock by one step.
   !>
@@ -108,9 +127,11 @@ contains
 
     tick = this%clock_type%tick()
 
-    if ( this%uses_timer ) call timer('xios_update_calendar')
-    call xios_update_calendar( this%get_step() - this%get_first_step() + 1 )
-    if ( this%uses_timer ) call timer('xios_update_calendar')
+    if ( .not. this%is_initialisation() ) then
+      if ( this%uses_timer ) call timer('xios_update_calendar')
+      call xios_update_calendar( this%get_step() - this%get_first_step() + 1 )
+      if ( this%uses_timer ) call timer('xios_update_calendar')
+    end if
 
   end function tick
 

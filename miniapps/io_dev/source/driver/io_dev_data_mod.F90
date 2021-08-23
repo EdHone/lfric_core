@@ -191,28 +191,38 @@ contains
 
   !> @brief Writes out a checkpoint and dump file dependent on namelist options
   !> @param[in,out] model_data The working data set for the model run
-  subroutine output_model_data( model_data )
+  !> @param[in]     clock      The model clock object
+  subroutine output_model_data( model_data, clock )
 
     implicit none
 
     type( io_dev_data_type ), intent(inout), target :: model_data
+    class( clock_type ),      intent(in)            :: clock
 
-    !===================== Write fields to dump ======================!
-    if ( write_dump ) then
-      if ( subroutine_timers ) call timer('write_state: dump')
-      call write_state( model_data%dump_fields, prefix='output_' )
-      if ( subroutine_timers ) call timer('write_state: dump')
+    !===================== Write initial output ======================!
+    if ( clock%is_initialisation() ) then
+      if ( subroutine_timers ) call timer('write_state: initial')
+        if (model_data%alg_fields%get_length() /= 0) then
+          call write_state( model_data%alg_fields, prefix='initial_' )
+        end if
+      if ( subroutine_timers ) call timer('write_state: initial')
+    else
+      !===================== Write fields to dump ======================!
+      if ( write_dump ) then
+        if ( subroutine_timers ) call timer('write_state: dump')
+        call write_state( model_data%dump_fields, prefix='output_' )
+        if ( subroutine_timers ) call timer('write_state: dump')
+      end if
+
+      !=================== Write fields to diagnostic files ====================!
+      if ( write_diag ) then
+        if ( subroutine_timers ) call timer('write_state: diagnostic')
+        call write_state( model_data%core_fields )
+        if ( subroutine_timers ) call timer('write_state: diagnostic')
+      end if
     end if
 
-    !=================== Write fields to diagnostic files ====================!
-    if ( write_diag ) then
-      if ( subroutine_timers ) call timer('write_state: diagnostic')
-      call write_state( model_data%core_fields )
-      if ( subroutine_timers ) call timer('write_state: diagnostic')
-    end if
-
-
-  end subroutine output_model_data
+    end subroutine output_model_data
 
   !> @brief Routine to destroy all the field collections in the working data set
   !> @param[in,out] model_data The working data set for a model run

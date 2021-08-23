@@ -11,15 +11,16 @@
 module io_dev_driver_mod
 
   ! Infrastructure
-  use clock_mod,           only: clock_type
-  use constants_mod,       only: i_def, i_native, imdi, &
-                                 i_timestep
-  use field_mod,           only: field_type
-  use io_context_mod,      only: io_context_type
-  use log_mod,             only: log_event,         &
-                                 log_scratch_space, &
-                                 LOG_LEVEL_ALWAYS,  &
-                                 LOG_LEVEL_INFO
+  use clock_mod,            only: clock_type
+  use constants_mod,        only: i_def, i_native, imdi, &
+                                  i_timestep
+  use field_mod,            only: field_type
+  use io_context_mod,       only: io_context_type
+  use lfric_xios_clock_mod, only: lfric_xios_clock_type
+  use log_mod,              only: log_event,         &
+                                  log_scratch_space, &
+                                  LOG_LEVEL_ALWAYS,  &
+                                  LOG_LEVEL_INFO
   ! Configuration
   use io_config_mod,              only: use_xios_io,               &
                                         write_diag,                &
@@ -99,7 +100,14 @@ module io_dev_driver_mod
     write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
+    ! Output initial data after initial step
     clock => io_context%get_clock()
+    select type (clock)
+    type is (lfric_xios_clock_type)
+        call clock%initial_step()
+    end select
+
+    call output_model_data( model_data, clock )
 
     ! Model step
     do while( clock%tick() )
@@ -110,7 +118,7 @@ module io_dev_driver_mod
       ! Write out the fields
       if ( (mod( clock%get_step(), diagnostic_frequency ) == 0) ) then
         call log_event( program_name//': Writing XIOS output', LOG_LEVEL_INFO)
-        call output_model_data( model_data )
+        call output_model_data( model_data, clock )
       end if
 
     end do

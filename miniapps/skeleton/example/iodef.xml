@@ -59,20 +59,8 @@
       par_access="collective"
       time_counter="none">
 
-      <!-- File definition for checkpoint write -->
-      <file id="lfric_checkpoint_write" name="skeleton_checkpoint" output_freq="1ts" convention="CF" enabled=".FALSE.">
-      </file>
-
-     <!-- file definition for checkpoint read -->
-      <file id="lfric_checkpoint_read" name="skeleton_checkpoint" mode="read" output_freq="1ts" cyclic="true" enabled=".FALSE.">
-      </file>
-
      <file id="lfric_diag" name="skeleton_diag" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
        <field field_ref="skeleton_field"/>
-     </file>
-
-     <file id="lfric_initial" name="skeleton_initial" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
-        <field field_ref="init_skeleton_field"/>
      </file>
 
     </file_definition>

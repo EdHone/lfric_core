@@ -24,6 +24,7 @@ module transport_driver_mod
   use init_transport_mod,             only: init_transport
   use io_context_mod,                 only: io_context_type
   use lfric_xios_io_mod,              only: initialise_xios
+  use lfric_xios_clock_mod,           only: lfric_xios_clock_type
   use mesh_collection_mod,            only: mesh_collection, &
                                             mesh_collection_type
   use time_config_mod,                only: timestep_end, timestep_start
@@ -291,6 +292,12 @@ contains
     end if
 
     clock => io_context%get_clock()
+
+    ! Call initial clock step for XIOS before initial conditions output
+    select type( clock )
+    type is (lfric_xios_clock_type)
+        call clock%initial_step()
+    end select
 
     ! Output initial conditions
     if (clock%is_initialisation() .and. write_diag) then
