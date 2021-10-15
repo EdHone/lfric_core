@@ -860,6 +860,10 @@ contains
       di_sice_ncat(1, 1, i) = real(sea_ice_thickness(map_sice(1)+i-1), r_um)
     end do
 
+    ! Ocean coupling point set to false temporarily
+    ! (will be populated by coupling routines)
+    ainfo%ocn_cpl_point(1, 1) = .false.
+
     do n = 1, npft
       ! Leaf area index
       lai_pft(1, n) = real(leaf_area_index(map_pft(1)+n-1), r_um)
