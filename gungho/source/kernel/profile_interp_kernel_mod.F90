@@ -6,14 +6,14 @@
 !> @brief Module for interpolating profile data
 module profile_interp_kernel_mod
 
-use argument_mod,      only: arg_type, func_type,       &
+use argument_mod,      only: arg_type,                  &
                              GH_FIELD, GH_REAL,         &
                              GH_WRITE, GH_READ,         &
                              CELL_COLUMN
 
 use constants_mod,     only: r_def, i_def
 use kernel_mod,        only : kernel_type
-use fs_continuity_mod, only : Wtheta, W3
+use fs_continuity_mod, only : Wtheta
 
 implicit none
 
@@ -111,40 +111,33 @@ else
   data_at_highest = profile_data(profile_size)
 end if
 
-if (profile_size == 1) then
-  ! Input profile has a single point. This denotes a constant profile.
-  field_wt(:) = profile_data(1)
+! Loop through output points
+do k = 0, nlayers
 
-else
-  ! Loop through output points
-  do k = 0, nlayers
+  kp = map_wt(1) + k
 
-    kp = map_wt(1) + k
+  ! If output point is outside the range of the input coordinate, use
+  ! constant extrapolation
+  if ( height_wt(kp) <= coord_lowest ) then
+    field_wt(kp) = data_at_lowest
+  else if ( height_wt(kp) >= coord_highest ) then
+    field_wt(kp) = data_at_highest
+  else
+    ! Locate the position of the output point on the input coordinate
+    do input_pt = 1, profile_size - 1
+      cell_check = (profile_heights(input_pt + 1) - height_wt(kp)) * &
+                   (height_wt(kp) - profile_heights(input_pt))
+      ! Exit search if output point k lies between input_pt and input_pt+1
+      if (cell_check >= 0.0_r_def) exit
+    end do
+    ! Linearly interpolate the input data to the output point
+    interp_weight = ( height_wt(kp) - profile_heights(input_pt) ) / &
+                    ( profile_heights(input_pt+1) - profile_heights(input_pt) )
+    field_wt(kp) = (1.0_r_def - interp_weight) * profile_data(input_pt) + &
+                                      interp_weight * profile_data(input_pt+1)
+  end if
 
-    ! If output point is outside the range of the input coordinate, use
-    ! constant extrapolation
-    if ( height_wt(kp) <= coord_lowest ) then
-      field_wt(kp) = data_at_lowest
-    else if ( height_wt(kp) >= coord_highest ) then
-      field_wt(kp) = data_at_highest
-    else
-      ! Locate the position of the output point on the input coordinate
-      do input_pt = 1, profile_size - 1
-        cell_check = (profile_heights(input_pt + 1) - height_wt(kp)) * &
-                     (height_wt(kp) - profile_heights(input_pt))
-        ! Exit search if output point k lies between input_pt and input_pt+1
-        if (cell_check >= 0.0_r_def) exit
-      end do
-      ! Linearly interpolate the input data to the output point
-      interp_weight = ( height_wt(kp) - profile_heights(input_pt) ) / &
-                      ( profile_heights(input_pt+1) - profile_heights(input_pt) )
-      field_wt(kp) = (1.0_r_def - interp_weight) * profile_data(input_pt) + &
-                                        interp_weight * profile_data(input_pt+1)
-    end if
-
-  end do
-
-end if
+end do
 
 end subroutine profile_interp_code
 

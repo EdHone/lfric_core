@@ -60,13 +60,21 @@ height_wth => get_height(Wtheta, mesh_id)
 profile_size    = temp_prof_size
 profile_data    = temp_prof_data
 profile_heights = temp_prof_heights
-call invoke( profile_interp_kernel_type( theta, height_wth ) )
+if ( profile_size == 1) then
+  call invoke( setval_c( theta, profile_data(1) ) )
+else
+  call invoke( profile_interp_kernel_type( theta, height_wth ) )
+end if
 
 if (use_moisture) then
   profile_size    = vapour_prof_size
   profile_data    = vapour_prof_data
   profile_heights = vapour_prof_heights
-  call invoke( profile_interp_kernel_type( mr_v, height_wth ) )
+  if ( profile_size == 1) then
+    call invoke( setval_c( mr_v, profile_data(1) ) )
+  else
+    call invoke( profile_interp_kernel_type( mr_v, height_wth ) )
+  end if
 end if
 
 end subroutine init_thermo_profile_alg
