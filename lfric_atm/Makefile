@@ -82,17 +82,18 @@ else
   $(error Unrecognised profile "$(PROFILE)". Must be one of full-debug, fast-debug or production)
 endif
 build: ALWAYS
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting LFRic infrastructure)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
                   SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting LFRic xios component)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/components/lfric-xios/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/components/lfric-xios/source \
-	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
 	$(call MESSAGE,========================================)
-	$(call MESSAGE,Extracting coupler-oasis)
+	$(call MESSAGE,Extracting coupler-oasis component)
 	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 		SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
@@ -102,39 +103,70 @@ build: ALWAYS
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 	         SOURCE_DIR=$(ROOT_DIR)/gungho/source \
 	         WITHOUT_PROGRAMS=1
-	$(call MESSAGE,====================================)
-	$(call MESSAGE,Psycloning Gungho dynamical core)
-	$(call MESSAGE,====================================)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting UM physics )
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(PROJECT_DIR)/build/extract_physics.mk
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/um_physics/source
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/socrates/source
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/jules/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+                  SOURCE_DIR=source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning LFRic infrastructure)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning LFRic xios component)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/components/lfric-xios/source \
+	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning coupler-oasis component)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	        SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning Gungho dynamical core)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
 	        SOURCE_DIR=$(ROOT_DIR)/gungho/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning UM Physics)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/um_physics/source
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/socrates/source
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/jules/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+                  SOURCE_DIR=source
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Generating $(PROJECT) namelist loaders)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/configuration.mk \
                   SOURCE_DIR=$(ROOT_DIR)/gungho/source \
                   META_FILE_DIR=$(META_FILE_DIR) \
                   FIX_ENUMS_OPT=$(FIX_ENUMS_OPT)
-	$(call MESSAGE,====================================)
-	$(call MESSAGE,Psycloning coupler-oasis)
-	$(call MESSAGE,====================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	        SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
-	$(call MESSAGE,Extracting,"UM physics" )
-	$Q$(MAKE) $(QUIET_ARG) -f $(PROJECT_DIR)/build/extract_physics.mk
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/um_physics/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/um_physics/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/socrates/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/socrates/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/jules/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/jules/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
-                  SOURCE_DIR=source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-                  SOURCE_DIR=source
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Analysing $(PROJECT) build dependencies)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/analyse.mk
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Compiling $(PROJECT))
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk
 
 ##############################################################################

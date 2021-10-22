@@ -137,7 +137,7 @@ build: ALWAYS
 	          SOURCE_DIR=$(ROOT_DIR)/gungho/source \
 	          WITHOUT_PROGRAMS=1
 	$(call MESSAGE,====================================)
-	$(call MESSAGE,Psycloning Gungho dynamical core)
+	$(call MESSAGE,PSycloning Gungho dynamical core)
 	$(call MESSAGE,====================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/gungho/source \
@@ -148,7 +148,7 @@ build: ALWAYS
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 	          SOURCE_DIR=source
 	$(call MESSAGE,==============================)
-	$(call MESSAGE,Psycloning $(PROJECT_NAME))
+	$(call MESSAGE,PSycloning $(PROJECT_NAME))
 	$(call MESSAGE,==============================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
 	          SOURCE_DIR=source \

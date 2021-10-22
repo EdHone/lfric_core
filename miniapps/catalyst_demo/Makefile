@@ -124,41 +124,47 @@ else
   $(error Unrecognised profile "$(PROFILE)". Must be one of full-debug, fast-debug or production)
 endif
 build: ALWAYS
-	$(call MESSAGE,===============================)
+	$(call MESSAGE,========================================)
 	$(call MESSAGE,Extracting LFRic infrastructure)
-	$(call MESSAGE,===============================)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk  \
 	          SOURCE_DIR=$(ROOT_DIR)/infrastructure/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/infrastructure/source \
-	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
 	$(call MESSAGE,========================================)
 	$(call MESSAGE,Extracting Gungho dynamical core)
 	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/gungho/source \
 	          WITHOUT_PROGRAMS=1
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+	          SOURCE_DIR=source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning LFRic infrastructure)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/infrastructure/source \
+	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning Gungho dynamical core)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(ROOT_DIR)/gungho/source \
+	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=source \
+	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Processing namelist loaders for GungHo)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/configuration.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/gungho/source \
 	          META_FILE_DIR=$(META_FILE_DIR) \
 	          FIX_ENUMS_OPT=$(FIX_ENUMS_OPT)
-	$(call MESSAGE,====================================)
-	$(call MESSAGE,Psycloning Gungho dynamical core)
-	$(call MESSAGE,====================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(ROOT_DIR)/gungho/source \
-	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
-	$(call MESSAGE,==============================)
-	$(call MESSAGE,Extracting $(PROJECT_NAME))
-	$(call MESSAGE,==============================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
-	          SOURCE_DIR=source
-	$(call MESSAGE,==============================)
-	$(call MESSAGE,Psycloning $(PROJECT_NAME))
-	$(call MESSAGE,==============================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=source \
-	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
 	$(call MESSAGE,=========================================================)
 	$(call MESSAGE,Processing namelist loaders for $(PROJECT))
 	$(call MESSAGE,=========================================================)

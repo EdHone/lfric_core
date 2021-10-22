@@ -93,22 +93,40 @@ else
   $(error Unrecognised profile "$(PROFILE)". Must be one of full-debug, fast-debug or production)
 endif
 build: ALWAYS
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting LFRic infrastructure)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
                   SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source \
                   WORKING_DIR=$(WORKING_DIR)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-                  SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source \
-                  WORKING_DIR=$(WORKING_DIR)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
                   SOURCE_DIR=source \
                   WORKING_DIR=$(WORKING_DIR)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning LFRic infrastructure)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+                  SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source \
+                  WORKING_DIR=$(WORKING_DIR)
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Generating $(PROJECT) namelist loaders)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/configuration.mk \
                   PROJECT=$(PROJECT) \
 	          SOURCE_DIR=source \
                   WORKING_DIR=$(WORKING_DIR) \
                   META_FILE_DIR=$(META_FILE_DIR) \
                   FIX_ENUMS_OPT=$(FIX_ENUMS_OPT)
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Analysing $(PROJECT) build dependencies)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/analyse.mk
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Compiling $(PROJECT))
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk \
 	          BIN_DIR=$(BIN_DIR) PROGRAMS="$(PROGRAMS)"
 

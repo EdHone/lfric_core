@@ -24,7 +24,7 @@ $(CONFIG_DIR)/rose-meta.json $(CONFIG_DIR)/config_namelists.txt: $(META_FILE_DIR
 	                -include_dirs $(ROOT_DIR)
 	# It's not clear why this is needed but as of 5/2/20 the diagnostic
 	# application test suite fails without it.
-	$(Q)sleep 10
+	$(Q)sleep 20
 
 .INTERMEDIATE: $(CONFIG_DIR)/build_config_loaders
 $(CONFIG_DIR)/build_config_loaders: $(CONFIG_DIR)/rose-meta.json

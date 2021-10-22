@@ -304,9 +304,13 @@ do-unit-test/found: do-unit-test/build
 	$(Q)cd $(WORKING_DIR); \
             mpiexec -n 4 $(BIN_DIR)/$(PROGRAMS) $(DOUBLE_VERBOSE_ARG)
 
+# Note: The initial explicit extract step was added as some algorithms
+#       were using kernels outside their own project area. It is a
+#       workaround until a more permanent solution is found.
 do-unit-test/build: WITHOUT_PROGRAMS = 1
 do-unit-test/build: PROCESS_TARGETS = $(SOURCE_DIR) $(ADDITIONAL_EXTRACTION)
-do-unit-test/build: $$(addsuffix /configure, $$(PROCESS_TARGETS)) \
+do-unit-test/build: $$(addsuffix /extract, $$(PROCESS_TARGETS)) \
+                    $$(addsuffix /configure, $$(PROCESS_TARGETS)) \
                     $$(addsuffix /psyclone, $$(PROCESS_TARGETS)) \
                     $$(addsuffix /extract, $$(TEST_DIR))
 	$(Q)mkdir -p $(WORKING_DIR)

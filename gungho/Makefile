@@ -113,30 +113,63 @@ else
   $(error Unrecognised profile "$(PROFILE)". Must be one of full-debug, fast-debug or production)
 endif
 build: ALWAYS
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting LFRic infrastructure)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 	          SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting LFRic xios component)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/components/lfric-xios/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting coupler-oasis component)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+                  SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+	          SOURCE_DIR=source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning LFRic infrastructure)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	          SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning LFRic xios component)
+	$(call MESSAGE,========================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/components/lfric-xios/source \
 	          OPTIMISATION_PATH=$(OPTIMISATION_PATH)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
-                  SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning coupler-oasis component)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+                  SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source \
+                  OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,PSycloning $(PROJECT_NAME))
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
 	          SOURCE_DIR=source
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Generating $(PROJECT) namelist loaders)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/configuration.mk \
 	          PROJECT=gungho \
 	          SOURCE_DIR=source \
                   META_FILE_DIR=$(META_FILE_DIR) \
                   FIX_ENUMS_OPT=$(FIX_ENUMS_OPT)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-	          SOURCE_DIR=source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
-                  SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source \
-                  OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Analysing $(PROJECT) build dependencies)
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/analyse.mk
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE,Compiling $(PROJECT))
+	$(call MESSAGE,=========================================================)
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk
 
 ##############################################################################

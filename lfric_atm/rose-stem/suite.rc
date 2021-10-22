@@ -499,9 +499,6 @@
             FIX_ENUMS             = 1
 {%-         endif %}
 
-        [[[job]]]
-            execution retry delays = 2*PT5S
-
         [[[directives]]]
 {%-         for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
             {{DIRECTIVE}}
