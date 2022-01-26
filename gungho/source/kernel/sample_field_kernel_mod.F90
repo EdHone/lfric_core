@@ -49,21 +49,21 @@ public :: sample_field_code
 contains
 
 !> @brief Sample a field at nodal points of another field
-!! @param[in] nlayers Number of layers
-!! @param[in,out] field_1 Field to hold sampled values
-!! @param[in] multiplicity How many times the dof has been visited in total
-!! @param[in] field_2 Field to take values from
-!! @param[in] ndf_1 Number of degrees of freedom per cell for output field
-!! @param[in] undf_1 Number of unique degrees of freedom for output space
-!! @param[in] map_1 Dofmap for the cell at the base of the column for output space
-!! @param[in] ndf_2 Number of degrees of freedom per cell for the field to be advected
-!! @param[in] undf_2  Number of unique degrees of freedom for the advected field
-!! @param[in] map_2 Dofmap for the cell at the base of the column for the field to be advected
-!! @param[in] basis_2 Basis functions evaluated at Gaussian quadrature points
-subroutine sample_field_code(nlayers,                                           &
-                             field_1, multiplicity, field_2,                    &
-                             ndf_1, undf_1, map_1,                              &
-                             ndf_2, undf_2, map_2, basis_2                      &
+!! @param[in]     nlayers       Number of layers
+!! @param[in,out] field_1       Field to hold sampled values
+!! @param[in]     rmultiplicity Inverse of how many times the dof has been visited in total
+!! @param[in]     field_2       Field to take values from
+!! @param[in]     ndf_1         Number of degrees of freedom per cell for output field
+!! @param[in]     undf_1        Number of unique degrees of freedom for output space
+!! @param[in]     map_1         Dofmap for the cell at the base of the column for output space
+!! @param[in]     ndf_2         Number of degrees of freedom per cell for the field to be advected
+!! @param[in]     undf_2        Number of unique degrees of freedom for the advected field
+!! @param[in]     map_2         Dofmap for the cell at the base of the column for the field to be advected
+!! @param[in]     basis_2       Basis functions evaluated at Gaussian quadrature points
+subroutine sample_field_code(nlayers,                         &
+                             field_1, rmultiplicity, field_2, &
+                             ndf_1, undf_1, map_1,            &
+                             ndf_2, undf_2, map_2, basis_2    &
                             )
 
   implicit none
@@ -76,7 +76,7 @@ subroutine sample_field_code(nlayers,                                           
 
   real(kind=r_def), dimension(1,ndf_2,ndf_1), intent(in)    :: basis_2
   real(kind=r_def), dimension(undf_1),        intent(inout) :: field_1
-  real(kind=r_def), dimension(undf_1),        intent(in)    :: multiplicity
+  real(kind=r_def), dimension(undf_1),        intent(in)    :: rmultiplicity
   real(kind=r_def), dimension(undf_2),        intent(in)    :: field_2
 
   ! Internal variables
@@ -90,7 +90,7 @@ subroutine sample_field_code(nlayers,                                           
         f_at_node = f_at_node + field_2(map_2(df_2)+k)*basis_2(1,df_2,df)
       end do
       ijk = map_1(df) + k
-      field_1( ijk ) = field_1( ijk ) + f_at_node/multiplicity( ijk )
+      field_1( ijk ) = field_1( ijk ) + f_at_node*rmultiplicity( ijk )
     end do
   end do
 

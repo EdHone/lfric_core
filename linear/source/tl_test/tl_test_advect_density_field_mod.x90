@@ -3,12 +3,12 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!>@brief   The tangent linear test for advecting density
-!!         (Taylor remainder convergence).
-!>@details Test whether a section of tangent linear code is tangent linear
-!!         to the corresponding section of nonlinear code, for
-!!         advecting density, using the Taylor remainder convergence
-!!         test.
+!> @brief   The tangent linear test for advecting density
+!!          (Taylor remainder convergence).
+!> @details Test whether a section of tangent linear code is tangent linear
+!!          to the corresponding section of nonlinear code, for
+!!          advecting density, using the Taylor remainder convergence
+!!          test.
 module tl_test_advect_density_field_mod
 
   use assign_field_random_kernel_mod, only: assign_field_random_kernel_type
@@ -21,15 +21,23 @@ module tl_test_advect_density_field_mod
   use fs_continuity_mod,              only: W2, W3
   use gungho_model_data_mod,          only: model_data_type
   use timestepping_config_mod,        only: dt
-  use transport_config_mod,           only: scheme,                         &
-                                            scheme_cosmic_3D,               &
-                                            scheme_method_of_lines
   use log_mod,                        only: log_event,         &
                                             log_scratch_space, &
                                             LOG_LEVEL_INFO
-  use advection_alg_mod,              only: advect_field
-  use tl_advection_alg_mod,           only: tl_advect_field,       &
-                                            tl_advection_alg_init
+  use gungho_transport_control_alg_mod,     &
+                                      only: gungho_transport_control_alg_init, &
+                                            gungho_transport_control_alg
+  use tl_transport_control_alg_mod,   only: tl_transport_control_alg
+  use transport_field_mod,            only: transport_field
+  use tl_transport_field_mod,         only: tl_transport_field
+  use transport_metadata_mod,         only: transport_metadata_type
+  use transport_metadata_collection_mod,    &
+                                      only: transport_metadata_collection
+  use transport_runtime_alg_mod,      only: transport_runtime_type
+  use transport_runtime_collection_mod,    &
+                                      only: set_transport_runtime
+  use tl_transport_runtime_collection_mod, &
+                                      only: tl_transport_runtime
   use tl_test_convergence_rate_check, only: convergence_rate_check
 
   implicit none
@@ -55,8 +63,10 @@ module tl_test_advect_density_field_mod
 
     character(str_def) :: label = "advect_density_field"
 
-    type(field_collection_type ), pointer :: prognostic_fields => null()
-    type(field_collection_type ), pointer :: ls_fields => null()
+    type(field_collection_type),   pointer :: prognostic_fields => null()
+    type(field_collection_type),   pointer :: ls_fields => null()
+    type(transport_metadata_type), pointer :: transport_metadata => null()
+    type(transport_runtime_type)           :: transport_runtime
 
     ! Input
     type(field_type), pointer :: n_u => null()
@@ -70,6 +80,10 @@ module tl_test_advect_density_field_mod
     type(field_type) :: n2_advection_inc
     type(field_type) :: p_advection_inc
 
+    ! Temporary
+    type(field_type) :: n_rho_np1, ls_rho_np1, p_rho_np1
+    type(field_type) :: dummy_flux
+
     ! Test
     type(field_type) :: diff
     type(field_type) :: random_u, random_rho
@@ -78,7 +92,7 @@ module tl_test_advect_density_field_mod
     real(r_def) :: gamma_u, gamma_rho
 
     integer :: n
-    real(r_def), parameter :: tol = 1.e-4_r_def
+    real(r_def), parameter :: tol = 1.e-3_r_def
 
     call log_event( "TL Test: " // trim(label), &
                      LOG_LEVEL_INFO )
@@ -104,6 +118,16 @@ module tl_test_advect_density_field_mod
     call p_advection_inc%initialise( vector_space = &
       function_space_collection%get_fs(mesh_id, element_order, W3) )
 
+    ! Temporary fields
+    call ls_rho_np1%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, W3) )
+    call n_rho_np1%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, W3) )
+    call p_rho_np1%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, W3) )
+    call dummy_flux%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, W2) )
+
     ! Test
     call diff%initialise( vector_space = &
       function_space_collection%get_fs(mesh_id, element_order, W3) )
@@ -112,20 +136,22 @@ module tl_test_advect_density_field_mod
     call random_rho%initialise( vector_space = &
       function_space_collection%get_fs(mesh_id, element_order, W3) )
 
-    call tl_advection_alg_init(mesh_id)
+    ! Init stuff
+    call gungho_transport_control_alg_init(mesh_id)
+    transport_runtime = transport_runtime_type(ls_u, ls_u, dt)
+    call set_transport_runtime(transport_runtime)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('density')
 
     ! Taylor Remainder Convergence Test
     call invoke( assign_field_random_kernel_type( random_u ) )
     call invoke( assign_field_random_kernel_type( random_rho ) )
 
     call invoke( setval_C( n1_advection_inc, 0.0_r_def ) )
-    call advect_field( n1_advection_inc, ls_rho, ls_u, scheme,         &
-                       ls_u, ls_u, advect_density=.true., timestep=dt, &
-                       si_advective_terms=.false.,                     &
-                       density_predictor=.false.,                      &
-                       logspace=.false., dt=dt )
+    call transport_field( ls_rho_np1, ls_rho, dt, &
+                          transport_metadata, flux=dummy_flux )
+    call invoke( X_minus_Y( n1_advection_inc, ls_rho_np1, ls_rho ) )
 
-    gamma_u = 1.e10
+    gamma_u = 6.e7
     gamma_rho = 1.e5
     do n=1,2
       gamma_u = gamma_u/2.
@@ -140,18 +166,20 @@ module tl_test_advect_density_field_mod
                    inc_X_plus_Y( n_u, p_u ),                  &
                    inc_X_plus_Y( n_rho, p_rho ) )
 
-      call advect_field( n2_advection_inc, n_rho, n_u, scheme,         &
-                       n_u, n_u, advect_density=.true., timestep=dt,   &
-                       si_advective_terms=.false.,                     &
-                       density_predictor=.false.,                      &
-                       logspace=.false., dt=dt )
+      transport_runtime = transport_runtime_type(n_u, n_u, dt)
+      call set_transport_runtime(transport_runtime)
 
-      call tl_advect_field( p_advection_inc, p_rho, p_u,               &
-                          ls_rho, ls_u, scheme, p_u, p_u,              &
-                          advect_density=.true., timestep=dt,          &
-                          si_advective_terms=.false.,                  &
-                          density_predictor=.false.,                   &
-                          logspace=.false., dt=dt )
+      call transport_field( n_rho_np1, n_rho, dt, &
+                            transport_metadata, flux=dummy_flux )
+      call invoke( X_minus_Y( n2_advection_inc, n_rho_np1, n_rho ) )
+
+      transport_runtime = transport_runtime_type(ls_u, ls_u, dt)
+      call set_transport_runtime(transport_runtime)
+      tl_transport_runtime = transport_runtime_type(p_u, p_u, dt)
+
+      call tl_transport_field( p_rho_np1, p_rho, ls_rho,  &
+                               dt, transport_metadata )
+      call invoke( X_minus_Y( p_advection_inc, p_rho_np1, p_rho ) )
 
       call invoke( X_minus_Y( diff, n2_advection_inc, n1_advection_inc ), &
                    inc_X_minus_Y( diff, p_advection_inc ),                &

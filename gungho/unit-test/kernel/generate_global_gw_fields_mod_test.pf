@@ -100,7 +100,7 @@ contains
                                     wind_time_period=0.0_r_def, &
                                     smp_init_wind = .false.  )
 
-    call feign_formulation_config(transport_only=.false., rotating=.false., &
+    call feign_formulation_config(rotating=.false.,                         &
                                   l_multigrid=.false.,                      &
                                   use_moisture=.false.,                     &
                                   shallow=.true., use_physics=.false.,      &
@@ -112,8 +112,8 @@ contains
                                   dlayer_on=.false.,                        &
                                   init_exner_bt        = .true.,            &
                                   si_momentum_equation=.true.,              &
-                                  vector_invariant=.true.,                  &
-                                  moisture_conservation=.false.  )
+                                  vector_invariant=.true.                   &
+                                 )
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

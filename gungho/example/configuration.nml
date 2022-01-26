@@ -35,7 +35,6 @@
 
 &formulation
   l_multigrid           = .true.
-  transport_only        = .false.
   rotating              = .true.
   use_moisture          = .false.
   shallow               = .false.
@@ -47,7 +46,6 @@
   init_exner_bt         = .true.
   si_momentum_equation  = .false.
   vector_invariant      = .false.
-  moisture_conservation = .false.
   eos_method = 'projected'
 /
 
@@ -194,30 +192,45 @@
   tau_r              = 0.5
   outer_iterations   = 2
   inner_iterations   = 2
-  runge_kutta_method = 'ssp5'
+  runge_kutta_method = 'forward_euler'
   spinup_period      = 1
   spinup_alpha       = .false.
   spinup_winds       = .false.
 /
 
-&biperiodic_deppt
+&departure_points
   method             = 'euler'
   n_dep_pt_iterations     = 1
+  vertical_method    = 'euler'
 /
 
 &transport
-  scheme = 'method_of_lines'
-  operators = 'fv'
+  moisture_eqn='advective'
+  profile_size = 3
+  field_names = 'density', 'potential_temperature', 'wind'
+  scheme = 1, 1, 1
+  splitting = 1, 1, 1
+  horizontal_method = 1, 1, 1
+  vertical_method = 1, 1, 1
+  monotone = 1,1,1
+  log_space = .true., .false., .false.
+  enforce_min_value=.false.,.false.,.false.
+  min_value=0.0,0.0,-99999999.0,0.0
+  cfl_mol_1d_stab = 2.0
+  cfl_mol_2d_stab = 2.0
+  cfl_mol_3d_stab = 2.0
+  consistent_metric  = .false.
   fv_flux_order = 2
   fv_advective_order = 2
-  consistent_metric  = .false.
-  enforce_monotonicity = .false.
   oned_reconstruction = .false.
-  rho_splitting = 'none'
-  theta_splitting = 'none'
-  log_rho=.true.
-  log_theta=.true.
-  use_density_predictor = .true.
+  operators = 'fv'
+  vertical_sl_order='cubic'
+  slice_order='cubic'
+  runge_kutta_method = 'ssp5'
+  ffsl_advective_splitting='full'
+  ffsl_flux_splitting='full'
+  ffsl_scheme='three_dim'
+  use_density_predictor=.true.
 /
 
 &partitioning

@@ -3,12 +3,12 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!>@brief   The tangent linear test for advecting theta
-!!         (Taylor remainder convergence).
-!>@details Test whether a section of tangent linear code is tangent linear
-!!         to the corresponding section of nonlinear code, for
-!!         advecting theta, using the Taylor remainder convergence
-!!         test.
+!> @brief   The tangent linear test for advecting theta
+!!          (Taylor remainder convergence).
+!> @details Test whether a section of tangent linear code is tangent linear
+!!          to the corresponding section of nonlinear code, for
+!!          advecting theta, using the Taylor remainder convergence
+!!          test.
 module tl_test_advect_theta_field_mod
 
   use assign_field_random_kernel_mod, only: assign_field_random_kernel_type
@@ -21,15 +21,23 @@ module tl_test_advect_theta_field_mod
   use fs_continuity_mod,              only: W2, Wtheta
   use gungho_model_data_mod,          only: model_data_type
   use timestepping_config_mod,        only: dt
-  use transport_config_mod,           only: scheme,                         &
-                                            scheme_cosmic_3D,               &
-                                            scheme_method_of_lines
   use log_mod,                        only: log_event,         &
                                             log_scratch_space, &
                                             LOG_LEVEL_INFO
-  use advection_alg_mod,              only: advect_field
-  use tl_advection_alg_mod,           only: tl_advect_field,       &
-                                            tl_advection_alg_init
+  use gungho_transport_control_alg_mod,     &
+                                      only: gungho_transport_control_alg_init, &
+                                            gungho_transport_control_alg
+  use tl_transport_control_alg_mod,   only: tl_transport_control_alg
+  use transport_field_mod,            only: transport_field
+  use tl_transport_field_mod,         only: tl_transport_field
+  use transport_metadata_mod,         only: transport_metadata_type
+  use transport_metadata_collection_mod,   &
+                                      only: transport_metadata_collection
+  use transport_runtime_alg_mod,      only: transport_runtime_type
+  use transport_runtime_collection_mod,    &
+                                      only: set_transport_runtime
+  use tl_transport_runtime_collection_mod, &
+                                      only: tl_transport_runtime
   use tl_test_convergence_rate_check, only: convergence_rate_check
 
   implicit none
@@ -44,8 +52,8 @@ module tl_test_advect_theta_field_mod
   !> @param[in] mesh_id       The identifier given to the current 3d mesh
   !> @param[in] twod_mesh_id  The identifier given to the current 2d mesh
   subroutine test_advect_theta_field( model_data,    &
-                                        mesh_id,       &
-                                        twod_mesh_id )
+                                      mesh_id,       &
+                                      twod_mesh_id )
 
     implicit none
 
@@ -55,8 +63,10 @@ module tl_test_advect_theta_field_mod
 
     character(str_def) :: label = "advect_theta_field"
 
-    type(field_collection_type ), pointer :: prognostic_fields => null()
-    type(field_collection_type ), pointer :: ls_fields => null()
+    type(field_collection_type),   pointer :: prognostic_fields => null()
+    type(field_collection_type),   pointer :: ls_fields => null()
+    type(transport_metadata_type), pointer :: transport_metadata
+    type(transport_runtime_type)           :: transport_runtime
 
     ! Input
     type(field_type), pointer :: n_u => null()
@@ -69,6 +79,9 @@ module tl_test_advect_theta_field_mod
     type(field_type) :: n1_advection_inc
     type(field_type) :: n2_advection_inc
     type(field_type) :: p_advection_inc
+
+    ! Temporary
+    type(field_type) :: n_theta_np1, ls_theta_np1, p_theta_np1
 
     ! Test
     type(field_type) :: diff
@@ -104,6 +117,14 @@ module tl_test_advect_theta_field_mod
     call p_advection_inc%initialise( vector_space = &
       function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
 
+    ! Temporary fields
+    call ls_theta_np1%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
+    call n_theta_np1%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
+    call p_theta_np1%initialise( vector_space = &
+      function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
+
     ! Test
     call diff%initialise( vector_space = &
       function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
@@ -112,20 +133,21 @@ module tl_test_advect_theta_field_mod
     call random_theta%initialise( vector_space = &
       function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
 
-    call tl_advection_alg_init(mesh_id)
+    ! Init stuff
+    call gungho_transport_control_alg_init(mesh_id)
+    transport_runtime = transport_runtime_type(ls_u, ls_u, dt)
+    call set_transport_runtime(transport_runtime)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('potential_temperature')
 
     ! Taylor Remainder Convergence Test
     call invoke( assign_field_random_kernel_type( random_u ) )
     call invoke( assign_field_random_kernel_type( random_theta ) )
 
     call invoke( setval_C( n1_advection_inc, 0.0_r_def ) )
-    call advect_field( n1_advection_inc, ls_theta, ls_u, scheme,        &
-                       ls_u, ls_u, advect_density=.false., timestep=dt, &
-                       si_advective_terms=.false.,                      &
-                       density_predictor=.false.,                       &
-                       logspace=.false., dt=dt )
+    call transport_field( ls_theta_np1, ls_theta, dt, transport_metadata )
+    call invoke( X_minus_Y( n1_advection_inc, ls_theta_np1, ls_theta ) )
 
-    gamma_u = 1.e12
+    gamma_u = 1.e8
     gamma_theta = 1.e2
     do n=1,2
       gamma_u = gamma_u/2.
@@ -136,22 +158,23 @@ module tl_test_advect_theta_field_mod
                    a_times_X( p_u, gamma_u, random_u ),       &
                    a_times_X( p_theta, gamma_theta, random_theta ), &
                    setval_X( n_u, ls_u ),                     &
-                   setval_X( n_theta, ls_theta ),                 &
+                   setval_X( n_theta, ls_theta ),             &
                    inc_X_plus_Y( n_u, p_u ),                  &
                    inc_X_plus_Y( n_theta, p_theta ) )
 
-      call advect_field( n2_advection_inc, n_theta, n_u, scheme,       &
-                       n_u, n_u, advect_density=.false., timestep=dt,  &
-                       si_advective_terms=.false.,                     &
-                       density_predictor=.false.,                      &
-                       logspace=.false., dt=dt )
+      transport_runtime = transport_runtime_type(n_u, n_u, dt)
+      call set_transport_runtime(transport_runtime)
 
-      call tl_advect_field( p_advection_inc, p_theta, p_u,               &
-                          ls_theta, ls_u, scheme, p_u, p_u,              &
-                          advect_density=.false., timestep=dt,           &
-                          si_advective_terms=.false.,                    &
-                          density_predictor=.false., &
-                          logspace=.false., dt=dt )
+      call transport_field( n_theta_np1, n_theta, dt, transport_metadata )
+      call invoke( X_minus_Y( n2_advection_inc, n_theta_np1, n_theta ) )
+
+      transport_runtime = transport_runtime_type(ls_u, ls_u, dt)
+      call set_transport_runtime(transport_runtime)
+      tl_transport_runtime = transport_runtime_type(p_u, p_u, dt)
+
+      call tl_transport_field( p_theta_np1, p_theta, ls_theta, &
+                               dt, transport_metadata )
+      call invoke( X_minus_Y( p_advection_inc, p_theta_np1, p_theta ) )
 
       call invoke( X_minus_Y( diff, n2_advection_inc, n1_advection_inc ), &
                    inc_X_minus_Y( diff, p_advection_inc ),                &

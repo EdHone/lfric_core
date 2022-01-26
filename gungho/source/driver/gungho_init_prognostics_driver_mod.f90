@@ -19,8 +19,6 @@ module gungho_init_prognostics_driver_mod
   use init_saturated_profile_alg_mod,   only: init_saturated_profile_alg
   use init_unsaturated_profile_alg_mod, only: init_unsaturated_profile_alg
   use init_thermo_profile_alg_mod,      only: init_thermo_profile_alg
-  use formulation_config_mod,           only: use_moisture,         &
-                                              transport_only
   use idealised_config_mod,             only: test,                    &
                                               test_specified_profiles, &
                                               test_bryan_fritsch,      &

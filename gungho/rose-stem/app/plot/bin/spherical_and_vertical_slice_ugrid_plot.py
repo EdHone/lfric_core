@@ -109,6 +109,7 @@ def make_figures(filein, plotpath, field_list, slice_list,
                   'density': r'$\rho \ / $ kg m$^{-3}$',
                   'm_v': r'$m_v \ / $ kg kg$^{-1}$',
                   'm_cl': r'$m_{cl} \ / $ kg kg$^{-1}$',
+                  'tracer': r'$m_v \ / $ kg kg$^{-1}$',
                   'buoyancy': r'$b \ / $ m s$^{-2}$'}
 
     # Find number of full levels by asking for theta
@@ -277,8 +278,8 @@ def make_figures(filein, plotpath, field_list, slice_list,
                     slice_data = plot_data[:, :, plot_level]
                     slice_label = r'$z$: %1.1e km,' % (z1d[plot_level] / 1000.)
                     if spherical:
-                        plot_xlabel = r'$\phi \ / $ deg'
-                        plot_ylabel = r'$\lambda \ / $ deg'
+                        plot_xlabel = r'$\lambda \ / $ deg'
+                        plot_ylabel = r'$\phi \ / $ deg'
                     else:
                         plot_xlabel = r'$x \ / $ km'
                         plot_ylabel = r'$y \ / $ km'
@@ -296,9 +297,9 @@ def make_figures(filein, plotpath, field_list, slice_list,
                         np.meshgrid(z1d*height_scaling, lon1d*length_scaling)
                     slice_data = plot_data[:, plot_lat, :]
                     if spherical:
-                        slice_label = r'$\lambda$: %1.1e deg,' \
+                        slice_label = r'$\phi$: %1.1e deg,' \
                             % (lat1d[plot_lat] * length_scaling)
-                        plot_xlabel = r'$\phi \ / $ deg'
+                        plot_xlabel = r'$\lambda \ / $ deg'
                     else:
                         slice_label = r'$y$: %1.1e km,' % \
                             (lat1d[plot_lat] * length_scaling)
@@ -318,9 +319,9 @@ def make_figures(filein, plotpath, field_list, slice_list,
                         np.meshgrid(z1d*height_scaling, lat1d*length_scaling)
                     slice_data = plot_data[plot_lon, :, :]
                     if spherical:
-                        slice_label = r'$\phi$: %1.1e deg,' % \
+                        slice_label = r'$\lambda$: %1.1e deg,' % \
                             (lon1d[plot_lon] * length_scaling)
-                        plot_xlabel = r'$\lambda \ / $ deg'
+                        plot_xlabel = r'$\phi \ / $ deg'
                     else:
                         slice_label = r'$x$: %1.1e km,' % \
                             (lon1d[plot_lon] * length_scaling)
@@ -340,11 +341,10 @@ def make_figures(filein, plotpath, field_list, slice_list,
 
                 # Special contours for our known tests
                 if ((testname in ['cylinder', 'div_free',
-                                  'eternal_fountain', 'rotational',
-                                  'translational']
-                     and field in ['theta', 'density', 'rho', 'm_v'])
-                        or (testname == 'curl_free'
-                            and field in ['theta', 'm_v'])):
+                                 'eternal_fountain', 'rotational',
+                                 'translational']
+                    and field in ['theta', 'density', 'rho', 'm_v', 'tracer'])
+                    or (testname == 'curl_free' and field in ['theta', 'm_v'])):
 
                     # Hardwire contour details
                     # 2.0 is the background value (usually the minimum)
@@ -363,7 +363,7 @@ def make_figures(filein, plotpath, field_list, slice_list,
                     for contour in contour_colours:
                         if abs(contour - tracer_background) > epsilon:
                             contour_lines.append(contour)
-                elif (testname == 'curl_free' and field in ['density', 'rho']):
+                elif (testname == 'curl_free' and field in ['density', 'rho', 'tracer']):
                     step = 0.5
                     min_field = 0.0
                     max_field = 6.0

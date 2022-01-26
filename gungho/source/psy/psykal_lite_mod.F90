@@ -24,7 +24,7 @@ module psykal_lite_mod
                                            quadrature_xyoz_proxy_type
   use quadrature_face_mod,          only : quadrature_face_type, &
                                            quadrature_face_proxy_type
-  use biperiodic_deppt_config_mod,  only : n_dep_pt_iterations
+  use departure_points_config_mod,  only : n_dep_pt_iterations
 
   implicit none
   public
@@ -408,8 +408,8 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,cell_orientation,direction,rho_app
     use subgrid_config_mod,               only: rho_approximation
     use mesh_mod,                         only: mesh_type
     use log_mod,                          only: log_event, LOG_LEVEL_ERROR
-    use cosmic_halo_correct_x_kernel_mod, only: cosmic_halo_correct_x_code
-    use cosmic_halo_correct_y_kernel_mod, only: cosmic_halo_correct_y_code
+    use ffsl_halo_correct_x_kernel_mod,   only: ffsl_halo_correct_x_code
+    use ffsl_halo_correct_y_kernel_mod,   only: ffsl_halo_correct_y_code
 
     implicit none
 
@@ -492,27 +492,27 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,cell_orientation,direction,rho_app
     ! Loop over all core and halo cells.
     do cell=1,mesh%get_ncells_2d()
 
-      call cosmic_halo_correct_x_code(  nlayers,                            &
-                                        rho_x_halos_corrected_proxy%data,   &
-                                        rho_x_proxy%data,                   &
-                                        rho_y_proxy%data,                   &
-                                        cell_orientation_proxy%data,        &
-                                        ndf_w3,                             &
-                                        undf_w3,                            &
-                                        map_w3(:,cell))
+      call ffsl_halo_correct_x_code(  nlayers,                            &
+                                      rho_x_halos_corrected_proxy%data,   &
+                                      rho_x_proxy%data,                   &
+                                      rho_y_proxy%data,                   &
+                                      cell_orientation_proxy%data,        &
+                                      ndf_w3,                             &
+                                      undf_w3,                            &
+                                      map_w3(:,cell))
     end do
 
     ! Loop over all core and halo cells.
     do cell=1,mesh%get_ncells_2d()
 
-      call cosmic_halo_correct_y_code(  nlayers,                            &
-                                        rho_y_halos_corrected_proxy%data,   &
-                                        rho_x_proxy%data,                   &
-                                        rho_y_proxy%data,                   &
-                                        cell_orientation_proxy%data,        &
-                                        ndf_w3,                             &
-                                        undf_w3,                            &
-                                        map_w3(:,cell))
+      call ffsl_halo_correct_y_code(  nlayers,                            &
+                                      rho_y_halos_corrected_proxy%data,   &
+                                      rho_x_proxy%data,                   &
+                                      rho_y_proxy%data,                   &
+                                      cell_orientation_proxy%data,        &
+                                      ndf_w3,                             &
+                                      undf_w3,                            &
+                                      map_w3(:,cell))
     end do
 
     map_x_w3 => rho_x_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,rho_approximation_stencil_extent)
@@ -596,7 +596,7 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,cell_orientation,direction,rho_app
 
 !------------------------------------------------------------------------------
 ! One of the reasons (but not the only one) for this "light" implementation is
-! passing the double precision deltaT value to fv_mass_flux_code. This should
+! passing the double precision deltaT value to ffsl_hori_mass_flux_code. This should
 ! not be taken as a requirement, it is simply expedient to get the clock change
 ! on trunk. It is probably the wrong thing to be doing in the long run.
 !
@@ -610,11 +610,11 @@ subroutine invoke_fv_mass_fluxes( rho,            &
                                   stencil_extent, &
                                   dt )
 
-  use fv_mass_flux_kernel_mod,      only: fv_mass_flux_code
-  use flux_direction_mod,           only: x_direction, y_direction
-  use stencil_dofmap_mod,           only: stencil_dofmap_type, &
-                                          STENCIL_1DX, STENCIL_1DY
-  use mesh_mod,                     only: mesh_type
+  use ffsl_hori_mass_flux_kernel_mod, only: ffsl_hori_mass_flux_code
+  use flux_direction_mod,             only: x_direction, y_direction
+  use stencil_dofmap_mod,             only: stencil_dofmap_type, &
+                                            STENCIL_1DX, STENCIL_1DY
+  use mesh_mod,                       only: mesh_type
   implicit none
 
   type(field_type), intent(in)      :: rho
@@ -691,23 +691,23 @@ subroutine invoke_fv_mass_fluxes( rho,            &
 
       stencil_map => map%get_dofmap(cell)
 
-      call fv_mass_flux_code(  nlayers,                     &
-                               undf_w3,                     &
-                               ndf_w3,                      &
-                               map_rho,                     &
-                               rho_proxy%data,              &
-                               a0_coeffs_proxy%data,        &
-                               a1_coeffs_proxy%data,        &
-                               a2_coeffs_proxy%data,        &
-                               undf_w2,                     &
-                               ndf_w2,                      &
-                               map_w2,                      &
-                               mass_flux_proxy%data,        &
-                               dep_pts_proxy%data,          &
-                               stencil_size,                &
-                               stencil_map,                 &
-                               direction,                   &
-                               dt )
+      call ffsl_hori_mass_flux_code(  nlayers,                     &
+                                      undf_w3,                     &
+                                      ndf_w3,                      &
+                                      map_rho,                     &
+                                      rho_proxy%data,              &
+                                      a0_coeffs_proxy%data,        &
+                                      a1_coeffs_proxy%data,        &
+                                      a2_coeffs_proxy%data,        &
+                                      undf_w2,                     &
+                                      ndf_w2,                      &
+                                      map_w2,                      &
+                                      mass_flux_proxy%data,        &
+                                      dep_pts_proxy%data,          &
+                                      stencil_size,                &
+                                      stencil_map,                 &
+                                      direction,                   &
+                                      dt )
 
   end do
   call a0_coeffs_proxy%set_dirty()
@@ -818,60 +818,6 @@ subroutine invoke_calc_deppts(  u_n,                   &
   call dep_pts_proxy%set_dirty()
 
 end subroutine invoke_calc_deppts
-
-!-------------------------------------------------------------------------------
-!> invoke_multiply_field_data:  z =  x * y
-  subroutine invoke_multiply_field_data(field1,field2,field_res)
-    use log_mod, only : log_event, LOG_LEVEL_ERROR
-    use mesh_mod,only : mesh_type
-    implicit none
-    type( field_type ), intent(in )    :: field1,field2
-    type( field_type ), intent(inout ) :: field_res
-    type( field_proxy_type)            :: field1_proxy,field2_proxy,     &
-                                          field_res_proxy
-    integer(kind=i_def)                :: i,undf
-    integer(kind=i_def)                :: depth, dplp
-    type(mesh_type), pointer           :: mesh => null()
-
-    field1_proxy = field1%get_proxy()
-    field2_proxy = field2%get_proxy()
-    field_res_proxy = field_res%get_proxy()
-
-    !sanity check
-    undf = field1_proxy%vspace%get_undf()
-    if(undf /= field2_proxy%vspace%get_undf() ) then
-      ! they are not on the same function space
-      call log_event("PSy:multiply_field_data:field1 and field2 live on different w-spaces" &
-                    , LOG_LEVEL_ERROR)
-      !abort
-      stop
-    endif
-    if(undf /= field_res_proxy%vspace%get_undf() ) then
-      ! they are not on the same function space
-      call log_event("PSy:multiply_field_data:field1 and result_field live on different w-spaces" &
-                    , LOG_LEVEL_ERROR)
-      !abort
-      stop
-    endif
-
-    !$omp parallel do schedule(static), default(none), shared(field1_proxy, field2_proxy, field_res_proxy, undf),  private(i)
-    do i = 1,undf
-      field_res_proxy%data(i) = field1_proxy%data(i) * field2_proxy%data(i)
-    end do
-    !$omp end parallel do
-
-    mesh => field_res_proxy%vspace%get_mesh()
-    depth = mesh%get_halo_depth()
-
-    do dplp = 1, depth
-      if( field1_proxy%is_dirty(depth=dplp) .or. &
-          field2_proxy%is_dirty(depth=dplp) ) then
-        call field_res_proxy%set_dirty()
-      else
-        call field_res_proxy%set_clean(dplp)
-      end if
-    end do
-  end subroutine invoke_multiply_field_data
 
 !-------------------------------------------------------------------------------
 ! Implemented in #965, kernel requires stencil support. Note that the w2_field is
@@ -1129,7 +1075,7 @@ end subroutine invoke_calc_deppts
   ! uses a larger halo depth and this routine requires iteration over all values
   ! in the halo as well.
   subroutine invoke_cosmic_departure_wind(dep_wind_x,dep_wind_y,u_piola_x,u_piola_y,detj_at_w2,direction)
-    use cosmic_departure_wind_kernel_mod, only: cosmic_departure_wind_code
+    use ffsl_hori_dep_wind_kernel_mod,    only: ffsl_hori_dep_wind_code
     use mesh_mod,                         only: mesh_type
     use flux_direction_mod,               only: x_direction, y_direction
     use log_mod,                          only: log_event, LOG_LEVEL_ERROR
@@ -1176,24 +1122,24 @@ end subroutine invoke_calc_deppts
     if (direction == x_direction) then
       do cell = 1,mesh%get_ncells_2d()
          map     => u_piola_x_p%vspace%get_cell_dofmap( cell )
-         call cosmic_departure_wind_code( nlayers,                                  &
-                                          dep_wind_x_p%data,                        &
-                                          u_piola_x_p%data,                         &
-                                          detj_at_w2_p%data,                        &
-                                          ndf_w2, undf_w2, map,                     &
-                                          direction                                 &
-                                           )
+         call ffsl_hori_dep_wind_code( nlayers,                                  &
+                                       dep_wind_x_p%data,                        &
+                                       u_piola_x_p%data,                         &
+                                       detj_at_w2_p%data,                        &
+                                       ndf_w2, undf_w2, map,                     &
+                                       direction                                 &
+                                        )
       end do
     elseif (direction == y_direction) then
       do cell = 1,mesh%get_ncells_2d()
          map     => u_piola_y_p%vspace%get_cell_dofmap( cell )
-         call cosmic_departure_wind_code( nlayers,                                  &
-                                          dep_wind_y_p%data,                        &
-                                          u_piola_y_p%data,                         &
-                                          detj_at_w2_p%data,                        &
-                                          ndf_w2, undf_w2, map,                     &
-                                          direction                                 &
-                                           )
+         call ffsl_hori_dep_wind_code( nlayers,                                  &
+                                       dep_wind_y_p%data,                        &
+                                       u_piola_y_p%data,                         &
+                                       detj_at_w2_p%data,                        &
+                                       ndf_w2, undf_w2, map,                     &
+                                       direction                                 &
+                                        )
       end do
     else
       call log_event("Direction incorrectly specified in invoke_cosmic_departure_wind",LOG_LEVEL_ERROR)
@@ -1209,17 +1155,17 @@ end subroutine invoke_calc_deppts
   ! Ticket #1156. Stephen Pring
   ! This code is implemented in psykal-lite because the cells to
   ! iterate over include all core cells and all halo cells. At present, the default
-  ! iteration is over core cells and a halo depth of 1. The cosmic transport scheme
+  ! iteration is over core cells and a halo depth of 1. The FFSL transport scheme
   ! uses a larger halo depth and this routine requires iteration over all values
   ! in the halo as well.
-  subroutine invoke_correct_cosmic_wind(wind_x_out,                   &
-                                        wind_y_out,                   &
-                                        departure_wind_x_in,          &
-                                        departure_wind_y_in,          &
-                                        orientation_of_cells,         &
-                                        direction)
+  subroutine invoke_correct_ffsl_wind(wind_x_out,                   &
+                                      wind_y_out,                   &
+                                      departure_wind_x_in,          &
+                                      departure_wind_y_in,          &
+                                      orientation_of_cells,         &
+                                      direction)
 
-    use correct_cosmic_wind_kernel_mod, only: correct_cosmic_wind_code
+    use correct_ffsl_wind_kernel_mod,   only: correct_ffsl_wind_code
     use flux_direction_mod,             only: x_direction, y_direction
     use mesh_mod,                       only: mesh_type
     use log_mod,                        only: log_event, LOG_LEVEL_ERROR
@@ -1263,17 +1209,17 @@ end subroutine invoke_calc_deppts
         map_w3 => orientation_proxy%vspace%get_cell_dofmap(cell)
         map_w2 => wind_x_in_proxy%vspace%get_cell_dofmap(cell)
 
-        call correct_cosmic_wind_code(  nlayers,                        &
-                                        wind_x_out_proxy%data,          &
-                                        wind_x_in_proxy%data,           &
-                                        orientation_proxy%data,         &
-                                        undf_w2,                        &
-                                        ndf_w2,                         &
-                                        map_w2,                         &
-                                        undf_w3,                        &
-                                        ndf_w3,                         &
-                                        map_w3,                         &
-                                        direction )
+        call correct_ffsl_wind_code(  nlayers,                        &
+                                      wind_x_out_proxy%data,          &
+                                      wind_x_in_proxy%data,           &
+                                      orientation_proxy%data,         &
+                                      undf_w2,                        &
+                                      ndf_w2,                         &
+                                      map_w2,                         &
+                                      undf_w3,                        &
+                                      ndf_w3,                         &
+                                      map_w3,                         &
+                                      direction )
 
       end do
     elseif (direction == y_direction) then
@@ -1281,24 +1227,24 @@ end subroutine invoke_calc_deppts
         map_w3 => orientation_proxy%vspace%get_cell_dofmap(cell)
         map_w2 => wind_x_in_proxy%vspace%get_cell_dofmap(cell)
 
-        call correct_cosmic_wind_code(  nlayers,                        &
-                                        wind_y_out_proxy%data,          &
-                                        wind_y_in_proxy%data,           &
-                                        orientation_proxy%data,         &
-                                        undf_w2,                        &
-                                        ndf_w2,                         &
-                                        map_w2,                         &
-                                        undf_w3,                        &
-                                        ndf_w3,                         &
-                                        map_w3,                         &
-                                        direction )
+        call correct_ffsl_wind_code(  nlayers,                        &
+                                      wind_y_out_proxy%data,          &
+                                      wind_y_in_proxy%data,           &
+                                      orientation_proxy%data,         &
+                                      undf_w2,                        &
+                                      ndf_w2,                         &
+                                      map_w2,                         &
+                                      undf_w3,                        &
+                                      ndf_w3,                         &
+                                      map_w3,                         &
+                                      direction )
 
       end do
     else
-      call log_event("Direction incorrectly specified in invoke_correct_cosmic_wind",LOG_LEVEL_ERROR)
+      call log_event("Direction incorrectly specified in invoke_correct_ffsl_wind",LOG_LEVEL_ERROR)
     end if
 
-  end subroutine invoke_correct_cosmic_wind
+  end subroutine invoke_correct_ffsl_wind
 
   !----------------------------------------------------------------------------
   !> Handles passing double precision deltaT to the vertical_flux kernel.
@@ -1312,8 +1258,8 @@ end subroutine invoke_calc_deppts
                                           a0, a1, a2,  &
                                           dt )
 
-    use mesh_mod,                 only: mesh_type
-    use vertical_flux_kernel_mod, only: vertical_flux_code
+    use mesh_mod,                      only: mesh_type
+    use ffsl_vertical_flux_kernel_mod, only: ffsl_vertical_flux_code
 
     implicit none
 
@@ -1390,7 +1336,8 @@ end subroutine invoke_calc_deppts
     !
     do cell=1,mesh%get_last_halo_cell(1)
       !
-      call vertical_flux_code(nlayers, mass_flux_z_proxy%data, dep_pts_proxy%data, rho_proxy%data, a0_proxy%data, a1_proxy%data, &
+      call ffsl_vertical_flux_code(nlayers, mass_flux_z_proxy%data, dep_pts_proxy%data, &
+  &rho_proxy%data, a0_proxy%data, a1_proxy%data, &
   &a2_proxy%data, dt, ndf_w2, undf_w2, map_w2(:,cell), ndf_w3, undf_w3, map_w3(:,cell))
     end do
     !
@@ -1737,21 +1684,21 @@ end subroutine invoke_calc_deppts
   !> Requires GH_INC field to be halo swapped before updating. #
   !> Described by Issue #1292.
   !> https://github.com/stfc/PSyclone/issues/1292
-    SUBROUTINE invoke_impose_min_flux_kernel_type(field, mass_flux, div, mm_w3_inv, &
-                                                    field_min, dt_substep)
+    SUBROUTINE invoke_impose_min_flux_kernel_type(field, mass_flux, div, &
+                                                    field_min, dt_step)
       USE impose_min_flux_kernel_mod, ONLY: impose_min_flux_code
       USE mesh_mod,                   ONLY: mesh_type
       USE operator_mod,               ONLY: operator_type, operator_proxy_type
 
       implicit none
 
-      REAL(KIND=r_def), intent(in)    :: dt_substep
+      REAL(KIND=r_def), intent(in)    :: dt_step
       REAL(KIND=r_def), intent(in)    :: field_min
       TYPE(field_type), intent(in)    :: field, mass_flux
-      TYPE(operator_type), intent(in) :: div, mm_w3_inv
+      TYPE(operator_type), intent(in) :: div
       INTEGER(KIND=i_def) cell
       INTEGER(KIND=i_def) nlayers
-      TYPE(operator_proxy_type) div_proxy, mm_w3_inv_proxy
+      TYPE(operator_proxy_type) div_proxy
       TYPE(field_proxy_type) field_proxy, mass_flux_proxy
       INTEGER(KIND=i_def), pointer :: map_w2(:,:) => null(), map_w3(:,:) => null()
       INTEGER(KIND=i_def) ndf_w3, undf_w3, ndf_w2, undf_w2
@@ -1762,7 +1709,6 @@ end subroutine invoke_calc_deppts
       field_proxy = field%get_proxy()
       mass_flux_proxy = mass_flux%get_proxy()
       div_proxy = div%get_proxy()
-      mm_w3_inv_proxy = mm_w3_inv%get_proxy()
       !
       ! Initialise number of layers
       !
@@ -1803,7 +1749,7 @@ end subroutine invoke_calc_deppts
       DO cell=1,mesh%get_last_halo_cell(1)
         !
         CALL impose_min_flux_code(cell, nlayers, field_proxy%data, mass_flux_proxy%data, div_proxy%ncell_3d, &
-&div_proxy%local_stencil, mm_w3_inv_proxy%ncell_3d, mm_w3_inv_proxy%local_stencil, field_min, dt_substep, ndf_w3, undf_w3, &
+&div_proxy%local_stencil, field_min, dt_step, ndf_w3, undf_w3, &
 &map_w3(:,cell), ndf_w2, undf_w2, map_w2(:,cell))
       END DO
       !

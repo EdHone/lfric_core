@@ -20,7 +20,7 @@ program semi_implicit
                                  LOG_LEVEL_INFO
   use tl_test_driver_mod, only : initialise,                  &
                                  finalise,                    &
-                                 run_advection_control,       &
+                                 run_transport_control,       &
                                  run_semi_imp_alg,            &
                                  run_rhs_eos,                 &
                                  run_rhs_alg
@@ -39,7 +39,7 @@ program semi_implicit
   character(len=:), allocatable :: program_name, test_flag
 
   ! Flags which determine the tests that will be carried out
-  logical :: do_test_advection_control = .false.
+  logical :: do_test_transport_control = .false.
   logical :: do_test_semi_imp_alg = .false.
   logical :: do_test_rhs_alg = .false.
   logical :: do_test_rhs_eos = .false.
@@ -68,7 +68,7 @@ program semi_implicit
      write(usage_message,*) "Usage: ",trim(program_name), &
           " <namelist filename> "      // &
           " test_XXX with XXX in { "   // &
-          " advection_control, "       // &
+          " transport_control, "       // &
           " semi_imp_alg, "            // &
           " rhs_alg, "                 // &
           " rhs_eos, "                 // &
@@ -87,8 +87,8 @@ program semi_implicit
   ! Choose test case depending on flag provided in the first command
   ! line argument
   select case (trim(test_flag))
-  case ("test_advection_control")
-     do_test_advection_control = .true.
+  case ("test_transport_control")
+     do_test_transport_control = .true.
   case ("test_semi_imp_alg")
      do_test_semi_imp_alg = .true.
   case ("test_rhs_alg")
@@ -102,8 +102,8 @@ program semi_implicit
   call initialise( filename, model_communicator )
   deallocate( filename )
 
-  if (do_test_advection_control) then
-    call run_advection_control()
+  if (do_test_transport_control) then
+    call run_transport_control()
   endif
   if (do_test_rhs_alg) then
     call run_rhs_alg()

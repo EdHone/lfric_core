@@ -23,7 +23,6 @@ module init_gungho_prognostics_alg_mod
                                              geometry_spherical, &
                                              geometry_planar
   use formulation_config_mod,          only: use_moisture,         &
-                                             transport_only,       &
                                              eos_method,           &
                                              eos_method_sampled,   &
                                              eos_method_projected
@@ -295,39 +294,24 @@ contains
 
     call r_rho%initialise( vector_space =  rho%get_function_space() )
 
-    if (transport_only) then
-      ! Initialise rho analytically if transport-only. Either sampled or projected
-      select case(method)
-        case(method_sampled, &
-             method_balanced)
-          call invoke( initial_rho_sample_kernel_type( rho, chi, panel_id, time ) )
-        case(method_projected)
-          call invoke( set_rho_kernel_type( rho, chi, panel_id, time, qr ) )
-        case default
-          call log_event( "Gungho: Unrecognised method in initial_pressure", LOG_LEVEL_ERROR )
-      end select
-      ! Set exner as rho
-      call invoke( setval_X(exner, rho) )
-    else
-      ! Initialise rho using equation of state, either sampled or projected
-      select case(eos_method)
-        case(eos_method_sampled)
-          ! Diagnose density from equation of state by sampling
-          call invoke( sample_eos_rho_kernel_type( rho, exner, theta,     &
-                                                   moist_dyn(gas_law),    &
-                                                   kappa, rd, p_zero ) )
-        case(eos_method_projected)
-          ! Diagnose density from equation of state by projection
-          call invoke( setval_c( r_rho, 0.0_r_def ),                      &
-                       project_eos_rho_kernel_type( r_rho, exner, theta,  &
-                                                    moist_dyn(gas_law),   &
-                                                    chi, panel_id, kappa, &
-                                                    rd, p_zero, qr ),     &
-                       dg_matrix_vector_kernel_type(rho, r_rho, m3_inv) )
-        case default
-          call log_event( "Gungho: Unrecognised method used for equation of state", LOG_LEVEL_ERROR )
-      end select
-    end if
+    ! Initialise rho using equation of state, either sampled or projected
+    select case(eos_method)
+      case(eos_method_sampled)
+        ! Diagnose density from equation of state by sampling
+        call invoke( sample_eos_rho_kernel_type( rho, exner, theta,     &
+                                                 moist_dyn(gas_law),    &
+                                                 kappa, rd, p_zero ) )
+      case(eos_method_projected)
+        ! Diagnose density from equation of state by projection
+        call invoke( setval_c( r_rho, 0.0_r_def ),                      &
+                     project_eos_rho_kernel_type( r_rho, exner, theta,  &
+                                                  moist_dyn(gas_law),   &
+                                                  chi, panel_id, kappa, &
+                                                  rd, p_zero, qr ),     &
+                     dg_matrix_vector_kernel_type(rho, r_rho, m3_inv) )
+      case default
+        call log_event( "Gungho: Unrecognised method used for equation of state", LOG_LEVEL_ERROR )
+    end select
 
     call r_rho%field_final()
     nullify( chi, panel_id, m3_inv, qr )
@@ -359,40 +343,32 @@ contains
     type(field_type), pointer :: height_wth => null()
 
     real(kind=r_def)    :: initial_time
-    integer(kind=i_def) :: i, mesh_id
+    integer(kind=i_def) :: mesh_id
 
     if (use_moisture) then
-      if (transport_only) then
-        ! Set up moisture variables to be the same as theta
-        do i = 1, nummr
-          call invoke( setval_X(mr(i), theta) )
-        end do
-        call moist_dyn_factors_alg( moist_dyn, mr )
-      else
-        mesh_id = theta%get_mesh_id()
-        chi => get_coordinates(mesh_id)
-        panel_id => get_panel_id(mesh_id)
+      mesh_id = theta%get_mesh_id()
+      chi => get_coordinates(mesh_id)
+      panel_id => get_panel_id(mesh_id)
 
-        call invoke( initial_mr_kernel_type( theta, exner, rho, mr, chi, &
-                                             panel_id, p_zero, rd, kappa ) )
+      call invoke( initial_mr_kernel_type( theta, exner, rho, mr, chi, &
+                                           panel_id, p_zero, rd, kappa ) )
 
-        call moist_dyn_factors_alg( moist_dyn, mr )
+      call moist_dyn_factors_alg( moist_dyn, mr )
 
-        if ( (test /= test_grabowski_clark) .and. &
-             (test /= test_bryan_fritsch) ) then
-          ! Recompute hydrostatic balance following the addition of moisture
-          ! TODO: This should not be done here -- will be fixed by #2877
-          ! This should be done by separate routines from the driver level
-          height_w3 => get_height(W3, mesh_id)
-          height_wth => get_height(Wtheta, mesh_id)
-          initial_time = 0.0_r_def
-          call invoke( hydrostatic_exner_kernel_type( exner, theta, moist_dyn, &
-                                                      height_wth, height_w3,   &
-                                                      chi, panel_id,           &
-                                                      gravity, p_zero, rd, cp ) )
+      if ( (test /= test_grabowski_clark) .and. &
+           (test /= test_bryan_fritsch) ) then
+        ! Recompute hydrostatic balance following the addition of moisture
+        ! TODO: This should not be done here -- will be fixed by #2877
+        ! This should be done by separate routines from the driver level
+        height_w3 => get_height(W3, mesh_id)
+        height_wth => get_height(Wtheta, mesh_id)
+        initial_time = 0.0_r_def
+        call invoke( hydrostatic_exner_kernel_type( exner, theta, moist_dyn, &
+                                                    height_wth, height_w3,   &
+                                                    chi, panel_id,           &
+                                                    gravity, p_zero, rd, cp ) )
 
-          call init_rho_field( rho, theta, exner, moist_dyn, initial_time )
-        end if
+        call init_rho_field( rho, theta, exner, moist_dyn, initial_time )
       end if
     else
       call set_bundle_scalar(0.0_r_def, mr, nummr)

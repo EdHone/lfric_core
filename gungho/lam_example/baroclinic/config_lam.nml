@@ -5,11 +5,6 @@ offline_partitioning = .false.,
 prime_mesh_name='dynamics',
 topology='fully_periodic',
 /
-&biperiodic_deppt
-method='euler',
-n_dep_pt_iterations=1,
-vertical_method='trapezoidal',
-/
 &boundaries
 boundary_e=3,
 boundary_n=3,
@@ -29,6 +24,11 @@ rim_width_ns=7,
 /
 &checks
 limit_cfl=.false.,
+/
+&departure_points
+method='euler',
+n_dep_pt_iterations=1,
+vertical_method='trapezoidal',
 /
 &section_choice
 dynamics='gungho',
@@ -64,11 +64,9 @@ eos_method='sampled'
 exner_from_eos=.true.,
 init_exner_bt=.true.,
 l_multigrid=.false.,
-moisture_conservation=.false.,
 rotating=.true.,
 shallow=.false.,
 si_momentum_equation=.false.,
-transport_only=.false.,
 use_moisture=.false.,
 use_physics=.false.,
 use_wavedynamics=.true.,
@@ -207,23 +205,32 @@ tau_t=0.5,
 tau_u=0.5,
 /
 &transport
-cfl_control_stab=2.0,
-consistent_metric=.false.,
-enforce_monotonicity=.false.,
-fv_advective_order=2,
-fv_flux_order=2,
-log_rho=.false.,
-log_theta=.false.,
-oned_reconstruction=.false.,
-operators='fv',
-rho_splitting='none',
-rho_vertical_scheme='slice',
-scheme='method_of_lines',
-slice_order='cubic',
-theta_splitting='none',
-theta_vertical_scheme='sl',
-use_density_predictor=.true.,
-vertical_sl_order='cubic',
+moisture_eqn='advective'
+profile_size = 3
+field_names = 'density', 'potential_temperature', 'wind'
+scheme = 1, 1, 1
+splitting = 1, 1, 1
+horizontal_method = 1, 1, 1
+vertical_method = 1, 1, 1
+monotone = 1,1,1
+log_space = .true., .false., .false.
+enforce_min_value=.false.,.false.,.false.
+min_value=0.0,0.0,-99999999.0,0.0
+cfl_mol_1d_stab = 2.0
+cfl_mol_2d_stab = 2.0
+cfl_mol_3d_stab = 2.0
+consistent_metric  = .false.
+fv_flux_order = 2
+fv_advective_order = 2
+oned_reconstruction = .false.
+operators = 'fv'
+vertical_sl_order='cubic'
+slice_order='cubic'
+runge_kutta_method = 'ssp5'
+ffsl_advective_splitting='full'
+ffsl_flux_splitting='full'
+ffsl_scheme='three_dim'
+use_density_predictor=.true.
 /
 &development
 /

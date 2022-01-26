@@ -10,14 +10,13 @@
 !>
 module calc_departure_point_kernel_mod
 
-  use argument_mod,                only : arg_type, func_type,     &
+  use argument_mod,                only : arg_type,                &
                                           GH_FIELD, GH_REAL,       &
                                           GH_READ, GH_WRITE,       &
-                                          GH_BASIS, GH_DIFF_BASIS, &
                                           GH_SCALAR, GH_INTEGER,   &
                                           CELL_COLUMN
   use constants_mod,               only : r_def, i_def
-  use fs_continuity_mod,           only : W0, W2, W3
+  use fs_continuity_mod,           only : W2, W3
   use kernel_mod,                  only : kernel_type
 
   implicit none
@@ -84,9 +83,9 @@ subroutine calc_departure_point_code( nlayers,                       &
                                       direction,                     &
                                       dep_pt_method )
 
-  use biperiodic_deppts_mod, only : calc_dep_point
-  use cosmic_flux_mod,       only : calc_stencil_ordering, w2_dof, reorientate_w2field
-  use flux_direction_mod,    only : x_direction, y_direction
+  use departure_points_mod, only : calc_dep_point
+  use cosmic_flux_mod,      only : calc_stencil_ordering, w2_dof, reorientate_w2field
+  use flux_direction_mod,   only : x_direction, y_direction
 
   implicit none
 

@@ -46,30 +46,36 @@
 
      <!-- Checkpoint group -->
      <field_group id="checkpoint_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
-       <field id="checkpoint_density" name="density" long_name="air_density" standard_name="air_density" unit="kg m-3" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" domain_ref="checkpoint_W3" />
        <field id="checkpoint_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" domain_ref="checkpoint_Wtheta" />
-       <field id="checkpoint_wind" name="wind" long_name="wind" unit="m s-1" domain_ref="checkpoint_W2" />
-       <field id="checkpoint_wind_divergence" name="wind_divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_u" name="u" long_name="wind" unit="m s-1" domain_ref="checkpoint_W2" />
+       <field id="checkpoint_tracer" name="tracer" long_name="tracer" standard_name="tracer" unit="kg/kg" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_m_v" name="m_v" long_name="m_v" unit="kg/kg" domain_ref="checkpoint_Wtheta" />
+       <field id="checkpoint_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" domain_ref="checkpoint_W3" />
      </field_group>
 
      <!-- Main diagnostic group -->
      <field_group id="diagnostic_fields" freq_op="1ts" enabled=".TRUE." operation="instant" >
-       <field id="wind1" name="wind1" long_name="eastward_wind" standard_name="eastward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
-       <field id="wind2" name="wind2" long_name="northward_wind" standard_name="northward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
-       <field id="wind3" name="wind3" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
-       <field id="density" name="density" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
+       <field id="u1" name="u1" long_name="eastward_wind" standard_name="eastward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="u2" name="u2" long_name="northward_wind" standard_name="northward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="u3" name="u3" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
        <field id="theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
-       <field id="wind_divergence" name="wind_divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
+       <field id="tracer" name="tracer" long_name="m_v" standard_name="tracer" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" grid_ref="full_level_face_grid" />
+       <field id="divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
      </field_group>
 
       <!-- Initial conditions group -->
      <field_group id="initial_fields" freq_op="1ts" enabled=".TRUE." operation="once" >
-       <field id="init_wind1" name="wind1" long_name="eastward_wind" standard_name="eastward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
-       <field id="init_wind2" name="wind2" long_name="northward_wind" standard_name="northward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
-       <field id="init_wind3" name="wind3" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
-       <field id="init_density" name="density" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
+       <field id="init_u1" name="u1" long_name="eastward_wind" standard_name="eastward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="init_u2" name="u2" long_name="northward_wind" standard_name="northward_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="init_u3" name="u3" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="init_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
        <field id="init_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
-       <field id="init_wind_divergence" name="wind_divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
+       <field id="init_tracer" name="tracer" long_name="tracer" standard_name="tracer" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="init_m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" grid_ref="full_level_face_grid" />
+       <field id="init_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
      </field_group>
 
    </field_definition>
@@ -83,36 +89,44 @@
 
       <!-- File definition for checkpoint write -->
       <file id="lfric_checkpoint_write" name="lfric_checkpoint" convention="CF" enabled=".FALSE.">
-        <field field_ref="checkpoint_density"/>
+        <field field_ref="checkpoint_rho"/>
         <field field_ref="checkpoint_theta"/>
-        <field field_ref="checkpoint_wind"/>
-        <field field_ref="checkpoint_wind_divergence"/>
+        <field field_ref="checkpoint_tracer"/>
+        <field field_ref="checkpoint_m_v"/>
+        <field field_ref="checkpoint_u"/>
+        <field field_ref="checkpoint_divergence"/>
       </file>
 
        <!-- file definition for checkpoint read -->
       <file id="lfric_checkpoint_read" name="lfric_checkpoint" mode="read" output_freq="1ts" cyclic="true" enabled=".FALSE.">
-       <field id="restart_density" name="density" long_name="air_density" standard_name="air_density" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
        <field id="restart_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" operation="instant" domain_ref="checkpoint_Wtheta" />
-       <field id="restart_wind" name="wind" long_name="wind" unit="m s-1" operation="instant" domain_ref="checkpoint_W2" />
-       <field id="restart_wind_divergence" name="wind_divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_tracer" name="tracer" long_name="tracer" standard_name="tracer" unit="kg/kg" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" operation="instant" domain_ref="checkpoint_Wtheta" />
+       <field id="restart_u" name="u" long_name="wind" unit="m s-1" operation="instant" domain_ref="checkpoint_W2" />
+       <field id="restart_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
       </file>
 
       <file id="lfric_diag" name="lfric_diag" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
-        <field field_ref="wind1"/>
-        <field field_ref="wind2"/>
-        <field field_ref="wind3"/>
-        <field field_ref="density"/>
+        <field field_ref="u1"/>
+        <field field_ref="u2"/>
+        <field field_ref="u3"/>
+        <field field_ref="rho"/>
         <field field_ref="theta"/>
-        <field field_ref="wind_divergence"/>
+        <field field_ref="tracer"/>
+        <field field_ref="m_v"/>
+        <field field_ref="divergence"/>
       </file>
 
       <file id="lfric_initial" name="lfric_initial" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
-        <field field_ref="init_wind1"/>
-        <field field_ref="init_wind2"/>
-        <field field_ref="init_wind3"/>
-        <field field_ref="init_density"/>
+        <field field_ref="init_u1"/>
+        <field field_ref="init_u2"/>
+        <field field_ref="init_u3"/>
+        <field field_ref="init_rho"/>
         <field field_ref="init_theta"/>
-        <field field_ref="init_wind_divergence"/>
+        <field field_ref="init_tracer"/>
+        <field field_ref="init_m_v"/>
+        <field field_ref="init_divergence"/>
       </file>
 
 

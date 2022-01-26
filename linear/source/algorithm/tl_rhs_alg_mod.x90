@@ -44,7 +44,6 @@ module tl_rhs_alg_mod
   use compute_vorticity_alg_mod,           only: compute_vorticity_alg
   use fs_continuity_mod,                   only: W1, W2, Wtheta
   use function_space_collection_mod,       only: function_space_collection
-  use tl_advection_alg_mod,                only: tl_advect_momentum_alg
 
   implicit none
 
@@ -219,10 +218,7 @@ subroutine tl_rhs_alg(rhs, alpha_dt, base_state, state, moist_dyn,        &
       else
         call rhs_adv%initialise( u%get_function_space() )
         call invoke( setval_c( rhs_adv, 0.0_r_def ) )
-        call tl_advect_momentum_alg( rhs_adv, u, u,            &
-                                     ls_u, ls_u, ls_u, ls_u,   &
-                                     dt_step=dt, n_substeps=1, &
-                                     from_si=.true. )
+        call log_event('SI advective form not supported', LOG_LEVEL_ERROR)
         call invoke( inc_X_plus_Y( rhs_tmp, rhs_adv ) )
       end if
     end if

@@ -4,13 +4,15 @@
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
 
-!>@brief Algorithm to compute the total mass.
-!>@details Total mass is calculated by multiplying the density value in each cell
-!>         by the volume of the cell and summing all cells.
+!> @brief Algorithm to compute the total mass.
+!> @details Total mass is calculated by multiplying the density value in each
+!>         cell by the volume of the cell and summing all cells.
 module mass_conservation_alg_mod
 
+  use compute_moist_mass_kernel_mod,   only: compute_moist_mass_kernel_type
   use compute_total_mass_kernel_mod,   only: compute_total_mass_kernel_type
   use constants_mod,                   only: r_def, i_def
+  use fem_constants_mod,               only: get_qr
   use function_space_collection_mod,   only: function_space_collection
   use field_mod,                       only: field_type
   use finite_element_config_mod,       only: element_order
@@ -19,6 +21,7 @@ module mass_conservation_alg_mod
   use log_mod,                         only: log_event,         &
                                              log_scratch_space, &
                                              LOG_LEVEL_INFO
+  use mr_indices_mod,                  only: nummr
   use quadrature_xyoz_mod,             only: quadrature_xyoz_type
   use quadrature_rule_gaussian_mod,    only: quadrature_rule_gaussian_type
   use geometric_constants_mod,         only: get_coordinates, get_panel_id
@@ -32,62 +35,59 @@ module mass_conservation_alg_mod
 
 contains
 
-  !>@brief Subroutine to compute the total masse at two time-levels
-  !>       n and n+1, as well as the relative error between the 2 masses.
-  !> @param[in] tstep       Current timestep (n+1)
-  !> @param[in] density_n   Density field at step n
-  !> @param[in] density_np1 Density field at step n+1
-  subroutine mass_conservation( tstep, density_n, density_np1 )
+  !> @brief Subroutine to compute the total mass
+  !> @param[in] tstep       Current timestep
+  !> @param[in] density     Density field
+  !> @param[in] mr          Bundle of mixing ratio fields
+  subroutine mass_conservation( tstep, density, mr )
 
     implicit none
 
-    integer(i_def), intent(in)   :: tstep
-    type(field_type), intent(in) :: density_n, density_np1
+    integer(kind=i_def),     intent(in) :: tstep
+    type(field_type),        intent(in) :: density
+    type(field_type),        intent(in) :: mr(nummr)
 
-    type(quadrature_xyoz_type)          :: qr
-    type(quadrature_rule_gaussian_type) :: quadrature_rule
-    type(field_type), pointer           :: chi(:) => null()
-    type(field_type), pointer           :: panel_id => null()
-    type(function_space_type), pointer  :: w3_fs => null()
+    type(field_type),           pointer :: chi(:) => null()
+    type(field_type),           pointer :: panel_id => null()
+    type(function_space_type),  pointer :: w3_fs => null()
+    type(quadrature_xyoz_type), pointer :: qr => null()
 
-    type(field_type)      :: mass_n, mass_np1
-    real(kind=r_def)      :: total_mass_n, total_mass_np1, err_mass
+    type(field_type)      :: dry_mass_field, water_mass_field
+    real(kind=r_def)      :: total_dry_mass, total_water_mass
     integer(kind=i_def)   :: mesh_id
 
     if ( subroutine_timers ) call timer( 'mass_conservation' )
 
-    mesh_id = density_n%get_mesh_id()
+    mesh_id = density%get_mesh_id()
 
     chi => get_coordinates(mesh_id)
     panel_id => get_panel_id(mesh_id)
 
     ! Get a quadrature rule
-    qr = quadrature_xyoz_type( element_order+3, quadrature_rule )
+    qr => get_qr()
 
-    ! Create mass field
+    ! Create mass fields
     w3_fs => function_space_collection%get_fs( mesh_id, element_order, W3 )
+    call dry_mass_field%initialise( vector_space = w3_fs )
+    call water_mass_field%initialise( vector_space = w3_fs )
 
-    call mass_n%initialise( vector_space = w3_fs )
-    call mass_np1%initialise( vector_space = w3_fs )
+    ! Compute masses
+    call invoke( compute_total_mass_kernel_type( dry_mass_field, density,      &
+                                                 chi, panel_id, qr ),          &
+                 sum_X( total_dry_mass, dry_mass_field ),                      &
+                 compute_moist_mass_kernel_type( water_mass_field, mr(1),      &
+                                                 density, chi, panel_id, qr ), &
+                 sum_X( total_water_mass, water_mass_field ) )
 
-    ! Compute and write out conserved quantities
-    call invoke( compute_total_mass_kernel_type( mass_n, density_n,       &
-                                                 chi, panel_id, qr ),     &
-                 sum_X( total_mass_n, mass_n ),                           &
-                 compute_total_mass_kernel_type( mass_np1, density_np1,   &
-                                                 chi, panel_id, qr ),     &
-                 sum_X( total_mass_np1, mass_np1 )                        )
-
-    err_mass = ( total_mass_np1 - total_mass_n )/ total_mass_n
-
+    ! Write out masses
     write( log_scratch_space, '(A,I4,1E32.24)')  &
-                                        'Total mass  = ', tstep, total_mass_np1
+                  'Total dry mass  = ', tstep, total_dry_mass
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
-    write( log_scratch_space, '(A,1E16.6)')  &
-                                        ' Error in total mass  = ', err_mass
+    write( log_scratch_space, '(A,I4,1E32.24)')  &
+                  'Total water mass  = ', tstep, total_water_mass
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
-    nullify( chi, panel_id, w3_fs )
+    nullify( chi, panel_id, w3_fs, qr )
 
     if ( subroutine_timers ) call timer( 'mass_conservation' )
 

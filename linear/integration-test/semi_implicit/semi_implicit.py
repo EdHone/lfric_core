@@ -63,13 +63,13 @@ class tl_test_rhs_eos(TLTest):
         flag = "rhs_eos"
         super(tl_test_rhs_eos, self).__init__(flag)
 
-class tl_test_advection_control(TLTest):
+class tl_test_transport_control(TLTest):
     def __init__(self):
-        flag = "advection_control"
-        super(tl_test_advection_control, self).__init__(flag)
+        flag = "transport_control"
+        super(tl_test_transport_control, self).__init__(flag)
 
 if __name__ == '__main__':
     TestEngine.run( tl_test_rhs_eos() )
-    TestEngine.run( tl_test_advection_control() )
+    TestEngine.run( tl_test_transport_control() )
     TestEngine.run( tl_test_semi_imp_alg() )
     TestEngine.run( tl_test_rhs_alg() )

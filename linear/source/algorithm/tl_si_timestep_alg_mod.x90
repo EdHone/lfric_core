@@ -19,7 +19,6 @@ module tl_si_timestep_alg_mod
   ! Configuration options
   use formulation_config_mod,      only: use_moisture, dlayer_on,              &
                                          use_wavedynamics,                     &
-                                         moisture_conservation,                &
                                          si_momentum_equation,                 &
                                          exner_from_eos
 
@@ -61,12 +60,12 @@ module tl_si_timestep_alg_mod
   use mass_matrix_solver_alg_mod,  only: mass_matrix_solver_alg
   use rhs_alg_mod,                 only: rhs_alg
   use tl_rhs_alg_mod,              only: tl_rhs_alg
-  use advection_alg_mod,           only: advection_alg_init,  &
-                                         advection_alg_final, &
-                                         advection_control
-  use tl_advection_alg_mod,        only: tl_advection_alg_init,  &
-                                         tl_advection_alg_final, &
-                                         tl_advection_control
+  use gungho_transport_control_alg_mod, &
+                                   only: gungho_transport_control_alg_init, &
+                                         gungho_transport_control_alg
+
+  use tl_transport_control_alg_mod, &
+                                   only: tl_transport_control_alg
 
   use si_operators_alg_mod,        only: create_si_operators,  &
                                          compute_si_operators, &
@@ -112,6 +111,7 @@ module tl_si_timestep_alg_mod
   type( field_type ), allocatable :: state(:)
   type( field_type ), allocatable :: state_n(:)
   type( field_type ), allocatable :: state_after_slow(:)
+  type( field_type ), allocatable :: advected_state(:)
   type( field_type ), allocatable :: mr_n(:)
   type( field_type ), allocatable :: mr_inc(:)
   type( field_type ), allocatable :: mr_after_slow(:)
@@ -124,6 +124,7 @@ module tl_si_timestep_alg_mod
   type( field_type ), allocatable :: ls_state_itns(:,:,:)
   type( field_type ), allocatable :: ls_state_n(:)
   type( field_type ), allocatable :: ls_state_after_slow(:)
+  type( field_type ), allocatable :: ls_advected_state(:)
   type( field_type ), allocatable :: ls_mr_n(:)
   type( field_type ), allocatable :: ls_mr_inc(:,:,:)
   type( field_type ), allocatable :: ls_mr_after_slow(:)
@@ -179,6 +180,7 @@ contains
     allocate(state(bundle_size))
     allocate(state_n(bundle_size))
     allocate(state_after_slow(bundle_size))
+    allocate(advected_state(bundle_size))
     allocate(rhs_n(bundle_size))
     allocate(rhs_np1(bundle_size))
     allocate(rhs_adv(bundle_size))
@@ -189,6 +191,7 @@ contains
     allocate(ls_state(bundle_size))
     allocate(ls_state_n(bundle_size))
     allocate(ls_state_after_slow(bundle_size))
+    allocate(ls_advected_state(bundle_size))
     allocate(ls_rhs_n(bundle_size))
     allocate(ls_mr_n(nummr))
     allocate(ls_mr_after_slow(nummr))
@@ -217,6 +220,7 @@ contains
 
     call clone_bundle(state, state_n,          bundle_size)
     call clone_bundle(state, state_after_slow, bundle_size)
+    call clone_bundle(state, advected_state,   bundle_size)
     call clone_bundle(state, rhs_n,            bundle_size)
     call clone_bundle(state, rhs_np1,          bundle_size)
     call clone_bundle(state, rhs_adv,          bundle_size)
@@ -224,6 +228,7 @@ contains
     call clone_bundle(state, ls_state,            bundle_size)
     call clone_bundle(state, ls_state_n,          bundle_size)
     call clone_bundle(state, ls_state_after_slow, bundle_size)
+    call clone_bundle(state, ls_advected_state,   bundle_size)
     call clone_bundle(state, ls_rhs_n,            bundle_size)
 
     do outer = 1, outer_iterations
@@ -278,8 +283,7 @@ contains
                  setval_X(state(igh_d), rho  ),      &
                  setval_X(state(igh_p), exner) )
 
-    call advection_alg_init(mesh_id)
-    call tl_advection_alg_init(mesh_id)
+    call gungho_transport_control_alg_init(mesh_id)
 
     ! Construct semi-implicit solver
     call semi_implicit_solver_alg_init( state )
@@ -442,6 +446,7 @@ contains
                  ls_state_n, ls_moist_dyn_itns(:,1,1),      &
                  .false., .false., dt)
 
+    call copy_bundle(ls_state_after_slow, ls_advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
       ! Predictor of the wind field (u-beta*dt*rhs) to be advected if using
       ! explicit advection
@@ -456,21 +461,16 @@ contains
 
     ls_outer_dynamics_loop: do outer = 1,outer_iterations
 
-      call advection_control(ls_rhs_adv(:, outer, 1),        &
-                             ls_state_after_slow(:),         &
-                             ls_state_n(igh_u),              &
-                             ls_state_itns(igh_u, outer, 1), &
-                             ls_advected_u,                  &
-                             ls_mr_inc(:, outer, 1),         &
-                             ls_mr_after_slow(:),            &
-                             clock%get_step(),               &
-                             outer,                          &
-                             ls_moist_dyn_itns(:, outer, 1), &
-                             ls_mr_itns(:, outer, 1),        &
-                             cloud_fields,                   &
-                             cloud_fields_after_slow,        &
-                             rho_guess,                      &
-                             dt)
+      call gungho_transport_control_alg(ls_rhs_adv(:, outer, 1),        &
+                                        ls_advected_state,              &
+                                        ls_state_itns(igh_u, outer, 1), &
+                                        ls_state_n(igh_u),              &
+                                        ls_mr_itns(:, outer, 1),        &
+                                        ls_mr_after_slow(:),            &
+                                        ls_moist_dyn_itns(:, outer, 1), &
+                                        cloud_fields,                   &
+                                        cloud_fields_after_slow,        &
+                                        dt, clock%get_step(), outer)
 
       if (use_wavedynamics) then
 
@@ -677,6 +677,7 @@ contains
                     ls_state_n, ls_moist_dyn_itns(:, 1,1),                   &
                     .false., .false., dt)
 
+    call copy_bundle(state_after_slow, advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
       ! Predictor of the wind field (u-beta*dt*rhs) to be advected if using
       ! explicit advection
@@ -690,27 +691,19 @@ contains
 
     outer_dynamics_loop: do outer = 1,outer_iterations
 
-      call tl_advection_control(rhs_adv,                        &
-                                state_after_slow,               &
-                                state_n(igh_u),                 &
-                                state(igh_u),                   &
-                                advected_u,                     &
-                                mr_inc,                         &
-                                mr_after_slow,                  &
-                                clock%get_step(),               &
-                                outer,                          &
-                                moist_dyn,                      &
-                                mr,                             &
-                                rho_guess,                      &
-                                dt,                             &
-                                ls_state_after_slow,            &
-                                ls_state_n(igh_u),              &
-                                ls_state_itns(igh_u, outer, 1), &
-                                ls_advected_u,                  &
-                                ls_mr_inc(:, outer, 1),         &
-                                ls_mr_after_slow,               &
-                                ls_moist_dyn_itns(:, outer, 1), &
-                                ls_mr_itns(:, outer, 1) )
+      call tl_transport_control_alg(rhs_adv,                        &
+                                    advected_state,                 &
+                                    state(igh_u),                   &
+                                    state_n(igh_u),                 &
+                                    mr,                             &
+                                    mr_after_slow,                  &
+                                    moist_dyn,                      &
+                                    ls_advected_state,              &
+                                    ls_state_itns(igh_u, outer, 1), &
+                                    ls_state_n(igh_u),              &
+                                    ls_mr_after_slow,               &
+                                    dt,                             &
+                                    clock%get_step()                )
 
       if (use_wavedynamics) then
 
@@ -849,13 +842,13 @@ contains
     implicit none
 
     call semi_implicit_solver_alg_final()
-    call tl_advection_alg_final()
 
     call final_si_operators()
 
     if (allocated(state))            deallocate(state)
     if (allocated(state_n))          deallocate(state_n)
     if (allocated(state_after_slow)) deallocate(state_after_slow)
+    if (allocated(advected_state))   deallocate(advected_state)
     if (allocated(rhs_n))            deallocate(rhs_n)
     if (allocated(rhs_np1))          deallocate(rhs_np1)
     if (allocated(rhs_adv))          deallocate(rhs_adv)
@@ -867,6 +860,7 @@ contains
     if (allocated(ls_state_itns))       deallocate(ls_state_itns)
     if (allocated(ls_state_n))          deallocate(ls_state_n)
     if (allocated(ls_state_after_slow)) deallocate(ls_state_after_slow)
+    if (allocated(ls_advected_state))   deallocate(ls_advected_state)
     if (allocated(ls_rhs_n))            deallocate(ls_rhs_n)
     if (allocated(ls_rhs_np1))          deallocate(ls_rhs_np1)
     if (allocated(ls_rhs_adv))          deallocate(ls_rhs_adv)

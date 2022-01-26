@@ -96,7 +96,7 @@
   l_multigrid = .false.
 /
 
-&biperiodic_deppt
+&departure_points
   method             = 'euler'
   n_dep_pt_iterations     = 1
 /
@@ -112,4 +112,3 @@
   planar_domain_min_y = -1.0
   planar_domain_max_y =  1.0
 /
-

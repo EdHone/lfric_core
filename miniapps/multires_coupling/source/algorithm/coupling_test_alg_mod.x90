@@ -41,7 +41,7 @@ contains
   !> multires_coupling miniapp
   subroutine coupling_test_alg()
 
-    use cusph_cosmic_transport_alg_mod, only: set_winds
+    use init_gungho_prognostics_alg_mod, only: init_u_field
 
     implicit none
 
@@ -103,7 +103,7 @@ contains
     ! Initialise field A on W2
     ! Initial field A on W3 is divergence of the W2 field
     ! Note that this field is a 3-form, so represents a mass-like variable
-    call set_winds(field_W2_A1, mesh_A_id, 0_i_def, dt)
+    call init_u_field(field_W2_A1, 0.0_r_def)
     call invoke( setval_c(field_W3_A1, 0.0_r_def), &
                  matrix_vector_kernel_type(field_W3_A1, field_W2_A1, div_A) )
 

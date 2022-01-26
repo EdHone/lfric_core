@@ -248,8 +248,7 @@ contains
     integer(i_def) :: nlayers, cell, k
     real(r_def) :: answer
 
-    call feign_formulation_config(transport_only=.false.,                   &
-                                  l_multigrid=.false.,                      &
+    call feign_formulation_config(l_multigrid=.false.,                      &
                                   rotating=.false.,                         &
                                   use_moisture=.false.,                     &
                                   shallow=.true., use_physics=.false.,      &
@@ -261,8 +260,8 @@ contains
                                   eos_method=eos_method_sampled,            &
                                   init_exner_bt        = .true.,            &
                                   si_momentum_equation=.true.,              &
-                                  vector_invariant=.true.,                  &
-                                  moisture_conservation=.false.   )
+                                  vector_invariant=.true.                   &
+                                 )
 
     call feign_initial_pressure_config( method=method_balanced,             &
                                         surface_pressure=1000.0e2_r_def)
@@ -317,7 +316,7 @@ contains
     integer(i_def) :: nlayers, cell, k
     real(r_def) :: answer
 
-    call feign_formulation_config(transport_only=.false., rotating=.false.,  &
+    call feign_formulation_config(rotating=.false.,                          &
                                   l_multigrid=.false.,                       &
                                   use_moisture=.false.,                      &
                                   shallow=.true., use_physics=.false.,       &
@@ -329,8 +328,8 @@ contains
                                   eos_method=eos_method_sampled,             &
                                   init_exner_bt        = .false.,            &
                                   si_momentum_equation=.true.,               &
-                                  vector_invariant=.true.,                   &
-                                  moisture_conservation=.true.   )
+                                  vector_invariant=.true.                    &
+                                 )
 
 
     call feign_initial_pressure_config( method=method_balanced,             &

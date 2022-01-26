@@ -21,7 +21,6 @@ program runge_kutta
   use tl_test_driver_mod, only : initialise,                  &
                                  finalise,                    &
                                  run_kinetic_energy_gradient, &
-                                 run_advection,               &
                                  run_advect_density_field,    &
                                  run_advect_theta_field,      &
                                  run_vorticity_advection,     &
@@ -44,7 +43,6 @@ program runge_kutta
 
   ! Flags which determine the tests that will be carried out
   logical :: do_test_kinetic_energy_gradient = .false.
-  logical :: do_test_advection = .false.
   logical :: do_test_advect_density_field = .false.
   logical :: do_test_advect_theta_field = .false.
   logical :: do_test_project_pressure = .false.
@@ -78,7 +76,6 @@ program runge_kutta
           " <namelist filename> "      // &
           " test_XXX with XXX in { "   // &
           " kinetic_energy_gradient, " // &
-          " advection, "               // &
           " advect_density_field, "    // &
           " advect_theta_field, "      // &
           " vorticity_advection, "     // &
@@ -103,8 +100,6 @@ program runge_kutta
   select case (trim(test_flag))
   case ("test_kinetic_energy_gradient")
      do_test_kinetic_energy_gradient = .true.
-  case ("test_advection")
-     do_test_advection = .true.
   case ("test_advect_density_field")
      do_test_advect_density_field = .true.
   case ("test_advect_theta_field")
@@ -128,9 +123,6 @@ program runge_kutta
 
   if (do_test_kinetic_energy_gradient) then
     call run_kinetic_energy_gradient()
-  endif
-  if (do_test_advection) then
-    call run_advection()
   endif
   if (do_test_advect_density_field) then
     call run_advect_density_field()

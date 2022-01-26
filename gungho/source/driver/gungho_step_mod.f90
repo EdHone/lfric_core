@@ -14,11 +14,9 @@ module gungho_step_mod
   use clock_mod,                      only : clock_type
   use conservation_algorithm_mod,     only : conservation_algorithm
   use constants_mod,                  only : i_def, r_def
-  use diagnostics_calc_mod,           only : write_density_diagnostic
   use field_collection_mod,           only : field_collection_type
   use field_mod,                      only : field_type
-  use formulation_config_mod,         only : transport_only, &
-                                             use_moisture, &
+  use formulation_config_mod,         only : use_moisture, &
                                              use_physics
   use geometric_constants_mod,        only : get_da_at_w2
   use gungho_model_data_mod,          only : model_data_type
@@ -36,12 +34,9 @@ module gungho_step_mod
   use moisture_conservation_alg_mod,  only : moisture_conservation_alg
   use moisture_fluxes_alg_mod,        only : moisture_fluxes_alg
   use rk_alg_timestep_mod,            only : rk_alg_step
-  use rk_transport_mod,               only : rk_transport_step
   use timestepping_config_mod,        only : method, &
                                              method_semi_implicit, &
                                              method_rk
-  use transport_config_mod,           only : scheme, &
-                                             scheme_method_of_lines
 
   implicit none
 
@@ -129,62 +124,39 @@ module gungho_step_mod
     ! Get timestep parameters from clock
     dt = real(clock%get_seconds_per_step(), r_def)
 
-    if ( transport_only ) then
-      select case( scheme )
-        case ( scheme_method_of_lines )
-          if ( use_moisture ) then
-            call rk_transport_step( clock%get_step(), dt, u, rho, theta, mr )
-          else
-            call rk_transport_step( clock%get_step(), dt, u, rho, theta )
-          end if
-      end select
-      call write_density_diagnostic( rho, clock )
-      if ( write_conservation_diag ) then
-        call conservation_algorithm( clock%get_step(), &
-                                     rho,              &
-                                     u,                &
-                                     theta,            &
-                                     exner )
-        if (use_moisture) &
-          call moisture_conservation_alg( clock%get_step(), &
-                                          rho,              &
-                                          mr,               &
-                                          'After timestep' )
-      end if
-    else  ! Not transport_only
-      select case( method )
-        case( method_semi_implicit )  ! Semi-Implicit
-          call semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn,     &
-                                      derived_fields, radiation_fields,        &
-                                      microphysics_fields, orography_fields,   &
-                                      turbulence_fields, convection_fields,    &
-                                      cloud_fields, surface_fields,            &
-                                      soil_fields, snow_fields,                &
-                                      chemistry_fields, aerosol_fields,        &
-                                      lbc_fields, clock, dt, mesh_id,          &
-                                      twod_mesh_id)
-        case( method_rk )             ! RK
-          call rk_alg_step(u, rho, theta, moist_dyn, exner, dt)
-      end select
+    select case( method )
+      case( method_semi_implicit )  ! Semi-Implicit
+        call semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn,     &
+                                    derived_fields, radiation_fields,        &
+                                    microphysics_fields, orography_fields,   &
+                                    turbulence_fields, convection_fields,    &
+                                    cloud_fields, surface_fields,            &
+                                    soil_fields, snow_fields,                &
+                                    chemistry_fields, aerosol_fields,        &
+                                    lbc_fields, clock, dt, mesh_id,          &
+                                    twod_mesh_id)
+      case( method_rk )             ! RK
+        call rk_alg_step(u, rho, theta, moist_dyn, exner, mr, cloud_fields,  &
+                         dt, clock)
+    end select
 
-      if ( write_conservation_diag ) then
-        call conservation_algorithm( clock%get_step(), &
-                                     rho,              &
-                                     u,                &
-                                     theta,            &
-                                     exner )
-        if ( use_moisture ) then
-          call moisture_conservation_alg( clock%get_step(), &
-                                          rho,              &
-                                          mr,               &
-                                          'After timestep' )
-          if ( use_physics ) call moisture_fluxes_alg( clock%get_step(),    &
-                                                       microphysics_fields, &
-                                                       convection_fields,   &
-                                                       turbulence_fields,   &
-                                                       dA,                  &
-                                                       dt )
-        end if
+    if ( write_conservation_diag ) then
+      call conservation_algorithm( clock%get_step(), &
+                                   rho,              &
+                                   u,                &
+                                   theta,            &
+                                   exner )
+      if ( use_moisture ) then
+        call moisture_conservation_alg( clock%get_step(), &
+                                        rho,              &
+                                        mr,               &
+                                        'After timestep' )
+        if ( use_physics ) call moisture_fluxes_alg( clock%get_step(),    &
+                                                     microphysics_fields, &
+                                                     convection_fields,   &
+                                                     turbulence_fields,   &
+                                                     dA,                  &
+                                                     dt )
       end if
 
       if(write_minmax_tseries) call minmax_tseries(u, 'u', mesh_id)

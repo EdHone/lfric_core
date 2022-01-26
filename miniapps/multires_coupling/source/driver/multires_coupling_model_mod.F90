@@ -29,7 +29,6 @@ module multires_coupling_model_mod
                                          dynamics_mesh_name,         &
                                          multires_coupling_mesh_tags
   use formulation_config_mod,     only : l_multigrid,    &
-                                         transport_only, &
                                          use_moisture,   &
                                          use_physics,    &
                                          use_multires_coupling
@@ -72,8 +71,6 @@ module multires_coupling_model_mod
                                          get_comm_rank
   use rk_alg_timestep_mod,        only : rk_alg_init, &
                                          rk_alg_final
-  use rk_transport_mod,           only : rk_transport_init, &
-                                         rk_transport_final
   use runtime_constants_mod,      only : create_runtime_constants, &
                                          final_runtime_constants
   use semi_implicit_timestep_alg_mod, &
@@ -90,8 +87,6 @@ module multires_coupling_model_mod
                                          method_semi_implicit, &
                                          method_rk,            &
                                          spinup_period
-  use transport_config_mod,       only : scheme, &
-                                         scheme_method_of_lines
   use yaxt,                       only : xt_initialize, xt_finalize
 
 #ifdef UM_PHYSICS
@@ -484,62 +479,43 @@ contains
       call minmax_tseries(dynamics_u, 'u', dynamics_mesh_id)
     end if
 
-    if ( transport_only ) then
-
-      select case( scheme )
-        case ( scheme_method_of_lines )
-          ! Initialise and output initial conditions for first timestep
-          if ( use_moisture ) then
-            call rk_transport_init( dynamics_rho, dynamics_theta, dynamics_mr )
-            call rk_transport_init( physics_rho, physics_theta, physics_mr )
-          else
-            call rk_transport_init( dynamics_rho, dynamics_theta )
-            call rk_transport_init( physics_rho, physics_theta )
-          end if
-        case default
-          call log_event("Multires Coupling: Incorrect transport option chosen, "// &
-                          "stopping program! ",LOG_LEVEL_ERROR)
-      end select
-    else
-      select case( method )
-        case( method_semi_implicit )  ! Semi-Implicit
-          ! Initialise and output initial conditions for first timestep
-          call semi_implicit_alg_init(dynamics_mesh_id, dynamics_u, dynamics_rho, &
-                                      dynamics_theta, dynamics_exner, dynamics_mr)
-          if ( write_conservation_diag ) then
-           call conservation_algorithm( clock%get_step(), &
-                                        dynamics_rho,     &
-                                        dynamics_u,       &
-                                        dynamics_theta,   &
-                                        dynamics_exner )
-           if ( use_moisture ) &
-             call moisture_conservation_alg( clock%get_step(), &
-                                             dynamics_rho,     &
-                                             dynamics_mr,      &
-                                             'Before timestep' )
-          end if
-        case( method_rk )             ! RK
-          ! Initialise and output initial conditions for first timestep
-          call rk_alg_init(dynamics_mesh_id, dynamics_u, dynamics_rho, &
-                           dynamics_theta, dynamics_exner)
-          if ( write_conservation_diag ) then
-           call conservation_algorithm( clock%get_step(), &
-                                        dynamics_rho,     &
-                                        dynamics_u,       &
-                                        dynamics_theta,   &
-                                        dynamics_exner )
-           if ( use_moisture ) &
-             call moisture_conservation_alg( clock%get_step(), &
-                                             dynamics_rho,     &
-                                             dynamics_mr,      &
-                                             'Before timestep' )
-          end if
-        case default
-          call log_event("Multires Coupling: Incorrect time stepping option chosen, "// &
-                          "stopping program! ", LOG_LEVEL_ERROR)
-      end select
-
-    end if
+    select case( method )
+      case( method_semi_implicit )  ! Semi-Implicit
+        ! Initialise and output initial conditions for first timestep
+        call semi_implicit_alg_init(dynamics_mesh_id, dynamics_u, dynamics_rho, &
+                                    dynamics_theta, dynamics_exner, dynamics_mr)
+        if ( write_conservation_diag ) then
+         call conservation_algorithm( clock%get_step(), &
+                                      dynamics_rho,     &
+                                      dynamics_u,       &
+                                      dynamics_theta,   &
+                                      dynamics_exner )
+         if ( use_moisture ) &
+           call moisture_conservation_alg( clock%get_step(), &
+                                           dynamics_rho,     &
+                                           dynamics_mr,      &
+                                           'Before timestep' )
+        end if
+      case( method_rk )             ! RK
+        ! Initialise and output initial conditions for first timestep
+        call rk_alg_init(dynamics_mesh_id, dynamics_u, dynamics_rho, &
+                         dynamics_theta, dynamics_exner)
+        if ( write_conservation_diag ) then
+         call conservation_algorithm( clock%get_step(), &
+                                      dynamics_rho,     &
+                                      dynamics_u,       &
+                                      dynamics_theta,   &
+                                      dynamics_exner )
+         if ( use_moisture ) &
+           call moisture_conservation_alg( clock%get_step(), &
+                                           dynamics_rho,     &
+                                           dynamics_mr,      &
+                                           'Before timestep' )
+        end if
+      case default
+        call log_event("Multires Coupling: Incorrect time stepping option chosen, "// &
+                        "stopping program! ", LOG_LEVEL_ERROR)
+    end select
 
   end subroutine initialise_model
 
@@ -677,21 +653,10 @@ contains
                         dynamics_u, 'u')
     end if
 
-    ! Call timestep finalizers
-    if ( transport_only .and. scheme == scheme_method_of_lines) then
-      if ( use_moisture ) then
-        call rk_transport_final( dynamics_rho, dynamics_theta, dynamics_mr )
-      else
-        call rk_transport_final( dynamics_rho, dynamics_theta )
-      end if
-    end if
+    if (write_minmax_tseries) call minmax_tseries_final(dynamics_mesh_id)
 
-    if(write_minmax_tseries) call minmax_tseries_final(dynamics_mesh_id)
-
-    if ( .not. transport_only ) then
-      if ( method == method_semi_implicit ) call semi_implicit_alg_final()
-      if ( method == method_rk )            call rk_alg_final()
-    end if
+    if ( method == method_semi_implicit ) call semi_implicit_alg_final()
+    if ( method == method_rk )            call rk_alg_final()
 
   end subroutine finalise_model
 

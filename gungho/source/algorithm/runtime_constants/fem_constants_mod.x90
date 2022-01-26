@@ -64,7 +64,9 @@ module fem_constants_mod
   use mm_diagonal_kernel_mod,                 only: mm_diagonal_kernel_type
   use multiplicity_kernel_mod,                only: multiplicity_kernel_type
   use operator_algebra_kernel_mod,            only: operator_x_plus_ay_kernel_type, &
-                                                    operator_setval_c_kernel_type
+                                                    operator_setval_c_kernel_type,  &
+                                                    operator_x_times_y_kernel_type
+  use project_ws_to_w2_operator_kernel_mod,   only: project_ws_to_w2_operator_kernel_type
   use w2_normalisation_kernel_mod,            only: w2_normalisation_kernel_type
 
   implicit none
@@ -94,6 +96,7 @@ module fem_constants_mod
   type(operator_type), allocatable, dimension(:), target :: div_v
   type(operator_type), allocatable, dimension(:), target :: div_h
   type(operator_type), allocatable, dimension(:), target :: broken_div
+  type(operator_type), allocatable, dimension(:), target :: im3_div
 
   ! Diagonals of mass matrices
   type(field_type),    allocatable, dimension(:), target :: mm0_diag
@@ -113,11 +116,16 @@ module fem_constants_mod
   type(field_type),    allocatable, dimension(:), target :: nodal_rmultiplicity_w1
   type(field_type),    allocatable, dimension(:), target :: nodal_rmultiplicity_w2h
   type(field_type),    allocatable, dimension(:), target :: nodal_rmultiplicity_w2
-  type(field_type),    allocatable, dimension(:), target :: nodal_multiplicity_w1
+  type(field_type),    allocatable, dimension(:), target :: nodal_rmultiplicity_wt
   type(field_type),    allocatable, dimension(:), target :: w2_normalisation
   type(field_type),    allocatable, dimension(:), target :: detj_at_w2
   type(field_type),    allocatable, dimension(:), target :: detj_at_w2_above
   type(field_type),    allocatable, dimension(:), target :: detj_at_w2_below
+
+  ! Projections from W3 to W2
+  type(operator_type), allocatable, dimension(:), target :: project_xdot_to_w2
+  type(operator_type), allocatable, dimension(:), target :: project_ydot_to_w2
+  type(operator_type), allocatable, dimension(:), target :: project_zdot_to_w2
 
   ! Quadrature objects
   type( quadrature_xyoz_type ),target                    :: qr
@@ -140,12 +148,15 @@ module fem_constants_mod
   public :: get_broken_div
   public :: get_div_h
   public :: get_div_v
+  public :: get_im3_div
   public :: get_normalisation
-  public :: get_multiplicity
   public :: get_rmultiplicity
   public :: get_detj_at_w2
   public :: get_detj_at_w2_above
   public :: get_detj_at_w2_below
+  public :: get_project_xdot_to_w2
+  public :: get_project_ydot_to_w2
+  public :: get_project_zdot_to_w2
 
 
 contains
@@ -181,9 +192,11 @@ contains
     type(field_type)                   :: ones
 
     ! Temporary fields
+    type(field_type), allocatable :: nodal_multiplicity_w2(:)
     type(field_type) :: nodal_multiplicity_w2h
     type(field_type) :: nodal_multiplicity_w0
-    type(field_type), allocatable :: nodal_multiplicity_w2(:)
+    type(field_type) :: nodal_multiplicity_w1
+    type(field_type) :: nodal_multiplicity_wt
 
     ! For computing SI W2 Matrix
     type(operator_type) :: coriolis
@@ -191,6 +204,11 @@ contains
 
     ! Auxiliary parameters for PSyclone builtins
     integer(kind=i_def), parameter :: i_minus_one = -1_i_def
+
+    ! For computing projectors from W3 to W2
+    integer(kind=i_def), parameter :: xdirection = 1_i_def
+    integer(kind=i_def), parameter :: ydirection = 2_i_def
+    integer(kind=i_def), parameter :: zdirection = 3_i_def
 
     ! Temporary values for iterating through list
     integer(kind=i_def) :: i, mesh_id, num_meshes
@@ -218,6 +236,7 @@ contains
              mm_w2h(num_meshes),                  &
              div_v(num_meshes),                   &
              div_h(num_meshes),                   &
+             im3_div(num_meshes),                 &
              mm_dl(num_meshes),                   &
              mm_w2_si(num_meshes),                &
              mm0_diag(num_meshes),                &
@@ -234,11 +253,14 @@ contains
              nodal_rmultiplicity_w1(num_meshes),  &
              nodal_rmultiplicity_w2h(num_meshes), &
              nodal_rmultiplicity_w2(num_meshes),  &
-             nodal_multiplicity_w1(num_meshes),   &
+             nodal_rmultiplicity_wt(num_meshes),  &
              w2_normalisation(num_meshes),        &
              detj_at_w2(num_meshes),              &
              detj_at_w2_above(num_meshes),        &
-             detj_at_w2_below(num_meshes)         )
+             detj_at_w2_below(num_meshes),        &
+             project_xdot_to_w2(num_meshes),      &
+             project_ydot_to_w2(num_meshes),      &
+             project_zdot_to_w2(num_meshes)       )
 
     !======================== Create quadrature object ========================!
 
@@ -286,6 +308,7 @@ contains
         grad(i)       = operator_type( w1_fs, w0_fs )
         curl(i)       = operator_type( w2_fs, w1_fs )
         broken_div(i) = operator_type( w3_fs, w2b_fs )
+        im3_div(i)    = operator_type( w3_fs, w2_fs )
 
         call invoke( name = "create_de_rham_matrices",                           &
                      compute_derham_matrices_kernel_type(mm_w0(i), mm_w1(i),     &
@@ -296,13 +319,13 @@ contains
                                                          chi_list(:,i),          &
                                                          panel_id_list(i),       &
                                                          qr) )
-
       else
         ! Multigrid mesh, so only set-up certain mass matrices and operators
         mm_w2(i)     = operator_type( w2_fs, w2_fs )
         mm_wtheta(i) = operator_type( wtheta_fs, wtheta_fs )
         mm_w3(i)     = operator_type( w3_fs, w3_fs )
         div(i)       = operator_type( w3_fs, w2_fs )
+        im3_div(i)   = operator_type( w3_fs, w2_fs )
 
         call invoke( name = "create_mg_de_rham_matrices",             &
                      mg_derham_mat_kernel_type( mm_w2(i), mm_w3(i),   &
@@ -318,6 +341,7 @@ contains
         mm_w3_inv(i) = operator_type( w3_fs, w3_fs )
         call invoke( name = "create_W3_inv_mass_matrix", &
                      invert_local_operator_kernel_type(mm_w3_inv(i), mm_w3(i)) )
+        call invoke( operator_x_times_y_kernel_type( im3_div(i), mm_w3_inv(i), div(i) ) )
       end if
 
       !============ Compute vertical and horizontal only operators ============!
@@ -482,19 +506,23 @@ contains
       if ( label_list(i) == primary_mesh_label ) then
         ! NB most of the time we want 1/multiplicity
         call nodal_multiplicity_w0%initialise( vector_space = w0_fs )
-        call nodal_multiplicity_w1(i)%initialise( vector_space = w1_fs )
+        call nodal_multiplicity_w1%initialise( vector_space = w1_fs )
         call nodal_multiplicity_w2h%initialise( vector_space = w2h_fs )
+        call nodal_multiplicity_wt%initialise( vector_space = wtheta_fs )
         call nodal_rmultiplicity_w0(i)%initialise( vector_space = w0_fs )
         call nodal_rmultiplicity_w1(i)%initialise( vector_space = w1_fs )
         call nodal_rmultiplicity_w2h(i)%initialise( vector_space = w2h_fs )
+        call nodal_rmultiplicity_wt(i)%initialise( vector_space = wtheta_fs )
 
-        call invoke( name = "create_multiplicities",                     &
-                     setval_c(nodal_multiplicity_w0, 0.0_r_def),         &
-                     multiplicity_kernel_type(nodal_multiplicity_w0),    &
-                     setval_c(nodal_multiplicity_w1(i), 0.0_r_def),      &
-                     multiplicity_kernel_type(nodal_multiplicity_w1(i)), &
-                     setval_c(nodal_multiplicity_w2h, 0.0_r_def),        &
-                     multiplicity_kernel_type(nodal_multiplicity_w2h)    )
+        call invoke( name = "create_multiplicities",                  &
+                     setval_c(nodal_multiplicity_w0, 0.0_r_def),      &
+                     multiplicity_kernel_type(nodal_multiplicity_w0), &
+                     setval_c(nodal_multiplicity_w1, 0.0_r_def),      &
+                     multiplicity_kernel_type(nodal_multiplicity_w1), &
+                     setval_c(nodal_multiplicity_wt, 0.0_r_def),      &
+                     multiplicity_kernel_type(nodal_multiplicity_wt), &
+                     setval_c(nodal_multiplicity_w2h, 0.0_r_def),     &
+                     multiplicity_kernel_type(nodal_multiplicity_w2h) )
 
         ! Calculate the reciprocals
         call ones%initialise( vector_space = w0_fs )
@@ -507,13 +535,19 @@ contains
         call invoke( name = "compute_w1_rmultiplicity",             &
                      setval_c(ones, 1.0_r_def),                     &
                      X_divideby_Y(nodal_rmultiplicity_w1(i), ones,  &
-                                  nodal_multiplicity_w1(i)) )
+                                  nodal_multiplicity_w1) )
 
         call ones%initialise( vector_space = w2h_fs )
         call invoke( name = "compute_w2h_rmultiplicity",            &
                      setval_c( ones, 1.0_r_def ),                   &
                      X_divideby_Y(nodal_rmultiplicity_w2h(i), ones, &
                                   nodal_multiplicity_w2h) )
+
+        call ones%initialise( vector_space = wtheta_fs )
+        call invoke( name = "compute_wt_rmultiplicity",             &
+                     setval_c(ones, 1.0_r_def),                     &
+                     X_divideby_Y(nodal_rmultiplicity_wt(i), ones,  &
+                                  nodal_multiplicity_wt) )
       end if
 
       !============================ Normalisations ============================!
@@ -531,7 +565,7 @@ contains
                      inc_X_powint_n(w2_normalisation(i), i_minus_one) )
       end if
 
-      !================ Create Det(J) values at W2 dof locations =================!
+      !================ Create Det(J) values at W2 dof locations ==============!
 
       if ( label_list(i) == primary_mesh_label .or. &
            label_list(i) == shifted_mesh_label ) then
@@ -562,6 +596,23 @@ contains
                                                              chi_list(:,i),       &
                                                              panel_id_list(i),    &
                                                              detj_direction)  )
+      end if
+
+      !================== Projection operators from W3 to W2 ==================!
+
+      if ( label_list(i) == primary_mesh_label ) then
+        project_xdot_to_w2(i) = operator_type( w2_fs, w3_fs )
+        project_ydot_to_w2(i) = operator_type( w2_fs, w3_fs )
+        project_zdot_to_w2(i) = operator_type( w2_fs, w3_fs )
+        call invoke( project_ws_to_w2_operator_kernel_type(                   &
+                                        project_xdot_to_w2(i), chi_list(:,i), &
+                                        panel_id_list(i), xdirection, qr),    &
+                     project_ws_to_w2_operator_kernel_type(                   &
+                                        project_ydot_to_w2(i), chi_list(:,i), &
+                                        panel_id_list(i), ydirection, qr),    &
+                     project_ws_to_w2_operator_kernel_type(                   &
+                                        project_zdot_to_w2(i), chi_list(:,i), &
+                                        panel_id_list(i), zdirection, qr) )
       end if
 
     end do ! Loop through meshes
@@ -858,6 +909,23 @@ contains
 
   end function get_div_v
 
+  !> @brief Returns a pointer to the inv_m3 * div operator
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The div operator
+  function get_im3_div(mesh_id) result(div_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: div_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'im3_div'
+    div_op => im3_div(mesh_index)
+    call check_initialised_operator(div_op, op_name, mesh_id)
+
+  end function get_im3_div
+
   !> @brief Returns a pointer to the normalisation of prognostic fields
   !> @param[in] space   The space of the normalisation field
   !> @param[in] mesh_id The ID of the mesh to get the object for
@@ -914,6 +982,8 @@ contains
         rmultiplicity => nodal_rmultiplicity_w2(mesh_index)
       case (W2H)
         rmultiplicity => nodal_rmultiplicity_w2h(mesh_index)
+      case (Wtheta)
+        rmultiplicity => nodal_rmultiplicity_wt(mesh_index)
       case default
         rmultiplicity => null()
         call log_event( "RMultiplicity does not exist for given space", &
@@ -923,30 +993,6 @@ contains
     call check_initialised_field(rmultiplicity, field_name, mesh_id, space)
 
   end function get_rmultiplicity
-
-  !> @brief Returns a pointer to the multiplicity field
-  !> @param[in] space   The space of the desired multiplicity field
-  !> @param[in] mesh_id The ID of the mesh to get the object for
-  !> @return The multiplicity field
-  function get_multiplicity(space, mesh_id) result(multiplicity)
-    implicit none
-    integer(kind=i_def), intent(in) :: space
-    integer(kind=i_def), intent(in) :: mesh_id
-    integer(kind=i_def)             :: mesh_index
-    type(field_type),       pointer :: multiplicity
-
-    mesh_index = find_mesh_index(mesh_id)
-
-    select case (space)
-      case (W1)
-        multiplicity => nodal_multiplicity_w1(mesh_index)
-      case default
-        multiplicity => null()
-        call log_event( "Multiplicity does not exist for given space", &
-           LOG_LEVEL_ERROR)
-    end select
-
-  end function get_multiplicity
 
   !> @brief Returns the Det(J) values at W2 dof locations
   !> @param[in] mesh_id The ID of the mesh to get the object for
@@ -999,21 +1045,75 @@ contains
 
   end function get_detj_at_w2_below
 
+  !> @brief Returns a pointer to the operator projection from xdot to W2
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The projection operator
+  function get_project_xdot_to_w2(mesh_id) result(proj_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: proj_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'project_xdot_to_w2'
+    proj_op => project_xdot_to_w2(mesh_index)
+    call check_initialised_operator(proj_op, op_name, mesh_id)
+
+  end function get_project_xdot_to_w2
+
+  !> @brief Returns a pointer to the operator projection from ydot to W2
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The projection operator
+  function get_project_ydot_to_w2(mesh_id) result(proj_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: proj_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'project_ydot_to_w2'
+    proj_op => project_ydot_to_w2(mesh_index)
+    call check_initialised_operator(proj_op, op_name, mesh_id)
+
+  end function get_project_ydot_to_w2
+
+  !> @brief Returns a pointer to the operator projection from zdot to W2
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The projection operator
+  function get_project_zdot_to_w2(mesh_id) result(proj_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: proj_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'project_zdot_to_w2'
+    proj_op => project_zdot_to_w2(mesh_index)
+    call check_initialised_operator(proj_op, op_name, mesh_id)
+
+  end function get_project_zdot_to_w2
+
   !> @brief Explicitly reclaim memory from module scope variables
   !
   subroutine final_fem_constants()
 
     implicit none
 
+    deallocate(project_zdot_to_w2)
+    deallocate(project_ydot_to_w2)
+    deallocate(project_xdot_to_w2)
     deallocate(detj_at_w2)
     deallocate(detj_at_w2_above)
     deallocate(detj_at_w2_below)
     deallocate(w2_normalisation)
-    deallocate(nodal_multiplicity_w1)
     deallocate(nodal_rmultiplicity_w2)
     deallocate(nodal_rmultiplicity_w2h)
     deallocate(nodal_rmultiplicity_w1)
     deallocate(nodal_rmultiplicity_w0)
+    deallocate(nodal_rmultiplicity_wt)
     deallocate(mmtheta_lumped_inv)
     deallocate(mm3_lumped_inv)
     deallocate(mm1_lumped_inv)

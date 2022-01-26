@@ -15,7 +15,6 @@ module diagnostics_calc_mod
   use clock_mod,                     only: clock_type
   use constants_mod,                 only: i_def, r_def, str_max_filename
   use diagnostic_alg_mod,            only: divergence_diagnostic_alg,   &
-                                           density_diagnostic_alg,      &
                                            hydbal_diagnostic_alg,       &
                                            vorticity_diagnostic_alg
   use io_config_mod,                 only: use_xios_io,          &
@@ -45,7 +44,6 @@ module diagnostics_calc_mod
   implicit none
   private
   public :: write_divergence_diagnostic, &
-            write_density_diagnostic,    &
             write_hydbal_diagnostic,     &
             write_vorticity_diagnostic
 
@@ -94,35 +92,6 @@ subroutine write_divergence_diagnostic(u_field, clock, mesh_id)
   nullify(tmp_write_ptr)
 
 end subroutine write_divergence_diagnostic
-
-!-------------------------------------------------------------------------------
-!>  @brief    Handles density diagnostic processing
-!!
-!!  @details  Handles density diagnostic processing
-!!
-!!> @param[in] rho_field   The rho field
-!!> @param[in] ts          Timestep
-!-------------------------------------------------------------------------------
-
-subroutine write_density_diagnostic( rho_field, clock )
-
-  implicit none
-
-  type(field_type),  intent(in) :: rho_field
-  class(clock_type), intent(in) :: clock
-
-  real(r_def)                     :: l2_norm
-
-  ! Note that timestep (ts) is required for the actual calculation
-  ! of the density diagnostic and so is passed to the algorithm call
-  call density_diagnostic_alg( l2_norm, rho_field, clock%get_step(), &
-                               real(clock%get_seconds_per_step(), r_def) )
-
-  write( log_scratch_space, '(A,E16.8)' )  &
-       'L2 of rho difference =', l2_norm
-  call log_event( log_scratch_space, LOG_LEVEL_INFO )
-
-end subroutine write_density_diagnostic
 
 !-------------------------------------------------------------------------------
 !>  @brief    Handles hydrostatic balance diagnostic processing

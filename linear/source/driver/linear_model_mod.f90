@@ -3,7 +3,7 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!>@brief Initialises and finalises the linear model numerical schemes.
+!> @brief Initialises and finalises the linear model numerical schemes.
 module linear_model_mod
 
   use constants_mod,              only : i_def
@@ -18,7 +18,6 @@ module linear_model_mod
   use si_operators_alg_mod,       only : final_si_operators
   use semi_implicit_solver_alg_mod, &
                                   only : semi_implicit_solver_alg_final
-  use formulation_config_mod,     only : transport_only
   use timestepping_config_mod,    only : method,               &
                                          method_semi_implicit, &
                                          method_rk
@@ -81,30 +80,24 @@ contains
     ls_rho => ls_fields%get_field('ls_rho')
     ls_exner => ls_fields%get_field('ls_exner')
 
-    if ( transport_only ) then
-      call log_event("TL Transport only not available ",LOG_LEVEL_ERROR)
+    select case( method )
+      case( method_semi_implicit )  ! Semi-Implicit
+        call semi_implicit_solver_alg_final()
+        call final_si_operators()
+        call tl_semi_implicit_alg_init(mesh_id, u, rho, theta, exner, &
+                                       mr, ls_u, ls_rho, ls_theta, ls_exner, &
+                                       ls_mr, ls_moist_dyn)
 
-    else
-      select case( method )
-        case( method_semi_implicit )  ! Semi-Implicit
-          call semi_implicit_solver_alg_final()
-          call final_si_operators()
-          call tl_semi_implicit_alg_init(mesh_id, u, rho, theta, exner, &
-                                         mr, ls_u, ls_rho, ls_theta, ls_exner, &
-                                         ls_mr, ls_moist_dyn)
+      case( method_rk )             ! RK
+        ! Initialise and output initial conditions for first timestep
 
-        case( method_rk )             ! RK
-          ! Initialise and output initial conditions for first timestep
+        call tl_rk_alg_init(mesh_id, u, rho, theta, exner, &
+                            ls_u, ls_rho, ls_theta, ls_exner)
 
-          call tl_rk_alg_init(mesh_id, u, rho, theta, exner, &
-                              ls_u, ls_rho, ls_theta, ls_exner)
-
-        case default
-          call log_event("TL: Incorrect time stepping option chosen, "// &
-                          "stopping program! ",LOG_LEVEL_ERROR)
-      end select
-
-    end if
+      case default
+        call log_event("TL: Incorrect time stepping option chosen, "// &
+                        "stopping program! ",LOG_LEVEL_ERROR)
+    end select
 
   end subroutine initialise_linear_model
 
@@ -113,10 +106,8 @@ contains
 
     implicit none
 
-    if ( .not. transport_only ) then
-      if ( method == method_rk )            call tl_rk_alg_final()
-      if ( method == method_semi_implicit ) call tl_semi_implicit_alg_final()
-    end if
+    if ( method == method_rk )            call tl_rk_alg_final()
+    if ( method == method_semi_implicit ) call tl_semi_implicit_alg_final()
 
   end subroutine finalise_linear_model
 

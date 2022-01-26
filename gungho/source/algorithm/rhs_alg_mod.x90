@@ -48,7 +48,7 @@ module rhs_alg_mod
   use fs_continuity_mod,                   only: W1, W2, Wtheta
   use function_space_collection_mod,       only: function_space_collection
   use w2_vorticity_advection_kernel_mod,   only: w2_vorticity_advection_kernel_type
-  use advection_alg_mod,                   only: advect_momentum_alg
+
   implicit none
 
   private
@@ -197,9 +197,7 @@ subroutine rhs_alg(rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
       else
         call rhs_adv%initialise( u%get_function_space() )
         call invoke( setval_c( rhs_adv, 0.0_r_def ) )
-        call advect_momentum_alg( rhs_adv, u, u, u, u, &
-                                  dt_step=dt, n_substeps=1, &
-                                  from_si=.true. )
+        call log_event('SI advective form not supported', LOG_LEVEL_ERROR)
         call invoke( inc_X_plus_Y( rhs_tmp, rhs_adv ) )
       end if
     end if

@@ -1,3 +1,0 @@
-Inner product checksum density = 40A9CD137C6774C2
-Inner product checksum wind = 41386A000000000E
-Inner product checksum theta = 40B5B96265B91D54

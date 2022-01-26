@@ -32,7 +32,6 @@ module diagnostic_alg_mod
 
   private
   public :: divergence_diagnostic_alg
-  public :: density_diagnostic_alg
   public :: hydbal_diagnostic_alg
   public :: split_wind_diagnostic_alg
   public :: scalar_nodal_diagnostic_alg
@@ -79,70 +78,6 @@ contains
 
 
   end subroutine divergence_diagnostic_alg
-
-!=============================================================================!
-  !> @details An algorithm for calculating the l2 error for the density field.
-  !>          It is capable of calculating the error at each timestep by using
-  !>          set_rho_alg algorithm which will return the analytic density value
-  !>          at each timestep.
-  !> @param[in,out] l2   l2 norm
-  !> @param[in] rho_num  Density
-  !> @param[in] timestep Timestep
-  !> @param[in] dt       The model timestep length
-  subroutine density_diagnostic_alg(l2, rho_num, timestep, dt)
-    use fem_constants_mod,            only: get_mass_matrix
-    use operator_mod,                 only: operator_type
-    use field_mod,                    only: field_type
-    use quadrature_xyoz_mod,          only: quadrature_xyoz_type
-    use set_rho_alg_mod,              only: set_rho_alg
-
-    implicit none
-
-    real(r_def), intent(inout)   :: l2
-    type(field_type), intent(in) :: rho_num
-    integer(i_def),   intent(in) :: timestep
-    real(r_def),      intent(in) :: dt
-
-    type(field_type)             :: rho_analytic
-    type(field_type)             :: rho_diff
-    type(field_type)             :: w3_rho_diff
-    type(field_type)             :: w3_rho_analytic
-
-    real(r_def)                  :: sum_diff, sum_analytic
-    type(operator_type), pointer :: mm_w3 => null()
-
-    call rho_analytic%initialise( vector_space = rho_num%get_function_space() )
-    call rho_diff%initialise( vector_space = rho_num%get_function_space() )
-    call w3_rho_diff%initialise( vector_space = rho_num%get_function_space() )
-    call w3_rho_analytic%initialise( vector_space = rho_num%get_function_space() )
-
-    mm_w3 => get_mass_matrix(W3, rho_num%get_mesh_id())
-
-    call set_rho_alg( rho_analytic, timestep, dt )
-
-    ! The normalised l2 error norm with cell volume weightings is calculated as:
-    ! l2 = sqrt(I((rho_num - rho_analytic)^2))/sqrt(I(rho_analtyic^2))
-    ! where I(rho) = sum(rho_i*volume_of_cell_i).
-    ! Here we let sum_diff = I((rho_num - rho_analytic)^2)
-    ! and         sum_analytic = I(rho_analtyic^2)
-    ! To calculate sum_diff we use the inner product operator and multiply one of
-    ! the differences by the W3 matrix which contains the cell volumes.
-    ! sum_diff = inner_product( rho_num-rho_analytic, W3*(rho_num-rho_analytic))
-    ! Similarly for sum_analytic the following is calculated:
-    ! sum_analytic = inner_product( rho_analytic, W3*rho_analytic)
-
-    call invoke( X_minus_Y( rho_diff, rho_num, rho_analytic ),                            &
-                 dg_matrix_vector_kernel_type( w3_rho_diff, rho_diff , mm_w3 ),           &
-                 X_innerproduct_Y( sum_diff, w3_rho_diff, rho_diff ),                     &
-                 dg_matrix_vector_kernel_type( w3_rho_analytic, rho_analytic , mm_w3 ),   &
-                 X_innerproduct_Y( sum_analytic, w3_rho_analytic, rho_analytic ) )
-
-
-    l2 = sqrt(sum_diff)/sqrt(sum_analytic)
-
-    nullify( mm_w3 )
-
-  end subroutine density_diagnostic_alg
 
 !=============================================================================!
   !> @details An algorithm for calculating the l2 norm for the hydrostatic

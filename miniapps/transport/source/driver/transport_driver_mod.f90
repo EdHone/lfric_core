@@ -8,94 +8,67 @@
 !>
 module transport_driver_mod
 
-  use base_mesh_config_mod,           only: prime_mesh_name
-  use check_configuration_mod,        only: get_required_stencil_depth
-  use checksum_alg_mod,               only: checksum_alg
-  use clock_mod,                      only: clock_type
-  use configuration_mod,              only: final_configuration
-  use constants_mod,                  only: i_def, i_native, l_def, &
-                                            r_def
-  use convert_to_upper_mod,           only: convert_to_upper
-  use create_fem_mod,                 only: init_fem
-  use create_mesh_mod,                only: init_mesh
-  use derived_config_mod,             only: set_derived_config
-  use field_mod,                      only: field_type
-  use formulation_config_mod,         only: l_multigrid
-  use init_transport_mod,             only: init_transport
-  use io_context_mod,                 only: io_context_type
-  use lfric_xios_io_mod,              only: initialise_xios
-  use lfric_xios_clock_mod,           only: lfric_xios_clock_type
-  use mesh_collection_mod,            only: mesh_collection, &
-                                            mesh_collection_type
-  use time_config_mod,                only: timestep_end, timestep_start
-  use timestepping_config_mod,        only: dt, spinup_period
-  use transport_mod,                  only: transport_load_configuration, &
-                                            program_name
-  use diagnostics_io_mod,             only: write_scalar_diagnostic, &
-                                            write_vector_diagnostic
-  use diagnostics_calc_mod,           only: write_density_diagnostic
-  use local_mesh_collection_mod,      only: local_mesh_collection, &
-                                            local_mesh_collection_type
-  use log_mod,                        only: log_event,                        &
-                                            log_set_level,                    &
-                                            log_scratch_space,                &
-                                            initialise_logging,               &
-                                            finalise_logging,                 &
-                                            LOG_LEVEL_ALWAYS,                 &
-                                            LOG_LEVEL_ERROR,                  &
-                                            LOG_LEVEL_WARNING,                &
-                                            LOG_LEVEL_INFO,                   &
-                                            LOG_LEVEL_DEBUG,                  &
-                                            LOG_LEVEL_TRACE
-  use io_config_mod,                  only: diagnostic_frequency,             &
-                                            nodal_output_on_w3,               &
-                                            write_diag,                       &
-                                            use_xios_io,                      &
-                                            subroutine_timers
-  use timer_mod,                      only: init_timer, timer, output_timer
-  use mpi_mod,                        only: store_comm,    &
-                                            get_comm_size, &
-                                            get_comm_rank
-  use simple_io_mod,                  only: initialise_simple_io
-  use transport_config_mod,           only: key_from_scheme,            &
-                                            scheme,                     &
-                                            scheme_yz_bip_cosmic,       &
-                                            scheme_cosmic_3D,           &
-                                            scheme_horz_cosmic,         &
-                                            scheme_method_of_lines,     &
-                                            rho_splitting,              &
-                                            rho_splitting_none,         &
-                                            theta_splitting,            &
-                                            theta_splitting_none,       &
-                                            cfl_mol_3d_stab
-  use mass_conservation_alg_mod,      only: mass_conservation
-  use yz_bip_cosmic_alg_mod,          only: yz_bip_cosmic_step
-  use cusph_cosmic_transport_alg_mod, only: set_winds,      &
-                                            cusph_cosmic_transport_step
-  use cosmic_threed_alg_mod,          only: cosmic_threed_transport_step
-  use calc_dep_pts_alg_mod,           only: calc_dep_pts, &
-                                            select_detj_at_w2
-  use density_inc_update_alg_mod,     only: density_inc_update_alg
-  use fem_constants_mod,              only: get_detj_at_w2
-  use geometric_constants_mod,        only: get_cell_orientation
-  use yaxt,                           only: xt_initialize, xt_finalize
-  use rk_transport_rho_mod,           only: rk_transport_rho_final
-  use rk_transport_theta_mod,         only: rk_transport_theta_final
-  use split_mol_cosmic_alg_mod,       only: split_transport_rho_step
-  use diagnostic_alg_mod,             only: l2norm_diff_2fields
-  use advection_alg_mod,              only: advection_alg_init
-  use transport_general_mod,          only: transport_general
-  use initial_wind_config_mod,        only: profile,                      &
-                                            profile_curl_free_reversible, &
-                                            profile_div_free_reversible,  &
-                                            profile_xy_NL_case_1,         &
-                                            profile_yz_NL_case_1,         &
-                                            profile_NL_case_1,            &
-                                            profile_NL_case_2,            &
-                                            profile_NL_case_3,            &
-                                            profile_NL_case_4,            &
-                                            profile_hadley_like_dcmip
-
+  use checksum_alg_mod,                 only: checksum_alg
+  use check_configuration_mod,          only: get_required_stencil_depth
+  use clock_mod,                        only: clock_type
+  use configuration_mod,                only: final_configuration
+  use constants_mod,                    only: i_def, i_native, r_def
+  use convert_to_upper_mod,             only: convert_to_upper
+  use create_fem_mod,                   only: init_fem
+  use create_mesh_mod,                  only: init_mesh
+  use derived_config_mod,               only: set_derived_config
+  use diagnostics_io_mod,               only: write_scalar_diagnostic, &
+                                              write_vector_diagnostic
+  use divergence_alg_mod,               only: divergence_alg
+  use field_mod,                        only: field_type
+  use formulation_config_mod,           only: l_multigrid
+  use idealised_config_mod,             only: test, &
+                                              test_hadley_like_dcmip
+  use io_context_mod,                   only: io_context_type
+  use io_config_mod,                    only: diagnostic_frequency,            &
+                                              nodal_output_on_w3,              &
+                                              write_diag,                      &
+                                              use_xios_io,                     &
+                                              subroutine_timers
+  use lfric_xios_io_mod,                only: initialise_xios
+  use lfric_xios_clock_mod,             only: lfric_xios_clock_type
+  use local_mesh_mod,                   only: local_mesh_type
+  use local_mesh_collection_mod,        only: local_mesh_collection, &
+                                              local_mesh_collection_type
+  use log_mod,                          only: log_event,                       &
+                                              log_set_level,                   &
+                                              log_scratch_space,               &
+                                              initialise_logging,              &
+                                              finalise_logging,                &
+                                              LOG_LEVEL_ALWAYS,                &
+                                              LOG_LEVEL_ERROR,                 &
+                                              LOG_LEVEL_WARNING,               &
+                                              LOG_LEVEL_INFO,                  &
+                                              LOG_LEVEL_DEBUG,                 &
+                                              LOG_LEVEL_TRACE
+  use mass_conservation_alg_mod,        only: mass_conservation
+  use mesh_collection_mod,              only: mesh_collection, &
+                                              mesh_collection_type
+  use mesh_mod,                         only: mesh_type
+  use mpi_mod,                          only: store_comm,    &
+                                              get_comm_size, &
+                                              get_comm_rank
+  use mr_indices_mod,                   only: nummr
+  use runtime_constants_mod,            only: create_runtime_constants
+  use simple_io_mod,                    only: initialise_simple_io
+  use timer_mod,                        only: init_timer, timer, output_timer
+  use time_config_mod,                  only: timestep_end, timestep_start
+  use timestepping_config_mod,          only: dt, spinup_period
+  use transport_mod,                    only: transport_load_configuration, &
+                                              program_name
+  use transport_init_fields_alg_mod,    only: transport_init_fields_alg
+  use transport_control_alg_mod,        only: transport_prerun_setup, &
+                                              transport_init, &
+                                              transport_step, &
+                                              transport_final
+  use transport_runtime_collection_mod, only: init_transport_runtime_collection, &
+                                              transport_runtime_collection_final
+  use yaxt,                             only: xt_initialize, xt_finalize
 
   implicit none
 
@@ -104,33 +77,30 @@ module transport_driver_mod
   public :: initialise_transport, run_transport, finalise_transport
 
   ! Prognostic fields
-  type(field_type) :: wind_n
+  type(field_type) :: wind
   type(field_type) :: density
   type(field_type) :: theta
-  type(field_type) :: dep_pts_x
-  type(field_type) :: dep_pts_y
-  type(field_type) :: dep_pts_z
+  type(field_type) :: tracer
+  type(field_type) :: mr(nummr)
+  type(field_type) :: divergence
 
-  ! Shifted Prognostic fields
-  type(field_type) :: wind_shifted
-  type(field_type) :: density_shifted
-  type(field_type) :: increment
-  type(field_type) :: wind_divergence
-  type(field_type) :: detj_at_w2
-  type(field_type), pointer :: detj_at_w2_shifted => null()
-  type(field_type), pointer :: cell_orientation => null()
-  type(field_type), pointer :: cell_orientation_shifted => null()
+  ! Number of moisutre species to transport
+  integer(kind=i_def) :: nummr_to_transport
 
   ! Coordinate field
   type(field_type), target, dimension(3) :: chi
   type(field_type), target               :: panel_id
   type(field_type), target, dimension(3) :: shifted_chi
+  type(field_type), target, dimension(3) :: double_level_chi
 
   class(io_context_type), allocatable :: io_context
 
-  integer(i_def) :: mesh_id
-  integer(i_def) :: twod_mesh_id
-  integer(i_def) :: shifted_mesh_id
+  integer(kind=i_def) :: mesh_id
+  integer(kind=i_def) :: twod_mesh_id
+  integer(kind=i_def) :: shifted_mesh_id
+  integer(kind=i_def) :: double_level_mesh_id
+  integer(kind=i_def) :: num_meshes
+
 
 contains
 
@@ -149,19 +119,22 @@ contains
 
     implicit none
 
-    character(*),      intent(in) :: filename
-    integer(i_native), intent(in) :: model_communicator
+    character(len=*),       intent(in) :: filename
+    integer(kind=i_native), intent(in) :: model_communicator
 
     character(len=*), parameter :: xios_ctx  = "transport"
 
-    class(clock_type), pointer :: clock
-    real(r_def)                :: dt_model
+    class(clock_type), pointer :: clock => null()
+    real(kind=r_def)           :: dt_model
 
     integer(i_def)    :: total_ranks, local_rank, stencil_depth
     integer(i_native) :: log_level
 
-    integer(i_def), allocatable :: multigrid_mesh_ids(:)
-    integer(i_def), allocatable :: multigrid_2d_mesh_ids(:)
+    integer(kind=i_def), allocatable :: multigrid_mesh_ids(:)
+    integer(kind=i_def), allocatable :: multigrid_2d_mesh_ids(:)
+    integer(kind=i_def), allocatable :: local_mesh_ids(:)
+    type(mesh_type),         pointer :: mesh => null()
+    type(local_mesh_type),   pointer :: local_mesh => null()
 
     dt_model = real(dt, r_def)
 
@@ -229,6 +202,7 @@ contains
                     mesh_id,                                     &
                     twod_mesh_id=twod_mesh_id,                   &
                     shifted_mesh_id=shifted_mesh_id,             &
+                    double_level_mesh_id=double_level_mesh_id,   &
                     multigrid_mesh_ids=multigrid_mesh_ids,       &
                     multigrid_2d_mesh_ids=multigrid_2d_mesh_ids, &
                     use_multigrid=l_multigrid )
@@ -237,42 +211,41 @@ contains
     call init_fem( mesh_id, chi, panel_id,                      &
                    shifted_mesh_id=shifted_mesh_id,             &
                    shifted_chi=shifted_chi,                     &
+                   double_level_mesh_id=double_level_mesh_id,   &
+                   double_level_chi= double_level_chi,          &
                    multigrid_mesh_ids=multigrid_mesh_ids,       &
                    multigrid_2d_mesh_ids=multigrid_2d_mesh_ids, &
                    use_multigrid=l_multigrid )
 
-    ! Transport initialisation
-    call init_transport( mesh_id, twod_mesh_id, chi, panel_id,          &
-                         dt_model, shifted_mesh_id, shifted_chi,        &
-                         wind_n, density, theta, dep_pts_x, dep_pts_y,  &
-                         dep_pts_z, increment, wind_divergence,         &
-                         wind_shifted, density_shifted )
+    ! Create runtime_constants object.
+    call create_runtime_constants( mesh_id, twod_mesh_id, chi, panel_id,   &
+                                   dt_model, shifted_mesh_id, shifted_chi, &
+                                   double_level_mesh_id, double_level_chi  )
 
-    ! Initialise dependencies
-    ! rho_splitting /= rho_splitting_none   or
-    ! theta_splitting /= theta_splitting_none -> advection_alg_init
-    !
-    if ( scheme == scheme_method_of_lines    .or.  &
-         rho_splitting /= rho_splitting_none .or.  &
-         theta_splitting /= theta_splitting_none   ) then
-      call advection_alg_init( mesh_id )
-    end if
+    ! Set up transport runtime collection type
+    ! Transport on only one horizontal local mesh
+    mesh => mesh_collection%get_mesh(mesh_id)
+    local_mesh => mesh%get_local_mesh()
+    allocate(local_mesh_ids(1))
+    local_mesh_ids(1) = local_mesh%get_id()
+    call init_transport_runtime_collection(local_mesh_ids)
 
-    ! Calculate Det(J) at W2 dofs for chi and shifted_chi fields.
-    ! The calculation of Det(J) for the shifted_chi field is done in preparation
-    ! for Ticket #2669 and has no upwinded version yet.
-    call detj_at_w2%initialise( wind_n%get_function_space() )
-    call select_detj_at_w2( wind_n, detj_at_w2 )
-    detj_at_w2_shifted => get_detj_at_w2(shifted_mesh_id)
+    ! Set transport metadata for primal mesh
+    num_meshes = 1_i_def
+    call transport_prerun_setup( num_meshes )
 
-    ! Set cell cell_orientation (and shifted) if using splitting scheme.
-    ! Cell orientation is used by Cosmic and splitting schemes
-    !
-    if (scheme /= scheme_method_of_lines    .or. &
-        rho_splitting /= rho_splitting_none .or. &
-        theta_splitting /= theta_splitting_none  ) then
-      cell_orientation => get_cell_orientation(mesh_id)
-      cell_orientation_shifted => get_cell_orientation(shifted_mesh_id)
+    ! Initialise prognostic variables
+    call transport_init_fields_alg( mesh_id, wind, density, theta, &
+                                    tracer, mr, divergence )
+
+    ! Initialise all transport-only control algorithm
+    call transport_init( density, theta, tracer, mr )
+
+    ! Set number of moisutre specis to transport based on test case
+    if ( test == test_hadley_like_dcmip ) then
+      nummr_to_transport = 0_i_def
+    else
+      nummr_to_transport = 1_i_def
     end if
 
     ! I/O initialisation
@@ -308,11 +281,17 @@ contains
     ! Output initial conditions
     if (clock%is_initialisation() .and. write_diag) then
 
-      call write_vector_diagnostic( 'wind', wind_n, clock, &
+      call write_vector_diagnostic( 'u', wind, clock, &
                                     mesh_id, nodal_output_on_w3 )
-      call write_scalar_diagnostic( 'density', density, clock, &
+      call write_scalar_diagnostic( 'rho', density, clock, &
                                     mesh_id, nodal_output_on_w3 )
       call write_scalar_diagnostic( 'theta', theta, clock, &
+                                    mesh_id, nodal_output_on_w3 )
+      call write_scalar_diagnostic( 'tracer', tracer, clock, &
+                                    mesh_id, nodal_output_on_w3 )
+      call write_scalar_diagnostic( 'm_v', mr(1), clock, &
+                                    mesh_id, nodal_output_on_w3 )
+      call write_scalar_diagnostic( 'divergence', divergence, clock, &
                                     mesh_id, nodal_output_on_w3 )
 
     end if
@@ -326,24 +305,8 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-    type(field_type)    :: density_t0, density_inc, density_n
-    type(field_type)    :: theta_t0, theta_inc, theta_n
-    real(r_def)         :: err_rho, err_theta, dt
-    logical(l_def)      :: conservative_form
-    logical(l_def)      :: time_varying_wind
-
-
-    call density_t0%initialise( vector_space = density%get_function_space() )
-    call density_inc%initialise( vector_space = density%get_function_space() )
-    call density_n%initialise( vector_space = density%get_function_space() )
-
-    call theta_t0%initialise( vector_space = theta%get_function_space() )
-    call theta_inc%initialise( vector_space = theta%get_function_space() )
-    call theta_n%initialise( vector_space = theta%get_function_space() )
-
-    call density%copy_field(density_t0)
-    call theta%copy_field(theta_t0)
+    real(kind=r_def) :: dt
+    class(clock_type), pointer :: clock => null()
 
     call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
     call log_event( program_name//': Miniapp will run with default precision set as:', LOG_LEVEL_INFO )
@@ -352,36 +315,10 @@ contains
     write(log_scratch_space, '(I1)') kind(1_i_def)
     call log_event( program_name//':        i_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
 
-    if ( theta_splitting == theta_splitting_none ) then
-      ! Currently there is no other theta transport option in the tranport miniapp except splitting
-      write( log_scratch_space, '(A)' ) ' WARNING == Invalid option for theta advection for the miniapp transport'
-      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
-      write( log_scratch_space, '(A)' ) ' In this case theta is not advected and remains at the initial state '
-      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
-    end if
-
-    ! Determine if wind is time-varying or not
-    if ((profile == profile_xy_NL_case_1)         .or. &
-        (profile == profile_yz_NL_case_1)         .or. &
-        (profile == profile_NL_case_1)            .or. &
-        (profile == profile_NL_case_2)            .or. &
-        (profile == profile_NL_case_3)            .or. &
-        (profile == profile_NL_case_4)            .or. &
-        (profile == profile_hadley_like_dcmip)    .or. &
-        (profile == profile_div_free_reversible)  .or. &
-        (profile == profile_curl_free_reversible)) then
-        time_varying_wind = .true.
-      else
-        time_varying_wind = .false.
-      end if
-
     clock => io_context%get_clock()
     dt = real(clock%get_seconds_per_step(), r_def)
 
-    ! Initialise winds before first time step
-    call set_winds( wind_n, mesh_id, clock%get_step(), dt )
-    ! Set Det(J) at W2 before first time step
-    call select_detj_at_w2( wind_n, detj_at_w2 )
+    call mass_conservation( clock%get_step(), density, mr )
 
     !--------------------------------------------------------------------------
     ! Model step
@@ -394,92 +331,20 @@ contains
         'Start of timestep ', clock%get_step()
       call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
-      ! Only update the wind and upwind Det(J) for time varying prescribed profiles
-      if (time_varying_wind) then
-        call set_winds( wind_n, mesh_id, clock%get_step(), dt )
-        call detj_at_w2%initialise( wind_n%get_function_space() )
-        call select_detj_at_w2( wind_n, detj_at_w2 )
-      end if
+      if ( subroutine_timers ) call timer( 'transport step' )
 
-      if (scheme /= scheme_method_of_lines    .or. &
-          rho_splitting /= rho_splitting_none .or. &
-          theta_splitting /= theta_splitting_none  ) then
-        ! Calculate departure points.
-        ! Here the wind is assumed to be the same at timestep n and timestep n+1
-        call calc_dep_pts( dep_pts_x, dep_pts_y, dep_pts_z, wind_divergence, &
-                           wind_n, wind_n, detj_at_w2, cell_orientation, dt )
-      end if
+      call transport_step( clock%get_step(), dt, wind, &
+                           density, theta, tracer, mr, &
+                           nummr_to_transport )
 
       if ( subroutine_timers ) call timer( 'transport step' )
 
-      call density%copy_field(density_n)
-
-      ! Transport of rho field
-      if ( rho_splitting == rho_splitting_none ) then
-        ! No splitting, so use a '3D' implementation
-        select case( scheme )
-          case ( scheme_yz_bip_cosmic )
-            call yz_bip_cosmic_step( increment, density, dep_pts_y, dep_pts_z, &
-                                     detj_at_w2, dt  )
-            call density_inc_update_alg(density, increment, dt)
-
-          case ( scheme_horz_cosmic )
-            call cusph_cosmic_transport_step( increment, density, dep_pts_x,    &
-                                        dep_pts_y, detj_at_w2, cell_orientation, &
-                                        dt )
-            call density_inc_update_alg(density, increment, dt)
-
-          case ( scheme_cosmic_3D )
-            call cosmic_threed_transport_step( density, dep_pts_x, dep_pts_y,     &
-                                         dep_pts_z, detj_at_w2, cell_orientation, &
-                                         dt, increment )
-            call density_inc_update_alg(density, increment, dt)
-
-          case ( scheme_method_of_lines )
-
-            ! conservative_form=T/F (solving the conservative/advective form of transport)
-            conservative_form = .true.
-
-            call transport_general(wind_n, density, scheme_method_of_lines, &
-                                   conservative_form, dt)
-            conservative_form = .false.
-            call transport_general(wind_n, theta, scheme_method_of_lines,   &
-                                   conservative_form, dt)
-
-          case default
-            write(log_scratch_space, '(A, A)') &
-               "Unrecognised transport scheme: ", key_from_scheme(scheme)
-            call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-            stop
-        end select
-      else
-        ! Use the split scheme for density and theta fields
-        !-----------------------------------------------------
-        ! Density is in the conservative for (mconservative_form = .true.
-        ! Theta is in advection form (conservative_form = .false.)
-
-         conservative_form = .true.
-         call transport_general(wind_n, density, rho_splitting, &
-                                conservative_form, dt )
-         conservative_form = .false.
-         call transport_general(wind_n, theta, theta_splitting, &
-                                conservative_form, dt )
-      end if
-
-      if ( subroutine_timers ) call timer( 'transport step' )
-
-      call write_density_diagnostic( density, clock )
-      call mass_conservation( clock%get_step(), density_n, density )
-
-      call density%log_minmax( LOG_LEVEL_INFO, 'density' )
-      call   theta%log_minmax( LOG_LEVEL_INFO, 'theta'   )
-      call l2norm_diff_2fields(err_rho, density, density_t0 )
-      call l2norm_diff_2fields(err_theta, theta, theta_t0 )
-
-      write( log_scratch_space, '(A,E16.8)' ) ' L2(rho-rho0)/L2(rho0)       = ',err_rho
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
-      write( log_scratch_space, '(A,E16.8)' ) ' L2(theta-theta0)/L2(theta0) = ',err_theta
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      ! Write out conservation diagnostics
+      call mass_conservation( clock%get_step(), density, mr )
+      call density%log_minmax( LOG_LEVEL_INFO, 'rho' )
+      call theta%log_minmax( LOG_LEVEL_INFO, 'theta' )
+      call tracer%log_minmax( LOG_LEVEL_INFO, 'tracer' )
+      call mr(1)%log_minmax( LOG_LEVEL_INFO, 'm_v' )
 
 
       write( log_scratch_space, '(A,I0)' ) 'End of timestep ', clock%get_step()
@@ -491,37 +356,28 @@ contains
       if ( (mod( clock%get_step(), diagnostic_frequency ) == 0) &
            .and. write_diag ) then
 
-        call write_vector_diagnostic( 'wind', wind_n,                     &
-                                      clock, mesh_id, nodal_output_on_w3)
-        call write_scalar_diagnostic( 'density', density,                 &
-                                      clock, mesh_id, nodal_output_on_w3)
-        call write_scalar_diagnostic( 'wind_divergence', wind_divergence, &
-                                      clock, mesh_id, nodal_output_on_w3)
+        ! Compute divergence
+        call divergence_alg( divergence, wind )
+
+        call write_vector_diagnostic( 'u', wind,                     &
+                                      clock, mesh_id, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'rho', density,                 &
+                                      clock, mesh_id, nodal_output_on_w3 )
         call write_scalar_diagnostic( 'theta', theta,                     &
-                                      clock, mesh_id, nodal_output_on_w3)
+                                      clock, mesh_id, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'tracer', tracer, &
+                                      clock, mesh_id, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'm_v', mr(1), &
+                                      clock, mesh_id, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'divergence', divergence, &
+                                      clock, mesh_id, nodal_output_on_w3 )
+
 
       end if
 
     end do ! while clock%is_running()
 
-    call l2norm_diff_2fields(err_rho, density, density_t0 )
-    call l2norm_diff_2fields(err_theta, theta, theta_t0 )
-
-    write( log_scratch_space, '(A,E16.8)' ) ' l2-norm error (rho)   @ END = ',err_rho
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
-    write( log_scratch_space, '(A,E16.8)' ) ' l2-norm error (theta) @ END = ',err_theta
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
-
-
-    if ( scheme == scheme_method_of_lines    .or.  &
-         rho_splitting /= rho_splitting_none .or.  &
-         theta_splitting /= theta_splitting_none   ) then
-      call rk_transport_rho_final()
-      call rk_transport_theta_final()
-    end if
-
-    nullify( detj_at_w2_shifted, cell_orientation, &
-             cell_orientation_shifted )
+    call transport_final( density, theta, tracer, mr )
 
   end subroutine run_transport
 
@@ -538,9 +394,9 @@ contains
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Write checksums to file
-    call checksum_alg( program_name, density, 'density',  &
-                                     wind_n, 'wind',      &
-                                     theta, 'theta'       )
+    call checksum_alg( program_name, density, 'rho',  wind, 'u',  &
+                       theta, 'theta', tracer, 'tracer',          &
+                       field_bundle=mr, bundle_name='mr' )
 
     if ( subroutine_timers ) then
       call timer( program_name )
@@ -548,6 +404,8 @@ contains
     end if
 
     deallocate( io_context )
+
+    call transport_runtime_collection_final()
 
     ! Finalise namelist configurations
     call final_configuration()

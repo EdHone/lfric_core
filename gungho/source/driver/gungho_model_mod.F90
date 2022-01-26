@@ -8,7 +8,6 @@
 !>
 module gungho_model_mod
 
-  use advection_alg_mod,          only : advection_alg_final
   use assign_orography_field_mod, only : assign_orography_field
   use base_mesh_config_mod,       only : prime_mesh_name
   use checksum_alg_mod,           only : checksum_alg
@@ -28,12 +27,13 @@ module gungho_model_mod
   use field_collection_mod,       only : field_collection_type, &
                                          field_collection_iterator_type
   use formulation_config_mod,     only : l_multigrid,    &
-                                         transport_only, &
                                          use_moisture,   &
                                          use_physics
   use gungho_mod,                 only : load_configuration
   use gungho_model_data_mod,      only : model_data_type
   use gungho_setup_io_mod,        only : init_gungho_files
+  use gungho_transport_control_alg_mod, &
+                                  only : gungho_transport_control_alg_final
   use init_altitude_mod,          only : init_altitude
   use init_altitude_mod,          only : init_altitude
   use io_config_mod,              only : subroutine_timers,       &
@@ -77,8 +77,6 @@ module gungho_model_mod
   use mr_indices_mod,             only : nummr
   use rk_alg_timestep_mod,        only : rk_alg_init, &
                                          rk_alg_final
-  use rk_transport_mod,           only : rk_transport_init, &
-                                         rk_transport_final
   use runtime_constants_mod,      only : create_runtime_constants, &
                                          final_runtime_constants
   use semi_implicit_timestep_alg_mod, &
@@ -96,8 +94,6 @@ module gungho_model_mod
                                          method_semi_implicit, &
                                          method_rk,            &
                                          spinup_period
-  use transport_config_mod,       only : scheme, &
-                                         scheme_method_of_lines
   use yaxt,                       only : xt_initialize, xt_finalize
 #ifdef COUPLED
   use coupler_mod,                only : l_esm_couple, cpl_define, cpl_fields
@@ -449,57 +445,41 @@ contains
       call minmax_tseries(u, 'u', mesh_id)
     end if
 
-    if ( transport_only ) then
-
-      select case( scheme )
-        case ( scheme_method_of_lines )
-          if ( use_moisture ) then
-            call rk_transport_init( rho, theta, mr )
-          else
-            call rk_transport_init( rho, theta )
-          end if
-        case default
-          call log_event("Gungho: Incorrect transport option chosen, "// &
-                          "stopping program! ",LOG_LEVEL_ERROR)
-      end select
-    else
-      select case( method )
-        case( method_semi_implicit )  ! Semi-Implicit
-          ! Initialise and output initial conditions for first timestep
-          call semi_implicit_alg_init(mesh_id, u, rho, theta, exner, mr)
-          if ( write_conservation_diag ) then
-           call conservation_algorithm( clock%get_step(), &
-                                        rho,              &
-                                        u,                &
-                                        theta,            &
-                                        exner )
-           if ( use_moisture ) &
-             call moisture_conservation_alg( clock%get_step(), &
-                                             rho,              &
-                                             mr,               &
-                                             'Before timestep' )
-          end if
-        case( method_rk )             ! RK
-          ! Initialise and output initial conditions for first timestep
-          call rk_alg_init(mesh_id, u, rho, theta, exner)
-          if ( write_conservation_diag ) then
-           call conservation_algorithm( clock%get_step(), &
-                                        rho,              &
-                                        u,                &
-                                        theta,            &
-                                        exner )
-           if ( use_moisture ) &
-             call moisture_conservation_alg( clock%get_step(), &
-                                             rho,              &
-                                             mr,               &
-                                             'Before timestep' )
-          end if
-        case default
-          call log_event("Gungho: Incorrect time stepping option chosen, "// &
-                          "stopping program! ",LOG_LEVEL_ERROR)
-      end select
-
-    end if
+    select case( method )
+      case( method_semi_implicit )  ! Semi-Implicit
+        ! Initialise and output initial conditions for first timestep
+        call semi_implicit_alg_init(mesh_id, u, rho, theta, exner, mr)
+        if ( write_conservation_diag ) then
+         call conservation_algorithm( clock%get_step(), &
+                                      rho,              &
+                                      u,                &
+                                      theta,            &
+                                      exner )
+         if ( use_moisture ) &
+           call moisture_conservation_alg( clock%get_step(), &
+                                           rho,              &
+                                           mr,               &
+                                           'Before timestep' )
+        end if
+      case( method_rk )             ! RK
+        ! Initialise and output initial conditions for first timestep
+        call rk_alg_init(mesh_id, u, rho, theta, exner)
+        if ( write_conservation_diag ) then
+         call conservation_algorithm( clock%get_step(), &
+                                      rho,              &
+                                      u,                &
+                                      theta,            &
+                                      exner )
+         if ( use_moisture ) &
+           call moisture_conservation_alg( clock%get_step(), &
+                                           rho,              &
+                                           mr,               &
+                                           'Before timestep' )
+        end if
+      case default
+        call log_event("Gungho: Incorrect time stepping option chosen, "// &
+                        "stopping program! ",LOG_LEVEL_ERROR)
+    end select
 
   end subroutine initialise_model
 
@@ -617,24 +597,11 @@ contains
       call checksum_alg(program_name, rho, 'rho', theta, 'theta', u, 'u')
     end if
 
-    ! Call timestep finalizers
-    if ( transport_only .and. scheme == scheme_method_of_lines) then
-      if ( use_moisture ) then
-        call rk_transport_final( rho, theta, mr )
-      else
-        call rk_transport_final( rho, theta )
-      end if
-    end if
-
     if (write_minmax_tseries) call minmax_tseries_final(mesh_id)
 
-    if ( .not. transport_only ) then
-      if ( method == method_semi_implicit ) then
-        call semi_implicit_alg_final()
-        call advection_alg_final()
-      end if
-      if ( method == method_rk )            call rk_alg_final()
-    end if
+    if ( method == method_semi_implicit ) call semi_implicit_alg_final()
+    if ( method == method_rk )            call rk_alg_final()
+    call gungho_transport_control_alg_final()
 
   end subroutine finalise_model
 

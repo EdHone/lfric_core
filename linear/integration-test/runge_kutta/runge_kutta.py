@@ -63,11 +63,6 @@ class tl_test_project_pressure(TLTest):
         flag = "project_pressure"
         super(tl_test_project_pressure, self).__init__(flag)
 
-class tl_test_advection(TLTest):
-    def __init__(self):
-        flag = "advection"
-        super(tl_test_advection, self).__init__(flag)
-
 class tl_test_advect_density_field(TLTest):
     def __init__(self):
         flag = "advect_density_field"
@@ -95,7 +90,6 @@ class tl_test_hydrostatic(TLTest):
 
 if __name__ == '__main__':
     TestEngine.run( tl_test_kinetic_energy_gradient() )
-    TestEngine.run( tl_test_advection() )
     TestEngine.run( tl_test_advect_density_field() )
     TestEngine.run( tl_test_advect_theta_field() )
     TestEngine.run( tl_test_vorticity_advection() )

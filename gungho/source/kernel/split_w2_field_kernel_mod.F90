@@ -79,12 +79,14 @@ subroutine split_w2_field_code(nlayers,                    &
   ! Internal variables
   integer(kind=i_def) :: df, k
 
+  ! First 2/3 of ndf are horizontal df's (=ndf_w2h),
+  ! the rest are vertical dfs' (=ndf_w2v)
   do k = 0, nlayers-1
-    do df = 1,4
+    do df = 1,ndf_w2h
       uv(map_w2h(df) + k) = uvw(map_w2(df) + k)
     end do
-    do df = 1,2
-      w(map_w2v(df) + k) = uvw(map_w2(4+df) + k)
+    do df = 1,ndf_w2v
+      w(map_w2v(df) + k) = uvw(map_w2(ndf_w2h+df) + k)
     end do
   end do
 

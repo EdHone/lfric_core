@@ -1,0 +1,218 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> @brief Module controlling the tangent linear transport.
+
+module tl_transport_control_alg_mod
+
+  use constants_mod,                     only: i_def, r_def, l_def
+  use field_mod,                         only: field_type
+  use formulation_config_mod,            only: use_moisture
+  use log_mod,                           only: log_event,         &
+                                               LOG_LEVEL_INFO
+  use transport_config_mod,              only: moisture_eqn, &
+                                               moisture_eqn_conservative
+  use tl_transport_runtime_collection_mod, &
+                                         only: tl_transport_runtime
+  use transport_metadata_mod,            only: transport_metadata_type
+  use transport_runtime_alg_mod,         only: transport_runtime_type
+  use transport_runtime_collection_mod,  only: set_transport_runtime
+  use transport_metadata_collection_mod, only: transport_metadata_collection
+
+  implicit none
+
+  private
+
+  ! Set number of mixing ratio species to transport
+  ! Only transport first four species of moisture (and not graupel or snow)
+  integer(kind=i_def), parameter :: nummr_to_transport = 4
+
+  ! Contained suroutines
+  public :: tl_transport_control_alg
+
+contains
+
+  !=============================================================================
+  !> @brief Advection of prognostic variables for the tangent linear model.
+  !> @param[in,out] advection_inc      ACTIVE Advection increment of the dynamics
+  !!                                   prognostics [u, rho, theta, exner]
+  !> @param[in]     advected_fields    ACTIVE Fields to advect: [u, rho, theta, exner]
+  !> @param[in]     wind_np1           ACTIVE End of timestep wind field
+  !> @param[in]     wind_n             ACTIVE Start of timestep wind field
+  !> @param[in,out] mr_out             ACTIVE Moisture fields after transport
+  !> @param[in]     mr_in              ACTIVE Moisture fields before transport
+  !> @param[in]     moist_dyn          ACTIVE Moist dynamics factors
+  !> @param[in]     ls_advected_fields PASSIVE Fields to advect: [u, rho, theta, exner]
+  !> @param[in]     ls_wind_np1        PASSIVE End of timestep wind field
+  !> @param[in]     ls_wind_n          PASSIVE Start of timestep wind field
+  !> @param[in]     ls_mr_in           PASSIVE Moisture fields before transport
+  !> @param[in]     model_dt           Difference in time through model time step
+  !> @param[in]     t_step             Integer denoting current model timestep
+  subroutine tl_transport_control_alg(advection_inc, advected_fields,   &
+                                      wind_np1, wind_n, mr_out, mr_in,  &
+                                      moist_dyn, ls_advected_fields,    &
+                                      ls_wind_np1, ls_wind_n, ls_mr_in, &
+                                      model_dt, t_step)
+
+    use check_configuration_mod,         only: check_any_scheme_ffsl
+    use derived_config_mod,              only: bundle_size
+    use extrusion_mod,                   only: SHIFTED
+    use fem_constants_mod,               only: get_mass_matrix
+    use field_bundle_mod,                only: clone_bundle, set_bundle_scalar
+    use field_indices_mod,               only: igh_u, igh_t, igh_d, igh_p
+    use formulation_config_mod,          only: use_moisture
+    use fs_continuity_mod,               only: Wtheta
+    use matrix_vector_kernel_mod,        only: matrix_vector_kernel_type
+    use mesh_mod,                        only: mesh_type
+    use mesh_collection_mod,             only: mesh_collection
+    use moist_dyn_mod,                   only: num_moist_factors
+    use moist_dyn_factors_kernel_mod,    only: moist_dyn_factors_kernel_type
+    use mr_indices_mod,                  only: nummr
+    use operator_mod,                    only: operator_type
+    use planet_config_mod,               only: recip_epsilon
+    use timestepping_config_mod,         only: time_method => method, &
+                                               method_semi_implicit
+    use tl_moist_mr_transport_alg_mod,   only: tl_moist_mr_transport_alg
+    use tl_transport_field_mod,          only: tl_transport_field
+    use tl_wind_transport_alg_mod,       only: tl_wind_transport_alg
+    use io_config_mod,                   only: subroutine_timers
+    use timer_mod,                       only: timer
+
+    implicit none
+
+    ! Arguments
+    type(field_type),            intent(inout) :: advection_inc(bundle_size)
+    type(field_type),            intent(in)    :: advected_fields(bundle_size)
+    type(field_type),            intent(in)    :: wind_np1
+    type(field_type),            intent(in)    :: wind_n
+    type(field_type),            intent(in)    :: ls_wind_np1
+    type(field_type),            intent(in)    :: ls_wind_n
+    type(field_type),            intent(inout) :: mr_out(nummr)
+    type(field_type),            intent(in)    :: mr_in(nummr)
+    type(field_type),            intent(inout) :: moist_dyn(num_moist_factors)
+    type(field_type),            intent(in)    :: ls_advected_fields(bundle_size)
+    type(field_type),            intent(in)    :: ls_mr_in(nummr)
+    real(kind=r_def),            intent(in)    :: model_dt
+    integer(kind=i_def),         intent(in)    :: t_step
+
+    ! Internal variables
+    type(field_type)    :: dry_flux, temp_inc
+    type(field_type)    :: fields_np1(bundle_size)
+    logical(kind=l_def) :: any_ffsl
+    integer(kind=i_def) :: shifted_mesh_id
+    type(operator_type), pointer :: mm_wt => null()
+    type(mesh_type),     pointer :: primary_mesh => null()
+    type(mesh_type),     pointer :: shifted_mesh => null()
+    type(transport_runtime_type) :: transport_runtime
+
+    type(transport_metadata_type), pointer :: transport_metadata => null()
+
+    if ( subroutine_timers ) call timer('tl_transport_control')
+
+    ! ------------------------------------------------------------------------ !
+    ! Pre-transport initialisation tasks
+    ! ------------------------------------------------------------------------ !
+
+    ! Check if any horizontal method is ffsl
+    any_ffsl = check_any_scheme_ffsl()
+
+    ! Create transport_runtime object (advecting wind etc)
+    if ( moisture_eqn == moisture_eqn_conservative .or. any_ffsl ) then
+      primary_mesh => ls_wind_n%get_mesh()
+      shifted_mesh => mesh_collection%get_mesh(primary_mesh, SHIFTED)
+      shifted_mesh_id = shifted_mesh%get_id()
+
+      transport_runtime = transport_runtime_type(ls_wind_n, ls_wind_np1, model_dt, &
+                                                 shifted_mesh_id)
+      tl_transport_runtime = transport_runtime_type(wind_n, wind_np1, model_dt, &
+                                                    shifted_mesh_id)
+
+      nullify(primary_mesh, shifted_mesh)
+    else
+      transport_runtime = transport_runtime_type(ls_wind_n, ls_wind_np1, model_dt)
+      tl_transport_runtime = transport_runtime_type(wind_n, wind_np1, model_dt)
+    end if
+    call set_transport_runtime(transport_runtime)
+
+    ! Initialise fields
+    ! Dry flux is currently a dummy
+    call dry_flux%initialise(vector_space = wind_n%get_function_space())
+    call clone_bundle(advected_fields, fields_np1, bundle_size)
+    call set_bundle_scalar(0.0_r_def, fields_np1, bundle_size)
+
+    ! ------------------------------------------------------------------------ !
+    ! Transport of prognostic variables
+    ! ------------------------------------------------------------------------ !
+
+    ! ------------------------------------------------------------------------ !
+    ! Transport dry density
+    call log_event( "Transporting density...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('density')
+    call tl_transport_field( fields_np1(igh_d), advected_fields(igh_d), &
+                             ls_advected_fields(igh_d), model_dt,       &
+                             transport_metadata )
+    call invoke( X_minus_Y( advection_inc(igh_d), fields_np1(igh_d), &
+                            advected_fields(igh_d) ) )
+
+    ! Update transport runtime here with dry flux and dry density
+    call tl_transport_runtime%set_dry_fields(advected_fields(igh_d), &
+                                             fields_np1(igh_d), dry_flux)
+
+    ! ------------------------------------------------------------------------ !
+    ! Transport potential temperature
+    call log_event( "Transporting potential temperature...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('potential_temperature')
+    call tl_transport_field( fields_np1(igh_t), advected_fields(igh_t), &
+                             ls_advected_fields(igh_t), model_dt,       &
+                             transport_metadata )
+    call invoke( X_minus_Y( advection_inc(igh_t), fields_np1(igh_t), &
+                            advected_fields(igh_t) ) )
+    ! The increment is now pointwise. Depending upon the temporal discretisation
+    ! this may need converting into weak form by multiplying by the mass matrix
+    if ( time_method == method_semi_implicit ) then
+      mm_wt => get_mass_matrix(Wtheta, advected_fields(igh_t)%get_mesh_id())
+      call temp_inc%initialise( vector_space = &
+                                fields_np1(igh_t)%get_function_space() )
+
+      call invoke( setval_X(temp_inc, advection_inc(igh_t)),       &
+                   setval_c(advection_inc(igh_t), 0.0_r_def),      &
+                   matrix_vector_kernel_type(advection_inc(igh_t), &
+                                             temp_inc, mm_wt) )
+      nullify( mm_wt )
+    end if
+
+    ! ------------------------------------------------------------------------ !
+    ! Transport wind field
+    call log_event( "Transporting wind...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('wind')
+    call tl_wind_transport_alg( advection_inc(igh_u), advected_fields(igh_u), &
+                                ls_advected_fields(igh_u), model_dt,          &
+                                transport_metadata )
+    ! We don't change advection_inc(igh_u) as tl_wind_transport_alg
+    ! already returns weak increment
+
+    ! ------------------------------------------------------------------------ !
+    ! Don't transport Exner pressure
+    call invoke( setval_c(advection_inc(igh_p), 0.0_r_def) )
+
+    ! ------------------------------------------------------------------------ !
+    ! Transport moisture mixing ratio fields
+    if ( use_moisture ) then
+
+      call log_event("Transporting moisture mixing ratio fields...", LOG_LEVEL_INFO)
+      transport_metadata => transport_metadata_collection%get_transport_metadata('moisture')
+      call tl_moist_mr_transport_alg( mr_out, mr_in, ls_mr_in,      &
+                                      nummr_to_transport, model_dt, &
+                                      transport_metadata )
+      call invoke(moist_dyn_factors_kernel_type(moist_dyn, mr_out, recip_epsilon))
+
+
+    end if
+
+    if ( subroutine_timers ) call timer('tl_transport_control')
+
+  end subroutine tl_transport_control_alg
+
+end module tl_transport_control_alg_mod

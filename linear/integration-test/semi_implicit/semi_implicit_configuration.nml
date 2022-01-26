@@ -5,7 +5,7 @@ offline_partitioning = .false.,
 prime_mesh_name='dynamics',
 topology='fully_periodic',
 /
-&biperiodic_deppt
+&departure_points
 method='euler',
 n_dep_pt_iterations=1,
 vertical_method='trapezoidal',
@@ -55,11 +55,9 @@ eos_method='sampled',
 exner_from_eos=.true.,
 init_exner_bt=.true.,
 l_multigrid=.false.,
-moisture_conservation=.false.,
 rotating=.true.,
 shallow=.true.,
 si_momentum_equation=.false.,
-transport_only=.false.,
 use_moisture=.false.,
 use_multires_coupling=.false.,
 use_physics=.false.,
@@ -200,7 +198,6 @@ dt=10.0,
 inner_iterations=2,
 method='semi_implicit',
 outer_iterations=2,
-runge_kutta_method='ssp5',
 spinup_alpha=.false.,
 spinup_period=0,
 spinup_winds=.false.,
@@ -209,22 +206,30 @@ tau_t=0.5,
 tau_u=0.5,
 /
 &transport
-cfl_control_stab=2.0,
+profile_size = 3
+field_names = 'density','potential_temperature','wind'
+scheme = 1,1,1
+splitting = 1, 1, 1
+horizontal_method = 1,1,1
+vertical_method = 1,1,1
+monotone = 1,1,1
+log_space = .false.,.false.,.false.
+enforce_min_value=.false.,.false.,.false.
+min_value=0.0,0.0,-99999999.0,0.0
+cfl_mol_1d_stab = 2.0
+cfl_mol_2d_stab = 2.0
+cfl_mol_3d_stab = 2.0
 consistent_metric=.false.,
-enforce_monotonicity=.false.,
+ffsl_advective_splitting='full'
+ffsl_flux_splitting='full'
 fv_advective_order=2,
 fv_flux_order=2,
-log_rho=.false.,
-log_theta=.false.,
+moisture_eqn='advective',
 oned_reconstruction=.true.,
 operators='fv',
-rho_splitting='none',
-rho_vertical_scheme='slice',
-scheme='method_of_lines',
+runge_kutta_method = 'ssp5',
 slice_order='cubic',
-theta_splitting='none',
-theta_vertical_scheme='sl',
-use_density_predictor=.true.,
+use_density_predictor=.false.,
 vertical_sl_order='cubic',
 /
 &development

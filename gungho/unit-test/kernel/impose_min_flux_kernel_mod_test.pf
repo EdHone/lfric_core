@@ -93,7 +93,6 @@ contains
 
     ! Operators
     real(r_def), dimension(ndf_w3,ndf_w2,ncell_3d) :: div
-    real(r_def), dimension(ndf_w3,ndf_w3,ncell_3d) :: div_multiplier
 
     ! Fields
     real(r_def), dimension(undf_w3) :: rho
@@ -134,7 +133,6 @@ contains
       end do
     end do
 
-    div_multiplier(:,:,:) = 1.0_r_def
     rho(:)                = 3.0_r_def
 
     rho_min        = 0.0_r_def
@@ -144,17 +142,16 @@ contains
     ! Compute the modified fluxes
 
     cell = 1_i_def
-    call impose_min_flux_code(cell,                    &
-                              nlayers,                 &
-                              rho, flux,               &
-                              ncell_3d,                &
-                              div,                     &
-                              ncell_3d,                &
-                              div_multiplier,          &
-                              rho_min,                 &
-                              dts,                     &
-                              ndf_w3, undf_w3, map_w3, &
-                              ndf_w2, undf_w2, map_w2  )
+
+    call impose_min_flux_code( cell,                    &
+                               nlayers,                 &
+                               rho, flux,               &
+                               ncell_3d,                &
+                               div,                     &
+                               rho_min,                 &
+                               dts,                     &
+                               ndf_w3, undf_w3, map_w3, &
+                               ndf_w2, undf_w2, map_w2  )
 
     do j = 1,undf_w2
       @assertEqual(flux_answer(j), flux(j) , tol)
@@ -163,4 +160,3 @@ contains
   end subroutine test_all
 
 end module impose_min_flux_kernel_mod_test
-

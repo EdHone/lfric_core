@@ -12,11 +12,8 @@ use argument_mod,            only : arg_type,                           &
                                     CELL_COLUMN, GH_REAL, GH_INC,       &
                                     GH_SCALAR
 use fs_continuity_mod,       only : W3, W2
-use constants_mod,           only : r_def, i_def, tiny_eps, l_def, EPS
+use constants_mod,           only : r_def, i_def, EPS
 use kernel_mod,              only : kernel_type
-use log_mod,                 only : log_event,           &
-                                    log_scratch_space,   &
-                                    LOG_LEVEL_INFO
 
 implicit none
 
@@ -26,11 +23,10 @@ implicit none
 
 type, public, extends(kernel_type) :: impose_min_flux_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                    &
+  type(arg_type) :: meta_args(5) = (/                    &
        arg_type(GH_FIELD,    GH_REAL, GH_READ,  W3),     &
        arg_type(GH_FIELD,    GH_REAL, GH_INC,   W2),     &
        arg_type(GH_OPERATOR, GH_REAL, GH_READ,  W3, W2), &
-       arg_type(GH_OPERATOR, GH_REAL, GH_READ,  W3, W3), &
        arg_type(GH_SCALAR,   GH_REAL, GH_READ),          &
        arg_type(GH_SCALAR,   GH_REAL, GH_READ)           &
        /)
@@ -54,8 +50,6 @@ contains
 !! @param[inout] flux Input/output
 !! @param[in] ncell_3d1 Total number of cells related to div
 !! @param[in] div Divergence operator used in the update
-!! @param[in] ncell_3d2 Total number of cells related to div_multiplier
-!! @param[in] div_multiplier Divergence multiplier used in the update
 !! @param[in] field_min The minimum value we want to enfore for the updated field
 !! @param[in] dts  The time-step used in the update
 !! @param[in] ndf1 Number of degrees of freedom per cell for the output field
@@ -69,8 +63,6 @@ subroutine impose_min_flux_code(cell,              &
                                 field, flux,       &
                                 ncell_3d1,         &
                                 div,               &
-                                ncell_3d2,         &
-                                div_multiplier,    &
                                 field_min,         &
                                 dts,               &
                                 ndf1, undf1, map1, &
@@ -80,7 +72,7 @@ subroutine impose_min_flux_code(cell,              &
 
   ! Arguments
   integer(kind=i_def),                  intent(in) :: cell, nlayers
-  integer(kind=i_def),                  intent(in) :: ncell_3d1, ncell_3d2
+  integer(kind=i_def),                  intent(in) :: ncell_3d1
   integer(kind=i_def),                  intent(in) :: undf1, ndf1
   integer(kind=i_def),                  intent(in) :: undf2, ndf2
   integer(kind=i_def), dimension(ndf1), intent(in) :: map1
@@ -88,7 +80,6 @@ subroutine impose_min_flux_code(cell,              &
   real(kind=r_def), dimension(undf2),               intent(inout) :: flux
   real(kind=r_def), dimension(undf1),               intent(in)    :: field
   real(kind=r_def), dimension(ndf1,ndf2,ncell_3d1), intent(in)    :: div
-  real(kind=r_def), dimension(ndf1,ndf1,ncell_3d2), intent(in)    :: div_multiplier
   real(kind=r_def), intent(in)                                    :: field_min
   real(kind=r_def), intent(in)                                    :: dts
 
@@ -111,7 +102,7 @@ subroutine impose_min_flux_code(cell,              &
        flux_change_id = 0_i_def
 
        do df2 = 1, ndf2
-         inc = - dts*div(df1,df2,ik)*div_multiplier(df1,df1,ik)*cell_fluxes(df2)
+         inc = - dts*div(df1,df2,ik)*cell_fluxes(df2)
          if ( inc < 0.0_r_def ) then
              inc_n = inc_n - inc
              flux_change_id(df2) = 1_i_def

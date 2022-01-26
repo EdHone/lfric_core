@@ -85,14 +85,12 @@ contains
                                    l_multigrid=.false.,             &
                                    rotating=.true.,                 &
                                    shallow=.false.,                 &
-                                   transport_only=.false.,          &
                                    use_moisture=.false.,            &
                                    use_physics=.false.,             &
                                    use_wavedynamics=.false.,        &
                                    use_multires_coupling=.false.,   &
                                    si_momentum_equation=.true.,     &
-                                   vector_invariant=.true.,         &
-                                   moisture_conservation=.false.    )
+                                   vector_invariant=.true.)
 
   end subroutine setUp
 

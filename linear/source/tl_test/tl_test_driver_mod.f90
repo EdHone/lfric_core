@@ -26,7 +26,6 @@ module tl_test_driver_mod
   use linear_model_data_mod,      only : linear_create_ls,  &
                                          linear_init_ls
   use tl_test_kinetic_energy_gradient_mod, only : test_kinetic_energy_gradient
-  use tl_test_advection_mod,               only : test_advection
   use tl_test_advect_density_field_mod,    only : test_advect_density_field
   use tl_test_advect_theta_field_mod,      only : test_advect_theta_field
   use tl_test_vorticity_mod,               only : test_vorticity_advection
@@ -34,7 +33,7 @@ module tl_test_driver_mod
   use tl_test_hydrostatic_mod,             only : test_hydrostatic
   use tl_test_pressure_grad_bd_mod,        only : test_pressure_gradient_bd
   use tl_test_rk_alg_mod,                  only : test_rk_alg
-  use tl_test_advection_control_mod,       only : test_advection_control
+  use tl_test_transport_control_mod,       only : test_transport_control
   use tl_test_rhs_eos_mod,                 only : test_rhs_eos
   use tl_test_rhs_alg_mod,                 only : test_rhs_alg
   use tl_test_semi_imp_alg_mod,            only : test_semi_imp_alg
@@ -45,7 +44,6 @@ module tl_test_driver_mod
   public initialise,                  &
          finalise,                    &
          run_kinetic_energy_gradient, &
-         run_advection,               &
          run_advect_density_field,    &
          run_advect_theta_field,      &
          run_vorticity_advection,     &
@@ -55,7 +53,7 @@ module tl_test_driver_mod
          run_rk_alg,                  &
          run_rhs_alg,                 &
          run_rhs_eos,                 &
-         run_advection_control,       &
+         run_transport_control,       &
          run_semi_imp_alg
 
   type (model_data_type) :: model_data
@@ -135,16 +133,6 @@ contains
 
   end subroutine run_kinetic_energy_gradient
 
-  subroutine run_advection()
-
-    implicit none
-
-    call test_advection( model_data,  &
-                         mesh_id,     &
-                         twod_mesh_id )
-
-  end subroutine run_advection
-
   subroutine run_advect_density_field()
 
     implicit none
@@ -209,25 +197,29 @@ contains
 
     implicit none
 
-    call test_rk_alg( model_data,  &
-                      mesh_id,     &
-                      twod_mesh_id )
+    class(clock_type), pointer :: clock
+    clock => io_context%get_clock()
+
+    call test_rk_alg( model_data,   &
+                      mesh_id,      &
+                      twod_mesh_id, &
+                      clock )
 
   end subroutine run_rk_alg
 
-  subroutine run_advection_control()
+  subroutine run_transport_control()
 
     implicit none
 
     class(clock_type), pointer :: clock
     clock => io_context%get_clock()
 
-    call test_advection_control( model_data,   &
+    call test_transport_control( model_data,   &
                                  mesh_id,      &
                                  twod_mesh_id, &
                                  clock )
 
-  end subroutine run_advection_control
+  end subroutine run_transport_control
 
   subroutine run_semi_imp_alg()
 

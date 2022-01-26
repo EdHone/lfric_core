@@ -14,7 +14,6 @@ module runtime_constants_mod
   use boundaries_config_mod,             only: limited_area
   use constants_mod,                     only: i_def, r_def, str_def
   use field_mod,                         only: field_type
-  use formulation_config_mod,            only: moisture_conservation
   use io_config_mod,                     only: subroutine_timers
   use log_mod,                           only: log_event, LOG_LEVEL_INFO
   use runtime_tools_mod,                 only: primary_mesh_label,      &
@@ -24,13 +23,12 @@ module runtime_constants_mod
                                                multigrid_mesh_label,    &
                                                extra_mesh_label
   use timer_mod,                         only: timer
+  use transport_config_mod,              only: moisture_eqn, &
+                                               moisture_eqn_conservative
 
   implicit none
 
   private
-
-  integer(i_def), target :: global_shifted_mesh_id
-  integer(i_def), target :: global_double_level_mesh_id
 
   ! Public functions to create and access the module contents
   public :: create_runtime_constants
@@ -72,18 +70,16 @@ contains
                                       panel_id_extra         )
 
     ! Other runtime_constants modules
-    use advective_update_alg_mod,    only: advective_update_set_num_meshes
-    use fem_constants_mod,           only: create_fem_constants
-    use flux_alg_mod,                only: flux_alg_set_num_meshes
-    use geometric_constants_mod,     only: create_geometric_constants
-    use intermesh_constants_mod,     only: create_intermesh_constants
-    use limited_area_constants_mod,  only: create_limited_area_constants
-    use physical_op_constants_mod,   only: create_physical_op_constants
-    use rk_transport_rho_mod,        only: rk_transport_rho_set_num_meshes
-    use rk_transport_theta_mod,      only: rk_transport_theta_set_num_meshes
-    use runge_kutta_init_mod,        only: runge_kutta_init
-    use runtime_tools_mod,           only: init_mesh_id_list, &
-                                           init_hierarchical_mesh_id_list
+    use wt_advective_update_alg_mod,  only: wt_advective_update_set_num_meshes
+    use fem_constants_mod,            only: create_fem_constants
+    use geometric_constants_mod,      only: create_geometric_constants
+    use intermesh_constants_mod,      only: create_intermesh_constants
+    use limited_area_constants_mod,   only: create_limited_area_constants
+    use physical_op_constants_mod,    only: create_physical_op_constants
+    use reconstruct_w3_field_alg_mod, only: reconstruct_w3_field_alg_set_num_meshes
+    use runge_kutta_init_mod,         only: runge_kutta_init
+    use runtime_tools_mod,            only: init_mesh_id_list, &
+                                            init_hierarchical_mesh_id_list
 
     implicit none
 
@@ -151,7 +147,6 @@ contains
     end do
 
     if ( present(shifted_mesh_id) .and. present(shifted_chi) ) then
-      global_shifted_mesh_id = shifted_mesh_id
       mesh_counter = mesh_counter + 1_i_def
       label_list(mesh_counter) = shifted_mesh_label
       mesh_id_list(mesh_counter) = shifted_mesh_id
@@ -162,7 +157,6 @@ contains
     end if
 
     if ( present(double_level_mesh_id) .and. present(double_level_chi) ) then
-      global_double_level_mesh_id = double_level_mesh_id
       mesh_counter = mesh_counter + 1_i_def
       label_list(mesh_counter) = double_level_mesh_label
       mesh_id_list(mesh_counter) = double_level_mesh_id
@@ -258,7 +252,7 @@ contains
                                          label_list    )
     end if
 
-    if ( moisture_conservation ) then
+    if ( moisture_eqn == moisture_eqn_conservative ) then
       call create_intermesh_constants(mesh_id,               &
                                       chi,                   &
                                       panel_id,              &
@@ -270,10 +264,8 @@ contains
 
     ! Set-up arrays for transport coefficients
     call runge_kutta_init()
-    call flux_alg_set_num_meshes( num_meshes )
-    call advective_update_set_num_meshes( num_meshes )
-    call rk_transport_rho_set_num_meshes( num_meshes )
-    call rk_transport_theta_set_num_meshes( num_meshes )
+    call reconstruct_w3_field_alg_set_num_meshes( num_meshes )
+    call wt_advective_update_set_num_meshes( num_meshes )
 
     deallocate(mesh_id_list)
     deallocate(label_list)
@@ -289,16 +281,11 @@ contains
   subroutine final_runtime_constants()
 
     ! Other runtime_constants modules
-    use advective_update_alg_mod,    only: advective_update_alg_final
     use fem_constants_mod,           only: final_fem_constants
-    use flux_alg_mod,                only: flux_alg_final
     use geometric_constants_mod,     only: final_geometric_constants
     use intermesh_constants_mod,     only: final_intermesh_constants
     use limited_area_constants_mod,  only: final_limited_area_constants
     use physical_op_constants_mod,   only: final_physical_op_constants
-    use rk_transport_rho_mod,        only: rk_transport_rho_final
-    use rk_transport_theta_mod,      only: rk_transport_theta_final
-    use runge_kutta_init_mod,        only: runge_kutta_final
     use runtime_tools_mod,           only: final_mesh_id_list, &
                                            final_hierarchical_mesh_id_list
 
@@ -308,12 +295,8 @@ contains
     call final_fem_constants()
     call final_physical_op_constants()
     if ( limited_area ) call final_limited_area_constants()
-    if ( moisture_conservation ) call final_intermesh_constants()
-    call rk_transport_theta_final()
-    call rk_transport_rho_final()
-    call flux_alg_final()
-    call advective_update_alg_final()
-    call runge_kutta_final()
+    if ( moisture_eqn == moisture_eqn_conservative ) &
+      call final_intermesh_constants()
     call final_hierarchical_mesh_id_list()
     call final_mesh_id_list()
 

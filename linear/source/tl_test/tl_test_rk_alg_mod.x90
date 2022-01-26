@@ -3,12 +3,14 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!>@brief   The tangent linear test for the runge kutta timestepping
-!!         (Taylor remainder convergence).
-!>@details Test whether a section of tangent linear code is tangent linear
-!!         to the corresponding section of nonlinear code, for the runge
-!!         kutta algorithm, using the Taylor remainder convergence test.
+!> @brief   The tangent linear test for the runge kutta timestepping
+!!          (Taylor remainder convergence).
+!> @details Test whether a section of tangent linear code is tangent linear
+!!          to the corresponding section of nonlinear code, for the runge
+!!          kutta algorithm, using the Taylor remainder convergence test.
 module tl_test_rk_alg_mod
+
+  use clock_mod,                      only: clock_type
   use assign_field_random_kernel_mod, only: assign_field_random_kernel_type
   use constants_mod,                  only: i_def, r_def, str_def
   use field_mod,                      only: field_type
@@ -19,6 +21,7 @@ module tl_test_rk_alg_mod
   use fs_continuity_mod,              only: W2, W3, Wtheta
   use gungho_model_data_mod,          only: model_data_type
   use moist_dyn_mod,                  only: num_moist_factors
+  use mr_indices_mod,                 only: nummr
   use timestepping_config_mod,        only: dt
   use log_mod,                        only: log_event,         &
                                             log_scratch_space, &
@@ -42,37 +45,45 @@ module tl_test_rk_alg_mod
   !> @param[in] model_data    The working data set for a model run
   !> @param[in] mesh_id       The identifier given to the current 3d mesh
   !> @param[in] twod_mesh_id  The identifier given to the current 2d mesh
+  !> @param[in] clock         Model time
   subroutine test_rk_alg( model_data,    &
                           mesh_id,       &
-                          twod_mesh_id )
+                          twod_mesh_id,  &
+                          clock )
 
     implicit none
 
     integer(i_def),                intent(in) :: mesh_id
     integer(i_def),                intent(in) :: twod_mesh_id
     type(model_data_type), target, intent(in) :: model_data
+    class(clock_type),             intent(in) :: clock
 
     character(str_def) :: label = "rk_alg"
 
-    type(field_collection_type ), pointer :: prognostic_fields => null()
-    type(field_collection_type ), pointer :: ls_fields => null()
+    type(field_collection_type), pointer :: prognostic_fields => null()
+    type(field_collection_type), pointer :: ls_fields => null()
 
     type(field_type), pointer :: ls_u => null()
     type(field_type), pointer :: ls_rho => null()
     type(field_type), pointer :: ls_theta => null()
     type(field_type), pointer :: ls_exner => null()
     type(field_type), pointer :: ls_moist_dyn(:) => null()
+    type(field_type), pointer :: ls_mr(:) => null()
 
     type(field_type), pointer :: u => null()
     type(field_type), pointer :: rho => null()
     type(field_type), pointer :: theta => null()
     type(field_type), pointer :: exner => null()
     type(field_type), pointer :: moist_dyn(:) => null()
+    type(field_type), pointer :: mr(:) => null()
+    type(field_collection_type), pointer :: cloud_fields => null()
 
     type(field_type), dimension(num_moist_factors) :: p_moist_dyn
     type(field_type), dimension(num_moist_factors) :: n_moist_dyn
     type(field_type), dimension(num_moist_factors) :: r_moist_dyn
     type(field_type), dimension(num_moist_factors) :: diff_moist_dyn
+    type(field_type), dimension(nummr) :: p_mr
+    type(field_type), dimension(nummr) :: n_mr
     type(field_type) :: p_u, p_rho, p_theta, p_exner
     type(field_type) :: n_u, n_rho, n_theta, n_exner
     type(field_type) :: r_u, r_rho, r_theta, r_exner
@@ -94,6 +105,9 @@ module tl_test_rk_alg_mod
     ls_fields         => model_data%ls_fields
     moist_dyn         => model_data%moist_dyn
     ls_moist_dyn      => model_data%ls_moist_dyn
+    ls_mr             => model_data%ls_mr
+    mr                => model_data%mr
+    cloud_fields      => model_data%cloud_fields
 
     ! Input
     ls_u => ls_fields%get_field('ls_u')
@@ -147,6 +161,9 @@ module tl_test_rk_alg_mod
     call clone_bundle(moist_dyn, n_moist_dyn, num_moist_factors)
     call clone_bundle(moist_dyn, diff_moist_dyn, num_moist_factors)
 
+    call clone_bundle(mr, p_mr, nummr)
+    call clone_bundle(mr, n_mr, nummr)
+
     call invoke( assign_field_random_kernel_type( r_u) ,     &
                  assign_field_random_kernel_type( r_rho) ,   &
                  assign_field_random_kernel_type( r_theta) , &
@@ -169,7 +186,8 @@ module tl_test_rk_alg_mod
 
     call rk_alg_init(mesh_id, u, rho, theta, exner)
 
-    call rk_alg_step(u, rho, theta, moist_dyn, exner, dt)
+    call rk_alg_step(u, rho, theta, moist_dyn, exner, &
+                     mr, cloud_fields, dt, clock)
 
     call rk_alg_final()
 
@@ -208,7 +226,8 @@ module tl_test_rk_alg_mod
 
       call rk_alg_init(mesh_id, n_u, n_rho, n_theta, n_exner)
 
-      call rk_alg_step(n_u, n_rho, n_theta, n_moist_dyn, n_exner, dt)
+      call rk_alg_step(n_u, n_rho, n_theta, n_moist_dyn, n_exner, &
+                       n_mr, cloud_fields, dt, clock)
 
       call rk_alg_final()
 
@@ -216,7 +235,8 @@ module tl_test_rk_alg_mod
                           ls_u, ls_rho, ls_theta, ls_exner)
 
       call tl_rk_alg_step(p_u, p_rho, p_theta, p_moist_dyn, p_exner, &
-                          ls_u, ls_rho, ls_theta, ls_moist_dyn, ls_exner, dt)
+                          p_mr, cloud_fields, ls_u, ls_rho,          &
+                          ls_theta, ls_moist_dyn, ls_exner, ls_mr, dt, clock)
 
       call tl_rk_alg_final()
 

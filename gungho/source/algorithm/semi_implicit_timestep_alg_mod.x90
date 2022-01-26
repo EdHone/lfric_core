@@ -8,99 +8,102 @@
 !!        3D equations.
 module semi_implicit_timestep_alg_mod
 
-  use clock_mod,                 only: clock_type
-  use constants_mod,             only: i_def, r_def, l_def
-  use log_mod,                   only: log_event,         &
-                                       log_scratch_space, &
-                                       LOG_LEVEL_INFO
-  use reference_element_mod, only : T
+  use clock_mod,                  only: clock_type
+  use constants_mod,              only: i_def, r_def, l_def
+  use log_mod,                    only: log_event,         &
+                                        log_scratch_space, &
+                                        LOG_LEVEL_INFO
+  use reference_element_mod,      only: T
 
   ! Configuration options
-  use section_choice_config_mod, only: cloud, cloud_um,                &
-                                       aerosol, aerosol_um
-  use physics_config_mod,        only: blayer_placement,               &
-                                       blayer_placement_fast,          &
-                                       convection_placement,           &
-                                       convection_placement_fast,      &
-                                       stochastic_physics_placement,   &
-                                       stochastic_physics_placement_fast
+  use section_choice_config_mod,  only: cloud, cloud_um,                &
+                                        aerosol, aerosol_um
+  use physics_config_mod,         only: blayer_placement,               &
+                                        blayer_placement_fast,          &
+                                        convection_placement,           &
+                                        convection_placement_fast,      &
+                                        stochastic_physics_placement,   &
+                                        stochastic_physics_placement_fast
 
-  use aerosol_config_mod,        only: glomap_mode, glomap_mode_ukca
+  use aerosol_config_mod,         only: glomap_mode, glomap_mode_ukca
 
-  use formulation_config_mod,    only: use_moisture, use_physics, dlayer_on, &
-                                       use_wavedynamics,                     &
-                                       moisture_conservation,                &
-                                       si_momentum_equation,                 &
-                                       exner_from_eos
-  use io_config_mod,             only: subroutine_timers,                    &
-                                       write_conservation_diag
-  use mixed_solver_config_mod,   only: guess_np1,                            &
-                                       reference_reset_freq
-  use timestepping_config_mod,   only: alpha,                                &
-                                       outer_iterations, inner_iterations,   &
-                                       spinup_period, spinup_alpha, spinup_winds
-  use derived_config_mod,        only: bundle_size
-  use boundaries_config_mod,     only: limited_area
-  use fem_constants_mod,         only: get_mass_matrix,       &
-                                       get_dl_mass_matrix,    &
-                                       get_w2_si_mass_matrix, &
-                                       get_qr
+  use formulation_config_mod,     only: use_moisture, use_physics, dlayer_on, &
+                                        use_wavedynamics,                     &
+                                        si_momentum_equation,                 &
+                                        exner_from_eos
+  use io_config_mod,              only: subroutine_timers,                    &
+                                        write_conservation_diag
+  use mixed_solver_config_mod,    only: guess_np1,                            &
+                                        reference_reset_freq
+  use timestepping_config_mod,    only: alpha,                                &
+                                        outer_iterations, inner_iterations,   &
+                                        spinup_period, spinup_alpha, spinup_winds
+  use derived_config_mod,         only: bundle_size
+  use boundaries_config_mod,      only: limited_area
+  use fem_constants_mod,          only: get_mass_matrix,       &
+                                        get_dl_mass_matrix,    &
+                                        get_w2_si_mass_matrix, &
+                                        get_qr
 
-  use field_bundle_mod,          only: clone_bundle,      &
-                                       bundle_axpy,       &
-                                       add_bundle,        &
-                                       copy_bundle,       &
-                                       set_bundle_scalar
-  use planet_config_mod,         only: recip_epsilon
-  use fs_continuity_mod,         only: Wtheta
+  use field_bundle_mod,           only: clone_bundle,      &
+                                        bundle_axpy,       &
+                                        add_bundle,        &
+                                        copy_bundle,       &
+                                        set_bundle_scalar
+  use planet_config_mod,          only: recip_epsilon
+  use fs_continuity_mod,          only: Wtheta
 
   ! PsyKAl PSYClone kernels
-  use matrix_vector_kernel_mod,           only: matrix_vector_kernel_type
-  use moist_dyn_factors_kernel_mod,       only: moist_dyn_factors_kernel_type
-  use enforce_lower_bound_kernel_mod,     only: enforce_lower_bound_kernel_type
-  use enforce_bc_kernel_mod,              only: enforce_bc_kernel_type
-  use set_any_dof_kernel_mod,             only: set_any_dof_kernel_type
+  use matrix_vector_kernel_mod,   only: matrix_vector_kernel_type
+  use moist_dyn_factors_kernel_mod,   &
+                                  only: moist_dyn_factors_kernel_type
+  use enforce_lower_bound_kernel_mod, &
+                                  only: enforce_lower_bound_kernel_type
+  use enforce_bc_kernel_mod,      only: enforce_bc_kernel_type
+  use set_any_dof_kernel_mod,     only: set_any_dof_kernel_type
 
   ! Derived Types
-  use field_mod,                 only: field_type
-  use field_collection_mod,      only: field_collection_type
-  use quadrature_xyoz_mod,       only: quadrature_xyoz_type
-  use operator_mod,              only: operator_type
+  use field_mod,                  only: field_type
+  use field_collection_mod,       only: field_collection_type
+  use quadrature_xyoz_mod,        only: quadrature_xyoz_type
+  use operator_mod,               only: operator_type
 
   ! Algorithms
-  use mass_matrix_solver_alg_mod,  only: mass_matrix_solver_alg
-  use rhs_alg_mod,                 only: rhs_alg
-  use advection_alg_mod,           only: advection_alg_init,  &
-                                         advection_alg_final, &
-                                         advection_control
+  use mass_matrix_solver_alg_mod, only: mass_matrix_solver_alg
+  use rhs_alg_mod,                only: rhs_alg
+  use gungho_transport_control_alg_mod, &
+                                  only: gungho_transport_control_alg_init, &
+                                        gungho_transport_control_alg,      &
+                                        gungho_transport_control_alg_final
 
-  use si_operators_alg_mod,        only: create_si_operators,  &
-                                         compute_si_operators, &
-                                         final_si_operators
-  use fast_physics_alg_mod,        only: fast_physics
-  use slow_physics_alg_mod,        only: slow_physics
-  use checks_and_balances_alg_mod, only: check_fields
+  use si_operators_alg_mod,       only: create_si_operators,  &
+                                        compute_si_operators, &
+                                        final_si_operators
+  use fast_physics_alg_mod,       only: fast_physics
+  use slow_physics_alg_mod,       only: slow_physics
+  use checks_and_balances_alg_mod,   &
+                                  only: check_fields
 
-  use semi_implicit_solver_alg_mod,only: semi_implicit_solver_alg_init,       &
-                                         semi_implicit_solver_alg_step,       &
-                                         semi_implicit_solver_alg_final
+  use semi_implicit_solver_alg_mod,  &
+                                  only: semi_implicit_solver_alg_init,       &
+                                        semi_implicit_solver_alg_step,       &
+                                        semi_implicit_solver_alg_final
   use derive_exner_from_eos_alg_mod, &
-                                   only: derive_exner_from_eos
-  use moisture_conservation_alg_mod, &
-                                   only: moisture_conservation_alg
+                                  only: derive_exner_from_eos
   use update_prognostic_scalars_alg_mod, &
-                                   only: update_prognostic_scalars_alg
-  use mixing_alg_mod,              only: mixing_alg
+                                  only: update_prognostic_scalars_alg
+  use mixing_alg_mod,             only: mixing_alg
 
   ! LAM
-  use limited_area_lbc_alg_mod,    only: lam_solver_lbc, &
-                                         lam_blend_lbc
-  use lam_rhs_alg_mod,             only: calc_rhs_lbc,   &
-                                         apply_mask_rhs
+  use limited_area_lbc_alg_mod,   only: lam_solver_lbc, &
+                                        lam_blend_lbc
+  use lam_rhs_alg_mod,            only: calc_rhs_lbc,   &
+                                        apply_mask_rhs
 
   ! Field mappings
-  use calc_phys_predictors_alg_mod,only: calc_phys_predictors_alg
-  use map_physics_fields_alg_mod,  only: map_physics_fields_alg
+  use calc_phys_predictors_alg_mod, &
+                                  only: calc_phys_predictors_alg
+  use map_physics_fields_alg_mod, only: map_physics_fields_alg
 
   ! Moisture species
   use mr_indices_mod,             only: nummr, imr_v, imr_cl
@@ -118,6 +121,7 @@ module semi_implicit_timestep_alg_mod
   use aerosol_ukca_alg_mod,       only: aerosol_ukca_alg
 #endif
 
+  use log_mod,                    only: LOG_LEVEL_ERROR
   use timer_mod,                  only: timer
 
   implicit none
@@ -133,6 +137,7 @@ module semi_implicit_timestep_alg_mod
   type( field_type ), allocatable :: state_n(:)
   ! prognostic fields after slow physics, i.e. state_n + slow incs
   type( field_type ), allocatable :: state_after_slow(:)
+  type( field_type ), allocatable :: advected_state(:)
   type( field_type ), allocatable :: mr_n(:), mr_inc(:), mr_after_slow(:)
   type( field_type ), allocatable :: rhs_n(:), rhs_np1(:), rhs_adv(:)
   type( field_type ), allocatable :: rhs_phys(:), rhs_lbc(:)
@@ -175,6 +180,7 @@ contains
     allocate(state(bundle_size))
     allocate(state_n(bundle_size))
     allocate(state_after_slow(bundle_size))
+    allocate(advected_state(bundle_size))
     allocate(rhs_n(bundle_size))
     allocate(rhs_np1(bundle_size))
     allocate(rhs_adv(bundle_size))
@@ -201,6 +207,7 @@ contains
 
     call clone_bundle(state, state_n,          bundle_size)
     call clone_bundle(state, state_after_slow, bundle_size)
+    call clone_bundle(state, advected_state,   bundle_size)
     call clone_bundle(state, rhs_n,            bundle_size)
     call clone_bundle(state, rhs_np1,          bundle_size)
     call clone_bundle(state, rhs_adv,          bundle_size)
@@ -248,7 +255,7 @@ contains
                  setval_X(state(igh_t), theta),      &
                  setval_X(state(igh_d), rho  ),      &
                  setval_X(state(igh_p), exner) )
-    call advection_alg_init(mesh_id)
+    call gungho_transport_control_alg_init(mesh_id)
 
     ! Construct semi-implicit solver
     call semi_implicit_solver_alg_init( state )
@@ -340,8 +347,6 @@ contains
                                              ! these may differ from input values
                                              ! during the spinup period
 
-    ! Predictor the wind field (u-beta*dt*rhs) to be advected
-    type( field_type ) :: advected_u
     ! Density field used for moisture conservation diagnostics
     type( field_type ) :: rho_guess
     logical(kind=l_def) :: write_moisture_diag
@@ -432,11 +437,11 @@ contains
     call rhs_alg(rhs_n, varbeta*dt, state_after_slow, state_n, moist_dyn, &
                  .false., .false., dt)
 
+    call copy_bundle(state_after_slow, advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
       ! Predictor of the wind field (u-beta*dt*rhs) to be advected if using
       ! explicit advection
-      call advected_u%initialise( vector_space = rhs_n(igh_u)%get_function_space() )
-      call mass_matrix_solver_alg(advected_u, rhs_n(igh_u))
+      call mass_matrix_solver_alg(advected_state(igh_u), rhs_n(igh_u))
     end if
 
     !==========================================================================
@@ -449,18 +454,20 @@ contains
 
     outer_dynamics_loop: do outer = 1,outer_iterations
 
-      call advection_control( &
-             rhs_adv, state_after_slow, &
-             state_n(igh_u), state(igh_u), advected_u, &
-             mr_inc, mr_after_slow, &
-             clock%get_step(), outer, &
-             moist_dyn, mr, &
-             cloud_fields, cloud_fields_after_slow, &
-             rho_guess, dt, &
-             chemistry_fields=chemistry_fields, &
-             chemistry_fields_after_slow=chemistry_fields_after_slow, &
-             aerosol_fields=aerosol_fields, &
-             aerosol_fields_after_slow=aerosol_fields_after_slow )
+      if (use_wavedynamics) then
+        call gungho_transport_control_alg( rhs_adv, advected_state,      &
+                                           state(igh_u), state_n(igh_u), &
+                                           mr, mr_after_slow, moist_dyn, &
+                                           cloud_fields,                 &
+                                           cloud_fields_after_slow,      &
+                                           dt, clock%get_step(), outer,  &
+                                           chemistry_fields,             &
+                                           chemistry_fields_after_slow,  &
+                                           aerosol_fields,               &
+                                           aerosol_fields_after_slow )
+      else
+        if (use_moisture) call copy_bundle(mr_after_slow, mr, nummr)
+      end if
 
       if (use_physics) then
         !--------------------------------------------------------------------
@@ -671,12 +678,12 @@ contains
     implicit none
 
     call semi_implicit_solver_alg_final()
-
     call final_si_operators()
 
     if (allocated(state))            deallocate(state)
     if (allocated(state_n))          deallocate(state_n)
     if (allocated(state_after_slow)) deallocate(state_after_slow)
+    if (allocated(advected_state))   deallocate(advected_state)
     if (allocated(rhs_n))            deallocate(rhs_n)
     if (allocated(rhs_np1))          deallocate(rhs_np1)
     if (allocated(rhs_adv))          deallocate(rhs_adv)

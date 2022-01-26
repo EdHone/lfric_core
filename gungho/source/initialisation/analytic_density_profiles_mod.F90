@@ -225,7 +225,7 @@ function analytic_density(chi, choice, time) result(density)
   case( test_gaussian_hill )
     h1 = tracer_max*exp( -(l1/r1)**2 )
     h2 = tracer_max*exp( -(l2/r2)**2 )
-    density = h1 + h2
+    density = tracer_background + h1 + h2
 
   case( test_cosine_hill )
     if ( l1 < r1 ) then

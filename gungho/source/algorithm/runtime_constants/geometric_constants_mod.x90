@@ -15,7 +15,8 @@
 module geometric_constants_mod
 
   ! Infrastructure
-  use constants_mod,                      only: i_def, r_def, str_def
+  use check_configuration_mod,            only: check_any_scheme_ffsl
+  use constants_mod,                      only: i_def, r_def, l_def, str_def
   use field_mod,                          only: field_type
   use fs_continuity_mod,                  only: W0, W1, W2, W3, Wtheta, Wchi
   use function_space_collection_mod,      only: function_space_collection
@@ -40,12 +41,8 @@ module geometric_constants_mod
   use base_mesh_config_mod,               only: f_lat, geometry, &
                                                 geometry_spherical
   use finite_element_config_mod,          only: element_order
-  use transport_config_mod,               only: scheme,                 &
-                                                scheme_method_of_lines, &
-                                                rho_splitting,          &
-                                                rho_splitting_none,     &
-                                                theta_splitting,        &
-                                                theta_splitting_none
+  use transport_config_mod,               only: profile_size, scheme
+  use transport_enumerated_types_mod,     only: scheme_mol_3d
   use planet_config_mod,                  only: scaled_radius
 
   ! Kernels
@@ -121,6 +118,7 @@ contains
 
     ! Temporary values for iterating through list
     integer(kind=i_def) :: i, j, mesh_id, num_meshes
+    logical(kind=l_def) :: any_scheme_ffsl
 
 
     if ( subroutine_timers ) call timer('geometric_constants_alg')
@@ -171,9 +169,9 @@ contains
 
       !================== Create cell orientation field =======================!
 
-      if ( ( scheme /= scheme_method_of_lines    .or. &
-             rho_splitting /= rho_splitting_none .or. &
-             theta_splitting /= theta_splitting_none  ) .and. &
+      any_scheme_ffsl = check_any_scheme_ffsl()
+
+      if ( any_scheme_ffsl .and. &
            ( label_list(i) == primary_mesh_label .or. &
              label_list(i) == shifted_mesh_label ) ) then
 
@@ -185,11 +183,10 @@ contains
           ! Currently this isn't set up to work with high order dynamics
           call invoke_mpi_calc_cell_orientation( temp_w2_field, &
                                                  cell_orientation_list(i) )
-         else
-           call log_event( "Cell orientation not set up for high order elements", &
-                            LOG_LEVEL_ERROR )
+        else
+          call log_event( "Cell orientation not set up for high order elements", &
+                           LOG_LEVEL_ERROR )
         end if
-
       end if
 
       !======================= Create a height field ==========================!
@@ -303,15 +300,8 @@ contains
 
     field_name = 'cell orientation'
 
-    if (scheme /= scheme_method_of_lines    .or. &
-        rho_splitting /= rho_splitting_none .or. &
-        theta_splitting /= theta_splitting_none  ) then
-
-      mesh_index = find_mesh_index(mesh_id)
-      orientation => cell_orientation_list(mesh_index)
-    else
-      call log_event( "Cell orientation variable has not been created", LOG_LEVEL_ERROR )
-    end if
+    mesh_index = find_mesh_index(mesh_id)
+    orientation => cell_orientation_list(mesh_index)
 
     call check_initialised_field(orientation, field_name, mesh_id)
 

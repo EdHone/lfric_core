@@ -63,7 +63,7 @@ timestep_end = '5'
 /
 &subgrid
 dep_pt_stencil_extent=1,
-rho_approximation='ppm_positive_monotone',
+rho_approximation='ppm_no_limiter',
 rho_approximation_stencil_extent=2,
 calculate_detj = 'upwind'
 /
@@ -78,19 +78,32 @@ y1=0.0,
 y2=0.0,
 /
 &transport
-consistent_metric=.false.,
-enforce_monotonicity=.false.,
-fv_advective_order=2,
-fv_flux_order=2,
-operators='fv',
-scheme='horz_cosmic',
-rho_splitting='none',
-theta_splitting='none',
-cfl_mol_1d_stab=1.0,
-cfl_mol_1d_stab=1.0,
-cfl_mol_3d_stab=0.5
-log_rho=.false.
-log_theta=.false.
+cfl_mol_1d_stab = 1.5,
+cfl_mol_2d_stab = 1.5,
+cfl_mol_3d_stab = 1.5,
+consistent_metric  = .false.,
+enforce_min_value=.false.,.false.,.false.,.false.,
+ffsl_advective_splitting='full',
+ffsl_flux_splitting='full',
+ffsl_scheme='three_dim',
+field_names='rho','theta','tracer','mr',
+fv_flux_order = 2,
+fv_advective_order = 2,
+horizontal_method=1,1,1,1,
+min_value=0.0,0.0,0.0,0.0,
+moisture_eqn='conservative',
+log_space=.false.,.false.,.false.,.false.,
+monotone=1,1,1,1,
+oned_reconstruction = .false.,
+operators = 'fv',
+profile_size=4,
+runge_kutta_method='ssp3',
+scheme=1,1,1,1,
+slice_order='cubic',
+splitting=1,1,1,1,
+use_density_predictor=.false.,
+vertical_method=3,3,3,3,
+vertical_sl_order='cubic',
 /
 &planet
 cp=1005.0
@@ -105,10 +118,9 @@ scaling_factor=1.0
 test='cosine_hill',
 /
 &formulation
-transport_only=.true.,
 l_multigrid=.false.
 /
-&biperiodic_deppt
+&departure_points
 method='euler',
 vertical_method='trapezoidal',
 n_dep_pt_iterations=1,
@@ -126,7 +138,7 @@ dt=4050.0,
 inner_iterations=2,
 method='rk',
 outer_iterations=2,
-runge_kutta_method='ssp3',
+runge_kutta_method='forward_euler',
 spinup_period=0.0,
 /
 &partitioning

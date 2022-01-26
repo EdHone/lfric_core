@@ -13,15 +13,25 @@
 module transport_init_fields_alg_mod
 
   use constants_mod,                     only: r_def, i_def
-  use geometric_constants_mod,           only: get_coordinates,     &
-                                               get_panel_id
+  use divergence_alg_mod,                only: divergence_alg
+  use fem_constants_mod,                 only: get_qr
   use finite_element_config_mod,         only: element_order
   use field_mod,                         only: field_type
-  use quadrature_xyoz_mod,               only: quadrature_xyoz_type
-  use quadrature_rule_gaussian_mod,      only: quadrature_rule_gaussian_type
-  use initial_rho_sample_kernel_mod,     only: initial_rho_sample_kernel_type
-  use set_rho_kernel_mod,                only: set_rho_kernel_type
+  use field_bundle_mod,                  only: set_bundle_scalar
+  use field_parent_mod,                  only: write_interface
+  use function_space_mod,                only: function_space_type
+  use function_space_collection_mod,     only: function_space_collection
+  use fs_continuity_mod,                 only: W2, W3, Wtheta
+  use geometric_constants_mod,           only: get_coordinates,     &
+                                               get_panel_id
+  use init_gungho_prognostics_alg_mod,   only: init_u_field
   use initial_pressure_config_mod,       only: method, method_sampled
+  use initial_rho_sample_kernel_mod,     only: initial_rho_sample_kernel_type
+  use io_config_mod,                     only: write_diag, use_xios_io
+  use lfric_xios_write_mod,              only: write_field_face
+  use mr_indices_mod,                    only: nummr, mr_names
+  use quadrature_xyoz_mod,               only: quadrature_xyoz_type
+  use set_rho_kernel_mod,                only: set_rho_kernel_type
 
   implicit none
 
@@ -31,54 +41,69 @@ module transport_init_fields_alg_mod
 
 contains
 !-----------------------------------------------------------------------------
-!> @brief Initialisation of density and theta fields
-!>        for the transport miniapp.
-!> @param[in,out] wind_n  3D initial wind
-!> @param[in,out] density Density field
-!> @param[in,out] theta   theta/tracer field
-!> @param[in,out] dep_pts_x X-coordinates of departure points
-!> @param[in,out] dep_pts_y Y-coordinates of departure points
-!> @param[in,out] dep_pts_z Z-coordinates of departure points
-!> @param[in,out] divergence Divergence of the initial wind
+!> @brief Initialisation of prognostic fields for the transport miniapp.
+!> @param[in]     mesh_id           ID of the mesh to initialise variables on
+!> @param[in,out] wind              Transporting wind field
+!> @param[in,out] density           Density field (in W3)
+!> @param[in,out] theta             Theta field (in Wtheta)
+!> @param[in,out] tracer            Tracer field (in W3)
+!> @param[in,out] mr                Moisture mixing ratio fields (in Wtheta)
+!> @param[in,out] divergence        Divergence field
 !-----------------------------------------------------------------------------
-
-subroutine transport_init_fields_alg( wind_n,    &
+subroutine transport_init_fields_alg( mesh_id,   &
+                                      wind,      &
                                       density,   &
                                       theta,     &
-                                      dep_pts_x, &
-                                      dep_pts_y, &
-                                      dep_pts_z, &
+                                      tracer,    &
+                                      mr,        &
                                       divergence )
 
     implicit none
 
-    type(field_type), intent(inout)     :: wind_n
-    type(field_type), intent(inout)     :: density
-    type(field_type), intent(inout)     :: theta
-    type(field_type), intent(inout)     :: dep_pts_x
-    type(field_type), intent(inout)     :: dep_pts_y
-    type(field_type), intent(inout)     :: dep_pts_z
-    type(field_type), intent(inout)     :: divergence
+    ! Arguments
+    integer(kind=i_def),  intent(in)    :: mesh_id
+    type(field_type),     intent(inout) :: wind
+    type(field_type),     intent(inout) :: density
+    type(field_type),     intent(inout) :: theta
+    type(field_type),     intent(inout) :: tracer
+    type(field_type),     intent(inout) :: mr(nummr)
+    type(field_type),     intent(inout) :: divergence
 
-    type(quadrature_xyoz_type)          :: qr
-    type(quadrature_rule_gaussian_type) :: quadrature_rule
-    type(field_type), pointer           :: chi(:) => null()
-    type(field_type), pointer           :: panel_id => null()
+    ! Internal variables
     real(kind=r_def), parameter         :: initial_time = 0.0_r_def
-    integer(kind=i_def)                 :: mesh_id
+    integer(kind=i_def)                 :: imr
 
-    mesh_id = wind_n%get_mesh_id()
+    type(field_type),           pointer :: chi(:) => null()
+    type(field_type),           pointer :: panel_id => null()
+    type(function_space_type),  pointer :: w2_fs => null()
+    type(function_space_type),  pointer :: w3_fs => null()
+    type(function_space_type),  pointer :: wt_fs => null()
+    type(quadrature_xyoz_type), pointer :: qr => null()
+    procedure(write_interface), pointer :: tmp_write_ptr => null()
 
+    ! Set pointers
+    w2_fs => function_space_collection%get_fs( mesh_id, element_order, W2 )
+    w3_fs => function_space_collection%get_fs( mesh_id, element_order, W3 )
+    wt_fs => function_space_collection%get_fs( mesh_id, element_order, Wtheta )
     chi  => get_coordinates(mesh_id)
     panel_id => get_panel_id(mesh_id)
-    qr = quadrature_xyoz_type( element_order+3, quadrature_rule )
+    qr => get_qr()
 
-    call invoke( setval_c( wind_n, 1.0_r_def ),    &
-                 setval_c( dep_pts_x, 1.0_r_def ), &
-                 setval_c( dep_pts_y, 1.0_r_def ), &
-                 setval_c( dep_pts_z, 1.0_r_def ), &
-                 setval_c( divergence, 1.0_r_def) )
+    ! Initialise field objects
+    call wind%initialise( name='u', vector_space=w2_fs )
+    call density%initialise( name='rho', vector_space=w3_fs )
+    call theta%initialise( name='theta', vector_space=wt_fs )
+    call tracer%initialise( name='tracer', vector_space=w3_fs )
+    call divergence%initialise( name='divergence', vector_space=w3_fs )
+    do imr = 1, nummr
+      call mr(imr)%initialise( name=trim(mr_names(imr)), vector_space=wt_fs )
+    end do
 
+    ! ======================================================================== !
+    ! Set up field values from analytic initial conditions
+    ! ======================================================================== !
+
+    ! Read in rho and theta first
     if ( method == method_sampled ) then
       call invoke( initial_rho_sample_kernel_type( density, chi, panel_id, initial_time ), &
                    initial_rho_sample_kernel_type( theta  , chi, panel_id, initial_time )  )
@@ -86,6 +111,32 @@ subroutine transport_init_fields_alg( wind_n,    &
       call invoke( set_rho_kernel_type( density, chi, panel_id, initial_time, qr ), &
                    set_rho_kernel_type( theta  , chi, panel_id, initial_time, qr )  )
     end if
+
+    ! Duplicate these values for tracer and mixing ratio
+    ! Mixing ratios are set to zero for all but first value
+    call set_bundle_scalar( 0.0_r_def, mr, nummr )
+    call invoke( setval_X( tracer, density ), &
+                 setval_X( mr(1), theta ) )
+
+    ! Set winds and divergence
+    call init_u_field( wind, initial_time )
+    call divergence_alg( divergence, wind )
+
+    ! ======================================================================== !
+    ! Set I/O behaviours for diagnostic output
+    ! ======================================================================== !
+    if ( write_diag .and. use_xios_io ) then
+       ! Fields that are output on the XIOS face domain
+       tmp_write_ptr => write_field_face
+       call wind%set_write_behaviour( tmp_write_ptr )
+       call density%set_write_behaviour( tmp_write_ptr )
+       call theta%set_write_behaviour( tmp_write_ptr )
+       call tracer%set_write_behaviour( tmp_write_ptr )
+       call mr(1)%set_write_behaviour( tmp_write_ptr )
+       call divergence%set_write_behaviour( tmp_write_ptr )
+    end if
+
+    nullify( w2_fs, w3_fs, wt_fs, chi, panel_id, qr, tmp_write_ptr )
 
   end subroutine transport_init_fields_alg
 

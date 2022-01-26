@@ -6,35 +6,44 @@
 
 module check_configuration_mod
 
-  use constants_mod, only: i_def
-
-  use transport_config_mod, only: scheme,                 &
-                                  scheme_horz_cosmic,     &
-                                  scheme_yz_bip_cosmic,   &
-                                  scheme_method_of_lines, &
-                                  scheme_cosmic_3D,       &
-                                  operators,              &
-                                  operators_fv,           &
-                                  consistent_metric,      &
-                                  fv_flux_order,          &
-                                  fv_advective_order
+  use constants_mod,        only: i_def, l_def
   use mixing_config_mod,    only: smagorinsky,            &
                                   viscosity,              &
                                   viscosity_mu
   use subgrid_config_mod,   only: dep_pt_stencil_extent,  &
                                   rho_approximation_stencil_extent
+  use transport_config_mod, only: operators,              &
+                                  operators_fv,           &
+                                  consistent_metric,      &
+                                  fv_flux_order,          &
+                                  fv_advective_order,     &
+                                  profile_size,           &
+                                  scheme,                 &
+                                  horizontal_method,      &
+                                  vertical_method
+  use transport_enumerated_types_mod,                     &
+                            only: scheme_mol_3d,          &
+                                  scheme_ffsl_3d,         &
+                                  scheme_split,           &
+                                  split_method_mol,       &
+                                  split_method_ffsl
 
   implicit none
 
   private
 
   public :: check_configuration
+  public :: check_any_scheme_mol
+  public :: check_any_scheme_split
+  public :: check_any_scheme_ffsl
+  public :: check_horz_dep_pts
+  public :: check_vert_dep_pts
   public :: get_required_stencil_depth
 
 contains
 
-  !>@brief Check the namelist configuration for unsupported combinations
-  !>       of options and flag up errors and warnings
+  !> @brief Check the namelist configuration for unsupported combinations
+  !>        of options and flag up errors and warnings
   subroutine check_configuration()
     use log_mod,                     only: log_event,                          &
                                            log_scratch_space,                  &
@@ -54,7 +63,6 @@ contains
                                            coord_system_lonlatz
     use formulation_config_mod,      only: use_physics,                        &
                                            use_wavedynamics,                   &
-                                           transport_only,                     &
                                            dlayer_on
     use io_config_mod,               only: write_diag,                         &
                                            use_xios_io
@@ -77,7 +85,6 @@ contains
                                            topology,                           &
                                            topology_fully_periodic,            &
                                            topology_non_periodic
-
     use damping_layer_config_mod,    only: dl_base,                            &
                                            dl_str
     use extrusion_config_mod,        only: domain_top
@@ -85,8 +92,9 @@ contains
     use helmholtz_solver_config_mod, only:                                     &
                             helmholtz_solver_preconditioner => preconditioner, &
                             preconditioner_tridiagonal
-
     implicit none
+
+      logical(kind=l_def) :: any_scheme_mol
 
       call log_event( 'Checking gungho configuration...', LOG_LEVEL_INFO )
 
@@ -137,12 +145,6 @@ contains
       if ( .not. use_physics .and. .not. use_wavedynamics ) then
         write( log_scratch_space, '(A)' ) 'Wave dynamics and physics turned off'
         call log_event( log_scratch_space, LOG_LEVEL_WARNING )
-      end if
-      if ( use_physics .and. transport_only ) then
-        write( log_scratch_space, '(A,L1,A,L1)' )     &
-           'Invalid choice: physics = ', use_physics, &
-           ' and transport only = ', transport_only
-        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
 
       ! Check the io namelist
@@ -217,13 +219,9 @@ contains
         write( log_scratch_space, '(A)' ) 'Consistent metric option only valid for planar geometries'
         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
-      if ( (scheme == scheme_horz_cosmic) .and. &
-            .not. transport_only ) then
-        write( log_scratch_space, '(A)' ) 'COSMIC scheme only implemented for transport only algorithms'
-        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end if
-      if ( scheme == scheme_method_of_lines .and. &
-           operators == operators_fv ) then
+      any_scheme_mol = check_any_scheme_mol()
+      if (any_scheme_mol) then
+        ! Check that flux orders are even
         if ( mod(fv_flux_order,2_i_def) /= 0_i_def ) then
           write( log_scratch_space, '(A)' ) 'fv_flux_order must be even'
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
@@ -307,9 +305,9 @@ contains
 
     implicit none
 
-    integer(i_def) :: stencil_depth
-
-    integer(i_def) :: max_fv_stencil
+    integer(kind=i_def) :: stencil_depth
+    integer(kind=i_def) :: max_fv_stencil
+    logical(kind=l_def) :: any_scheme_ffsl
 
     stencil_depth = 1
 
@@ -322,15 +320,139 @@ contains
       stencil_depth  = max( stencil_depth, max_fv_stencil )
     end if
 
-    if ( scheme == scheme_yz_bip_cosmic .or. &
-         scheme == scheme_horz_cosmic   .or. &
-         scheme == scheme_cosmic_3D ) then
+    any_scheme_ffsl = check_any_scheme_ffsl()
 
-      stencil_depth = max( stencil_depth,          &
-                           dep_pt_stencil_extent + &
-                           rho_approximation_stencil_extent )
+    if ( any_scheme_ffsl ) then
+        stencil_depth = max( stencil_depth,          &
+                             dep_pt_stencil_extent + &
+                             rho_approximation_stencil_extent )
     end if
 
   end function get_required_stencil_depth
+
+  !> @brief   Determine whether any of the transport schemes are MoL
+  !> @details Loops through the transport schemes specified for different
+  !>          variables and determines whether any are using the Method of Lines
+  !>          scheme
+  !> @return  any_scheme_mol
+  function check_any_scheme_mol() result(any_scheme_mol)
+
+    implicit none
+
+    logical(kind=l_def) :: any_scheme_mol
+    integer(kind=i_def) :: i
+
+    any_scheme_mol = .false.
+
+    do i = 1, profile_size
+      if ( ( scheme(i) == scheme_mol_3d ) .or.                      &
+           ( scheme(i) == scheme_split .and.                        &
+             ( vertical_method(i) == split_method_mol .or.          &
+               horizontal_method(i) == split_method_mol ) ) ) then
+        any_scheme_mol = .true.
+        exit
+      end if
+    end do
+
+  end function check_any_scheme_mol
+
+  !> @brief   Determine whether any of the transport schemes are split
+  !> @details Loops through the transport schemes specified for different
+  !>          variables and determines whether any are using the split vertical-
+  !>          horizontal scheme
+  !> @return  any_scheme_split
+  function check_any_scheme_split() result(any_scheme_split)
+
+    implicit none
+
+    logical(kind=l_def) :: any_scheme_split
+    integer(kind=i_def) :: i
+
+    any_scheme_split = .false.
+
+    do i = 1, profile_size
+      if ( scheme(i) == scheme_split ) then
+        any_scheme_split = .true.
+        exit
+      end if
+    end do
+
+  end function check_any_scheme_split
+
+  !> @brief   Determine whether any of the transport schemes are FFSL
+  !> @details Loops through the transport schemes specified for different
+  !>          variables and determines whether any are using the Flux-Form
+  !>          Semi-Lagrangian scheme
+  !> @return  any_scheme_ffsl
+  function check_any_scheme_ffsl() result(any_scheme_ffsl)
+
+    implicit none
+
+    logical(kind=l_def) :: any_scheme_ffsl
+    integer(kind=i_def) :: i
+
+    any_scheme_ffsl = .false.
+
+    do i = 1, profile_size
+      if ( ( scheme(i) == scheme_ffsl_3d ) .or.                      &
+           ( scheme(i) == scheme_split .and.                        &
+             ( vertical_method(i) == split_method_ffsl .or.          &
+               horizontal_method(i) == split_method_ffsl ) ) ) then
+        any_scheme_ffsl = .true.
+        exit
+      end if
+    end do
+
+  end function check_any_scheme_ffsl
+
+  !> @brief   Determine whether horizontal departure points need computing
+  !> @details Loops through the transport schemes specified for different
+  !>          variables and determines whether any are using a scheme that
+  !>          requires horizontal departure points to be computed
+  !> @return  any_horz_dep_pts
+  function check_horz_dep_pts() result(any_horz_dep_pts)
+
+    implicit none
+
+    logical(kind=l_def) :: any_horz_dep_pts
+    integer(kind=i_def) :: i
+
+    any_horz_dep_pts = .false.
+
+    do i = 1, profile_size
+      if ( ( scheme(i) == scheme_ffsl_3d ) .or.                     &
+           ( scheme(i) == scheme_split .and.                        &
+             horizontal_method(i) == split_method_ffsl ) ) then
+        any_horz_dep_pts = .true.
+        exit
+      end if
+    end do
+
+  end function check_horz_dep_pts
+
+  !> @brief   Determine whether vertical departure points need computing
+  !> @details Loops through the transport schemes specified for different
+  !>          variables and determines whether any are using a scheme that
+  !>          requires vertical departure points to be computed
+  !> @return  any_vert_dep_pts
+  function check_vert_dep_pts() result(any_vert_dep_pts)
+
+    implicit none
+
+    logical(kind=l_def) :: any_vert_dep_pts
+    integer(kind=i_def) :: i
+
+    any_vert_dep_pts = .false.
+
+    do i = 1, profile_size
+      if ( ( scheme(i) == scheme_ffsl_3d ) .or.                     &
+           ( scheme(i) == scheme_split .and.                        &
+             vertical_method(i) /= split_method_mol ) ) then
+        any_vert_dep_pts = .true.
+        exit
+      end if
+    end do
+
+  end function check_vert_dep_pts
 
 end module check_configuration_mod

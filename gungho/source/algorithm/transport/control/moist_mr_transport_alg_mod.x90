@@ -1,0 +1,225 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> @brief Routine for transporting the moisture mixing ratio fields.
+
+module moist_mr_transport_alg_mod
+
+  use constants_mod,                  only: i_def, r_def
+  use enforce_lower_bound_kernel_mod, only: enforce_lower_bound_kernel_type
+  use extrusion_mod,                  only: SHIFTED, DOUBLE_LEVEL
+  use fem_constants_mod,              only: get_inverse_lumped_mass_matrix, &
+                                            get_mass_matrix_diagonal
+  use field_mod,                      only: field_type
+  use fs_continuity_mod,              only: W2, W3
+  use function_space_mod,             only: function_space_type
+  use function_space_collection_mod,  only: function_space_collection
+  use intermesh_constants_mod,        only: get_mr_to_sh_mass_integrals
+  use io_config_mod,                  only: subroutine_timers
+  use log_mod,                        only: log_event,       &
+                                            LOG_LEVEL_ERROR
+  use mesh_mod,                       only: mesh_type
+  use mesh_collection_mod,            only: mesh_collection
+  use mr_indices_mod,                 only: nummr
+  use timer_mod,                      only: timer
+  use transport_enumerated_types_mod, only: equation_advective, &
+                                            equation_conservative
+  use transport_field_mod,            only: transport_field
+  use transport_metadata_mod,         only: transport_metadata_type
+  use transport_runtime_alg_mod,      only: transport_runtime_type
+  use transport_runtime_collection_mod,   &
+                                      only: get_transport_runtime
+  use tri_matrix_vector_kernel_mod,   only: tri_matrix_vector_kernel_type
+  use tri_mat_mr_to_sh_mass_kernel_mod,   &
+                                      only: tri_mat_mr_to_sh_mass_kernel_type
+  use tri_solve_sh_mass_to_mr_kernel_mod, &
+                                      only: tri_solve_sh_mass_to_mr_kernel_type
+
+  implicit none
+
+  private
+
+  public :: moist_mr_transport_alg
+
+contains
+
+  !> @brief Central routine for transporting moisture mixing ratio fields.
+  !> @details Performs a whole transport time step for moisture mixing ratios,
+  !!          with different routines called depending on the form of the
+  !!          transport equation being used. If transport equation is
+  !!          conservative, then transforms mixing ratios to densities on the
+  !!          shifted mesh before transporting these.
+  !> @param[in,out] mr_out             Moisture mixing ratios after transport
+  !> @param[in]     mr_in              Moisture mixing ratios before transport
+  !> @param[in]     nummr_to_transport Number of moisture species to transport
+  !> @param[in]     model_dt           Model timestep
+  !> @param[in]     transport_metadata Contains the configuration options for
+  !!                                   transporting these fields
+  subroutine moist_mr_transport_alg(mr_out, mr_in, nummr_to_transport, &
+                                    model_dt, transport_metadata)
+
+    implicit none
+
+    ! Arguments
+    type(field_type),              intent(inout) :: mr_out(nummr)
+    type(field_type),              intent(in)    :: mr_in(nummr)
+    integer(kind=i_def),           intent(in)    :: nummr_to_transport
+    real(kind=r_def),              intent(in)    :: model_dt
+    type(transport_metadata_type), intent(in)    :: transport_metadata
+
+    ! Internal variables
+    integer(kind=i_def)                :: i, imr, primary_mesh_id
+    integer(kind=i_def)                :: shifted_mesh_id
+    integer(kind=i_def)                :: double_level_mesh_id
+    type(field_type)                   :: matrix_mr_to_sh_mass_n(3)
+    type(field_type)                   :: matrix_mr_to_sh_mass_star(3)
+    type(field_type)                   :: rho_X_n(nummr), rho_X_star(nummr)
+    type(field_type)                   :: moist_flux
+    type(field_type),          pointer :: rho_d_n => null()
+    type(field_type),          pointer :: rho_d_star => null()
+    type(field_type),          pointer :: mm_w3_shifted_inv_diag => null()
+    type(field_type),          pointer :: mm_w3_shifted_diag => null()
+    type(field_type),          pointer :: mr_to_sh_mass_integrals(:) => null()
+    type(function_space_type), pointer :: w3_shifted_fs => null()
+    type(function_space_type), pointer :: w2_shifted_fs => null()
+    type(mesh_type),           pointer :: primary_mesh => null()
+    type(mesh_type),           pointer :: shifted_mesh => null()
+    type(mesh_type),           pointer :: double_level_mesh => null()
+    type(transport_runtime_type), pointer :: transport_runtime => null()
+
+
+    if ( subroutine_timers ) call timer('moist mixing ratio transport')
+
+    ! Choose form of transport equation
+    select case ( transport_metadata%get_equation() )
+
+    ! ------------------------------------------------------------------------ !
+    ! Advective form of transport equation
+    ! ------------------------------------------------------------------------ !
+    case ( equation_advective )
+
+      ! Simply transport all the mixing ratio fields as they are in Wtheta
+
+      do imr = 1, nummr_to_transport
+        call transport_field(mr_out(imr), mr_in(imr), model_dt, transport_metadata)
+      end do
+
+    ! ------------------------------------------------------------------------ !
+    ! Conservative form of transport equation
+    ! ------------------------------------------------------------------------ !
+    case ( equation_conservative )
+
+      primary_mesh => mr_in(1)%get_mesh()
+      shifted_mesh => mesh_collection%get_mesh(primary_mesh, SHIFTED)
+      double_level_mesh => mesh_collection%get_mesh(primary_mesh, DOUBLE_LEVEL)
+      primary_mesh_id = primary_mesh%get_id()
+      shifted_mesh_id = shifted_mesh%get_id()
+      double_level_mesh_id = double_level_mesh%get_id()
+      mr_to_sh_mass_integrals => get_mr_to_sh_mass_integrals()
+      mm_w3_shifted_inv_diag => get_inverse_lumped_mass_matrix(W3, shifted_mesh_id)
+      mm_w3_shifted_diag => get_mass_matrix_diagonal(W3, shifted_mesh_id)
+      w3_shifted_fs => function_space_collection%get_fs(shifted_mesh_id, 0_i_def, W3)
+      w2_shifted_fs => function_space_collection%get_fs(shifted_mesh_id, 0_i_def, W2)
+
+      ! Get transport runtime
+      transport_runtime => get_transport_runtime(primary_mesh)
+
+      ! Initialise fields for transforming between mixing ratio and shifted density
+      do i = 1, 3
+        call matrix_mr_to_sh_mass_n(i)%initialise( vector_space=w3_shifted_fs )
+        call matrix_mr_to_sh_mass_star(i)%initialise( vector_space=w3_shifted_fs )
+      end do
+
+      do imr = 1, nummr_to_transport
+        call rho_X_n(imr)%initialise( vector_space=w3_shifted_fs )
+        call rho_X_star(imr)%initialise( vector_space=w3_shifted_fs )
+      end do
+
+      ! Note: Moist flux is currently passed through and unused
+      call moist_flux%initialise( vector_space=w2_shifted_fs )
+
+      ! Get dry density from transport runtime
+      rho_d_n => transport_runtime%get_rho_d_n(primary_mesh_id)
+      rho_d_star => transport_runtime%get_rho_d_np1(primary_mesh_id)
+
+      ! Use dry densities to get tridiagonal matrices
+      call invoke( name = "calculate_tridiagonal_matrix_values",                 &
+                   tri_mat_mr_to_sh_mass_kernel_type( matrix_mr_to_sh_mass_n,    &
+                                                      rho_d_n,                   &
+                                                      mr_to_sh_mass_integrals    &
+                                                    ),                           &
+                   tri_mat_mr_to_sh_mass_kernel_type( matrix_mr_to_sh_mass_star, &
+                                                      rho_d_star,                &
+                                                      mr_to_sh_mass_integrals    &
+                                                    ) )
+
+      do imr = 1, nummr_to_transport
+
+        ! -------------------------------------------------------------------- !
+        ! Turn mixing ratios into densities on shifted mesh
+        ! -------------------------------------------------------------------- !
+
+        call invoke( name = "get_wet_densities_in shifted_W3",             &
+                     tri_matrix_vector_kernel_type(rho_X_n(imr),           &
+                                                   matrix_mr_to_sh_mass_n, &
+                                                   mr_in(imr)),            &
+                     inc_X_times_Y(rho_X_n(imr), mm_w3_shifted_inv_diag)   )
+
+        ! -------------------------------------------------------------------- !
+        ! Actually transport densities
+        ! -------------------------------------------------------------------- !
+
+        call transport_field(rho_X_star(imr), rho_X_n(imr), model_dt, &
+                             transport_metadata, flux=moist_flux)
+
+        ! -------------------------------------------------------------------- !
+        ! Return from densities on shifted mesh to mixing ratios in Wtheta
+        ! -------------------------------------------------------------------- !
+
+        call invoke( name = "get_mixing_ratio_from_shifted_density",    &
+                     inc_X_times_Y(rho_X_star(imr), mm_w3_shifted_diag) )
+        ! These are separate invoke statements as they use different meshes
+        call invoke( tri_solve_sh_mass_to_mr_kernel_type(               &
+                                              mr_out(imr),              &
+                                              rho_X_star(imr),          &
+                                              matrix_mr_to_sh_mass_star) )
+
+      end do
+
+      nullify( rho_d_n, rho_d_star, mr_to_sh_mass_integrals, &
+               transport_runtime, mm_w3_shifted_diag,        &
+               mm_w3_shifted_inv_diag, w3_shifted_fs, w2_shifted_fs, &
+               primary_mesh, shifted_mesh, double_level_mesh )
+
+    ! ------------------------------------------------------------------------ !
+    ! Default form of transport equation
+    ! ------------------------------------------------------------------------ !
+    case default
+      call log_event('Form of moisture transport equation either not ' // &
+                     'compatible or not implemented', LOG_LEVEL_ERROR)
+
+    end select
+
+    ! ------------------------------------------------------------------------ !
+    ! Copy non-transported fields over
+    ! ------------------------------------------------------------------------ !
+
+    do imr = nummr_to_transport + 1, nummr
+      call mr_in(imr)%copy_field(mr_out(imr))
+    end do
+
+    ! ------------------------------------------------------------------------ !
+    ! Clip fields to ensure they are not negative
+    ! ------------------------------------------------------------------------ !
+
+    do imr = 1, nummr
+      call invoke( enforce_lower_bound_kernel_type(mr_out(imr), 0.0_r_def) )
+    end do
+
+    if ( subroutine_timers ) call timer('moist mixing ratio transport')
+
+  end subroutine moist_mr_transport_alg
+
+end module moist_mr_transport_alg_mod

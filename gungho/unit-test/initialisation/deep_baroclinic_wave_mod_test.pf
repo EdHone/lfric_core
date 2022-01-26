@@ -93,7 +93,7 @@ contains
              ( method           = method_balanced,   &
                surface_pressure = surface_pressure )
 
-    call feign_formulation_config(transport_only=.false., rotating=.true., &
+    call feign_formulation_config(rotating=.true.,                         &
                                   l_multigrid=.false.,                     &
                                   use_moisture=.false.,                    &
                                   shallow=.false., use_physics=.false.,    &
@@ -105,8 +105,7 @@ contains
                                   dlayer_on = .false.,                     &
                                   init_exner_bt        = .true.,           &
                                   si_momentum_equation=.true.,             &
-                                  vector_invariant=.true.,                 &
-                                  moisture_conservation=.false.            )
+                                  vector_invariant=.true.)
 
   end subroutine setUp
 

@@ -1,0 +1,197 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2022 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!> Test the transport metadata collection object
+!>
+module transport_metadata_collection_test
+
+  use constants_mod,                  only : r_def, l_def, str_def
+  use transport_enumerated_types_mod, only : equation_advective,    &
+                                             equation_conservative, &
+                                             splitting_none,        &
+                                             splitting_strang,      &
+                                             scheme_mol_3d,         &
+                                             scheme_split,          &
+                                             split_method_mol,      &
+                                             monotone_none
+  use transport_metadata_collection_mod, &
+                                      only : transport_metadata_collection_type, &
+                                             transport_metadata_collection
+  use transport_metadata_mod,         only : transport_metadata_type
+  use pFUnit_Mod
+
+  use yaxt,    only: xt_initialize, xt_finalize
+  use mpi_mod, only: store_comm, clear_comm
+
+  implicit none
+
+  private
+  public :: test_all
+
+  @TestCase
+  type, extends(MPITestCase), public :: transport_metadata_collection_test_type
+    private
+
+    integer, allocatable :: dummy_for_gcc
+
+  contains
+    procedure setUp
+    procedure tearDown
+    procedure test_all
+  end type transport_metadata_collection_test_type
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine setUp( this )
+
+    use feign_config_mod,     only : feign_transport_config
+    use transport_config_mod, only : runge_kutta_method_ssp2,       &
+                                     operators_fv,                  &
+                                     slice_order_cubic,             &
+                                     vertical_sl_order_quintic,     &
+                                     ffsl_flux_splitting_full,      &
+                                     ffsl_advective_splitting_full, &
+                                     moisture_eqn_advective,        &
+                                     ffsl_scheme_three_dim
+
+    implicit none
+
+    class(transport_metadata_collection_test_type), intent(inout) :: this
+
+    ! Initialise YAXT
+    call xt_initialize(this%getMpiCommunicator())
+
+    ! Store the MPI communicator for later use
+    call store_comm(this%getMpiCommunicator())
+
+    ! We only going to use the field names in this unit-test,
+    ! which are checked by the transport_metadata_collection
+    ! All the other options are unused so don't matter
+    call feign_transport_config( field_names = (/ 'foo', 'bar' /),           &
+                                 profile_size = 2,                           &
+                                 scheme = (/ 1, 1 /),                        &
+                                 splitting = (/1, 1/),                       &
+                                 horizontal_method = (/ 1, 1 /),             &
+                                 vertical_method = (/ 1, 1 /),               &
+                                 monotone = (/ 1, 1 /),                      &
+                                 log_space = (/ .false., .false. /),         &
+                                 enforce_min_value = (/ .false., .false. /), &
+                                 min_value = (/ 0.0_r_def, 0.0_r_def /),     &
+                                 operators = operators_fv,                   &
+                                 runge_kutta_method =                        &
+                                              runge_kutta_method_ssp2,       &
+                                 fv_flux_order = 2,                          &
+                                 fv_advective_order = 2,                     &
+                                 consistent_metric  = .false.,               &
+                                 oned_reconstruction = .false.,              &
+                                 cfl_mol_1d_stab = 1.0_r_def,                &
+                                 cfl_mol_2d_stab = 1.0_r_def,                &
+                                 cfl_mol_3d_stab = 1.0_r_def,                &
+                                 slice_order = slice_order_cubic,            &
+                                 vertical_sl_order =                         &
+                                              vertical_sl_order_quintic,     &
+                                 use_density_predictor = .false.,            &
+                                 ffsl_flux_splitting =                       &
+                                              ffsl_flux_splitting_full,      &
+                                 ffsl_advective_splitting =                  &
+                                              ffsl_advective_splitting_full, &
+                                 moisture_eqn=moisture_eqn_advective,        &
+                                 ffsl_scheme = ffsl_scheme_three_dim         &
+                                 )
+
+
+    ! Create top level function space collection
+    transport_metadata_collection = transport_metadata_collection_type()
+
+  end subroutine setUp
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tearDown( this )
+
+    use configuration_mod, only: final_configuration
+
+    implicit none
+
+    class(transport_metadata_collection_test_type), intent(inout) :: this
+
+    call transport_metadata_collection%clear()
+    call final_configuration()
+
+    ! Finalise YAXT
+    call xt_finalize()
+    ! Clear the stored MPI communicator
+    call clear_comm()
+
+  end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  @test(npes=[1])
+  subroutine test_all( this )
+
+
+    implicit none
+
+    class(transport_metadata_collection_test_type), intent(inout) :: this
+
+    real(kind=r_def),              parameter :: min_value = 0.0_r_def
+    logical(kind=l_def),           parameter :: enforce_min_value = .false.
+    logical(kind=l_def),           parameter :: logspace = .false.
+    logical(kind=l_def),           parameter :: divergence_factor = .true.
+    type(transport_metadata_type), pointer   :: metadata_ptr
+    type(transport_metadata_type)            :: metadata
+    character(len=str_def)                   :: fname
+
+    ! Add two metadata objects and then get them
+    fname = 'foo'
+    metadata = transport_metadata_type(fname,                 &
+                                       equation_advective,    &
+                                       splitting_none,        &
+                                       scheme_mol_3d,         &
+                                       split_method_mol,      &
+                                       split_method_mol,      &
+                                       monotone_none,         &
+                                       enforce_min_value,     &
+                                       min_value,             &
+                                       logspace,              &
+                                       divergence_factor)
+
+    call transport_metadata_collection%set_transport_metadata(metadata)
+
+    fname = 'bar'
+    metadata = transport_metadata_type(fname,                 &
+                                       equation_conservative, &
+                                       splitting_strang,      &
+                                       scheme_split,          &
+                                       split_method_mol,      &
+                                       split_method_mol,      &
+                                       monotone_none,         &
+                                       enforce_min_value,     &
+                                       min_value,             &
+                                       logspace,              &
+                                       divergence_factor)
+
+    call transport_metadata_collection%set_transport_metadata(metadata)
+
+    ! Get metadata
+    fname = 'foo'
+    metadata_ptr => transport_metadata_collection%get_transport_metadata(fname)
+    @assertEqual(fname, metadata_ptr%get_name())
+    @assertEqual(equation_advective, metadata_ptr%get_equation())
+    @assertEqual(splitting_none, metadata_ptr%get_splitting())
+    @assertEqual(scheme_mol_3d, metadata_ptr%get_scheme())
+
+    fname = 'bar'
+    metadata_ptr => transport_metadata_collection%get_transport_metadata(fname)
+    @assertEqual(fname, metadata_ptr%get_name())
+    @assertEqual(equation_conservative, metadata_ptr%get_equation())
+    @assertEqual(splitting_strang, metadata_ptr%get_splitting())
+    @assertEqual(scheme_split, metadata_ptr%get_scheme())
+
+  end subroutine test_all
+
+end module transport_metadata_collection_test

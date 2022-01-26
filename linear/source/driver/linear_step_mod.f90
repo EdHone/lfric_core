@@ -13,11 +13,9 @@ module linear_step_mod
   use clock_mod,                      only : clock_type
   use conservation_algorithm_mod,     only : conservation_algorithm
   use constants_mod,                  only : i_def, r_def
-  use diagnostics_calc_mod,           only : write_density_diagnostic
   use field_collection_mod,           only : field_collection_type
   use field_mod,                      only : field_type
-  use formulation_config_mod,         only : transport_only, &
-                                             use_moisture, &
+  use formulation_config_mod,         only : use_moisture, &
                                              use_physics
   use geometric_constants_mod,        only : get_da_at_w2
   use gungho_model_data_mod,          only : model_data_type
@@ -118,42 +116,38 @@ module linear_step_mod
     ! Get timestep parameters from clock
     dt = real(clock%get_seconds_per_step(), r_def)
 
-    if ( transport_only ) then
-     call log_event('transport_only not available for TL', LOG_LEVEL_ERROR)
-    else  ! Not transport_only
-      select case( method )
-        case( method_semi_implicit )  ! Semi-Implicit
-          call tl_semi_implicit_alg_step(u, rho, theta,                     &
-                                         exner, mr, moist_dyn,              &
-                                         ls_u, ls_rho, ls_theta,            &
-                                         ls_exner, ls_mr, ls_moist_dyn,     &
-                                         derived_fields,                    &
-                                         cloud_fields,                      &
-                                         clock, dt, mesh_id, twod_mesh_id)
-        case( method_rk )             ! RK
-          call tl_rk_alg_step(u, rho, theta, moist_dyn, exner,      &
-                              ls_u, ls_rho, ls_theta, ls_moist_dyn, &
-                              ls_exner, dt)
-      end select
+    select case( method )
+      case( method_semi_implicit )  ! Semi-Implicit
+        call tl_semi_implicit_alg_step(u, rho, theta,                     &
+                                       exner, mr, moist_dyn,              &
+                                       ls_u, ls_rho, ls_theta,            &
+                                       ls_exner, ls_mr, ls_moist_dyn,     &
+                                       derived_fields,                    &
+                                       cloud_fields,                      &
+                                       clock, dt, mesh_id, twod_mesh_id)
+      case( method_rk )             ! RK
+        call tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr,  &
+                            cloud_fields, ls_u, ls_rho, ls_theta, &
+                            ls_moist_dyn, ls_exner, ls_mr, dt, clock)
+    end select
 
-      if ( write_conservation_diag ) then
-        call conservation_algorithm( clock%get_step(), &
-                                     rho,              &
-                                     u,                &
-                                     theta,            &
-                                     exner )
-        if ( use_moisture ) then
-          call moisture_conservation_alg( clock%get_step(), &
-                                          rho,              &
-                                          mr,               &
-                                          'After timestep' )
-          if ( use_physics ) then
-            call log_event('use_physics not available for TL', LOG_LEVEL_ERROR)
-          end if
+    if ( write_conservation_diag ) then
+      call conservation_algorithm( clock%get_step(), &
+                                   rho,              &
+                                   u,                &
+                                   theta,            &
+                                   exner )
+      if ( use_moisture ) then
+        call moisture_conservation_alg( clock%get_step(), &
+                                        rho,              &
+                                        mr,               &
+                                        'After timestep' )
+        if ( use_physics ) then
+          call log_event('use_physics not available for TL', LOG_LEVEL_ERROR)
         end if
       end if
 
-      if(write_minmax_tseries) call minmax_tseries(u, 'u', mesh_id)
+      if (write_minmax_tseries) call minmax_tseries(u, 'u', mesh_id)
 
       call u%log_minmax(LOG_LEVEL_INFO, ' u')
       call theta%log_minmax(LOG_LEVEL_INFO, 'theta')

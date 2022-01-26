@@ -30,10 +30,8 @@ coord_system='xyz',
 
 &formulation
   l_multigrid           = .false.
-  transport_only        = .false.
   rotating              = .false.
   use_moisture          = .false.
-  moisture_conservation = .false.
   shallow               = .false.
   use_physics           = .false.
   use_wavedynamics      = .false.
@@ -41,7 +39,7 @@ coord_system='xyz',
   dry_static_adjust     = .false.
   exner_from_eos        = .false.
   init_exner_bt         = .false.
-  si_momentum_equation  = .true.
+  si_momentum_equation  = .flase.
   vector_invariant      = .true.
 /
 
@@ -105,4 +103,3 @@ planar_domain_min_y=-1.0,
   smagorinsky = .false.
   mix_factor = 0.0
 /
-

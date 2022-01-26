@@ -1,0 +1,72 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> @brief Compute the tangent linear flux F = rho * u_ls + rho_ls * u
+
+module tl_flux_alg_mod
+
+  use constants_mod,                   only: i_def, l_def
+  use field_mod,                       only: field_type
+  use reconstruct_w3_field_alg_mod,    only: reconstruct_w3_field_alg
+  use tl_reconstruct_w3_field_alg_mod, only: tl_reconstruct_w3_field_alg
+
+  implicit none
+
+  private
+
+  public :: tl_flux_alg
+
+contains
+
+  !=============================================================================!
+  !> @brief Compute the tangent linear flux F = rho * u_ls + rho_ls * u
+  !> @details Compute the tangent linear change in mass flux,
+  !>          F = rho*ls_u + ls_rho *u
+  !>          using desired spatial reconstruction.
+  !> @param[in,out] mass_flux   ACTIVE Change in mass flux field
+  !> @param[in]     density     ACTIVE Change in field to advect
+  !> @param[in]     wind        ACTIVE Change in advecting wind field
+  !> @param[in]     ls_density  Linearisation state for the field to advect
+  !> @param[in]     ls_wind     Linearisation state for the advecting wind field
+  !> @param[in]     direction   Direction of the transport
+  !> @param[in]     logspace    Carry out interpolation in log space
+  subroutine tl_flux_alg(mass_flux, density, wind, &
+                         ls_density, ls_wind, direction, logspace)
+
+    implicit none
+
+    ! Arguments
+    type(field_type),              intent(in)    :: density, wind
+    type(field_type),              intent(in)    :: ls_density, ls_wind
+    type(field_type),              intent(inout) :: mass_flux
+    integer(kind=i_def),           intent(in)    :: direction
+    logical(kind=l_def), optional, intent(in)    :: logspace
+
+    ! Internal variables
+    type(field_type) :: recon_density, recon_ls_density
+
+    ! Initialise variables
+    call recon_density%initialise( mass_flux%get_function_space() )
+    call recon_ls_density%initialise( mass_flux%get_function_space() )
+
+    ! Initialise both fluxes to zero
+    call invoke( setval_c(recon_density, 0.0_r_def), &
+                 setval_c(recon_ls_density, 0.0_r_def) )
+
+    ! Calculate computes to flux
+    ! ls wind is still used here to define upwind direction
+    call reconstruct_w3_field_alg(recon_ls_density, ls_density, ls_wind,    &
+                                  direction, logspace)
+    call tl_reconstruct_w3_field_alg(recon_density, density, ls_density,    &
+                                     ls_wind, direction, logspace)
+
+    ! F = rho*ls_wind + ls_rho*wind
+    call invoke( inc_X_times_Y(recon_density, ls_wind), &
+                 inc_X_times_Y(recon_ls_density, wind), &
+                 X_plus_Y(mass_flux, recon_density, recon_ls_density) )
+
+  end subroutine tl_flux_alg
+
+end module tl_flux_alg_mod

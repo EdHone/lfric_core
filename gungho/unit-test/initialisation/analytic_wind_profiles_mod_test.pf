@@ -69,8 +69,7 @@ contains
                               rd=rd, cp=cp, p_zero=p_zero,                 &
                               scaling_factor=scaling )
 
-    call feign_formulation_config( transport_only        = .false.,              &
-                                   l_multigrid           = .false.,              &
+    call feign_formulation_config( l_multigrid           = .false.,              &
                                    rotating              = .true.,               &
                                    use_moisture          = .false.,              &
                                    use_physics           = .false.,              &
@@ -83,8 +82,8 @@ contains
                                    init_exner_bt         = .true.,               &
                                    dlayer_on             = .false.,              &
                                    si_momentum_equation  = .true.,               &
-                                   vector_invariant      = .true.,               &
-                                   moisture_conservation = .false.               )
+                                   vector_invariant      = .true.                &
+                                 )
 
     call feign_initial_wind_config( profile=profile_none,                  &
                                     u0=0.0_r_def,                          &

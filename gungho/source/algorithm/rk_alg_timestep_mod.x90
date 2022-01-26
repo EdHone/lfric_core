@@ -4,25 +4,25 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!>@brief A Runge-Kutta time-discretisation of the non-linear 3D equations,
-!>       currently using 3-stage SSP.
-!>@details An algorithm for timestepping the 3D nonlinear linear
-!>         equations using a multistage explicit Runge-Kutta algorithm.
+!> @brief A Runge-Kutta time-discretisation of the non-linear 3D equations,
+!>        currently using 3-stage SSP.
+!> @details An algorithm for timestepping the 3D nonlinear linear
+!>          equations using a multistage explicit Runge-Kutta algorithm.
 module rk_alg_timestep_mod
 
-  use constants_mod,                      only: i_def,r_def
+  use constants_mod,                      only: i_def, r_def, l_def
   use log_mod,                            only: log_event,         &
                                                 log_scratch_space, &
                                                 LOG_LEVEL_INFO,    &
                                                 LOG_LEVEL_TRACE
+  use clock_mod,                          only: clock_type
 
   ! Configuration options
   use finite_element_config_mod,          only: element_order, &
                                                 vorticity_in_w1
   use formulation_config_mod,             only: rotating
-  use runge_kutta_init_mod,               only: num_rk_stage, ak
-  use timestepping_config_mod,            only: outer_iterations, &
-                                                inner_iterations
+  use runge_kutta_init_mod,               only: get_rk_timestepping_weights
+  use timestepping_config_mod,            only: runge_kutta_method
   use derived_config_mod,                 only: bundle_size
   use fem_constants_mod,                  only: get_qr, &
                                                 get_inverse_w3_mass_matrix
@@ -56,6 +56,7 @@ module rk_alg_timestep_mod
 
   ! Derived Types
   use field_mod,                          only: field_type
+  use field_collection_mod,               only: field_collection_type
   use quadrature_xyoz_mod,                only: quadrature_xyoz_type
   use quadrature_face_mod,                only: quadrature_face_type
   use quadrature_rule_gaussian_mod,       only: quadrature_rule_gaussian_type
@@ -64,12 +65,15 @@ module rk_alg_timestep_mod
   use mesh_mod,                           only: mesh_type
   ! Algorithm
   use mass_matrix_solver_alg_mod,         only: mass_matrix_solver_alg
-  use advection_alg_mod,                  only: advection_alg, advection_alg_init
+  use gungho_transport_control_alg_mod,   only: gungho_transport_control_alg_init, &
+                                                gungho_transport_control_alg,      &
+                                                gungho_transport_control_alg_final
   use compute_vorticity_alg_mod,          only: compute_vorticity_alg
 
   ! Field indices
   use field_indices_mod,                  only: igh_u, igh_t, igh_d, igh_p
   use moist_dyn_mod,                      only: num_moist_factors, gas_law
+  use mr_indices_mod,                     only: nummr
 
   use io_config_mod,                      only: subroutine_timers
   use timer_mod,                          only: timer
@@ -79,9 +83,11 @@ module rk_alg_timestep_mod
   private
 
   ! 'State' items that need to be created once but used every step
-  type( field_type ), allocatable :: state(:), state_n(:), rhs(:), inc(:)
-  type( field_type ), allocatable :: rhs_prediction(:,:)
-  type( field_type )              :: vorticity
+  type(field_type), allocatable :: state(:), state_n(:), rhs(:), inc(:)
+  type(field_type), allocatable :: rhs_prediction(:,:)
+  type(field_type)              :: vorticity
+  integer(kind=i_def)           :: num_rk_stage
+  real(kind=r_def), allocatable :: ak(:,:)
 
   public :: rk_alg_init
   public :: rk_alg_step
@@ -112,6 +118,9 @@ contains
 
     ! Function space for vorticity
     integer(i_def) :: vorticity_fs
+
+    ! Get weights for RK scheme
+    call get_rk_timestepping_weights(num_rk_stage, ak, runge_kutta_method)
 
     !=== Allocate internal state field arrays ================================!
     allocate(state(bundle_size))
@@ -153,7 +162,7 @@ contains
                  setval_X(state(igh_d), rho  ), &
                  setval_X(state(igh_p), exner) )
 
-    call advection_alg_init(mesh_id)
+    call gungho_transport_control_alg_init(mesh_id)
 
     call log_event( "Gungho: initialised timestepping algorithm", LOG_LEVEL_INFO )
 
@@ -167,19 +176,25 @@ contains
   !>          modifying the (currently hardwired) Butcher tableau (ak array)
   !>          The current set up uses the 3rd-order three stage
   !>          Strong-Stability-Preserving (SSP3) method
-  !> @param[inout] u 3D wind field
-  !> @param[inout] rho Density
-  !> @param[inout] theta Potential temperature
-  !> @param[inout] moist_dyn Moist dynamics factors
-  !> @param[inout] exner Exner pressure field
-  !> @param[in] dt The model timestep length
-  subroutine rk_alg_step(u, rho, theta, moist_dyn, exner, dt)
+  !> @param[in,out] u            3D wind field
+  !> @param[in,out] rho          Density
+  !> @param[in,out] theta        Potential temperature
+  !> @param[in,out] moist_dyn    Moist dynamics factors
+  !> @param[in,out] exner        Exner pressure field
+  !> @param[in,out] mr           Mixing ratios
+  !> @param[in,out] cloud_fields Fields for cloud scheme
+  !> @param[in] dt               The model timestep length
+  !> @param[in] clock            Model time
+  subroutine rk_alg_step(u, rho, theta, moist_dyn, exner, mr, cloud_fields, dt, clock)
 
     implicit none
     ! Prognostic fields
-    type( field_type ), intent( inout ) :: u, rho, theta, moist_dyn(num_moist_factors), &
-                                           exner
-    real( r_def ),      intent( in )    :: dt
+    type(field_type),            intent(inout) :: u, rho, theta, exner, &
+                                                  moist_dyn(num_moist_factors)
+    type(field_type),            intent(inout) :: mr(nummr)
+    type(field_collection_type), intent(inout) :: cloud_fields
+    real(kind=r_def),            intent(in)    :: dt
+    class(clock_type),           intent(in)    :: clock
 
     ! The quadrature object
     type( quadrature_xyoz_type ),  pointer :: qr => null()
@@ -188,24 +203,29 @@ contains
     type(mesh_type),               pointer :: mesh => null()
 
     ! Temporary items
-    type( field_type )    :: diagnostic_field
+    type(field_type) :: diagnostic_field
 
     ! Temps for retrieving things from runtime_constants
     type(field_type),    pointer :: geopotential => null()
-    type( field_type ),  pointer :: chi(:) => null()
-    type( field_type ),  pointer :: panel_id => null()
+    type(field_type),    pointer :: chi(:) => null()
+    type(field_type),    pointer :: panel_id => null()
     type(operator_type), pointer :: m3_inv => null(), &
                                     coriolis => null()
 
     type(quadrature_rule_gaussian_type) :: gaussian_quadrature
 
-    integer(kind=i_def)            :: st, stage, mesh_id
+    integer(kind=i_def) :: st, stage, mesh_id, outer, nqp
+    logical(kind=l_def) :: horizontal_face, vertical_face
 
     if ( subroutine_timers ) call timer('rk_alg')
     qr => get_qr()
     mesh => theta%get_mesh()
     reference_element => mesh%get_reference_element()
-    qrf = quadrature_face_type(element_order+2, .true., .false., &
+    outer = 1_i_def
+    horizontal_face = .true.
+    vertical_face = .false.
+    nqp = element_order + 2_i_def
+    qrf = quadrature_face_type(nqp, horizontal_face, vertical_face, &
                                reference_element,  gaussian_quadrature)
 
     ! Get mm operators from runtime_constants
@@ -225,9 +245,11 @@ contains
       write( log_scratch_space, '(A,I0)' ) '  Start of stage ', stage
       call log_event( log_scratch_space, LOG_LEVEL_INFO )
       ! Compute advection terms
-      call advection_alg( rhs_prediction(:,stage),                           &
-                          state_n, state(igh_u), state(igh_u), state(igh_u), &
-                          dt_step=dt, n_substeps=1 )
+      call gungho_transport_control_alg( rhs_prediction(:,stage), state, &
+                                         state(igh_u), state(igh_u),     &
+                                         mr, mr, moist_dyn,              &
+                                         cloud_fields, cloud_fields,     &
+                                         dt, clock%get_step(), outer )
       ! Compute new rhs
       if ( rotating ) then
         coriolis => get_coriolis(mesh_id)
@@ -333,6 +355,7 @@ contains
     if (allocated(rhs))            deallocate(rhs)
     if (allocated(inc))            deallocate(inc)
     if (allocated(rhs_prediction)) deallocate(rhs_prediction)
+    if (allocated(ak))             deallocate(ak)
 
   end subroutine rk_alg_final
 
