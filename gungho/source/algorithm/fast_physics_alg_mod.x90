@@ -192,10 +192,11 @@ contains
       du_bl => turbulence_fields%get_field('du_bl')
       call bl_imp_alg(dtheta_bl, du_bl, mr, snow_sublimation,             &
                       surf_heat_flux, canopy_evap, water_extraction,      &
-                      total_snowmelt, theta, exner, mr_n,                 &
+                      total_snowmelt, theta, exner, mr_n, rho,            &
                       derived_fields, radiation_fields, orography_fields, &
                       turbulence_fields, convection_fields, cloud_fields, &
-                      surface_fields, soil_fields, snow_fields, outer, clock)
+                      surface_fields, soil_fields, snow_fields,           &
+                      microphysics_fields, outer, clock)
       boundary_layer_done=.true. ! Collect this increment later on
 
     !--------------------------------------------------------------------

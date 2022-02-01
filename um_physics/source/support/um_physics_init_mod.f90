@@ -588,6 +588,8 @@ contains
     ! ----------------------------------------------------------------
     ! UM cloud scheme settings - contained in UM module cloud_inputs_mod
     ! ----------------------------------------------------------------
+    ! needed for visibility diags even without cloud scheme
+    rhcrit(1) = 0.96_r_um
     if ( cloud == cloud_um ) then
 
       if ( .not. use_moisture ) then
@@ -707,6 +709,11 @@ contains
     bi             = 2.00_r_um
     cx(84)         = 1.0_r_um
     constp(35)     = 1.0_r_um
+    ! The following are needed for the visibility diagnostic, hence we
+    ! initialise them even when microphysics isn't used.  They are used in 
+    ! beta_precip which can still have convective rain/snow.
+    x1r            = 2.2000e-1_r_um
+    x2r            = 2.2000_r_um
 
     if ( microphysics == microphysics_um ) then
 
@@ -744,8 +751,6 @@ contains
       qclrime        = real(qcl_rime, r_um)
       sediment_loc   = all_sed_start
       timestep_mp_in = 120
-      x1r            = 2.2000e-1_r_um
-      x2r            = 2.2000_r_um
       z_surf         = real(z_surf_in, r_um)
       aut_qc         = 2.47_r_um
 

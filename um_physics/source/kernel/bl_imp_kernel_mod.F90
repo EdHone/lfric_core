@@ -33,7 +33,7 @@ module bl_imp_kernel_mod
                                         lowest_level_gradient, &
                                         lowest_level_flux
   use planet_config_mod,        only : cp
-  use water_constants_mod,      only : tfs
+  use water_constants_mod,      only : tfs, lc, lf
 
   implicit none
 
@@ -46,7 +46,7 @@ module bl_imp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_imp_kernel_type
     private
-    type(arg_type) :: meta_args(89) = (/                                          &
+    type(arg_type) :: meta_args(101) = (/                                         &
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                &! outer
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! theta_in_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! wetrho_in_w3
@@ -133,13 +133,23 @@ module bl_imp_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! zh_2d
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! zhsc_2d
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_7),&! bl_type_ind
-         ! diag(surface__t1p5m)
-         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&
-         ! diag(surface__q1p5m)
-         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&
-         ! diag(surface__rh1p5m)
-         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1) &
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! t1p5m_surft
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! q1p5m_surft
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! t1p5m
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! q1p5m
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! qcl1p5m
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! rh1p5m
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! latent_heat
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! snomlt_surf_htf
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! soil_evap
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! surf_ht_flux
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! soil_surf_ht_flux
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! surf_sw_net
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! surf_radnet
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! surf_lw_up
+         arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2) &! surf_lw_down
          /)
+
     integer :: operates_on = CELL_COLUMN
   contains
     procedure, nopass :: bl_imp_code
@@ -241,9 +251,21 @@ contains
   !> @param[in]     zh_2d                Total BL depth
   !> @param[in]     zhsc_2d              Height of decoupled layer top
   !> @param[in]     bl_type_ind          Diagnosed BL types
+  !> @param[in,out] t1p5m_surft          Diagnostic: 1.5m temperature for land tiles
+  !> @param[in,out] q1p5m_surft          Diagnostic: 1.5m specific humidity for land tiles
   !> @param[in,out] t1p5m                Diagnostic: 1.5m temperature
   !> @param[in,out] q1p5m                Diagnostic: 1.5m specific humidity
+  !> @param[in,out] qcl1p5m              Diagnostic: 1.5m specific cloud water
   !> @param[in,out] rh1p5m               Diagnostic: 1.5m relative humidity
+  !> @param[in,out] latent_heat          Diagnostic: Surface latent heat flux
+  !> @param[in,out] snomlt_surf_htf      Diagnostic: Grid mean suface snowmelt heat flux
+  !> @param[in,out] soil_evap            Diagnostic: Grid mean evapotranspiration from the soil
+  !> @param[in,out] surf_ht_flux         Diagnostic: Surface to sub-surface heat flux
+  !> @param[in,out] soil_surf_ht_flux    Diagnostic: Grid mean surface soil heat flux
+  !> @param[in,out] surf_sw_net          Diagnostic: Net surface shortwave radiation
+  !> @param[in,out] surf_radnet          Diagnostic: Net surface radiation
+  !> @param[in,out] surf_lw_up           Diagnostic: Upward surface longtwave radiation
+  !> @param[in,out] surf_lw_down         Diagnostic: Downward surface longwave radiation
   !> @param[in]     ndf_wth              Number of DOFs per cell for potential temperature space
   !> @param[in]     undf_wth             Number of unique DOFs for potential temperature space
   !> @param[in]     map_wth              Dofmap for the cell at the base of the column for potential temperature space
@@ -358,7 +380,13 @@ contains
                          zh_2d,                              &
                          zhsc_2d,                            &
                          bl_type_ind,                        &
-                         t1p5m, q1p5m, rh1p5m,               &
+                         t1p5m_surft, q1p5m_surft,           &
+                         t1p5m, q1p5m, qcl1p5m, rh1p5m,      &
+                         latent_heat, snomlt_surf_htf,       &
+                         soil_evap,                          &
+                         surf_ht_flux, soil_surf_ht_flux,    &
+                         surf_sw_net, surf_radnet,           &
+                         surf_lw_up, surf_lw_down,           &
                          ndf_wth,                            &
                          undf_wth,                           &
                          map_wth,                            &
@@ -388,8 +416,9 @@ contains
     use atm_fields_bounds_mod, only: pdims
     use atm_step_local, only: dim_cs1, dim_cs2
     use c_kappai, only: kappai, de
+    use csigma, only: sbcon
     use dust_parameters_mod, only: ndiv, ndivh
-    use jules_sea_seaice_mod, only: nice_use
+    use jules_sea_seaice_mod, only: nice_use, emis_sea
     use jules_snow_mod, only: cansnowtile, rho_snow_const, l_snowdep_surf
     use jules_surface_types_mod, only: npft, ntype, lake, nnvg
     use jules_vegetation_mod, only: can_model
@@ -399,6 +428,7 @@ contains
     use planet_constants_mod, only: p_zero, kappa, planet_radius, two_omega
     use nvegparm, only: emis_nvg
     use rad_input_mod, only: co2_mmr
+    use timestep_mod, only: timestep
 
     ! spatially varying fields used from modules
     use level_heights_mod, only: r_theta_levels, r_rho_levels
@@ -520,6 +550,19 @@ contains
     real(kind=r_def), intent(inout) :: z_lcl(undf_2d)
     real(kind=r_def), intent(in) :: inv_depth(undf_2d)
     real(kind=r_def), intent(in) :: qcl_at_inv_top(undf_2d)
+    real(kind=r_def), pointer, intent(inout) :: t1p5m_surft(:)
+    real(kind=r_def), pointer, intent(inout) :: q1p5m_surft(:)
+    real(kind=r_def), pointer, intent(inout) :: t1p5m(:), q1p5m(:)
+    real(kind=r_def), pointer, intent(inout) :: qcl1p5m(:), rh1p5m(:)
+    real(kind=r_def), pointer, intent(inout) :: latent_heat(:)
+    real(kind=r_def), pointer, intent(inout) :: snomlt_surf_htf(:)
+    real(kind=r_def), pointer, intent(inout) :: soil_evap(:)
+    real(kind=r_def), pointer, intent(inout) :: surf_ht_flux(:)
+    real(kind=r_def), pointer, intent(inout) :: soil_surf_ht_flux(:)
+    real(kind=r_def), pointer, intent(inout) :: surf_sw_net(:)
+    real(kind=r_def), pointer, intent(inout) :: surf_radnet(:)
+    real(kind=r_def), pointer, intent(inout) :: surf_lw_up(:)
+    real(kind=r_def), pointer, intent(inout) :: surf_lw_down(:)
 
     real(kind=r_def), intent(in) :: soil_temperature(undf_soil)
     real(kind=r_def), intent(inout):: water_extraction(undf_soil)
@@ -538,13 +581,11 @@ contains
                                                            resfs_tile,       &
                                                            canhc_tile
 
-    real(kind=r_def), pointer, intent(inout) :: t1p5m(:), q1p5m(:), rh1p5m(:)
-
     !-----------------------------------------------------------------------
     ! Local variables for the kernel
     !-----------------------------------------------------------------------
     ! loop counters etc
-    integer(i_def) :: k, i, i_tile, i_sice, n
+    integer(i_def) :: k, i, i_tile, i_sice, n, icode
 
     ! local switches and scalars
     integer(i_um) :: error_code
@@ -584,7 +625,7 @@ contains
          ashtf_prime_sea, bl_type_1, bl_type_2, bl_type_3, bl_type_4,        &
          bl_type_5, bl_type_6, bl_type_7, chr1p5m_sice, flandg, rhokh_sea,   &
          u_s, z0hssi, z0mssi, zhnl, zlcl_mix, zlcl, dzh, qcl_inv_top,        &
-         work_2d_1, work_2d_2, work_2d_3, qcl1p5m
+         work_2d_1, work_2d_2, work_2d_3, qcl1p5m_loc
 
     ! single level real fields on u/v points
     real(r_um), dimension(row_length,rows) :: u_0, v_0, taux_land, tauy_land,&
@@ -691,8 +732,22 @@ contains
     !-----------------------------------------------------------------------
     error_code=0
 
+    ! neutral wind diagnostics are calculated in bl_imp_du_kernel so set 
+    ! flags to false here (to avoid divide by zero at end of imp_solver)
+    sf_diag%suv10m_n = .false.
+    sf_diag%l_u10m_n  = sf_diag%suv10m_n
+    sf_diag%l_v10m_n  = sf_diag%suv10m_n
+    sf_diag%l_mu10m_n = sf_diag%suv10m_n
+    sf_diag%l_mv10m_n = sf_diag%suv10m_n
     call alloc_sf_expl(sf_diag, outer == outer_iterations)
     call alloc_bl_expl(bl_diag, outer == outer_iterations)
+
+! Set logical flags for sf_diags
+    sf_diag%smlt = .not. associated(snomlt_surf_htf, empty_real_data)
+    sf_diag%l_lw_surft = .not. associated(surf_lw_up, empty_real_data)  &
+                    .or. .not. associated(surf_lw_down, empty_real_data)
+    sf_diag%l_lw_up_sice_weighted_cat = .not. associated(surf_lw_up, empty_real_data)
+
 
     if (bl_diag%l_tke) then
       allocate(bl_diag%tke(pdims%i_start:pdims%i_end,                   &
@@ -1297,6 +1352,18 @@ contains
 
       z_lcl(map_2d(1)) = zlcl_mix(1,1)
 
+      if (.not. associated(snomlt_surf_htf, empty_real_data) ) then
+        snomlt_surf_htf(map_2d(1)) = sf_diag%snomlt_surf_htf(1,1)
+      end if
+
+      if (.not. associated(soil_evap, empty_real_data) ) then
+        soil_evap(map_2d(1)) = fluxes%esoil_ij_soilt(1,1,1)
+      end if
+
+      if (.not. associated(soil_surf_ht_flux, empty_real_data) ) then
+        soil_surf_ht_flux(map_2d(1)) = coast%surf_ht_flux_land_ij(1,1)
+      end if
+
       do k = 0, bl_levels-1
         heat_flux_bl(map_w3(1)+k) = ftl(1,1,k+1)
         moist_flux_bl(map_w3(1)+k) = fqw(1,1,k+1)
@@ -1342,10 +1409,14 @@ contains
                real(fluxes%ftl_sicat(1,1,i_sice)/ice_fract_ncat(1,1,i_sice), r_def)
           tile_moisture_flux(map_tile(1)+i-1) =                                &
                real(fluxes%fqw_sicat(1,1,i_sice)/ice_fract_ncat(1,1,i_sice), r_def)
+          snow_sublimation(map_tile(1)+i-1) =                                  &
+               real(fluxes%ei_sice(1,1,i_sice)/ice_fract_ncat(1,1,i_sice), r_def)
         else
           tile_heat_flux(map_tile(1)+i-1) = 0.0_r_def
           tile_moisture_flux(map_tile(1)+i-1) = 0.0_r_def
+          snow_sublimation(map_tile(1)+i-1) = 0.0_r_def
         end if
+        canopy_evap(map_tile(1)+i-1) = 0.0_r_def
         ! Sum the fluxes over the sea-ice for use in sea point calculation
         tile_heat_flux(map_tile(1)+first_sea_tile-1) =                         &
              tile_heat_flux(map_tile(1)+first_sea_tile-1)                      &
@@ -1372,18 +1443,21 @@ contains
         tile_heat_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
         tile_moisture_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
       end if
+      snow_sublimation(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+      canopy_evap(map_tile(1)+first_sea_tile-1) = 0.0_r_def
 
       do i = 1, sm_levels
         water_extraction(map_soil(1)+i-1) = real(fluxes%ext_soilt(1, 1, i), r_def)
       end do
 
       ! diagnostics
-      if (.not. associated(t1p5m, empty_real_data) .or. &
-          .not. associated(q1p5m, empty_real_data) .or. &
-          .not. associated(rh1p5m, empty_real_data) ) then
+      if (.not. associated(t1p5m, empty_real_data) .or.                        &
+          .not. associated(q1p5m, empty_real_data) .or.                        &
+          .not. associated(rh1p5m, empty_real_data) .or.                       &
+          .not. associated(qcl1p5m, empty_real_data) ) then
         call ls_cld(                                                           &
            p_star, rhcpt, 1, bl_levels, 1, 1, ntml, cumulus, .false.,          &
-           sf_diag%t1p5m, work_2d_1, sf_diag%q1p5m, qcf_latest, qcl1p5m,       &
+           sf_diag%t1p5m, work_2d_1, sf_diag%q1p5m, qcf_latest, qcl1p5m_loc,   &
            work_2d_2, work_2d_3, error_code )
       end if
 
@@ -1393,6 +1467,9 @@ contains
       if (.not. associated(q1p5m, empty_real_data) ) then
         q1p5m(map_2d(1)) = sf_diag%q1p5m(1,1)
       end if
+      if (.not. associated(qcl1p5m, empty_real_data) ) then
+        qcl1p5m(map_2d(1)) = qcl1p5m_loc(1,1)
+      end if
 
       if (.not. associated(rh1p5m, empty_real_data) ) then
         ! qsat needed since q1p5m always a specific humidity
@@ -1400,7 +1477,200 @@ contains
         rh1p5m(map_2d(1)) = max(0.0, sf_diag%q1p5m(1,1)) * 100.0 / work_2d_1(1,1)
       end if
 
-    end if
+      if (.not. associated(t1p5m_surft, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            t1p5m_surft(map_tile(1)+i-1) = real(sf_diag%t1p5m_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            t1p5m_surft(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          t1p5m_surft(map_tile(1)+i-1) = 0.0_r_def
+        end do
+        t1p5m_surft(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+      end if
+      if (.not. associated(q1p5m_surft, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            q1p5m_surft(map_tile(1)+i-1) = real(sf_diag%q1p5m_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            q1p5m_surft(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          q1p5m_surft(map_tile(1)+i-1) = 0.0_r_def
+        end do
+        q1p5m_surft(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+      end if
+
+      if (.not. associated(latent_heat, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            latent_heat(map_tile(1)+i-1) = real(fluxes%le_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            latent_heat(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+            latent_heat(map_tile(1)+i-1) = (lc + lf) *                    &
+               tile_moisture_flux(map_tile(1)+i-1)
+          else
+            latent_heat(map_tile(1)+i-1) =  0.0_r_def
+          end if
+        end do
+        if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
+          latent_heat(map_tile(1)+first_sea_tile-1) = lc *                &
+                 tile_moisture_flux(map_tile(1)+first_sea_tile-1)
+        else
+          latent_heat(map_tile(1)+first_sea_tile-1) =  0.0_r_def
+        end if
+      end if
+
+      if (.not. associated(surf_ht_flux, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            surf_ht_flux(map_tile(1)+i-1) = real(fluxes%surf_htf_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            surf_ht_flux(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        i_sice = 0
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          i_sice = i_sice + 1
+          if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+            surf_ht_flux(map_tile(1)+i-1) =                               &
+              real(coast%surf_ht_flux_sice_sicat(1,1,i_sice)/ice_fract_ncat(1,1,i_sice), r_def)
+          else
+            surf_ht_flux(map_tile(1)+i-1) = 0.0_r_def
+          end if
+        end do
+        surf_ht_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+      end if
+
+      if (.not. associated(surf_sw_net, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            surf_sw_net(map_tile(1)+i-1) =                                &
+                real(sw_down_surf(map_2d(1)), r_um) -                     &
+                real(sw_up_tile(map_tile(1)+i-1), r_um)
+          end do
+        else
+          do i = 1, n_land_tile
+            surf_sw_net(map_tile(1)+i-1) =  0.0_r_def
+          end do
+        end if
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+            surf_sw_net(map_tile(1)+i-1) =                                &
+                real(sw_down_surf(map_2d(1)), r_um) -                     &
+                real(sw_up_tile(map_tile(1)+i-1), r_um)
+          else
+            surf_sw_net(map_tile(1)+i-1) = 0.0_r_def
+          end if
+        end do
+        if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
+          surf_sw_net(map_tile(1)+first_sea_tile-1) =                     &
+              real(sw_down_surf(map_2d(1)), r_um) -                       &
+              real(sw_up_tile(map_tile(1)+first_sea_tile-1), r_um)
+        else
+          surf_sw_net(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+        end if
+      end if
+
+      if (.not. associated(surf_radnet, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            surf_radnet(map_tile(1)+i-1) = real(fluxes%radnet_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            surf_radnet(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        i_sice = 0
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          i_sice = i_sice + 1
+          if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+            surf_radnet(map_tile(1)+i-1) =                                &
+              radnet_sice(1,1,i_sice)/ice_fract_ncat(1,1,i_sice)
+          else
+            surf_radnet(map_tile(1)+i-1) = 0.0_r_def
+          end if
+        end do
+        if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
+          surf_radnet(map_tile(1)+first_sea_tile-1) =                     &
+              real(sw_down_surf(map_2d(1)), r_um) -                       &
+              real(sw_up_tile(map_tile(1)+first_sea_tile-1), r_um) +      &
+              emis_sea * (lw_down(1,1) - sbcon * tstar_sea(1,1) ** 4.0)
+        else
+          surf_radnet(map_tile(1)+first_sea_tile-1) =  0.0_r_def
+        end if
+      end if
+
+      if (.not. associated(surf_lw_up, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            surf_lw_up(map_tile(1)+i-1) = real(sf_diag%lw_up_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            surf_lw_up(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        i_sice = 0
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          i_sice = i_sice + 1
+          if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+            surf_lw_up(map_tile(1)+i-1) =                                &
+              sf_diag%lw_up_sice_weighted_cat(1,1,i_sice)/ice_fract_ncat(1,1,i_sice)
+          else
+            surf_lw_up(map_tile(1)+i-1) = 0.0_r_def
+          end if
+        end do
+        if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
+          surf_lw_up(map_tile(1)+first_sea_tile-1) =                     &
+              (1.0 - emis_sea) * lw_down(1,1) +                          &
+               emis_sea * sbcon * tstar_sea(1,1) ** 4.0
+        else
+          surf_lw_up(map_tile(1)+first_sea_tile-1) =  0.0_r_def
+        end if
+      end if
+      if (.not. associated(surf_lw_down, empty_real_data) ) then
+        if (land_field > 0) then
+          do i = 1, n_land_tile
+            surf_lw_down(map_tile(1)+i-1) = real(sf_diag%lw_down_surft(1, i), r_def)
+          end do
+        else
+          do i = 1, n_land_tile
+            surf_lw_down(map_tile(1)+i-1) = 0.0_r_def
+          end do
+        end if
+        i_sice = 0
+        do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
+          if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+            surf_lw_down(map_tile(1)+i-1) = lw_down(1,1)
+          else
+            surf_lw_down(map_tile(1)+i-1) =  0.0_r_def
+          end if
+        end do
+        if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
+          surf_lw_down(map_tile(1)+first_sea_tile-1) = lw_down(1,1)
+        else
+          surf_lw_down(map_tile(1)+first_sea_tile-1) =  0.0_r_def
+        end if
+      end if
+
+    endif  ! outer = outer_iterations
 
     ! deallocate diagnostics deallocated in atmos_physics2
     call dealloc_bl_imp(bl_diag)

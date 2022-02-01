@@ -203,12 +203,10 @@ contains
       call unfrozen_soil_moisture%write_field('unfrozen_soil_moisture')
       call soil_temperature%write_field('soil_temperature')
 
-      call soil_respiration%write_field('soil_respiration')
       call water_table%write_field('water_table')
 
       ! Snow diagnostics
       call total_snowmelt%write_field('total_snowmelt')
-      call snow_sublimation%write_field('snow_sublimation')
       call snow_depth%write_field('snow_depth')
       call tile_snow_rgrain%write_field('tile_snow_rgrain')
       call snowpack_density%write_field('snowpack_density')

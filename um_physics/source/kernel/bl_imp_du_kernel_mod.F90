@@ -32,20 +32,22 @@ module bl_imp_du_kernel_mod
   !> Kernel metadata type.
   type, public, extends(kernel_type) :: bl_imp_du_kernel_type
     private
-    type(arg_type) :: meta_args(18) = (/                    &
+    type(arg_type) :: meta_args(20) = (/                    &
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),          &! outer
          arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! du_bl
          arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! dissip
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! tau
+         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! tau
          arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! wind10m
+         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! wind10m_neut
          arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_SPACE_1), &! tau_land
          arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! tau_ssi
+         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! pseudotau
          arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! rhokm
          arg_type(GH_FIELD, GH_REAL, GH_READ, W1),          &! rdz
          arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! dtrdz
          arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! wetrho
          arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! u_physics
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &!u_physics_star
+         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! u_physics_star
          arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_SPACE_2), &! surf_interp
          arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! du_conv
          arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! dA
@@ -70,10 +72,12 @@ contains
   !> @param[in]     outer          Outer loop counter
   !> @param[in,out] du_bl          BL wind increment
   !> @param[in,out] dissip         Molecular dissipation rate
-  !> @param[in]     tau            Turbulent stress
+  !> @param[in,out] tau            Turbulent stress
   !> @param[in,out] wind10m        10m wind
+  !> @param[in,out] wind10m_neut   neutral 10m wind
   !> @param[in]     tau_land       Wind stress over land
   !> @param[in,out] tau_ssi        Wind stress over sea and sea-ice
+  !> @param[in,out] pseudotau      pseudo surface wind stress
   !> @param[in]     rhokm          Momentum eddy diffusivity mapped to cell face
   !> @param[in]     rdz            1/dz mapped to cell faces
   !> @param[in]     dtrdz          dt/(r*r*dz) mapped to cell faces
@@ -103,8 +107,10 @@ contains
                             dissip,        &
                             tau,           &
                             wind10m,       &
+                            wind10m_neut,  &
                             tau_land,      &
                             tau_ssi,       &
+                            pseudotau,     &
                             rhokm,         &
                             rdz,           &
                             dtrdz,         &
@@ -148,20 +154,21 @@ contains
     integer(kind=i_def), intent(in) :: ndf_w1, undf_w1
     integer(kind=i_def), intent(in) :: map_w1(ndf_w1)
 
-    real(kind=r_def), dimension(undf_w2),  intent(inout) :: du_bl, dissip
-    real(kind=r_def), dimension(undf_w2_2d), intent(inout) :: wind10m, tau_ssi
+    real(kind=r_def), dimension(undf_w2),  intent(inout) :: du_bl, dissip, tau
+    real(kind=r_def), dimension(undf_w2_2d), intent(inout) :: wind10m,         &
+         wind10m_neut, tau_ssi, pseudotau
 
     real(kind=r_def), dimension(undf_w2),  intent(in) :: rhokm, dtrdz,         &
-         u_physics, u_physics_star, du_conv, dA, tau, height_w2, wetrho
+         u_physics, u_physics_star, du_conv, dA, height_w2, wetrho
     real(kind=r_def), dimension(undf_w2_2d), intent(in) :: tau_land
     real(kind=r_def), dimension(undf_w2_surf), intent(in) :: surf_interp
     real(kind=r_def), dimension(undf_w1),   intent(in) :: height_w1, rdz
 
     ! Internal variables
     integer(kind=i_def) :: k, df, k_blend
-    real(kind=r_def) :: pnonl, i1, e1, e2, gamma1, gamma2, cdr10m,             &
+    real(kind=r_def) :: pnonl, i1, e1, e2, gamma1, gamma2, cdr10m, cdr10m_neut,&
          du_1, cq_cm_1, tau_land_star, tau_ssi_star, fb_surf, fland,           &
-         tau_land_loc, tau_ssi_loc
+         tau_land_loc, tau_ssi_loc, cd10m_neut
     real(kind=r_def), dimension(0:bl_levels-1) :: tau_star, cq_cm, du_star,    &
          du_nt, tau_loc, dtr_rhodz
 
@@ -178,6 +185,8 @@ contains
         fb_surf = surf_interp(map_w2_surf(df) + 6)
         k_blend = int(surf_interp(map_w2_surf(df) + 7), i_def)
         cdr10m  = surf_interp(map_w2_surf(df) + 8)
+        cd10m_neut  = surf_interp(map_w2_surf(df) + 9)
+        cdr10m_neut = surf_interp(map_w2_surf(df) + 10)
 
         if (fb_surf > 0.0_r_def) then
           pnonl = puns
@@ -339,10 +348,23 @@ contains
 
         ! Diagnostic calculations at final iteration only
         if (outer == outer_iterations) then
-          tau_ssi(map_w2_2d(df)) = (tau_ssi_loc + tau_ssi_star)                &
+          tau_ssi(map_w2_2d(df))  = (tau_ssi_loc + tau_ssi_star)               &
                                     * dA(map_w2(df))
-          wind10m(map_w2_2d(df)) = (u_physics(map_w2(df)) + du_bl(map_w2(df))) &
-                                   * cdr10m * dA(map_w2(df))
+          tau_land_loc            = (tau_land_loc + tau_land_star)             &
+                                    * dA(map_w2(df))
+          wind10m(map_w2_2d(df))  = (u_physics(map_w2(df)) + du_bl(map_w2(df)))&
+                                    * cdr10m * dA(map_w2(df))
+          wind10m_neut(map_w2_2d(df)) =                                        &
+                                   (u_physics(map_w2(df)) + du_bl(map_w2(df))) &
+                                   * cdr10m_neut * dA(map_w2(df))
+          ! tau in bottom level is grid-bix mean surface stress for diagnostics
+          tau(map_w2(df)) = fland * tau_land_loc +                             &
+                            (1.0_r_def - fland) * tau_ssi(map_w2_2d(df))
+          ! save end-of-timestep stress profile for diagnostics
+          do k = 1, bl_levels-1
+            tau(map_w2(df) + k) = tau_loc(k)*dA(map_w2(df))
+          end do
+          pseudotau(map_w2_2d(df)) = tau(map_w2(df)) / cd10m_neut
         end if
 
         ! final increment calculation

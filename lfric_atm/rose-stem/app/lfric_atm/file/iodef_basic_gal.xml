@@ -536,10 +536,14 @@
 	<!-- surface fields -->
 	<field id="surface__tile_fraction" name="tile_fraction" long_name="surface_tile_fraction" unit="1" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="surface__z0m" name="z0m" long_name="surface_roughness_length" unit="m" domain_ref="face" />
+        <field id="surface__z0m_eff" name="z0m_eff" long_name="effective_surface_roughness_length_for_momentum_in_air" unit="m" domain_ref='face' />
+        <field id="surface__z0h_eff" name="z0h_eff" long_name="effective_surface_roughness_length_for_heat_in_air" unit="m" domain_ref='face' />
 	<field id="surface__z0m_tile" name="z0m_tile" long_name="surface_roughness_length_on_tiles" unit="m" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="surface__u10m" name="u10m" long_name="eastward_wind_at_10m" unit="m s-1" domain_ref="face" />
 	<field id="surface__v10m" name="v10m" long_name="northward_wind_10m" unit="m s-1" domain_ref="face" />
 	<field id="surface__wspd10m" name="wspd10m" long_name="wind_speed_at_10m" unit="m s-1" domain_ref="face" />
+	<field id="surface__wspd10m_neut" name="wspd10m_neut" long_name="neutral_wind_speed_at_10m" unit="m s-1" domain_ref="face" />
+	<field id="surface__wind_gust" name="wind_gust" long_name="gust_wind_speed_at_10m" unit="m s-1" domain_ref="face" />
 	<field id="surface__taux_ssi" name="taux_ssi" long_name="eastward_wind_stress_sea_seaice" unit="N m-2" domain_ref="face" />
 	<field id="surface__tauy_ssi" name="tauy_ssi" long_name="northward_wind_stress_sea_seaice" unit="N m-2" domain_ref="face" />
 	<field id="surface__gross_prim_prod" name="gross_prim_prod" long_name="gross_primary_productivity" unit="kgC m-2 s-1" domain_ref="face" />
@@ -548,15 +552,40 @@
 	<field id="surface__tile_moisture_flux" name="tile_moisture_flux" long_name="surface_moisture_flux" unit="kg m-2 s-1" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="surface__tile_temperature" name="tile_temperature" long_name="surface_tile_temperature" unit="K" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="surface__grid_surface_temperature" name="grid_surface_temperature" long_name="grid_surface_temperature" unit="K" domain_ref="face"/>
+	<field id="surface__t1p5m_surft" name="t1p5m_surft" long_name="land_tile_screen_level_temperature" unit="K" domain_ref="face" axis_ref="surface_tiles" />
+	<field id="surface__q1p5m_surft" name="q1p5m_surft" long_name="land_tile_screen_level_specific_humidity" unit="kg/kg" domain_ref="face" axis_ref="surface_tiles" />
 	<field id="surface__t1p5m" name="t1p5m" long_name="temperature_at_screen_level" unit="K" domain_ref="face" />
 	<field id="surface__q1p5m" name="q1p5m" long_name="specific_humidity_at_screen_level" unit="kg kg-1" domain_ref="face" />
+	<field id="surface__qcl1p5m" name="qcl1p5m" long_name="specific_cloud_water_at_screen_level" unit="kg kg-1" domain_ref="face" />
 	<field id="surface__rh1p5m" name="rh1p5m" long_name="relative_humidity_at_screen_level" unit="1" domain_ref="face" />
+	<field id="surface__dew_point" name="dew_point" long_name="dew_point_temperature_at_screen_level" unit="K" domain_ref="face" />
+	<field id="surface__fog_fraction" name="fog_fraction" long_name="fog_fraction_at_screen_level" unit="1" domain_ref="face" />
+	<field id="surface__visibility_no_precip" name="visibility_no_precip" long_name="visibility_excluding precipitation_at_screen_level" unit="m" domain_ref="face" />
+	<field id="surface__visibility_with_precip" name="visibility_with_precip" long_name="visibility_including_precipitation_at_screen_level" unit="m" domain_ref="face" />
 	<field id="surface__canopy_evap" name="canopy_evap" long_name="canopy_evaporation" unit="kg m-2 s-1" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="surface__gc_tile" name="gc_tile" long_name="stomatal_conductance_on_tiles" unit="m s-1" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="surface__ustar" name="ustar" long_name="surface_friction_velocity" unit="m s-1" domain_ref="face" />
+        <field id="surface__latent_heat" name="latent_heat" long_name="surface_upward_latent_heat_flux" unit="W m-2" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__grid_latent_heat" name="grid_latent_heat" long_name="grid_surface_upward_latent_heat_flux" unit="W m-2" domain_ref='face' />
+        <field id="surface__snomlt_surf_htf" name="snomlt_surf_htf" long_name="surface_snow_melt_heat_flux" unit="W m-2" domain_ref='face' />
+        <field id="surface__soil_evap" name="soil_evaporation" long_name="water_evaporation_flux_from_soil" unit="kg m-2 s-1" domain_ref='face' />
+        <field id="surface__canopy_evap" name="canopy_evaporation" long_name="water_evaporation_flux_from_canopy" unit="kg m-2 s-1" domain_ref='face' />
+        <field id="surface__grid_sublimation" name="grid_sublimation" long_name="grid_surface_snow_sublimation_rate" unit="kg m-2 s-1" domain_ref='face' />
+        <field id="surface__snow_sublimation" name="snow_sublimation" long_name="surface_snow_sublimation_rate" unit="kg m-2 s-1" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__surf_ht_flux" name="surf_ht_flux" long_name="downward_heat_flux_at_ground_level" unit="W m-2" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__soil_surf_ht_flux" name="soil_surf_ht_flux" long_name="downward_heat_flux_at_ground_level_in_soil" unit="W m-2" domain_ref='face' />
+        <field id="surface__surf_sw_net" name="surf_sw_net" long_name="surface_net_downward_shortwave_flux" unit="W m-2" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__surf_radnet" name="surf_radnet" long_name="surface_net_downward_radiative_flux" unit="W m-2" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__surf_lw_up" name="surf_lw_up" long_name="surface_upward_longwave_flux" unit="W m-2" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__surf_lw_down" name="surf_lw_down" long_name="surface_downward_longwave_flux" unit="W m-2" domain_ref='face' axis_ref="surface_tiles" />
+        <field id="surface__grid_canopy_evap" name="grid_canopy_evaporation" long_name="grid_water_evaporation_flux_from_canopy" unit="kg m-2 s-1" domain_ref='face' />
+	<field id="surface__soil_respiration" name="soil_respiration" long_name="surface_upward_mass_flux_of_carbon_due_to_heterotrophic_respiration_in_soil" unit="kg m-2 s-1" domain_ref="face" />
+	<field id="surface__u10m_neut" name="u10m_neut" long_name="neutral_eastward_wind_at_10m" unit="m s-1" domain_ref="face" />
+	<field id="surface__v10m_neut" name="v10m_neut" long_name="neutral_northward_wind_10m" unit="m s-1" domain_ref="face" />
+	<field id="surface__pseudotaux" name="pseudotaux" long_name="surface_eastward_wind_pseudo_stress" unit="N m-2" domain_ref="face" />
+	<field id="surface__pseudotauy" name="pseudotauy" long_name="surface_northward_wind_pseudo_stress" unit="N m-2" domain_ref="face" />
 	<!-- snow fields -->
 	<field id="total_snowmelt" name="total_snowmelt" long_name="total_snowmelt" unit="kg m-2 s-1" domain_ref="face" axis_ref="surface_tiles"/>
-	<field id="snow_sublimation" name="snow_sublimation" long_name="snow_sublimation" unit="kg m-2 s-1" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="snow_depth" name="snow_depth" long_name="snow_depth" unit="m" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="tile_snow_rgrain" name="tile_snow_rgrain" long_name="tile_snow_grain_size" unit="microns" domain_ref="face" axis_ref="surface_tiles"/>
 	<field id="snowpack_density" name="snowpack_density" long_name="snowpack_density" unit="kg m-3" domain_ref="face" axis_ref="surface_tiles"/>
@@ -569,7 +598,6 @@
 	<field id="soil_moisture" name="soil_moisture" long_name="soil_moisture" unit="kg m-2" domain_ref="face" axis_ref="soil_levels"/>
 	<field id="unfrozen_soil_moisture" name="unfrozen_soil_moisture" long_name="unfrozen_soil_moisture" unit="kg m-2" domain_ref="face" axis_ref="soil_levels"/>
 	<field id="soil_temperature" name="soil_temperature" long_name="soil_temperature" unit="K" domain_ref="face" axis_ref="soil_levels"/>
-	<field id="soil_respiration" name="soil_respiration" long_name="soil_respiration" unit="kg m-2 s-1" domain_ref="face" />
 	<field id="water_table" name="water_table" long_name="water_table_depth" unit="m" domain_ref="face" />
 	<!-- turbulence fields -->
 	<field id="turbulence__ntml" name="ntml" long_name="number_of_turbulent_mixing_levels" unit="1" domain_ref="face" />
@@ -579,6 +607,12 @@
 	<field id="turbulence__dtheta" name="dtheat_bl" long_name="potential_temperature_increment_from_bl_scheme" unit="K" grid_ref="full_level_face_grid" />
 	<field id="turbulence__dt" name="dt_bl" long_name="temperature_increment_from_bl_scheme" unit="K" grid_ref="full_level_face_grid" />
 	<field id="turbulence__dmv" name="dmv_bl" long_name="vapour_increment_from_bl_scheme" unit="kg kg-1" grid_ref="full_level_face_grid" />
+	<field id="turbulence__dmcl" name="dmcl_bl" long_name="liquid_water_increment_from_bl_scheme" unit="kg kg-1" grid_ref="full_level_face_grid" />
+	<field id="turbulence__dmci" name="dmci_bl" long_name="frozen_water_increment_from_bl_scheme" unit="kg kg-1" grid_ref="full_level_face_grid" />
+	<field id="turbulence__dcf_bulk" name="dcf_bulk_bl" long_name="bulk_cloud_fraction_increment_from_bl_scheme" unit="1" grid_ref="full_level_face_grid" />
+	<field id="turbulence__dcf_area" name="dcf_area_bl" long_name="area_cloud_fraction_increment_from_bl_scheme" unit="1" grid_ref="full_level_face_grid" />
+	<field id="turbulence__dcf_liq" name="dcf_liq_bl" long_name="liquid_cloud_fraction_increment_from_bl_scheme" unit="1" grid_ref="full_level_face_grid" />
+	<field id="turbulence__dcf_ice" name="dcf_ice_bl" long_name="ice_cloud_fraction_increment_from_bl_scheme" unit="1" grid_ref="full_level_face_grid" />
 	<field id="turbulence__du1" name="du_bl1" long_name="eastward_wind_increment_from_bl_scheme" unit="m s-1" grid_ref="half_level_edge_grid" />
 	<field id="turbulence__du2" name="du_bl2" long_name="northward_wind_increment_from_bl_scheme" unit="m s-1" grid_ref="half_level_edge_grid" />
 	<field id="turbulence__du3" name="du_bl3" long_name="upward_air_velocity_increment_from_bl_scheme" unit="m s-1" grid_ref="full_level_face_grid" />
@@ -598,6 +632,11 @@
 	<field id="turbulence__ent_we_lim_dsc" name="ent_we_lim_dsc" long_name="rho_times_entrainment_rate_at_decoupled_stratocumulus_inversion" unit="kg m-2 s-1" domain_ref="face" axis_ref="entrainment_levels" />
 	<field id="turbulence__ent_t_frac_dsc" name="ent_t_frac_dsc" long_name="fraction_of_time_decoupled_stratocumulus_inversion_is_above_level" unit="1" domain_ref="face" axis_ref="entrainment_levels" />
 	<field id="turbulence__ent_zrzi_dsc" name="ent_zrzi_dsc" long_name="level_height_as_fraction_of_dsc_inversion_height_above_mixed_layer_base" unit="1" domain_ref="face" axis_ref="entrainment_levels" />
+        <field id="turbulence__heat_flux_bl" name="heat_flux_bl" long_name="upward_heat_flux_in_air" unit="W m-2" grid_ref="half_level_face_grid" />
+        <field id="turbulence__moist_flux_bl" name="moist_flux_bl" long_name="upward_moisture_flux_in_air" unit="kg m-2 s-1" grid_ref="half_level_face_grid" />
+	<field id="turbulence__zht" name="zht" long_name="turbulent_mixing_height" unit="m" domain_ref="face" />
+	<field id="turbulence__taux" name="taux" long_name="eastward_wind_stress" unit="N m-2" grid_ref="half_level_face_grid" />
+	<field id="turbulence__tauy" name="tauy" long_name="northward_wind_stress" unit="N m-2" grid_ref="half_level_face_grid" />
 	<!-- radiation fields -->
 	<field id="radiation__dtheta_rad" name="dtheta_rad" long_name="theta_increment_from_radiation" unit="K" grid_ref="full_level_face_grid" />
 	<field id="radiation__sw_temperature_incr" name="sw_temperature_incr" long_name="temperature_increment_from_sw_radiation" unit="K" grid_ref="full_level_face_grid" />
@@ -1078,6 +1117,12 @@
         <field field_ref="tot_col_dry_air_mass" />
         <field field_ref="tot_col_wetplusdry_mass" />        
         <field field_ref="wbig" />
+	<field field_ref="surface__wind_gust"/>
+	<field field_ref="surface__wspd10m_neut"/>
+	<field field_ref="surface__visibility_with_precip"/>
+	<field field_ref="surface__t1p5m_surft"/>
+	<field field_ref="surface__grid_latent_heat"/>
+
       </file>
 
       <file id="lfric_averages" name="lfric_averages" output_freq="12h" convention="UGRID" enabled=".TRUE.">

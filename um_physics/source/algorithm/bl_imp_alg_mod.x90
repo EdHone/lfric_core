@@ -15,7 +15,7 @@ module bl_imp_alg_mod
   use geometric_constants_mod,       only: get_height, get_da_at_w2, &
                                            get_latitude
   use physical_op_constants_mod,     only: get_rdz_fd1, get_dtrdz_fd2
-  use mr_indices_mod,                only: nummr, imr_v, imr_cl, imr_ci
+  use mr_indices_mod,                only: nummr, imr_v, imr_cl, imr_ci, imr_r
   use timestepping_config_mod,       only: outer_iterations
 
   use io_config_mod, only: subroutine_timers
@@ -56,6 +56,7 @@ contains
   !>@param[in]     theta             Theta in its native (wth) space
   !>@param[in]     exner             Exner Pressure in the w3 space
   !>@param[in]     mr_n              Mixing ratios at time level n
+  !>@param[in]     rho               Dry density in its native (w3) space
   !>@param[in]     derived_fields    Group of derived fields
   !>@param[in]     radition_fields   Fields for radiation scheme
   !>@param[in]     orography_fields  Fields for orog drag scheme
@@ -65,15 +66,17 @@ contains
   !>@param[in,out] surface_fields    Fields for surface scheme
   !>@param[in]     soil_fields       Fields for soil hydrology scheme
   !>@param[in]     snow_fields       Fields for snow scheme
+  !>@param[in]     microphysics_fields Fields for microphysics scheme 
   !>@param[in]     outer             Outer loop counter
   !>@param[in]     clock             The clock object
   subroutine bl_imp_alg(dtheta_bl, du_bl, mr, snow_sublimation,          &
                         surf_heat_flux, canopy_evap, water_extraction,   &
-                        total_snowmelt, theta, exner, mr_n,              &
+                        total_snowmelt, theta, exner, mr_n, rho,         &
                         derived_fields, radiation_fields,                &
                         orography_fields, turbulence_fields,             &
                         convection_fields, cloud_fields, surface_fields, &
-                        soil_fields, snow_fields, outer, clock)
+                        soil_fields, snow_fields, microphysics_fields,   &
+                        outer, clock)
 
     use bl_imp_kernel_mod, only: bl_imp_kernel_type
     use bl_imp_du_kernel_mod, only: bl_imp_du_kernel_type
@@ -84,7 +87,7 @@ contains
     type( field_type ), intent( out )       :: snow_sublimation,              &
                                                surf_heat_flux, canopy_evap,   &
                                                water_extraction, total_snowmelt
-    type( field_type ), intent( in )        :: theta, exner, mr_n(nummr)
+    type( field_type ), intent( in )        :: theta, exner, rho, mr_n(nummr)
 
     type( field_collection_type ), intent(in)    :: derived_fields
     type( field_collection_type ), intent(in)    :: radiation_fields
@@ -95,113 +98,138 @@ contains
     type( field_collection_type ), intent(inout) :: surface_fields
     type( field_collection_type ), intent(in)    :: soil_fields
     type( field_collection_type ), intent(in)    :: snow_fields
+    type( field_collection_type ), intent(in)    :: microphysics_fields
     integer(kind=i_def), intent(in) :: outer
     class(clock_type),   intent(in) :: clock
 
     ! Temporary fields unpacked fields from collections
-    type( field_type ), pointer :: exner_in_wth  => null()
-    type( field_type ), pointer :: wetrho_in_wth => null()
-    type( field_type ), pointer :: wetrho_in_w3 => null()
-    type( field_type ), pointer :: wetrho_in_w2  => null()
-    type( field_type ), pointer :: theta_star => null()
-    type( field_type ), pointer :: u_physics => null()
+    type( field_type ), pointer :: exner_in_wth   => null()
+    type( field_type ), pointer :: wetrho_in_wth  => null()
+    type( field_type ), pointer :: wetrho_in_w3   => null()
+    type( field_type ), pointer :: wetrho_in_w2   => null()
+    type( field_type ), pointer :: theta_star     => null()
+    type( field_type ), pointer :: u_physics      => null()
     type( field_type ), pointer :: u_physics_star => null()
 
-    type( field_type ), pointer :: zh => null()
-    type( field_type ), pointer :: zhsc => null()
-    type( field_type ), pointer :: ntml => null()
-    type( field_type ), pointer :: cumulus => null()
-    type( field_type ), pointer :: blend_height_tq  => null()
-    type( field_type ), pointer :: zh_nonloc  => null()
-    type( field_type ), pointer :: bl_type_ind  => null()
-    type( field_type ), pointer :: z_lcl => null()
-    type( field_type ), pointer :: inv_depth => null()
+    type( field_type ), pointer :: zh             => null()
+    type( field_type ), pointer :: zhsc           => null()
+    type( field_type ), pointer :: ntml           => null()
+    type( field_type ), pointer :: cumulus        => null()
+    type( field_type ), pointer :: blend_height_tq => null()
+    type( field_type ), pointer :: zh_nonloc      => null()
+    type( field_type ), pointer :: bl_type_ind    => null()
+    type( field_type ), pointer :: z_lcl          => null()
+    type( field_type ), pointer :: inv_depth      => null()
     type( field_type ), pointer :: qcl_at_inv_top => null()
-    type( field_type ), pointer :: rhokh_bl => null()
-    type( field_type ), pointer :: bq_bl => null()
-    type( field_type ), pointer :: bt_bl => null()
-    type( field_type ), pointer :: moist_flux_bl => null()
-    type( field_type ), pointer :: heat_flux_bl => null()
-    type( field_type ), pointer :: dtrdz_tq_bl => null()
-    type( field_type ), pointer :: rdz_tq_bl => null()
-    type( field_type ), pointer :: dsldzm => null()
-    type( field_type ), pointer :: wvar => null()
-    type( field_type ), pointer :: gradrinr => null()
-    type( field_type ), pointer :: rhokm_w2 => null()
-    type( field_type ), pointer :: tau_w2 => null()
+    type( field_type ), pointer :: rhokh_bl       => null()
+    type( field_type ), pointer :: bq_bl          => null()
+    type( field_type ), pointer :: bt_bl          => null()
+    type( field_type ), pointer :: moist_flux_bl  => null()
+    type( field_type ), pointer :: heat_flux_bl   => null()
+    type( field_type ), pointer :: dtrdz_tq_bl    => null()
+    type( field_type ), pointer :: rdz_tq_bl      => null()
+    type( field_type ), pointer :: dsldzm         => null()
+    type( field_type ), pointer :: wvar           => null()
+    type( field_type ), pointer :: gradrinr       => null()
+    type( field_type ), pointer :: rhokm_w2       => null()
+    type( field_type ), pointer :: tau_w2         => null()
 
-    type( field_type ), pointer :: cf_area  => null()
-    type( field_type ), pointer :: cf_ice  => null()
-    type( field_type ), pointer :: cf_liq  => null()
-    type( field_type ), pointer :: cf_bulk  => null()
-    type( field_type ), pointer :: rh_crit => null()
+    type( field_type ), pointer :: ls_rain => null()
+    type( field_type ), pointer :: ls_snow => null()
+    type( field_type ), pointer :: lsca_2d => null()
+
+    type( field_type ), pointer :: cf_area    => null()
+    type( field_type ), pointer :: cf_ice     => null()
+    type( field_type ), pointer :: cf_liq     => null()
+    type( field_type ), pointer :: cf_bulk    => null()
+    type( field_type ), pointer :: rh_crit    => null()
     type( field_type ), pointer :: tau_dec_bm => null()
     type( field_type ), pointer :: tau_hom_bm => null()
     type( field_type ), pointer :: tau_mph_bm => null()
 
-    type( field_type ), pointer :: dt_conv => null()
-    type( field_type ), pointer :: du_conv => null()
-    type( field_type ), pointer :: dv_conv => null()
+    type( field_type ), pointer :: dt_conv   => null()
+    type( field_type ), pointer :: du_conv   => null()
+    type( field_type ), pointer :: dv_conv   => null()
+    type( field_type ), pointer :: conv_rain => null()
+    type( field_type ), pointer :: conv_snow => null()
+    type( field_type ), pointer :: cca_2d    => null()
 
     type( field_type ), pointer :: lw_down_surf => null()
     type( field_type ), pointer :: sw_down_surf => null()
     type( field_type ), pointer :: sw_up_tile   => null()
 
-    type( field_type ), pointer :: tile_fraction        => null()
-    type( field_type ), pointer :: leaf_area_index      => null()
-    type( field_type ), pointer :: canopy_height        => null()
+    type( field_type ), pointer :: tile_fraction       => null()
+    type( field_type ), pointer :: leaf_area_index     => null()
+    type( field_type ), pointer :: canopy_height       => null()
     type( field_type ), pointer :: sea_ice_thickness   => null()
     type( field_type ), pointer :: sea_ice_temperature => null()
-    type( field_type ), pointer :: tile_temperature   => null()
+    type( field_type ), pointer :: tile_temperature    => null()
     type( field_type ), pointer :: screen_temperature  => null()
     type( field_type ), pointer :: time_since_transition => null()
-    type( field_type ), pointer :: canopy_water       => null()
-    type( field_type ), pointer :: tile_heat_flux => null()
-    type( field_type ), pointer :: tile_moisture_flux => null()
-    type( field_type ), pointer :: alpha1_tile => null()
-    type( field_type ), pointer :: ashtf_prime_tile => null()
-    type( field_type ), pointer :: dtstar_tile => null()
-    type( field_type ), pointer :: fraca_tile => null()
-    type( field_type ), pointer :: z0h_tile => null()
-    type( field_type ), pointer :: z0m_tile => null()
-    type( field_type ), pointer :: rhokh_tile => null()
-    type( field_type ), pointer :: chr1p5m_tile => null()
-    type( field_type ), pointer :: resfs_tile => null()
-    type( field_type ), pointer :: canhc_tile => null()
-    type( field_type ), pointer :: ustar => null()
-    type( field_type ), pointer :: tile_water_extract => null()
-    type( field_type ), pointer :: surf_interp_w2 => null()
-    type( field_type ), pointer :: tau_land_w2 => null()
-    type( field_type ), pointer :: tau_ssi_w2 => null()
-    type( field_type ), pointer :: wspd10m => null()
-    type( field_type ), pointer :: taux_ssi => null()
-    type( field_type ), pointer :: tauy_ssi => null()
+    type( field_type ), pointer :: canopy_water        => null()
+    type( field_type ), pointer :: tile_heat_flux      => null()
+    type( field_type ), pointer :: tile_moisture_flux  => null()
+    type( field_type ), pointer :: alpha1_tile         => null()
+    type( field_type ), pointer :: ashtf_prime_tile    => null()
+    type( field_type ), pointer :: dtstar_tile         => null()
+    type( field_type ), pointer :: fraca_tile          => null()
+    type( field_type ), pointer :: z0h_tile            => null()
+    type( field_type ), pointer :: z0m_tile            => null()
+    type( field_type ), pointer :: z0m_eff             => null()
+    type( field_type ), pointer :: rhokh_tile          => null()
+    type( field_type ), pointer :: chr1p5m_tile        => null()
+    type( field_type ), pointer :: resfs_tile          => null()
+    type( field_type ), pointer :: canhc_tile          => null()
+    type( field_type ), pointer :: ustar               => null()
+    type( field_type ), pointer :: tile_water_extract  => null()
+    type( field_type ), pointer :: surf_interp_w2      => null()
+    type( field_type ), pointer :: tau_land_w2         => null()
+    type( field_type ), pointer :: tau_ssi_w2          => null()
+    type( field_type ), pointer :: wspd10m             => null()
+    type( field_type ), pointer :: taux_ssi            => null()
+    type( field_type ), pointer :: tauy_ssi            => null()
 
     type( field_type ), pointer :: peak_to_trough_orog  => null()
     type( field_type ), pointer :: silhouette_area_orog => null()
 
     type( field_type ), pointer :: soil_temperature   => null()
-    type( field_type ), pointer :: soil_moist_avail => null()
+    type( field_type ), pointer :: soil_moist_avail   => null()
 
     type( field_type ), pointer :: tile_snow_mass     => null()
     type( field_type ), pointer :: n_snow_layers      => null()
     type( field_type ), pointer :: snow_depth         => null()
 
-    type( field_type ), pointer :: dA => null()
-    type( field_type ), pointer :: height_w1 => null()
-    type( field_type ), pointer :: height_w2 => null()
-    type( field_type ), pointer :: height_w3 => null()
+    type( field_type ), pointer :: dA         => null()
+    type( field_type ), pointer :: height_w1  => null()
+    type( field_type ), pointer :: height_w2  => null()
+    type( field_type ), pointer :: height_w3  => null()
     type( field_type ), pointer :: height_wth => null()
-    type( field_type ), pointer :: rdz => null()
-    type( field_type ), pointer :: dtrdz => null()
-    type( field_type ), pointer :: latitude => null()
+    type( field_type ), pointer :: rdz        => null()
+    type( field_type ), pointer :: dtrdz      => null()
+    type( field_type ), pointer :: latitude   => null()
 
     type( field_type ) :: du_conv_w2, dw_conv
     type( field_type ) :: dissip, diss_u, diss_v, diss_w
-    type( field_type ) :: wind10m_w2, u10m, v10m, w10m
-    type( field_type ) :: dmv_bl, tauz_ssi
-    type( field_type ) :: t1p5m, q1p5m, rh1p5m
-
+    type( field_type ) :: t1p5m, q1p5m, qcl1p5m, rh1p5m
+    type( field_type ) :: t1p5m_surft, q1p5m_surft
+    type( field_type ) :: wind10m_w2, u10m, v10m, w10m, u10m2, v10m2
+    type( field_type ) :: wind10m_neut_w2, pseudotau_w2
+    type( field_type ) :: wspd10m_neut, u10m_neut, v10m_neut, w10m_neut
+    type( field_type ) :: taux, tauy, tauz, tauz_ssi, wind_gust
+    type( field_type ) :: visibility_with_precip, visibility_no_precip
+    type( field_type ) :: fog_fraction, dew_point
+    type( field_type ) :: pseudotaux, pseudotauy, pseudotauz
+    type( field_type ) :: dmv_bl, dmcl_bl, dmci_bl, dcf_bulk_bl
+    type( field_type ) :: dcf_area_bl, dcf_liq_bl, dcf_ice_bl
+    type( field_type ) :: latent_heat, grid_latent_heat
+    type( field_type ) :: snomlt_surf_htf
+    type( field_type ) :: soil_evap, grid_canopy_evap
+    type( field_type ) :: grid_sublimation
+    type( field_type ) :: surf_ht_flux, soil_surf_ht_flux
+    type( field_type ) :: surf_sw_net, surf_radnet
+    type( field_type ) :: surf_lw_up, surf_lw_down
+    type( field_type ) :: grid_surface_temperature
+  
     integer(kind=i_def) :: mesh_id
 
     if ( subroutine_timers ) call timer("bl_imp_alg")
@@ -211,53 +239,61 @@ contains
     mesh_id = theta%get_mesh_id()
 
     ! Unpack derived fields
-    exner_in_wth => derived_fields%get_field('exner_in_wth')
-    wetrho_in_wth => derived_fields%get_field('wetrho_in_wth')
-    wetrho_in_w3 => derived_fields%get_field('wetrho_in_w3')
-    wetrho_in_w2  => derived_fields%get_field('wetrho_in_w2')
-    theta_star => derived_fields%get_field('theta_star')
-    u_physics => derived_fields%get_field('u_physics')
+    exner_in_wth   => derived_fields%get_field('exner_in_wth')
+    wetrho_in_wth  => derived_fields%get_field('wetrho_in_wth')
+    wetrho_in_w3   => derived_fields%get_field('wetrho_in_w3')
+    wetrho_in_w2   => derived_fields%get_field('wetrho_in_w2')
+    theta_star     => derived_fields%get_field('theta_star')
+    u_physics      => derived_fields%get_field('u_physics')
     u_physics_star => derived_fields%get_field('u_physics_star')
 
     ! Unpack turbulence fields
-    zh => turbulence_fields%get_field('zh')
-    zhsc => turbulence_fields%get_field('zhsc')
-    ntml => turbulence_fields%get_field('ntml')
-    cumulus => turbulence_fields%get_field('cumulus')
+    zh              => turbulence_fields%get_field('zh')
+    zhsc            => turbulence_fields%get_field('zhsc')
+    ntml            => turbulence_fields%get_field('ntml')
+    cumulus         => turbulence_fields%get_field('cumulus')
     blend_height_tq => turbulence_fields%get_field('blend_height_tq')
-    zh_nonloc => turbulence_fields%get_field('zh_nonloc')
-    bl_type_ind => turbulence_fields%get_field('bl_type_ind')
-    z_lcl => turbulence_fields%get_field('z_lcl')
-    inv_depth => turbulence_fields%get_field('inv_depth')
-    qcl_at_inv_top => turbulence_fields%get_field('qcl_at_inv_top')
-    rhokh_bl => turbulence_fields%get_field('rhokh_bl')
-    bq_bl => turbulence_fields%get_field('bq_bl')
-    bt_bl => turbulence_fields%get_field('bt_bl')
-    moist_flux_bl => turbulence_fields%get_field('moist_flux_bl')
-    heat_flux_bl => turbulence_fields%get_field('heat_flux_bl')
-    dtrdz_tq_bl => turbulence_fields%get_field('dtrdz_tq_bl')
-    rdz_tq_bl => turbulence_fields%get_field('rdz_tq_bl')
-    dsldzm  => turbulence_fields%get_field('dsldzm')
-    wvar    => turbulence_fields%get_field('wvar')
-    gradrinr => turbulence_fields%get_field('gradrinr')
-    rhokm_w2 => turbulence_fields%get_field('rhokm_w2')
-    tau_w2 => turbulence_fields%get_field('tau_w2')
+    zh_nonloc       => turbulence_fields%get_field('zh_nonloc')
+    bl_type_ind     => turbulence_fields%get_field('bl_type_ind')
+    z_lcl           => turbulence_fields%get_field('z_lcl')
+    inv_depth       => turbulence_fields%get_field('inv_depth')
+    qcl_at_inv_top  => turbulence_fields%get_field('qcl_at_inv_top')
+    rhokh_bl        => turbulence_fields%get_field('rhokh_bl')
+    bq_bl           => turbulence_fields%get_field('bq_bl')
+    bt_bl           => turbulence_fields%get_field('bt_bl')
+    moist_flux_bl   => turbulence_fields%get_field('moist_flux_bl')
+    heat_flux_bl    => turbulence_fields%get_field('heat_flux_bl')
+    dtrdz_tq_bl     => turbulence_fields%get_field('dtrdz_tq_bl')
+    rdz_tq_bl       => turbulence_fields%get_field('rdz_tq_bl')
+    dsldzm          => turbulence_fields%get_field('dsldzm')
+    wvar            => turbulence_fields%get_field('wvar')
+    gradrinr        => turbulence_fields%get_field('gradrinr')
+    rhokm_w2        => turbulence_fields%get_field('rhokm_w2')
+    tau_w2          => turbulence_fields%get_field('tau_w2')
 
     ! Unpack cloud fields
-    cf_area => cloud_fields%get_field('area_fraction')
-    cf_ice => cloud_fields%get_field('ice_fraction')
-    cf_liq => cloud_fields%get_field('liquid_fraction')
-    cf_bulk => cloud_fields%get_field('bulk_fraction')
-    rh_crit => cloud_fields%get_field('rh_crit')
+    cf_area  => cloud_fields%get_field('area_fraction')
+    cf_ice   => cloud_fields%get_field('ice_fraction')
+    cf_liq   => cloud_fields%get_field('liquid_fraction')
+    cf_bulk  => cloud_fields%get_field('bulk_fraction')
+    rh_crit  => cloud_fields%get_field('rh_crit')
 
     tau_dec_bm => cloud_fields%get_field('tau_dec_bm')
     tau_hom_bm => cloud_fields%get_field('tau_hom_bm')
     tau_mph_bm => cloud_fields%get_field('tau_mph_bm')
 
+    ! Unpack microphysics fields
+    ls_rain   => microphysics_fields%get_field('ls_rain')
+    ls_snow   => microphysics_fields%get_field('ls_snow')
+    lsca_2d   => microphysics_fields%get_field('lsca_2d')
+
     ! Unpack the convection
-    dt_conv => convection_fields%get_field('dt_conv')
-    du_conv => convection_fields%get_field('du_conv')
-    dv_conv => convection_fields%get_field('dv_conv')
+    dt_conv   => convection_fields%get_field('dt_conv')
+    du_conv   => convection_fields%get_field('du_conv')
+    dv_conv   => convection_fields%get_field('dv_conv')
+    conv_rain => convection_fields%get_field('conv_rain')
+    conv_snow => convection_fields%get_field('conv_snow')
+    cca_2d    => convection_fields%get_field('cca_2d')
 
     ! Radiation fields
     lw_down_surf => radiation_fields%get_field('lw_down_surf')
@@ -269,53 +305,54 @@ contains
     silhouette_area_orog => orography_fields%get_field('silhouette_area_orog')
 
     ! Surface fields
-    tile_fraction   => surface_fields%get_field('tile_fraction')
-    leaf_area_index => surface_fields%get_field('leaf_area_index')
-    canopy_height   => surface_fields%get_field('canopy_height')
-    sea_ice_thickness => surface_fields%get_field('sea_ice_thickness')
-    sea_ice_temperature => surface_fields%get_field('sea_ice_temperature')
-    tile_temperature   => surface_fields%get_field('tile_temperature')
-    screen_temperature => surface_fields%get_field('screen_temperature')
+    tile_fraction         => surface_fields%get_field('tile_fraction')
+    leaf_area_index       => surface_fields%get_field('leaf_area_index')
+    canopy_height         => surface_fields%get_field('canopy_height')
+    sea_ice_thickness     => surface_fields%get_field('sea_ice_thickness')
+    sea_ice_temperature   => surface_fields%get_field('sea_ice_temperature')
+    tile_temperature      => surface_fields%get_field('tile_temperature')
+    screen_temperature    => surface_fields%get_field('screen_temperature')
     time_since_transition => surface_fields%get_field('time_since_transition')
-    canopy_water       => surface_fields%get_field('canopy_water')
-    tile_heat_flux => surface_fields%get_field('tile_heat_flux')
-    tile_moisture_flux => surface_fields%get_field('tile_moisture_flux')
-    alpha1_tile => surface_fields%get_field('alpha1_tile')
-    ashtf_prime_tile => surface_fields%get_field('ashtf_prime_tile')
-    dtstar_tile => surface_fields%get_field('dtstar_tile')
-    fraca_tile => surface_fields%get_field('fraca_tile')
-    z0h_tile => surface_fields%get_field('z0h_tile')
-    z0m_tile => surface_fields%get_field('z0m_tile')
-    rhokh_tile => surface_fields%get_field('rhokh_tile')
-    chr1p5m_tile => surface_fields%get_field('chr1p5m_tile')
-    resfs_tile => surface_fields%get_field('resfs_tile')
-    canhc_tile => surface_fields%get_field('canhc_tile')
-    ustar => surface_fields%get_field('ustar')
-    tile_water_extract => surface_fields%get_field('tile_water_extract')
-    surf_interp_w2 => surface_fields%get_field('surf_interp_w2')
-    tau_land_w2 => surface_fields%get_field('tau_land_w2')
-    tau_ssi_w2 => surface_fields%get_field('tau_ssi_w2')
-    wspd10m => surface_fields%get_field('wspd10m')
-    taux_ssi => surface_fields%get_field('taux_ssi')
-    tauy_ssi => surface_fields%get_field('tauy_ssi')
+    canopy_water          => surface_fields%get_field('canopy_water')
+    tile_heat_flux        => surface_fields%get_field('tile_heat_flux')
+    tile_moisture_flux    => surface_fields%get_field('tile_moisture_flux')
+    alpha1_tile           => surface_fields%get_field('alpha1_tile')
+    ashtf_prime_tile      => surface_fields%get_field('ashtf_prime_tile')
+    dtstar_tile           => surface_fields%get_field('dtstar_tile')
+    fraca_tile            => surface_fields%get_field('fraca_tile')
+    z0h_tile              => surface_fields%get_field('z0h_tile')
+    z0m_tile              => surface_fields%get_field('z0m_tile')
+    z0m_eff               => surface_fields%get_field('z0m_eff')
+    rhokh_tile            => surface_fields%get_field('rhokh_tile')
+    chr1p5m_tile          => surface_fields%get_field('chr1p5m_tile')
+    resfs_tile            => surface_fields%get_field('resfs_tile')
+    canhc_tile            => surface_fields%get_field('canhc_tile')
+    ustar                 => surface_fields%get_field('ustar')
+    tile_water_extract    => surface_fields%get_field('tile_water_extract')
+    surf_interp_w2        => surface_fields%get_field('surf_interp_w2')
+    tau_land_w2           => surface_fields%get_field('tau_land_w2')
+    tau_ssi_w2            => surface_fields%get_field('tau_ssi_w2')
+    wspd10m               => surface_fields%get_field('wspd10m')
+    taux_ssi              => surface_fields%get_field('taux_ssi')
+    tauy_ssi              => surface_fields%get_field('tauy_ssi')
 
     ! Soil fields
-    soil_temperature   => soil_fields%get_field('soil_temperature')
-    soil_moist_avail => soil_fields%get_field('soil_moist_avail')
+    soil_temperature      => soil_fields%get_field('soil_temperature')
+    soil_moist_avail      => soil_fields%get_field('soil_moist_avail')
 
     ! Snow fields
-    tile_snow_mass     => snow_fields%get_field('tile_snow_mass')
-    n_snow_layers      => snow_fields%get_field('n_snow_layers')
-    snow_depth         => snow_fields%get_field('snow_depth')
+    tile_snow_mass        => snow_fields%get_field('tile_snow_mass')
+    n_snow_layers         => snow_fields%get_field('n_snow_layers')
+    snow_depth            => snow_fields%get_field('snow_depth')
 
     height_wth => get_height(Wtheta, mesh_id)
-    height_w1 => get_height(W1, mesh_id)
-    height_w2 => get_height(W2, mesh_id)
-    height_w3 => get_height(W3, mesh_id)
-    dA => get_da_at_w2(mesh_id)
-    rdz => get_rdz_fd1(mesh_id)
-    dtrdz => get_dtrdz_fd2(mesh_id)
-    latitude => get_latitude(zh%get_mesh_id())
+    height_w1  => get_height(W1, mesh_id)
+    height_w2  => get_height(W2, mesh_id)
+    height_w3  => get_height(W3, mesh_id)
+    dA         => get_da_at_w2(mesh_id)
+    rdz        => get_rdz_fd1(mesh_id)
+    dtrdz      => get_dtrdz_fd2(mesh_id)
+    latitude   => get_latitude(zh%get_mesh_id())
 
     ! Local surface fields that need creating
     call tile_temperature%copy_field_properties(snow_sublimation)
@@ -328,8 +365,27 @@ contains
     call theta%copy_field_properties(dtheta_bl)
 
     ! Initialise the BL diagnostics
-    call initialise_diags_for_bl_imp(mr(imr_v), zh, dmv_bl, t1p5m, q1p5m, &
-                                     rh1p5m)
+    call initialise_diags_for_bl_imp(mr(imr_v), mr(imr_cl), mr(imr_ci),        &
+                                     cf_bulk, cf_area, cf_liq, cf_ice,         &
+                                     exner, zh, tile_fraction,                 &
+                                     dmv_bl, dmcl_bl, dmci_bl,                 &
+                                     dcf_bulk_bl, dcf_area_bl,                 &
+                                     dcf_liq_bl, dcf_ice_bl,                   &
+                                     t1p5m_surft, q1p5m_surft,                 &
+                                     t1p5m, q1p5m, qcl1p5m, rh1p5m, u10m, v10m,&
+                                     wind_gust, wspd10m_neut, u10m_neut,       &
+                                     v10m_neut, taux, tauy,                    &
+                                     pseudotaux, pseudotauy,                   &
+                                     latent_heat, grid_latent_heat,            &
+                                     snomlt_surf_htf, soil_evap,               &
+                                     grid_canopy_evap, grid_sublimation,       &
+                                     surf_ht_flux, soil_surf_ht_flux,          &
+                                     surf_sw_net, surf_radnet,                 &
+                                     surf_lw_up, surf_lw_down,                 &
+                                     grid_surface_temperature,                 &
+                                     fog_fraction, dew_point,                  &
+                                     visibility_with_precip,                   &
+                                     visibility_no_precip)
 
     ! Map the convection wind increments into w2 space
     call u_physics%copy_field_properties(du_conv_w2)
@@ -352,6 +408,8 @@ contains
     call exner%copy_field_properties(diss_v)
     call exner%copy_field_properties(diss_w)
     call tau_ssi_w2%copy_field_properties(wind10m_w2)
+    call tau_ssi_w2%copy_field_properties(wind10m_neut_w2)
+    call tau_ssi_w2%copy_field_properties(pseudotau_w2)
 
     call invoke(set_any_dof_kernel_type(du_bl, W, 0.0_r_def),                  &
                 set_any_dof_kernel_type(du_bl, S, 0.0_r_def),                  &
@@ -359,13 +417,16 @@ contains
                 set_any_dof_kernel_type(du_bl, N, 0.0_r_def),                  &
                 setval_c(dissip, 0.0_r_def),                                   &
                 setval_c(wind10m_w2, 0.0_r_def),                               &
+                setval_c(wind10m_neut_w2, 0.0_r_def),                          &
+                setval_c(pseudotau_w2, 0.0_r_def),                             &
 
                 ! LFRic calculation of du on cell faces
-                bl_imp_du_kernel_type(outer, du_bl, dissip, tau_w2, wind10m_w2,&
-                                      tau_land_w2, tau_ssi_w2, rhokm_w2,       &
-                                      rdz, dtrdz, wetrho_in_w2, u_physics,     &
-                                      u_physics_star, surf_interp_w2,          &
-                                      du_conv_w2, dA,                          &
+                bl_imp_du_kernel_type(outer, du_bl, dissip, tau_w2,            &
+                                      wind10m_w2, wind10m_neut_w2,             &
+                                      tau_land_w2, tau_ssi_w2, pseudotau_w2,   &
+                                      rhokm_w2, rdz, dtrdz, wetrho_in_w2,      &
+                                      u_physics, u_physics_star,               &
+                                      surf_interp_w2, du_conv_w2, dA,          &
                                       height_w1, height_w2),                   &
                 ! Map the wind back into dynamics quantities
                 inc_X_times_Y(du_bl, dA),                                      &
@@ -405,38 +466,79 @@ contains
                            tile_water_extract, z_lcl, inv_depth,               &
                            qcl_at_inv_top, blend_height_tq, ustar,             &
                            soil_moist_avail, zh_nonloc, zh, zhsc, bl_type_ind, &
-                           t1p5m, q1p5m, rh1p5m) )
+                           t1p5m_surft, q1p5m_surft,                           &
+                           t1p5m, q1p5m, qcl1p5m, rh1p5m,                      &
+                           latent_heat,                                        &
+                           snomlt_surf_htf, soil_evap,                         &
+                           surf_ht_flux, soil_surf_ht_flux,                    &
+                           surf_sw_net, surf_radnet,                           &
+                           surf_lw_up, surf_lw_down) )
 
     if ( subroutine_timers ) call timer("bl_imp_alg")
 
     ! Output diagnostics on last iteration only
     if (write_diag .and. use_xios_io .and. outer == outer_iterations) then
 
-    ! Calculate zonal and meridional wind speeds - done here as it's needed
-    ! for coupling
-      call zh%copy_field_properties(u10m)
-      call zh%copy_field_properties(v10m)
+      ! Calculate zonal and meridional wind speeds - done here as it's 
+      ! needed for coupling
       call zh%copy_field_properties(w10m)
       call map_physics_winds(u10m, v10m, w10m, wind10m_w2)
-      call u10m%write_field('surface__u10m')
-      call v10m%write_field('surface__v10m')
       ! Calculate the 10m windspeed
-      call invoke(inc_X_powint_n(u10m, 2_i_def),    &
-                  inc_X_powint_n(v10m, 2_i_def),    &
-                  X_plus_Y(wspd10m,u10m,v10m),      &
+      call u10m%copy_field(u10m2)
+      call v10m%copy_field(v10m2)
+      call invoke(inc_X_powint_n(u10m2, 2_i_def),                              &
+                  inc_X_powint_n(v10m2, 2_i_def),                              &
+                  X_plus_Y(wspd10m,u10m2,v10m2),                               &
                   inc_X_powreal_a(wspd10m, 0.5_r_def) )
+      call zh%copy_field_properties(w10m_neut)
+      call map_physics_winds(u10m_neut, v10m_neut, w10m_neut, wind10m_neut_w2)
+      ! Calculate the neutral 10m windspeed
+      call u10m_neut%copy_field(u10m2)
+      call v10m_neut%copy_field(v10m2)
+      call invoke(inc_X_powint_n(u10m2, 2_i_def),                              &
+                  inc_X_powint_n(v10m2, 2_i_def),                              &
+                  X_plus_Y(wspd10m_neut,u10m2,v10m2),                          &
+                  inc_X_powreal_a(wspd10m_neut, 0.5_r_def) )
 
       ! Calculate zonal and meridional wind stresses
+      call exner%copy_field_properties(tauz)
+      call map_physics_winds(taux, tauy, tauz, tau_w2)
       call zh%copy_field_properties(tauz_ssi)
       call map_physics_winds(taux_ssi, tauy_ssi, tauz_ssi, tau_ssi_w2)
-
+      call zh%copy_field_properties(pseudotauz)
+      call map_physics_winds(pseudotaux, pseudotauy, pseudotauz, pseudotau_w2)
+ 
       ! Output the BL diagnostics
-      call output_diags_for_bl_imp(mr(imr_v), dmv_bl, zh, du_bl, clock,        &
-                                   tile_heat_flux, tile_moisture_flux,         &
-                                   tile_temperature, canopy_evap, wspd10m,     &
-                                   tile_fraction, taux_ssi, tauy_ssi,          &
+      call output_diags_for_bl_imp(zh, du_bl, clock, tile_heat_flux,           &
+                                   tile_moisture_flux, tile_temperature,       &
+                                   grid_surface_temperature,                   &
+                                   snow_sublimation, canopy_evap,              &
+                                   wspd10m, u10m, v10m, wind_gust,             &
+                                   wspd10m_neut, u10m_neut, v10m_neut,         &
+                                   taux, tauy, taux_ssi, tauy_ssi,             &
+                                   pseudotaux, pseudotauy, z0m_eff,            &
+                                   rho, wetrho_in_w3, tile_fraction,           &
+                                   mr(imr_v), mr(imr_cl), mr(imr_ci),          &
+                                   mr(imr_r),                                  &
+                                   cf_bulk, cf_area, cf_liq, cf_ice,           &
                                    dtheta_bl, exner_in_wth, dt_conv,           &
-                                   t1p5m, q1p5m, rh1p5m)
+                                   t1p5m_surft, q1p5m_surft,                   &
+                                   t1p5m, q1p5m, qcl1p5m, rh1p5m,              &
+                                   latent_heat,                                &
+                                   grid_latent_heat, snomlt_surf_htf,          &
+                                   soil_evap, grid_canopy_evap,                &
+                                   grid_sublimation, surf_ht_flux,             &
+                                   soil_surf_ht_flux, surf_sw_net,             &
+                                   surf_radnet, surf_lw_up,                    &
+                                   surf_lw_down,                               &
+                                   heat_flux_bl, moist_flux_bl,                &
+                                   ls_rain, ls_snow, lsca_2d,                  &
+                                   conv_rain, conv_snow, cca_2d,               &
+                                   dmv_bl, dmcl_bl, dmci_bl, dcf_bulk_bl,      &
+                                   dcf_area_bl, dcf_liq_bl, dcf_ice_bl,        &
+                                   fog_fraction, dew_point,                    &
+                                   visibility_with_precip,                     &
+                                   visibility_no_precip )
 
     end if
 

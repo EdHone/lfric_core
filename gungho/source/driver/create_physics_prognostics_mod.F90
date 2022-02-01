@@ -718,6 +718,8 @@ contains
       'gc_tile', surft_space, twod=.true. )
 
     ! 2D fields, don't need checkpointing
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'z0m_eff', twod_space, twod=.true. )
     call add_physics_field(surface_fields, depository, prognostic_fields,      &
       'net_prim_prod', twod_space, twod=.true.)
     call add_physics_field( surface_fields, depository, prognostic_fields,     &

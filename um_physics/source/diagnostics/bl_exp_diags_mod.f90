@@ -18,7 +18,7 @@ module bl_exp_diags_mod
   private
 
   ! Logical indicating whether diagnostics are requested
-  logical( l_def ) :: gross_prim_prod_flag
+  logical( l_def ) :: gross_prim_prod_flag, zht_flag, z0h_eff_flag
 
   public :: initialise_diags_for_bl_exp
   public :: output_diags_for_bl_exp
@@ -26,16 +26,26 @@ module bl_exp_diags_mod
 contains
 
   !> @brief Initialise fields for locally-computed diagnostics
+  !> @param[in]    zh                 Surface-based boundary layer depth
+  !> @param[inout] zht                Turbulent mixing height
+  !> @param[inout] z0h_eff            Gridbox mean effective roughness length for scalars
+  !> @param[inout] gross_prim_prod    Gross Primary Productivity
 
-  subroutine initialise_diags_for_bl_exp(zh, gross_prim_prod)
+  subroutine initialise_diags_for_bl_exp(zh, zht, z0h_eff, gross_prim_prod)
 
     implicit none
 
     type( field_type ), intent(in)    :: zh
+    type( field_type ), intent(inout) :: zht
+    type( field_type ), intent(inout) :: z0h_eff
     type( field_type ), intent(inout) :: gross_prim_prod
 
     if ( subroutine_timers ) call timer("bl_exp_diags")
 
+    zht_flag = .true.
+    call zh%copy_field_properties(zht)
+    z0h_eff_flag = .true.
+    call zh%copy_field_properties(z0h_eff)
     gross_prim_prod_flag = .true.
     call zh%copy_field_properties(gross_prim_prod)
 
@@ -44,35 +54,70 @@ contains
   end subroutine initialise_diags_for_bl_exp
 
   !> @brief Output diagnostics from bl_exp_alg
+  !> @param[in] ntml              Number of turbulently mixed levels
+  !> @param[in] cumulus           Cumulus flag (true/false)
+  !> @param[in] bl_type_ind       Diagnosed BL types
+  !> @param[in] wvar              Vertical velocity variance in wth
+  !> @param[in] dsldzm            Liquid potential temperature gradient in wth
+  !> @param[in] gradrinr          Gradient Richardson number in wth
+  !> @param[in] rhokh_bl          Heat eddy diffusivity on BL levels
+  !> @param[in] tke_bl            Turbulent kinetic energy (m2 s-2) 
+  !> @param[in] dtrdz_tq_bl       dt/(rho*r*r*dz) in wth
+  !> @param[in] rdz_tq_bl         1/dz in w3
+  !> @param[in] zhsc              Height of decoupled layer top
+  !> @param[in] level_ent         Level of surface mixed layer inversion
+  !> @param[in] level_ent_dsc     Level of decoupled stratocumulus inversion
+  !> @param[in] ent_we_lim        Rho * entrainment rate at surface ML inversion (kg m-2 s-1)
+  !> @param[in] ent_t_frac        Fraction of time surface ML inversion is above level
+  !> @param[in] ent_zrzi          Level height as fraction of DSC inversion height above DSC ML base
+  !> @param[in] ent_we_lim_dsc    Rho * entrainment rate at DSC inversion (kg m-2 s-1)
+  !> @param[in] ent_t_frac_dsc    Fraction of time DSC inversion is above level
+  !> @param[in] ent_zrzi_dsc      Level height as fraction of DSC inversion height above DSC ML base
+  !> @param[in] zht               Turbulent mixing height
+  !> @param[in] z0h_eff           Gridbox mean effective roughness length for scalars
+  !> @param[in] tile_fraction     Surface tile fractions
+  !> @param[in] z0m_tile          tile roughness length for momentum
+  !> @param[in] z0m               Cell roughness length
+  !> @param[in] gross_prim_prod   Gross Primary Productivity
+  !> @param[in] net_prim_prod     Net Primary Productivity
+  !> @param[in] gc_tile           Stomatal conductance on tiles (m s-1)
+  !> @param[in] soil_respiration  Soil respiration  (kg m-2 s-1)
+  !> @param[in] ustar             surface friction velocity
+  !> @param[in] z0m_eff           Gridbox mean effective roughness length for momentum
+  !> @param[in] dust_flux         Flux of mineral dust by division
+
   subroutine output_diags_for_bl_exp(ntml, cumulus, bl_type_ind, wvar, dsldzm, &
                                      gradrinr, rhokh_bl, tke_bl, dtrdz_tq_bl,  &
                                      rdz_tq_bl, zhsc, level_ent, level_ent_dsc,&
                                      ent_we_lim, ent_t_frac, ent_zrzi,         &
                                      ent_we_lim_dsc, ent_t_frac_dsc,           &
-                                     ent_zrzi_dsc,                             &
+                                     ent_zrzi_dsc, zht, z0h_eff,               &
                                      tile_fraction, z0m_tile, z0m,             &
                                      gross_prim_prod, net_prim_prod, gc_tile,  &
-                                     ustar,                                    &
+                                     soil_respiration, ustar, z0m_eff,         &
                                      dust_flux)
 
     implicit none
 
     ! Prognostic fields to output
-    type( field_type ), intent(in)    :: ntml, cumulus, bl_type_ind, wvar, &
-                                         dsldzm, gradrinr, rhokh_bl, tke_bl, &
-                                         dtrdz_tq_bl, rdz_tq_bl, zhsc, &
-                                         ent_we_lim, ent_t_frac, ent_zrzi, &
-                                         ent_we_lim_dsc, ent_t_frac_dsc, &
+    type( field_type ), intent(in)    :: ntml, cumulus, bl_type_ind, wvar,     &
+                                         dsldzm, gradrinr, rhokh_bl, tke_bl,   &
+                                         dtrdz_tq_bl, rdz_tq_bl, zhsc,         &
+                                         zht, z0h_eff,                         &
+                                         ent_we_lim, ent_t_frac, ent_zrzi,     &
+                                         ent_we_lim_dsc, ent_t_frac_dsc,       &
                                          ent_zrzi_dsc
     type(integer_field_type), intent(in) :: level_ent, level_ent_dsc
-    type( field_type ), intent(in)    :: tile_fraction, z0m_tile, z0m, &
-                                         gross_prim_prod, net_prim_prod, &
-                                         gc_tile, ustar
-    type( field_type ), intent(in)    :: dust_flux
+    type( field_type ), intent(in)    :: tile_fraction, z0m_tile, z0m,         &
+                                         gross_prim_prod, net_prim_prod,       &
+                                         gc_tile, soil_respiration, ustar,     &
+                                         z0m_eff
+    type( field_type ),  intent(in)   :: dust_flux
+                                         
 
     if ( subroutine_timers ) call timer("bl_exp_diags")
 
-    ! Prognostic fields
+    ! Prognostic fields from turbulence collection
     call ntml%write_field('turbulence__ntml')
     call cumulus%write_field('turbulence__cumulus')
     call bl_type_ind%write_field('turbulence__bl_type_ind')
@@ -92,17 +137,23 @@ contains
     call ent_we_lim_dsc%write_field('turbulence__ent_we_lim_dsc') 
     call ent_t_frac_dsc%write_field('turbulence__ent_t_frac_dsc') 
     call ent_zrzi_dsc%write_field('turbulence__ent_zrzi_dsc') 
-
+    ! Prognostic fields from surface collection
     call tile_fraction%write_field('surface__tile_fraction')
     call z0m_tile%write_field('surface__z0m_tile')
     call z0m%write_field('surface__z0m')
+    call z0m_eff%write_field('surface__z0m_eff')
     call net_prim_prod%write_field('surface__net_prim_prod')
     call gc_tile%write_field('surface__gc_tile') 
+    call soil_respiration%write_field('surface__soil_respiration')
     call ustar%write_field('surface__ustar')
- 
+    ! Prognostic fields from aerosol collection
     call dust_flux%write_field('aerosol__dust_flux') 
 
     ! Diagnostics computed in the kernel
+    if (zht_flag) &
+         call zht%write_field('turbulence__zht')
+    if (z0h_eff_flag) &
+         call z0h_eff%write_field('surface__z0h_eff')
     if (gross_prim_prod_flag) &
          call gross_prim_prod%write_field('surface__gross_prim_prod')
 

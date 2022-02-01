@@ -7,15 +7,16 @@
 
 module bl_imp_diags_mod
 
-  use clock_mod,               only: clock_type
-  use constants_mod,           only: l_def
-  use diagnostics_io_mod,      only: write_vector_diagnostic
-  use field_mod,               only: field_type
-  use jules_control_init_mod,  only: n_surf_tile
-  use weighted_ave_kernel_mod, only: weighted_ave_kernel_type
+  use clock_mod,                 only: clock_type
+  use constants_mod,             only: l_def
+  use diagnostics_io_mod,        only: write_vector_diagnostic
+  use field_mod,                 only: field_type
+  use jules_control_init_mod,    only: n_surf_tile
+  use weighted_ave_kernel_mod,   only: weighted_ave_kernel_type
+  use bl_extra_diags_kernel_mod, only: bl_extra_diags_kernel_type
 
-  use io_config_mod,           only: subroutine_timers
-  use timer_mod,               only: timer
+  use io_config_mod,             only: subroutine_timers
+  use timer_mod,                 only: timer
 
   implicit none
 
@@ -24,10 +25,45 @@ module bl_imp_diags_mod
   ! Logical indicating whether diagnostics are requested
   logical( l_def ) :: dt_bl_flag
   logical( l_def ) :: dmv_bl_flag
+  logical( l_def ) :: dmcl_bl_flag
+  logical( l_def ) :: dmci_bl_flag
+  logical( l_def ) :: dcf_bulk_bl_flag
+  logical( l_def ) :: dcf_area_bl_flag
+  logical( l_def ) :: dcf_liq_bl_flag
+  logical( l_def ) :: dcf_ice_bl_flag
+  logical( l_def ) :: t1p5m_surft_flag
+  logical( l_def ) :: q1p5m_surft_flag
   logical( l_def ) :: t1p5m_flag
   logical( l_def ) :: q1p5m_flag
+  logical( l_def ) :: qcl1p5m_flag
   logical( l_def ) :: rh1p5m_flag
+  logical( l_def ) :: u10m_flag
+  logical( l_def ) :: v10m_flag
+  logical( l_def ) :: wind_gust_flag
+  logical( l_def ) :: wspd10m_neut_flag
+  logical( l_def ) :: u10m_neut_flag
+  logical( l_def ) :: v10m_neut_flag
+  logical( l_def ) :: taux_flag
+  logical( l_def ) :: tauy_flag
+  logical( l_def ) :: pseudotaux_flag
+  logical( l_def ) :: pseudotauy_flag
+  logical( l_def ) :: latent_heat_flag
+  logical( l_def ) :: grid_latent_heat_flag
+  logical( l_def ) :: snomlt_surf_htf_flag
+  logical( l_def ) :: soil_evap_flag
+  logical( l_def ) :: grid_canopy_evap_flag
+  logical( l_def ) :: grid_sublimation_flag
+  logical( l_def ) :: surf_ht_flux_flag
+  logical( l_def ) :: soil_surf_ht_flux_flag
+  logical( l_def ) :: surf_sw_net_flag
+  logical( l_def ) :: surf_radnet_flag
+  logical( l_def ) :: surf_lw_up_flag
+  logical( l_def ) :: surf_lw_down_flag
   logical( l_def ) :: grid_surface_temperature_flag
+  logical( l_def ) :: vis_no_precip_flag
+  logical( l_def ) :: vis_with_precip_flag
+  logical( l_def ) :: fog_fraction_flag
+  logical( l_def ) :: dew_point_flag
 
   public :: initialise_diags_for_bl_imp
   public :: output_diags_for_bl_imp
@@ -35,16 +71,109 @@ module bl_imp_diags_mod
 contains
 
   !> @brief Initialise fields for locally-computed diagnostics
-  subroutine initialise_diags_for_bl_imp(mv, zh, dmv_bl, t1p5m, q1p5m, &
-                                         rh1p5m)
+  !> @param[in]     mv                 Vapour mixing ratio
+  !> @param[in]     mcl                Cloud liq mixing ratio
+  !> @param[in]     mci                Cloud ice mixing ratio
+  !> @param[in]     cf_bulk            Bulk cloud fraction
+  !> @param[in]     cf_area            Area cloud fraction
+  !> @param[in]     cf_liq             Liquid cloud fraction
+  !> @param[in]     cf_ice             Ice cloud fraction
+  !> @param[in]     exner              Exner Pressure in the w3 space
+  !> @param[in]     zh                 Surface-based boundary layer depth
+  !> @param[in]     tile_fraction      Surface tile fractions
+  !> @param[in,out] dmv_bl             BL increment to vapour mixing ratio
+  !> @param[in,out] dmcl_bl            BL increment to cloud liq mixing ratio
+  !> @param[in,out] dmci_bl            BL increment to cloud ice mixing ratio
+  !> @param[in,out] dcf_bulk_bl        BL increment to bulk cloud fraction
+  !> @param[in,out] dcf_area_bl        BL increment to area cloud fraction
+  !> @param[in,out] dcf_liq_bl         BL increment to liquid cloud fraction
+  !> @param[in,out] dcf_ice_bl         BL increment to ice cloud fraction
+  !> @param[in,out] t1p5m_surft        1.5m temperature for land tiles
+  !> @param[in,out] q1p5m_surft        1.5m specific humidity for land tiles
+  !> @param[in,out] t1p5m              1.5m temperature
+  !> @param[in,out] q1p5m              1.5m specific humidity
+  !> @param[in,out] qcl1p5m            1.5m specific cloud water
+  !> @param[in,out] rh1p5m             1.5m relative humidity
+  !> @param[in,out] u10m               Zonal 10m wind speed
+  !> @param[in,out] v10m               Meridional 10m wind speed
+  !> @param[in,out] wind_gust          gust wind speed at 10m
+  !> @param[in,out] wspd10m_neut       neutral wind speed at 10m
+  !> @param[in,out] u10m_neut          Zonal 10m neutral wind speed
+  !> @param[in,out] v10m_neut          Meridional 10m neutral wind speed
+  !> @param[in,out] taux               Zonal wind stress
+  !> @param[in,out] tauy               Meridional wind stress
+  !> @param[in,out] pseudotaux         Surface zonal pseudo wind stress
+  !> @param[in,out] pseudotauy         Surface meridional pseudo wind stress
+  !> @param[in,out] latent_heat        Surface latent heat flux on tiles
+  !> @param[in,out] grid_latent_heat   Grid mean surface latent heat flux
+  !> @param[in,out] snomlt_surf_htf    Surface snow melt heat flux
+  !> @param[in,out] soil_evap          Water evaporation flux from soil
+  !> @param[in,out] grid_canopy_evap   water evaporation flux from canopy
+  !> @param[in,out] grid_sublimation   grid surface snow sublimation rate
+  !> @param[in,out] surf_ht_flux       downward heat flux at ground level on tiles
+  !> @param[in,out] soil_surf_ht_flux  downward heat flux at ground level in soil
+  !> @param[in,out] surf_sw_net        surface net downward shortwave flux on tiles
+  !> @param[in,out] surf_radnet        surface net downward radiative flux on tiles
+  !> @param[in,out] surf_lw_up         surface upward longwave flux on tiles
+  !> @param[in,out] surf_lw_down       surface downward longwave flux on tiles
+  !> @param[in,out] grid_surface_temperature Grid mean surface temperature
+  !> @param[in,out] fog_fraction             fog fraction at screen level
+  !> @param[in,out] dew_point                dew point temperature at screen level
+  !> @param[in,out] visibility_with_precip   visibility including precipitation at screen level
+  !> @param[in,out] visibility_no_precip     visibility excluding precipitation at screen level
+
+  subroutine initialise_diags_for_bl_imp(mv, mcl, mci, cf_bulk,          &
+                                         cf_area, cf_liq, cf_ice,        &
+                                         exner, zh, tile_fraction,       &
+                                         dmv_bl, dmcl_bl, dmci_bl,       &
+                                         dcf_bulk_bl, dcf_area_bl,       &
+                                         dcf_liq_bl, dcf_ice_bl,         &
+                                         t1p5m_surft, q1p5m_surft,       &
+                                         t1p5m, q1p5m, qcl1p5m, rh1p5m,  &
+                                         u10m, v10m, wind_gust,          &
+                                         wspd10m_neut, u10m_neut,        &
+                                         v10m_neut, taux, tauy,          &
+                                         pseudotaux, pseudotauy,         &
+                                         latent_heat, grid_latent_heat,  &
+                                         snomlt_surf_htf, soil_evap,     &
+                                         grid_canopy_evap,               &
+                                         grid_sublimation,               &
+                                         surf_ht_flux, soil_surf_ht_flux,&
+                                         surf_sw_net, surf_radnet,       &
+                                         surf_lw_up, surf_lw_down,       &
+                                         grid_surface_temperature,       &
+                                         fog_fraction, dew_point,        &
+                                         visibility_with_precip,         &
+                                         visibility_no_precip)
 
     implicit none
 
     ! Fields passed in to copy properties from
-    type( field_type ), intent(in)    :: mv, zh
+    type( field_type ), intent(in)    :: mv, mcl, mci
+    type( field_type ), intent(in)    :: cf_bulk, cf_area, cf_liq, cf_ice
+    type( field_type ), intent(in)    :: exner, zh, tile_fraction
 
     ! Diagnostic fields to initialise
-    type( field_type ), intent(inout) :: dmv_bl, t1p5m, q1p5m, rh1p5m
+    type( field_type ), intent(inout) :: dmv_bl, dmcl_bl, dmci_bl
+    type( field_type ), intent(inout) :: dcf_bulk_bl, dcf_area_bl
+    type( field_type ), intent(inout) :: dcf_liq_bl, dcf_ice_bl
+    type( field_type ), intent(inout) :: t1p5m_surft, q1p5m_surft
+    type( field_type ), intent(inout) :: t1p5m, q1p5m, qcl1p5m, rh1p5m
+    type( field_type ), intent(inout) :: u10m, v10m, wind_gust
+    type( field_type ), intent(inout) :: fog_fraction, dew_point
+    type( field_type ), intent(inout) :: visibility_with_precip
+    type( field_type ), intent(inout) :: visibility_no_precip
+    type( field_type ), intent(inout) :: wspd10m_neut, u10m_neut
+    type( field_type ), intent(inout) :: v10m_neut, taux, tauy
+    type( field_type ), intent(inout) :: pseudotaux, pseudotauy
+    type( field_type ), intent(inout) :: latent_heat, grid_latent_heat
+    type( field_type ), intent(inout) :: snomlt_surf_htf
+    type( field_type ), intent(inout) :: soil_evap, grid_canopy_evap
+    type( field_type ), intent(inout) :: grid_sublimation
+    type( field_type ), intent(inout) :: surf_ht_flux, soil_surf_ht_flux
+    type( field_type ), intent(inout) :: surf_sw_net, surf_radnet
+    type( field_type ), intent(inout) :: surf_lw_up, surf_lw_down
+    type( field_type ), intent(inout) :: grid_surface_temperature
 
     if ( subroutine_timers ) call timer("bl_imp_diags")
 
@@ -53,6 +182,36 @@ contains
     call mv%copy_field_properties(dmv_bl)
     call invoke(a_times_X(dmv_bl, -1.0_r_def, mv))
 
+    dmcl_bl_flag = .true.
+    call mcl%copy_field_properties(dmcl_bl)
+    call invoke(a_times_X(dmcl_bl, -1.0_r_def, mcl))
+
+    dmci_bl_flag = .true.
+    call mci%copy_field_properties(dmci_bl)
+    call invoke(a_times_X(dmci_bl, -1.0_r_def, mci))
+
+    dcf_bulk_bl_flag = .true.
+    call cf_bulk%copy_field_properties(dcf_bulk_bl)
+    call invoke(a_times_X(dcf_bulk_bl, -1.0_r_def, cf_bulk))
+
+    dcf_area_bl_flag = .true.
+    call cf_area%copy_field_properties(dcf_area_bl)
+    call invoke(a_times_X(dcf_area_bl, -1.0_r_def, cf_area))
+
+    dcf_liq_bl_flag = .true.
+    call cf_liq%copy_field_properties(dcf_liq_bl)
+    call invoke(a_times_X(dcf_liq_bl, -1.0_r_def, cf_liq))
+
+    dcf_ice_bl_flag = .true.
+    call cf_ice%copy_field_properties(dcf_ice_bl)
+    call invoke(a_times_X(dcf_ice_bl, -1.0_r_def, cf_ice))
+
+    ! 3D fields in w3 space
+    taux_flag = .true.
+    call exner%copy_field_properties(taux)
+    tauy_flag = .true.
+    call exner%copy_field_properties(tauy)
+
     ! 2D fields
     t1p5m_flag = .true.
     call zh%copy_field_properties(t1p5m)
@@ -60,46 +219,269 @@ contains
     q1p5m_flag = .true.
     call zh%copy_field_properties(q1p5m)
 
+    qcl1p5m_flag = .true.
+    call zh%copy_field_properties(qcl1p5m)
+
     rh1p5m_flag = .true.
     call zh%copy_field_properties(rh1p5m)
+
+    vis_no_precip_flag = .true.
+    call zh%copy_field_properties(visibility_no_precip)
+
+    vis_with_precip_flag = .true.
+    call zh%copy_field_properties(visibility_with_precip)
+
+    fog_fraction_flag = .true.
+    call zh%copy_field_properties(fog_fraction)
+
+    dew_point_flag = .true.
+    call zh%copy_field_properties(dew_point)
+
+    u10m_flag = .true.
+    call zh%copy_field_properties(u10m)
+
+    v10m_flag = .true.
+    call zh%copy_field_properties(v10m)
+
+    wind_gust_flag = .true.
+    call zh%copy_field_properties(wind_gust)
+
+    wspd10m_neut_flag = .true.
+    call zh%copy_field_properties(wspd10m_neut)
+
+    u10m_neut_flag = .true.
+    call zh%copy_field_properties(u10m_neut)
+
+    v10m_neut_flag = .true.
+    call zh%copy_field_properties(v10m_neut)
+
+    pseudotaux_flag = .true.
+    call zh%copy_field_properties(pseudotaux)
+
+    pseudotauy_flag = .true.
+    call zh%copy_field_properties(pseudotauy)
+
+    latent_heat_flag = .true.
+    call tile_fraction%copy_field_properties(latent_heat)
+
+    grid_latent_heat_flag = .true.
+    call zh%copy_field_properties(grid_latent_heat)
+
+    snomlt_surf_htf_flag = .true.
+    call zh%copy_field_properties(snomlt_surf_htf)
+
+    soil_evap_flag = .true.
+    call zh%copy_field_properties(soil_evap)
+
+    grid_canopy_evap_flag = .true.
+    call zh%copy_field_properties(grid_canopy_evap)
+
+    grid_sublimation_flag = .true.
+    call zh%copy_field_properties(grid_sublimation)
+
+    soil_surf_ht_flux_flag = .true.
+    call zh%copy_field_properties(soil_surf_ht_flux)
+
+    grid_surface_temperature_flag = .true.
+    call zh%copy_field_properties(grid_surface_temperature)
+
+    ! surface tiled fields
+    t1p5m_surft_flag = .true.
+    call tile_fraction%copy_field_properties(t1p5m_surft)
+
+    q1p5m_surft_flag = .true.
+    call tile_fraction%copy_field_properties(q1p5m_surft)
+
+    latent_heat_flag = .true.
+    call tile_fraction%copy_field_properties(latent_heat)
+
+    surf_ht_flux_flag = .true.
+    call tile_fraction%copy_field_properties(surf_ht_flux)
+
+    surf_sw_net_flag = .true.
+    call tile_fraction%copy_field_properties(surf_sw_net)
+
+    surf_radnet_flag = .true.
+    call tile_fraction%copy_field_properties(surf_radnet)
+
+    surf_lw_up_flag = .true.
+    call tile_fraction%copy_field_properties(surf_lw_up)
+
+    surf_lw_down_flag = .true.
+    call tile_fraction%copy_field_properties(surf_lw_down)
 
     if ( subroutine_timers ) call timer("bl_imp_diags")
 
   end subroutine initialise_diags_for_bl_imp
 
   !> @brief Output diagnostics from bl_imp_alg
-  subroutine output_diags_for_bl_imp(mv, dmv_bl, zh, du_bl, clock,             &
-                                     tile_heat_flux, tile_moisture_flux,       &
-                                     tile_temperature, canopy_evap, wspd10m,   &
-                                     tile_fraction, taux_ssi, tauy_ssi,        &
+  !> @param[in]     zh                       Surface-based boundary layer depth
+  !> @param[in]     du_bl                    3D wind increment
+  !> @param[in]     clock                    Model time information
+  !> @param[in]     tile_heat_flux           surface sensible heat flux on tiles
+  !> @param[in]     tile_moisture_flux       surface moisture flux on tiles
+  !> @param[in]     tile_temperature         surface temperature on tiles
+  !> @param[in]     grid_surface_temperature Grid mean surface temperature
+  !> @param[in]     snow_sublimation         surface snow sublimation rate on tiles
+  !> @param[in]     canopy_evap              canopy evaporation on tiles
+  !> @param[in]     wspd10m                  10m wind speed
+  !> @param[in]     u10m                     Zonal 10m wind speed
+  !> @param[in]     v10m                     Meridional 10m wind speed
+  !> @param[in]     wind_gust                gust wind speed at 10m
+  !> @param[in]     wspd10m_neut             neutral wind speed at 10m
+  !> @param[in]     u10m_neut                Zonal 10m neutral wind speed
+  !> @param[in]     v10m_neut                Meridional 10m neutral wind speed
+  !> @param[in]     taux                     Zonal wind stress
+  !> @param[in]     tauy                     Meridional wind stress
+  !> @param[in]     taux_ssi                 Surface zonal wind stress over sea, seaice
+  !> @param[in]     tauy_ssi                 Surface meridional wind stress over sea, seaice
+  !> @param[in]     pseudotaux               Surface zonal pseudo wind stress
+  !> @param[in]     pseudotauy               Surface meridional pseudo wind stress
+  !> @param[in]     z0m_eff                  Gridbox mean effective roughness length for momentum
+  !> @param[in]     rho_in_w3                Density field in density space
+  !> @param[in]     wetrho_in_w3             Wet density field in w3 space
+  !> @param[in]     tile_fraction            Surface tile fractions
+  !> @param[in]     mv                       Vapour mixing ratio
+  !> @param[in]     mcl                      Cloud liq mixing ratio
+  !> @param[in]     mci                      Cloud ice mixing ratio
+  !> @param[in]     mr                       Rain mixing ratio
+  !> @param[in]     cf_bulk                  Bulk cloud fraction
+  !> @param[in]     cf_area                  Area cloud fraction
+  !> @param[in]     cf_liq                   Liquid cloud fraction
+  !> @param[in]     cf_ice                   Ice cloud fraction
+  !> @param[in]     dtheta_bl                potential temperature increment from bl scheme
+  !> @param[in]     exner_in_wth             Exner Pressure in the wth space
+  !> @param[in]     dt_conv                  temperature increment from convection scheme
+  !> @param[in]     t1p5m_surft              1.5m temperature for land tiles
+  !> @param[in]     q1p5m_surft              1.5m specific humidity for land tiles
+  !> @param[in]     t1p5m                    1.5m temperature
+  !> @param[in]     q1p5m                    1.5m specific humidity
+  !> @param[in]     qcl1p5m                  1.5m specific cloud water
+  !> @param[in]     rh1p5m                   1.5m relative humidity
+  !> @param[in]     latent_heat              Surface latent heat flux on tiles
+  !> @param[in]     grid_latent_heat         Grid mean surface latent heat flux
+  !> @param[in]     snomlt_surf_htf          Surface snow melt heat flux
+  !> @param[in]     soil_evap                Water evaporation flux from soil
+  !> @param[in]     grid_canopy_evap         water evaporation flux from canopy
+  !> @param[in]     grid_sublimation         grid surface snow sublimation rate
+  !> @param[in]     surf_ht_flux             downward heat flux at ground level on tiles
+  !> @param[in]     soil_surf_ht_flux        downward heat flux at ground level in soil
+  !> @param[in]     surf_sw_net              surface net downward shortwave flux on tiles
+  !> @param[in]     surf_radnet              surface net downward radiative flux on tiles
+  !> @param[in]     surf_lw_up               surface upward longwave flux on tiles
+  !> @param[in]     surf_lw_down             surface downward longwave flux on tiles
+  !> @param[in]     heat_flux_bl             upward turbulent heat flux
+  !> @param[in]     moist_flux_bl            upward turbulent moisture flux
+  !> @param[in]     ls_rain                  Surface large-scale  rainfall rate
+  !> @param[in]     ls_snow                  Surface large-scale snowfall rate
+  !> @param[in]     lsca_2d                  2D large scale precip fraction
+  !> @param[in]     conv_rain                Surface convective rainfall rate 
+  !> @param[in]     conv_snow                Surface convective snowfall rate
+  !> @param[in]     cca_2d                   2D convective cloud fraction
+  !> @param[in,out] dmv_bl                   BL increment to vapour mixing ratio
+  !> @param[in,out] dmcl_bl                  BL increment to cloud liq mixing ratio
+  !> @param[in,out] dmci_bl                  BL increment to cloud ice mixing ratio
+  !> @param[in,out] dcf_bulk_bl              BL increment to bulk cloud fraction
+  !> @param[in,out] dcf_area_bl              BL increment to area cloud fraction
+  !> @param[in,out] dcf_liq_bl               BL increment to liquid cloud fraction
+  !> @param[in,out] dcf_ice_bl               BL increment to ice cloud fraction
+  !> @param[in,out] fog_fraction             fog fraction at screen level
+  !> @param[in,out] dew_point                dew point temperature at screen level
+  !> @param[in,out] visibility_with_precip   visibility including precipitation at screen level
+  !> @param[in,out] visibility_no_precip     visibility excluding precipitation at screen level
+
+  subroutine output_diags_for_bl_imp(zh, du_bl, clock, tile_heat_flux,         &
+                                     tile_moisture_flux, tile_temperature,     &
+                                     grid_surface_temperature,                 &
+                                     snow_sublimation, canopy_evap,            &
+                                     wspd10m, u10m, v10m, wind_gust,           &
+                                     wspd10m_neut, u10m_neut, v10m_neut,       &
+                                     taux, tauy, taux_ssi, tauy_ssi,           &
+                                     pseudotaux, pseudotauy, z0m_eff,          &
+                                     rho_in_w3, wetrho_in_w3,                  &
+                                     tile_fraction, mv, mcl, mci, mr,          &
+                                     cf_bulk, cf_area, cf_liq, cf_ice,         &
                                      dtheta_bl, exner_in_wth, dt_conv,         &
-                                     t1p5m, q1p5m, rh1p5m)
+                                     t1p5m_surft, q1p5m_surft,                 &
+                                     t1p5m, q1p5m, qcl1p5m, rh1p5m,            &
+                                     latent_heat,                              &
+                                     grid_latent_heat, snomlt_surf_htf,        &
+                                     soil_evap, grid_canopy_evap,              &
+                                     grid_sublimation, surf_ht_flux,           &
+                                     soil_surf_ht_flux, surf_sw_net,           &
+                                     surf_radnet, surf_lw_up,                  &
+                                     surf_lw_down,                             &
+                                     heat_flux_bl, moist_flux_bl,              &
+                                     ls_rain, ls_snow, lsca_2d,                &
+                                     conv_rain, conv_snow, cca_2d,             &
+                                     dmv_bl, dmcl_bl, dmci_bl, dcf_bulk_bl,    &
+                                     dcf_area_bl, dcf_liq_bl, dcf_ice_bl,      &
+                                     fog_fraction, dew_point,                  &
+                                     visibility_with_precip,                   &
+                                     visibility_no_precip )
+
+    use jules_control_init_mod, only : n_surf_tile
 
     implicit none
 
     class(clock_type),  intent(in)    :: clock
 
-    ! Prognostic fields to output
-    type( field_type ), intent(in)    :: mv, du_bl, zh, tile_heat_flux,        &
-                                         tile_moisture_flux, tile_temperature, &
-                                         canopy_evap, wspd10m, tile_fraction,  &
-                                         taux_ssi, tauy_ssi, dtheta_bl
+    ! Prognostic fields input, used in calculations
+    type( field_type ), intent(in)    :: mv, mcl, mci, mr,                     &
+                                         cf_bulk, cf_area, cf_liq, cf_ice,     &
+                                         rho_in_w3, wetrho_in_w3,              &
+                                         exner_in_wth, z0m_eff,                &
+                                         ls_rain, ls_snow, lsca_2d,            &
+                                         conv_rain, conv_snow, cca_2d
 
-    ! Diagnostics locally computed here from other fields
-    type( field_type ), intent(in)    :: exner_in_wth, dt_conv
-    type( field_type ), intent(inout) :: dmv_bl
-    type( field_type )                :: dt_bl, grid_surface_temperature
+    ! Prognostic fields to output
+    type( field_type ), intent(in)    :: zh, tile_heat_flux, tile_fraction,    &
+                                         tile_moisture_flux, tile_temperature, &
+                                         snow_sublimation,                     &
+                                         canopy_evap, wspd10m,                 &
+                                         taux_ssi, tauy_ssi, du_bl, dtheta_bl, &
+                                         heat_flux_bl, moist_flux_bl, dt_conv
 
     ! Diagnostics computed within the kernel
-    type( field_type ), intent(in)    :: t1p5m, q1p5m, rh1p5m
+    type( field_type ), intent(in)    :: t1p5m_surft, q1p5m_surft
+    type( field_type ), intent(in)    :: t1p5m, q1p5m, qcl1p5m, rh1p5m
+    type( field_type ), intent(in)    :: u10m, v10m
+    type( field_type ), intent(in)    :: u10m_neut, v10m_neut, wspd10m_neut
+    type( field_type ), intent(in)    :: taux, tauy, pseudotaux, pseudotauy
+    type( field_type ), intent(in)    :: latent_heat, snomlt_surf_htf
+    type( field_type ), intent(in)    :: soil_evap, grid_canopy_evap
+    type( field_type ), intent(in)    :: grid_sublimation
+    type( field_type ), intent(in)    :: surf_ht_flux, soil_surf_ht_flux
+    type( field_type ), intent(in)    :: surf_sw_net, surf_radnet
+    type( field_type ), intent(in)    :: surf_lw_up, surf_lw_down
+
+    ! Diagnostics locally computed here from other fields
+    type( field_type ), intent(inout) :: dmv_bl
+    type( field_type ), intent(inout) :: dmcl_bl
+    type( field_type ), intent(inout) :: dmci_bl
+    type( field_type ), intent(inout) :: dcf_bulk_bl
+    type( field_type ), intent(inout) :: dcf_area_bl
+    type( field_type ), intent(inout) :: dcf_liq_bl
+    type( field_type ), intent(inout) :: dcf_ice_bl
+    type( field_type ), intent(inout) :: grid_surface_temperature
+    type( field_type ), intent(inout) :: grid_latent_heat
+    type( field_type ), intent(inout) :: wind_gust
+    type( field_type ), intent(inout) :: visibility_with_precip
+    type( field_type ), intent(inout) :: visibility_no_precip
+    type( field_type ), intent(inout) :: fog_fraction
+    type( field_type ), intent(inout) :: dew_point
+
+    ! Local variables
+    type( field_type )                :: dt_bl
 
     if ( subroutine_timers ) call timer("bl_imp_diags")
 
-    ! Prognostic fields
+    ! Output prognostic fields
     call dtheta_bl%write_field('turbulence__dtheta')
     call zh%write_field('turbulence__zh')
     call write_vector_diagnostic('turbulence__du',du_bl,clock,du_bl%get_mesh_id(),.false.)
-
+    call heat_flux_bl%write_field('turbulence__heat_flux_bl')
+    call moist_flux_bl%write_field('turbulence__moist_flux_bl')
     call tile_heat_flux%write_field('surface__tile_heat_flux')
     call tile_moisture_flux%write_field('surface__tile_moisture_flux')
     call tile_temperature%write_field('surface__tile_temperature')
@@ -107,12 +489,9 @@ contains
     call wspd10m%write_field('surface__wspd10m')
     call taux_ssi%write_field('surface__taux_ssi')
     call tauy_ssi%write_field('surface__tauy_ssi')
+    call snow_sublimation%write_field('surface__snow_sublimation')
 
     ! Diagnostics locally computed here from other fields
-    if (dmv_bl_flag) then
-      call invoke(inc_X_plus_Y(dmv_bl, mv))
-      call dmv_bl%write_field('turbulence__dmv')
-    end if
     dt_bl_flag = .true.
     if (dt_bl_flag) then
       call dtheta_bl%copy_field_properties(dt_bl)
@@ -120,20 +499,109 @@ contains
                   inc_X_minus_Y(dt_bl,dt_conv) )
       call dt_bl%write_field('turbulence__dt')
     end if
-
-    grid_surface_temperature_flag = .true.
+    if (dmv_bl_flag) then
+      call invoke(inc_X_plus_Y(dmv_bl, mv))
+      call dmv_bl%write_field('turbulence__dmv')
+    end if
+    if (dmcl_bl_flag) then
+      call invoke(inc_X_plus_Y(dmcl_bl, mcl))
+      call dmcl_bl%write_field('turbulence__dmcl')
+    end if
+    if (dmci_bl_flag) then
+      call invoke(inc_X_plus_Y(dmci_bl, mci))
+      call dmci_bl%write_field('turbulence__dmci')
+    end if
+    if (dcf_bulk_bl_flag) then
+      call invoke(inc_X_plus_Y(dcf_bulk_bl, cf_bulk))
+      call dcf_bulk_bl%write_field('turbulence__dcf_bulk')
+    end if
+    if (dcf_area_bl_flag) then
+      call invoke(inc_X_plus_Y(dcf_area_bl, cf_area))
+      call dcf_area_bl%write_field('turbulence__dcf_area')
+    end if
+    if (dcf_liq_bl_flag) then
+      call invoke(inc_X_plus_Y(dcf_liq_bl, cf_liq))
+      call dcf_liq_bl%write_field('turbulence__dcf_liq')
+    end if
+    if (dcf_ice_bl_flag) then
+      call invoke(inc_X_plus_Y(dcf_ice_bl, cf_ice))
+      call dcf_ice_bl%write_field('turbulence__dcf_ice')
+    end if
     if (grid_surface_temperature_flag) then
-      call zh%copy_field_properties(grid_surface_temperature)
-      call invoke(weighted_ave_kernel_type(grid_surface_temperature,          &
-                                            tile_temperature, tile_fraction,  &
-                                            1, n_surf_tile) )
+      call invoke(weighted_ave_kernel_type(grid_surface_temperature,           &
+                                           tile_temperature, tile_fraction,    &
+                                           1, n_surf_tile))
       call grid_surface_temperature%write_field('surface__grid_surface_temperature')
+    end if
+    if (grid_latent_heat_flag) then
+      call invoke(weighted_ave_kernel_type(grid_latent_heat,                   &
+                                           latent_heat, tile_fraction,         &
+                                           1, n_surf_tile))
+      call grid_latent_heat%write_field('surface__grid_latent_heat')
+    end if
+    if (grid_canopy_evap_flag) then
+      call invoke(weighted_ave_kernel_type(grid_canopy_evap,                   &
+                                            canopy_evap, tile_fraction,        &
+                                            1, n_surf_tile))
+      call grid_canopy_evap%write_field('surface__grid_canopy_evap')
+    end if
+    if (grid_sublimation_flag) then
+      call invoke(weighted_ave_kernel_type(grid_sublimation,                   &
+                                            snow_sublimation, tile_fraction,   &
+                                            1, n_surf_tile) )
+      call grid_sublimation%write_field('surface__grid_sublimation')
     end if
 
     ! Diagnostics computed within the kernel
+    if (taux_flag) call taux%write_field('turbulence__taux')
+    if (tauy_flag) call tauy%write_field('turbulence__tauy')
+    if (t1p5m_surft_flag) call t1p5m_surft%write_field('surface__t1p5m_surft')
+    if (q1p5m_surft_flag) call q1p5m_surft%write_field('surface__q1p5m_surft')
     if (t1p5m_flag) call t1p5m%write_field('surface__t1p5m')
     if (q1p5m_flag) call q1p5m%write_field('surface__q1p5m')
+    if (qcl1p5m_flag) call qcl1p5m%write_field('surface__qcl1p5m')
     if (rh1p5m_flag) call rh1p5m%write_field('surface__rh1p5m')
+    if (u10m_flag) call u10m%write_field('surface__u10m')
+    if (v10m_flag) call v10m%write_field('surface__v10m')
+    if (wspd10m_neut_flag) call wspd10m_neut%write_field('surface__wspd10m_neut')
+    if (u10m_neut_flag) call u10m_neut%write_field('surface__u10m_neut')
+    if (v10m_neut_flag) call v10m_neut%write_field('surface__v10m_neut')
+    if (pseudotaux_flag) call pseudotaux%write_field('surface__pseudotaux')
+    if (pseudotauy_flag) call pseudotauy%write_field('surface__pseudotauy')
+    if (latent_heat_flag) call latent_heat%write_field('surface__latent_heat')
+    if (snomlt_surf_htf_flag) call snomlt_surf_htf%write_field('surface__snomlt_surf_htf')
+    if (soil_evap_flag) call soil_evap%write_field('surface__soil_evap')
+    if (surf_ht_flux_flag) call surf_ht_flux%write_field('surface__surf_ht_flux')
+    if (soil_surf_ht_flux_flag) call soil_surf_ht_flux%write_field('surface__soil_surf_ht_flux')
+    if (surf_sw_net_flag) call surf_sw_net%write_field('surface__surf_sw_net')
+    if (surf_radnet_flag) call surf_radnet%write_field('surface__surf_radnet')
+    if (surf_lw_up_flag) call surf_lw_up%write_field('surface__surf_lw_up')
+    if (surf_lw_down_flag) call surf_lw_down%write_field('surface__surf_lw_down')
+
+    if ( wind_gust_flag .or. vis_no_precip_flag .or. vis_with_precip_flag .or. &
+         fog_fraction_flag .or. dew_point_flag) then
+
+      ! Calculate various extra diagnostics
+      call invoke( bl_extra_diags_kernel_type( rho_in_w3, wetrho_in_w3,        &
+                                               heat_flux_bl, moist_flux_bl,    &
+                                               taux, tauy,                     &
+                                               exner_in_wth, mci, mr,          &
+                                               zh, t1p5m, q1p5m, qcl1p5m,      &
+                                               wspd10m, z0m_eff,               &
+                                               ls_rain, ls_snow, lsca_2d,      &
+                                               conv_rain, conv_snow, cca_2d,   &
+                                               wind_gust,                      &
+                                               fog_fraction, dew_point,        &
+                                               visibility_with_precip,         &
+                                               visibility_no_precip ) )
+
+      if (wind_gust_flag) call wind_gust%write_field('surface__wind_gust')
+      if (vis_no_precip_flag) call visibility_no_precip%write_field('surface__visibility_no_precip')
+      if (vis_with_precip_flag) call visibility_with_precip%write_field('surface__visibility_with_precip')
+      if (fog_fraction_flag) call fog_fraction%write_field('surface__fog_fraction')
+      if (dew_point_flag) call dew_point%write_field('surface__dew_point')
+
+    end if
 
     if ( subroutine_timers ) call timer("bl_imp_diags")
 

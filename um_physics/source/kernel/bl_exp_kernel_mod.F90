@@ -25,6 +25,7 @@ module bl_exp_kernel_mod
                                      ANY_DISCONTINUOUS_SPACE_12, &
                                      STENCIL, CROSS
   use constants_mod,          only : i_def, i_um, r_def, r_um, rmdi
+  use empty_data_mod,         only : empty_real_data
   use fs_continuity_mod,      only : W3, Wtheta, W2
   use kernel_mod,             only : kernel_type
   use blayer_config_mod,      only : fixed_flux_e, fixed_flux_h, flux_bc_opt, &
@@ -52,7 +53,7 @@ module bl_exp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_exp_kernel_type
     private
-    type(arg_type) :: meta_args(136) = (/                                      &
+    type(arg_type) :: meta_args(139) = (/                                      &
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! theta_in_wth
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3),                       &! rho_in_w3
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! wetrho_in_wth
@@ -157,6 +158,7 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! canhc_tile
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_8),&! tile_water_extract
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! blend_height_tq
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! z0m_eff
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! ustar
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! soil_moist_avail
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! zh_nonloc
@@ -177,18 +179,20 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_9),&! bl_type_ind
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_3),&! snow_unload_rate
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_10),&! albedo_obs_scaling
-         arg_type(GH_FIELD, GH_INTEGER,  GH_WRITE,  ANY_DISCONTINUOUS_SPACE_1),&! level_ent 
-         arg_type(GH_FIELD, GH_INTEGER,  GH_WRITE,  ANY_DISCONTINUOUS_SPACE_1),&! level_ent_dsc 
+         arg_type(GH_FIELD, GH_INTEGER,  GH_WRITE,  ANY_DISCONTINUOUS_SPACE_1), &! level_ent 
+         arg_type(GH_FIELD, GH_INTEGER,  GH_WRITE,  ANY_DISCONTINUOUS_SPACE_1), &! level_ent_dsc 
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_11),&! ent_we_lim
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_11),&! ent_t_frac 
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_11),&! ent_zrzi 
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_11),&! ent_we_lim_dsc
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_11),&! ent_t_frac_dsc
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_11),&! ent_zrzi_dsc
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! soil_clay_2d
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! soil_sand_2d
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1), &! soil_clay_2d
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1), &! soil_sand_2d
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_12),&! dust_div_mrel
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_12)&! dust_div_flux
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_12),&! dust_div_flux
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1), &! diag__zht
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1)  &! diag__z0h_eff
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -309,6 +313,7 @@ contains
   !> @param[in,out] canhc_tile             Canopy heat capacity on tiles
   !> @param[in,out] tile_water_extract     Extraction of water from each tile
   !> @param[in,out] blend_height_tq        Blending height for wth levels
+  !> @param[in,out] z0m_eff                Grid mean effective roughness length
   !> @param[in,out] ustar                  Friction velocity
   !> @param[in,out] soil_moist_avail       Available soil moisture for evaporation
   !> @param[in,out] zh_nonloc              Depth of non-local BL scheme
@@ -341,6 +346,8 @@ contains
   !> @param[in] soil_sand_2d               Soil sand fraction
   !> @param[in] dust_div_mrel              Relative soil mass in CLASSIC size divisions
   !> @param[in,out] dust_div_flux          Dust emission fluxes in CLASSIC size divisions (kg m-2 s-1) 
+  !> @param[in,out] zht                    Diagnostic: turb mixing height
+  !> @param[in,out] z0h_eff                Diagnostic: Gridbox mean effective roughness length for scalars
   !> @param[in]     ndf_wth                Number of DOFs per cell for potential temperature space
   !> @param[in]     undf_wth               Number of unique DOFs for potential temperature space
   !> @param[in]     map_wth                Dofmap for the cell at the base of the column for potential temperature space
@@ -492,6 +499,7 @@ contains
                          canhc_tile,                            &
                          tile_water_extract,                    &
                          blend_height_tq,                       &
+                         z0m_eff,                               &
                          ustar,                                 &
                          soil_moist_avail,                      &
                          zh_nonloc,                             &
@@ -524,6 +532,8 @@ contains
                          soil_sand_2d,                          &
                          dust_div_mrel,                         &
                          dust_div_flux,                         &
+                         zht,                                   &
+                         z0h_eff,                               &
                          ndf_wth,                               &
                          undf_wth,                              &
                          map_wth,                               &
@@ -689,6 +699,7 @@ contains
     real(kind=r_def), dimension(undf_2d), intent(inout) :: ntml_2d,            &
                                                            cumulus_2d,         &
                                                            blend_height_tq,    &
+                                                           z0m_eff,            &
                                                            ustar,              &
                                                            soil_moist_avail,   &
                                                            zh_nonloc,          &
@@ -786,6 +797,8 @@ contains
     real(kind=r_def), dimension(undf_dust), intent(in)     :: dust_div_mrel
     real(kind=r_def), dimension(undf_dust), intent(inout)  :: dust_div_flux
 
+    real(kind=r_def), pointer, intent(inout) :: zht(:)
+    real(kind=r_def), pointer, intent(inout) :: z0h_eff(:)
     !-----------------------------------------------------------------------
     ! Local variables for the kernel
     !-----------------------------------------------------------------------
@@ -1381,7 +1394,16 @@ contains
     z0msea(1,1) = z0msea_2d(map_2d(1))
     ! downdraft at cloud base
     ddmfx = dd_mf_cb(map_2d(1))
-
+    ! needed to ensure neutral diagnostics can be calculated
+    sf_diag%suv10m_n  = .true.
+    sf_diag%l_u10m_n  = sf_diag%suv10m_n
+    sf_diag%l_v10m_n  = sf_diag%suv10m_n
+    sf_diag%l_mu10m_n = sf_diag%suv10m_n
+    sf_diag%l_mv10m_n = sf_diag%suv10m_n
+    ! needed to ensure z0h_eff is saved if wanted
+    sf_diag%l_z0h_eff_gb = .not. associated(z0h_eff, empty_real_data)
+    ! needed to ensure zht is saved if wanted
+    bl_diag%l_zht     = .not. associated(zht, empty_real_data)
     !-----------------------------------------------------------------------
     ! Things saved from other parametrization schemes on this timestep
     !-----------------------------------------------------------------------
@@ -1693,6 +1715,8 @@ contains
     surf_interp(map_surf(1)+6) = fb_surf(1,1)
     surf_interp(map_surf(1)+7) = real(k_blend_uv(1,1)-1, r_def)
     surf_interp(map_surf(1)+8) = cdr10m(1,1)
+    surf_interp(map_surf(1)+9) = real(sf_diag%cd10m_n(1,1), r_def)
+    surf_interp(map_surf(1)+10)= real(sf_diag%cdr10m_n(1,1), r_def)
     do k=1,bl_levels
       rhokm_bl(map_wth(1) + k-1) = rhokm(1,1,k)
       rhokh_bl(map_w3(1) + k-1) = rhokh(1,1,k)
@@ -1730,6 +1754,7 @@ contains
         fd_tauy(map_w3(1) + k-1) = 0.0_r_def
       end do
     end if
+    gradrinr(map_wth(1)) = rib_gb(1,1)
     do k=2,bl_levels
       gradrinr(map_wth(1) + k-1) = BL_diag%gradrich(1,1,k)
       lmix_bl(map_wth(1) + k-1)  = BL_diag%elm3d(1,1,k)
@@ -1779,6 +1804,7 @@ contains
     chr1p5m_tile(map_tile(1)+first_sea_ice_tile-1) = chr1p5m_sice(1,1)
 
     blend_height_tq(map_2d(1)) = real(k_blend_tq(1,1), r_def)
+    z0m_eff(map_2d(1)) = z0m_eff_gb(1,1)
     ustar(map_2d(1)) = u_s(1,1)
     soil_moist_avail(map_2d(1)) = smc_soilt(1)
     zh_nonloc(map_2d(1)) = zhnl(1,1)
@@ -1859,7 +1885,11 @@ contains
       net_prim_prod(map_2d(1)) = real(npp_gb(1), r_def)
       surface_conductance(map_2d(1)) = real(gs_gb(1), r_def)
       thermal_cond_wet_soil(map_2d(1)) = hcons_soilt(1)
-      soil_respiration(map_2d(1)) = resp_s_gb_um(1, 1)
+      if (dim_cs1 == 4) then
+        soil_respiration(map_2d(1)) = resp_s_tot_soilt(1)
+      else
+        soil_respiration(map_2d(1)) = resp_s_gb_um(1,1)
+      endif
     else
       gross_prim_prod(map_2d(1)) = 0.0_r_def
       net_prim_prod(map_2d(1)) = 0.0_r_def
@@ -1898,6 +1928,13 @@ contains
       do k = 2, nlayers
         wvar(map_wth(1)+k-1) = bl_w_var(1,1,k)
       end do
+    end if
+
+    if (.not. associated(zht, empty_real_data) ) then
+      zht(map_2d(1)) = BL_diag%zht(1,1)
+    end if
+    if (.not. associated(z0h_eff, empty_real_data) ) then
+      z0h_eff(map_2d(1)) = sf_diag%z0h_eff_gb(1,1)
     end if
 
     ! deallocate diagnostics deallocated in atmos_physics2
