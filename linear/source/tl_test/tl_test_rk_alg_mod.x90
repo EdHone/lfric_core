@@ -191,18 +191,18 @@ module tl_test_rk_alg_mod
 
     call rk_alg_final()
 
-    gamma_u = 1.e4
-    gamma_theta = 1.e2
-    gamma_rho = 1.e-1
-    gamma_exner = 1.e-1
-    gamma_moist_dyn=1.e-1
+    gamma_u = 1.e4_r_def
+    gamma_theta = 1.e2_r_def
+    gamma_rho = 1.e-1_r_def
+    gamma_exner = 1.e-1_r_def
+    gamma_moist_dyn = 1.e-1_r_def
 
     do n=1,2
-      gamma_u = gamma_u/2.
-      gamma_theta = gamma_theta/2.
-      gamma_rho = gamma_rho/2.
-      gamma_exner = gamma_exner/2.
-      gamma_moist_dyn = gamma_moist_dyn/2.
+      gamma_u = gamma_u / 2.0_r_def
+      gamma_theta = gamma_theta / 2.0_r_def
+      gamma_rho = gamma_rho / 2.0_r_def
+      gamma_exner = gamma_exner / 2.0_r_def
+      gamma_moist_dyn = gamma_moist_dyn / 2.0_r_def
 
       call invoke( a_times_X( p_u, gamma_u, r_u ),              &
                    a_times_X( p_theta, gamma_theta, r_theta ),  &

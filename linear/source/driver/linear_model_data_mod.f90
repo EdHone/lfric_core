@@ -254,6 +254,9 @@ contains
     ls_field => model_data%ls_fields%get_field("ls_theta")
     call ls_field%log_minmax(LOG_LEVEL_INFO,'ls_theta')
 
+    ls_field => model_data%ls_mr(1)
+    call ls_field%log_minmax(LOG_LEVEL_INFO,'ls_mr')
+
   end subroutine linear_init_ls
 
   !> @brief   Define the initial perturbation values.

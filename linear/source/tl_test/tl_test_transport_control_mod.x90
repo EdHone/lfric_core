@@ -56,7 +56,7 @@ module tl_test_transport_control_mod
     type(model_data_type), target, intent(in) :: model_data
     class(clock_type),             intent(in) :: clock
 
-    character(str_def) :: label = "advection_control"
+    character(str_def) :: label = "transport_control"
 
     type(field_collection_type), pointer :: prognostic_fields => null()
     type(field_collection_type), pointer :: ls_fields => null()
@@ -83,8 +83,11 @@ module tl_test_transport_control_mod
     type(field_type), dimension(num_moist_factors) :: n_moist_dyn
     type(field_type), dimension(num_moist_factors) :: r_moist_dyn
     type(field_type), dimension(num_moist_factors) :: diff_moist_dyn
-    type(field_type), dimension(nummr) :: p_mr
-    type(field_type), dimension(nummr) :: n_mr
+    type(field_type), dimension(nummr) :: p_mr_in
+    type(field_type), dimension(nummr) :: n_mr_in
+    type(field_type), dimension(nummr) :: ls_mr_out
+    type(field_type), dimension(nummr) :: p_mr_out
+    type(field_type), dimension(nummr) :: n_mr_out
     type(field_type), dimension(nummr) :: r_mr
     type(field_type), dimension(nummr) :: diff_mr
     type(field_collection_type) :: cloud_fields_after_slow
@@ -141,9 +144,12 @@ module tl_test_transport_control_mod
     call clone_bundle(moist_dyn, n_moist_dyn, num_moist_factors)
     call clone_bundle(moist_dyn, diff_moist_dyn, num_moist_factors)
 
-    call clone_bundle(mr, p_mr, nummr)
     call clone_bundle(mr, r_mr, nummr)
-    call clone_bundle(mr, n_mr, nummr)
+    call clone_bundle(mr, p_mr_in, nummr)
+    call clone_bundle(mr, n_mr_in, nummr)
+    call clone_bundle(mr, p_mr_out, nummr)
+    call clone_bundle(mr, n_mr_out, nummr)
+    call clone_bundle(mr, ls_mr_out, nummr)
     call clone_bundle(mr, diff_mr, nummr)
 
     call invoke( name = "Copy fields to ls_state",   &
@@ -177,7 +183,7 @@ module tl_test_transport_control_mod
                                       ls_state,                &
                                       ls_state(igh_u),         &
                                       ls_state(igh_u),         &
-                                      ls_mr,                   &
+                                      ls_mr_out,               &
                                       ls_mr,                   &
                                       ls_moist_dyn,            &
                                       cloud_fields,            &
@@ -186,20 +192,20 @@ module tl_test_transport_control_mod
                                       clock%get_step(),        &
                                       outer                    )
 
-    gamma_u = 7.e8
-    gamma_theta = 1.e5
-    gamma_rho = 1.e5
-    gamma_exner = 1.e5
-    gamma_moist_dyn=1.e0
-    gamma_mr = 1.e0
+    gamma_u = 7.e8_r_def
+    gamma_theta = 1.e5_r_def
+    gamma_rho = 1.e5_r_def
+    gamma_exner = 1.e5_r_def
+    gamma_moist_dyn=1.e0_r_def
+    gamma_mr = 1.e0_r_def
 
     do n=1,2
-      gamma_u = gamma_u/2.
-      gamma_theta = gamma_theta/2.
-      gamma_rho = gamma_rho/2.
-      gamma_exner = gamma_exner/2.
-      gamma_moist_dyn = gamma_moist_dyn/2.
-      gamma_mr = gamma_mr/2.
+      gamma_u = gamma_u/2.0_r_def
+      gamma_theta = gamma_theta/2.0_r_def
+      gamma_rho = gamma_rho/2.0_r_def
+      gamma_exner = gamma_exner/2.0_r_def
+      gamma_moist_dyn = gamma_moist_dyn/2.0_r_def
+      gamma_mr = gamma_mr/2.0_r_def
 
       call set_bundle_scalar( 0.0_r_def, n2_rhs, bundle_size )
       call set_bundle_scalar( 0.0_r_def, p_rhs, bundle_size )
@@ -224,17 +230,17 @@ module tl_test_transport_control_mod
 
       do i = 1, nummr
         call invoke( &
-          a_times_X( p_mr(i), gamma_mr, r_mr(i) ), &
-          setval_X( n_mr(i), ls_mr(i) ),                       &
-          inc_X_plus_Y( n_mr(i), p_mr(i) ) )
+          a_times_X( p_mr_in(i), gamma_mr, r_mr(i) ), &
+          setval_X( n_mr_in(i), ls_mr(i) ),                       &
+          inc_X_plus_Y( n_mr_in(i), p_mr_in(i) ) )
       end do
 
       call gungho_transport_control_alg(n2_rhs,                  &
                                         state,                   &
                                         state(igh_u),            &
                                         state(igh_u),            &
-                                        mr,                      &
-                                        mr,                      &
+                                        n_mr_out,                &
+                                        n_mr_in,                 &
                                         moist_dyn,               &
                                         cloud_fields,            &
                                         cloud_fields_after_slow, &
@@ -246,8 +252,8 @@ module tl_test_transport_control_mod
                                     p_state,          &
                                     p_state(igh_u),   &
                                     p_state(igh_u),   &
-                                    p_mr,             &
-                                    p_mr,             &
+                                    p_mr_out,         &
+                                    p_mr_in,          &
                                     p_moist_dyn,      &
                                     ls_state,         &
                                     ls_state(igh_u),  &
@@ -281,8 +287,8 @@ module tl_test_transport_control_mod
       norm_mr=0.0_r_def
       do i = 1, nummr
         call invoke( &
-          X_minus_Y( diff_mr(i), n_mr(i), mr(i) ),   &
-          inc_X_minus_Y( diff_mr(i), p_mr(i) ),             &
+          X_minus_Y( diff_mr(i), n_mr_out(i), ls_mr_out(i) ),   &
+          inc_X_minus_Y( diff_mr(i), p_mr_out(i) ),             &
           X_innerproduct_X( norm_mr_tmp, diff_mr(i) ) )
           norm_mr = norm_mr + norm_mr_tmp
       end do

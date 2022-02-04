@@ -124,22 +124,22 @@ module tl_test_rhs_alg_mod
       call invoke( assign_field_random_kernel_type( r_moist_dyn(i) ) )
     enddo
 
-    gamma_u = 1.e2
-    gamma_theta = 1.e2
-    gamma_rho = 1.e2
-    gamma_exner = 1.e2
-    gamma_moist_dyn=1.e-1
+    gamma_u = 1.e2_r_def
+    gamma_theta = 1.e2_r_def
+    gamma_rho = 1.e2_r_def
+    gamma_exner = 1.e2_r_def
+    gamma_moist_dyn = 1.e-1_r_def
 
     call set_bundle_scalar( 0.0_r_def, n1_rhs, bundle_size )
     call rhs_alg(n1_rhs, dt, ls_state, ls_state, ls_moist_dyn, &
                  .true., .false., dt)
 
     do n=1,2
-      gamma_u = gamma_u/2.
-      gamma_theta = gamma_theta/2.
-      gamma_rho = gamma_rho/2.
-      gamma_exner = gamma_exner/2.
-      gamma_moist_dyn = gamma_moist_dyn/2.
+      gamma_u = gamma_u / 2.0_r_def
+      gamma_theta = gamma_theta / 2.0_r_def
+      gamma_rho = gamma_rho / 2.0_r_def
+      gamma_exner = gamma_exner / 2.0_r_def
+      gamma_moist_dyn = gamma_moist_dyn / 2.0_r_def
 
       call set_bundle_scalar( 0.0_r_def, n2_rhs, bundle_size )
       call set_bundle_scalar( 0.0_r_def, p_rhs, bundle_size )

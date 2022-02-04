@@ -115,9 +115,9 @@ module tl_test_kinetic_energy_gradient_mod
                                                       chi_sph, panel_id, qr ) )
     call invoke( assign_field_random_kernel_type( random_u ) )
 
-    gamma = 1.e5
+    gamma = 1.e5_r_def
     do n=1,2
-      gamma = gamma/2.
+      gamma = gamma / 2.0_r_def
       call invoke( setval_C( n2_rhs_u, 0.0_r_def ),   &
                    setval_C( p_rhs_u, 0.0_r_def ),    &
                    a_times_X( p_u, gamma, random_u ), &

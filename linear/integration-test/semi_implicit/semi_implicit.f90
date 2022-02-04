@@ -20,6 +20,7 @@ program semi_implicit
                                  LOG_LEVEL_INFO
   use tl_test_driver_mod, only : initialise,                  &
                                  finalise,                    &
+                                 run_timesteps,               &
                                  run_transport_control,       &
                                  run_semi_imp_alg,            &
                                  run_rhs_eos,                 &
@@ -39,6 +40,7 @@ program semi_implicit
   character(len=:), allocatable :: program_name, test_flag
 
   ! Flags which determine the tests that will be carried out
+  logical :: do_test_timesteps = .false.
   logical :: do_test_transport_control = .false.
   logical :: do_test_semi_imp_alg = .false.
   logical :: do_test_rhs_alg = .false.
@@ -68,6 +70,7 @@ program semi_implicit
      write(usage_message,*) "Usage: ",trim(program_name), &
           " <namelist filename> "      // &
           " test_XXX with XXX in { "   // &
+          " timesteps, "               // &
           " transport_control, "       // &
           " semi_imp_alg, "            // &
           " rhs_alg, "                 // &
@@ -87,6 +90,8 @@ program semi_implicit
   ! Choose test case depending on flag provided in the first command
   ! line argument
   select case (trim(test_flag))
+  case ("test_timesteps")
+     do_test_timesteps = .true.
   case ("test_transport_control")
      do_test_transport_control = .true.
   case ("test_semi_imp_alg")
@@ -102,6 +107,9 @@ program semi_implicit
   call initialise( filename, model_communicator )
   deallocate( filename )
 
+  if (do_test_timesteps) then
+    call run_timesteps()
+  endif
   if (do_test_transport_control) then
     call run_transport_control()
   endif

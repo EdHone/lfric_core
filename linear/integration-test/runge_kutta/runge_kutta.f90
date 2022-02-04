@@ -20,6 +20,7 @@ program runge_kutta
                                  LOG_LEVEL_INFO
   use tl_test_driver_mod, only : initialise,                  &
                                  finalise,                    &
+                                 run_timesteps,               &
                                  run_kinetic_energy_gradient, &
                                  run_advect_density_field,    &
                                  run_advect_theta_field,      &
@@ -42,6 +43,7 @@ program runge_kutta
   character(len=:), allocatable :: program_name, test_flag
 
   ! Flags which determine the tests that will be carried out
+  logical :: do_test_timesteps = .false.
   logical :: do_test_kinetic_energy_gradient = .false.
   logical :: do_test_advect_density_field = .false.
   logical :: do_test_advect_theta_field = .false.
@@ -75,6 +77,7 @@ program runge_kutta
      write(usage_message,*) "Usage: ",trim(program_name), &
           " <namelist filename> "      // &
           " test_XXX with XXX in { "   // &
+          " timesteps, "               // &
           " kinetic_energy_gradient, " // &
           " advect_density_field, "    // &
           " advect_theta_field, "      // &
@@ -98,6 +101,8 @@ program runge_kutta
   ! Choose test case depending on flag provided in the first command
   ! line argument
   select case (trim(test_flag))
+  case ("test_timesteps")
+     do_test_timesteps = .true.
   case ("test_kinetic_energy_gradient")
      do_test_kinetic_energy_gradient = .true.
   case ("test_advect_density_field")
@@ -121,6 +126,9 @@ program runge_kutta
   call initialise( filename, model_communicator )
   deallocate( filename )
 
+  if (do_test_timesteps) then
+    call run_timesteps()
+  endif
   if (do_test_kinetic_energy_gradient) then
     call run_kinetic_energy_gradient()
   endif

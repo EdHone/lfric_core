@@ -226,5 +226,7 @@ slice_order='cubic',
 use_density_predictor=.false.,
 vertical_sl_order='cubic',
 /
-&development
+&validity_test
+number_gamma_values=2,
+update_ls_frequency=1,
 /

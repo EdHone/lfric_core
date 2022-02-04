@@ -154,8 +154,8 @@ module tl_test_advect_density_field_mod
     gamma_u = 6.e7
     gamma_rho = 1.e5
     do n=1,2
-      gamma_u = gamma_u/2.
-      gamma_rho = gamma_rho/2.
+      gamma_u = gamma_u / 2.0_r_def
+      gamma_rho = gamma_rho / 2.0_r_def
 
       call invoke( setval_C( n2_advection_inc, 0.0_r_def ),   &
                    setval_C( p_advection_inc, 0.0_r_def ),    &

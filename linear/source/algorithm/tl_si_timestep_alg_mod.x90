@@ -47,6 +47,7 @@ module tl_si_timestep_alg_mod
   ! PsyKAl PSYClone kernels
   use matrix_vector_kernel_mod,           only: matrix_vector_kernel_type
   use moist_dyn_factors_kernel_mod,       only: moist_dyn_factors_kernel_type
+  use tl_moist_dyn_factors_kernel_mod,    only: tl_moist_dyn_factors_kernel_type
   use enforce_lower_bound_kernel_mod,     only: enforce_lower_bound_kernel_type
   use set_any_dof_kernel_mod,             only: set_any_dof_kernel_type
 
@@ -665,7 +666,7 @@ contains
       end do
       call copy_bundle(mr, mr_n, nummr)
       call copy_bundle(mr, mr_after_slow, nummr)
-      call invoke(moist_dyn_factors_kernel_type(moist_dyn, mr_n, recip_epsilon))
+      call invoke(tl_moist_dyn_factors_kernel_type(moist_dyn, mr_n, recip_epsilon))
     end if
     call copy_bundle(state, state_n, bundle_size)
     call copy_bundle(state, state_after_slow, bundle_size)
@@ -709,8 +710,8 @@ contains
 
         ! Update factors for moist dynamics
         if (use_moisture) then
-          call invoke(moist_dyn_factors_kernel_type(moist_dyn, mr, &
-                                                    recip_epsilon))
+          call invoke(tl_moist_dyn_factors_kernel_type(moist_dyn, mr, &
+                                                       recip_epsilon))
         end if
 
         ! Use advective update to guess n+1 level scalar fieldsgv .

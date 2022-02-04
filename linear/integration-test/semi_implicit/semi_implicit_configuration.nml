@@ -58,7 +58,7 @@ l_multigrid=.false.,
 rotating=.true.,
 shallow=.true.,
 si_momentum_equation=.false.,
-use_moisture=.false.,
+use_moisture=.true.,
 use_multires_coupling=.false.,
 use_physics=.false.,
 use_wavedynamics=.true.,
@@ -206,15 +206,15 @@ tau_t=0.5,
 tau_u=0.5,
 /
 &transport
-profile_size = 3
-field_names = 'density','potential_temperature','wind'
-scheme = 1,1,1
-splitting = 1, 1, 1
-horizontal_method = 1,1,1
-vertical_method = 1,1,1
-monotone = 1,1,1
-log_space = .false.,.false.,.false.
-enforce_min_value=.false.,.false.,.false.
+profile_size = 4
+field_names = 'density','potential_temperature','wind','moisture'
+scheme = 4*1
+splitting = 4*1
+horizontal_method = 4*1
+vertical_method = 4*1
+monotone = 4*1
+log_space = 4*.false.
+enforce_min_value=4*.false.
 min_value=0.0,0.0,-99999999.0,0.0
 cfl_mol_1d_stab = 2.0
 cfl_mol_2d_stab = 2.0
@@ -232,5 +232,7 @@ slice_order='cubic',
 use_density_predictor=.false.,
 vertical_sl_order='cubic',
 /
-&development
+&validity_test
+number_gamma_values=2,
+update_ls_frequency=1,
 /

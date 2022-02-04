@@ -143,9 +143,9 @@ module tl_test_hydrostatic_mod
       call invoke( assign_field_random_kernel_type( random_moist_dyn(i) ) )
     end do
 
-    gamma = 1.e10
+    gamma = 1.e10_r_def
     do n=1,2
-      gamma = gamma/2.
+      gamma = gamma / 2.0_r_def
 
       call invoke( setval_C( n2_rhs_u, 0.0_r_def ),           &
                    setval_C( p_rhs_u, 0.0_r_def ),            &

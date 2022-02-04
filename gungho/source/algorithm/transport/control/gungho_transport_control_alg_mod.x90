@@ -342,7 +342,6 @@ contains
                                             cloud_fields_after_slow, &
                                             model_dt,                &
                                             transport_metadata )
-#endif
       ! ---------------------------------------------------------------------- !
       ! On final iteration, advect chemistry and aerosol fields as required
       ! Use the same transport metadata as for cloud fields
@@ -364,6 +363,7 @@ contains
                                                 transport_metadata )
         end if
       end if
+#endif
       ! ---------------------------------------------------------------------- !
       ! Write out moisture diagnostics
       if (do_moisture_diagnostics) then

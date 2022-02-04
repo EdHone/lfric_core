@@ -149,10 +149,10 @@ module tl_test_project_pressure_mod
       call invoke( assign_field_random_kernel_type( random_moist_dyn(i) ) )
     end do
 
-    gamma = 1.e-3
+    gamma = 1.e-3_r_def
 
     do n=1,2
-      gamma = gamma/2.
+      gamma = gamma / 2.0_r_def
 
       call invoke( setval_C( n2_exner, 0.0_r_def ),                 &
                    setval_C( p_exner, 0.0_r_def ),                  &

@@ -37,12 +37,14 @@ module tl_test_driver_mod
   use tl_test_rhs_eos_mod,                 only : test_rhs_eos
   use tl_test_rhs_alg_mod,                 only : test_rhs_alg
   use tl_test_semi_imp_alg_mod,            only : test_semi_imp_alg
+  use tl_test_timesteps_alg_mod,           only : test_timesteps
 
   implicit none
 
   private
   public initialise,                  &
          finalise,                    &
+         run_timesteps,               &
          run_kinetic_energy_gradient, &
          run_advect_density_field,    &
          run_advect_theta_field,      &
@@ -123,6 +125,21 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>@brief Tests the tangent linear kinetic energy gradient kernel.
+  subroutine run_timesteps()
+
+    implicit none
+
+    class(clock_type), pointer :: clock
+
+    clock => io_context%get_clock()
+
+    call test_timesteps( model_data,   &
+                         mesh_id,      &
+                         twod_mesh_id, &
+                         clock )
+
+  end subroutine run_timesteps
+
   subroutine run_kinetic_energy_gradient()
 
     implicit none

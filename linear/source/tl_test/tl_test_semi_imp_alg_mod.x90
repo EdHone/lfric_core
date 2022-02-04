@@ -17,6 +17,7 @@ module tl_test_semi_imp_alg_mod
   use field_collection_mod,           only: field_collection_type
   use function_space_collection_mod,  only: function_space_collection
   use finite_element_config_mod,      only: element_order
+  use formulation_config_mod,         only: use_moisture
   use fs_continuity_mod,              only: W2, W3, Wtheta
   use gungho_model_data_mod,          only: model_data_type
   use moist_dyn_mod,                  only: num_moist_factors
@@ -31,6 +32,10 @@ module tl_test_semi_imp_alg_mod
   use semi_implicit_timestep_alg_mod, only: semi_implicit_alg_init, &
                                             semi_implicit_alg_step, &
                                             semi_implicit_alg_final
+  use moist_dyn_factors_kernel_mod,   only: moist_dyn_factors_kernel_type
+  use tl_moist_dyn_factors_kernel_mod, &
+                                      only: tl_moist_dyn_factors_kernel_type
+  use planet_config_mod,              only: recip_epsilon
   use tl_test_convergence_rate_check, only: convergence_rate_check
 
   implicit none
@@ -92,8 +97,7 @@ module tl_test_semi_imp_alg_mod
 
     type(field_type), dimension(num_moist_factors) :: p_moist_dyn
     type(field_type), dimension(num_moist_factors) :: n_moist_dyn
-    type(field_type), dimension(num_moist_factors) :: r_moist_dyn
-    type(field_type), dimension(num_moist_factors) :: diff_moist_dyn
+
     type(field_type), dimension(nummr) :: p_mr
     type(field_type), dimension(nummr) :: n_mr
     type(field_type), dimension(nummr) :: r_mr
@@ -104,9 +108,9 @@ module tl_test_semi_imp_alg_mod
     type(field_type) :: diff_u, diff_rho, diff_theta, diff_exner
 
     real(r_def) :: gamma_u, gamma_rho, gamma_exner, gamma_theta
-    real(r_def) :: gamma_mr, gamma_moist_dyn
-    real(r_def) :: norm_u, norm_rho, norm_exner, norm_theta, norm_moist_dyn
-    real(r_def) :: norm_mr, norm_moist_dyn_tmp, norm_mr_tmp
+    real(r_def) :: gamma_mr
+    real(r_def) :: norm_u, norm_rho, norm_exner, norm_theta
+    real(r_def) :: norm_mr, norm_mr_tmp
     real(r_def) :: norm_diff, norm_diff_prev
 
     real(r_def), parameter :: tol = 5.e-1_r_def
@@ -187,9 +191,7 @@ module tl_test_semi_imp_alg_mod
       function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
 
     call clone_bundle(moist_dyn, p_moist_dyn, num_moist_factors)
-    call clone_bundle(moist_dyn, r_moist_dyn, num_moist_factors)
     call clone_bundle(moist_dyn, n_moist_dyn, num_moist_factors)
-    call clone_bundle(moist_dyn, diff_moist_dyn, num_moist_factors)
 
     call clone_bundle(mr, p_mr, nummr)
     call clone_bundle(mr, r_mr, nummr)
@@ -201,9 +203,6 @@ module tl_test_semi_imp_alg_mod
                  assign_field_random_kernel_type( r_theta) , &
                  assign_field_random_kernel_type( r_exner) )
 
-    do i = 1, num_moist_factors
-      call invoke( assign_field_random_kernel_type( r_moist_dyn(i) ) )
-    end do
    do i = 1, nummr
       call invoke( assign_field_random_kernel_type( r_mr(i) ) )
     end do
@@ -236,21 +235,24 @@ module tl_test_semi_imp_alg_mod
 
     call semi_implicit_alg_final()
 
-    gamma_u = 1.e4
-    gamma_theta = 1.e2
-    gamma_rho = 1.e0
-    gamma_exner = 6.5e-1
-    gamma_moist_dyn=1.e0
-    gamma_mr=1.e0
+    gamma_u = 1.e4_r_def
+    gamma_theta = 1.e2_r_def
+    gamma_rho = 1.e0_r_def
+    gamma_exner = 6.5e-1_r_def
+
+    if (use_moisture) then
+      gamma_mr = 1.e-1_r_def
+    else
+      gamma_mr = 0.0_r_def
+    end if
 
     do n=1,2
 
-      gamma_u = gamma_u/2.
-      gamma_theta = gamma_theta/2.
-      gamma_rho = gamma_rho/2.
-      gamma_exner = gamma_exner/2.
-      gamma_moist_dyn = gamma_moist_dyn/2.
-      gamma_mr = gamma_mr/2.
+      gamma_u = gamma_u / 2.0_r_def
+      gamma_theta = gamma_theta / 2.0_r_def
+      gamma_rho = gamma_rho / 2.0_r_def
+      gamma_exner = gamma_exner / 2.0_r_def
+      gamma_mr = gamma_mr / 2.0_r_def
 
       call invoke( a_times_X( p_u, gamma_u, r_u ),              &
                    a_times_X( p_theta, gamma_theta, r_theta ),  &
@@ -265,19 +267,21 @@ module tl_test_semi_imp_alg_mod
                    inc_X_plus_Y( n_rho, p_rho ),              &
                    inc_X_plus_Y( n_exner, p_exner ) )
 
-      do i = 1, num_moist_factors
-        call invoke( &
-          a_times_X( p_moist_dyn(i), gamma_moist_dyn, r_moist_dyn(i) ), &
-          setval_X( n_moist_dyn(i), ls_moist_dyn(i) ),                       &
-          inc_X_plus_Y( n_moist_dyn(i), p_moist_dyn(i) ) )
-      end do
-
-     do i = 1, nummr
+      do i = 1, nummr
         call invoke( &
           a_times_X( p_mr(i), gamma_mr, r_mr(i) ), &
           setval_X( n_mr(i), ls_mr(i) ),                       &
           inc_X_plus_Y( n_mr(i), p_mr(i) ) )
       end do
+
+      call invoke(moist_dyn_factors_kernel_type(n_moist_dyn, &
+                                                n_mr,        &
+                                                recip_epsilon))
+
+      call invoke(tl_moist_dyn_factors_kernel_type(p_moist_dyn, &
+                                                   p_mr,        &
+                                                   recip_epsilon))
+
 
       call semi_implicit_alg_init(mesh_id, n_u, n_rho, n_theta, n_exner, n_mr)
 
@@ -321,15 +325,6 @@ module tl_test_semi_imp_alg_mod
                    inc_X_minus_Y( diff_theta, p_theta ),             &
                    X_innerproduct_X( norm_theta, diff_theta ) )
 
-      norm_moist_dyn=0.0_r_def
-      do i = 1, num_moist_factors
-        call invoke( &
-          X_minus_Y( diff_moist_dyn(i), n_moist_dyn(i), moist_dyn(i) ),   &
-          inc_X_minus_Y( diff_moist_dyn(i), p_moist_dyn(i) ),             &
-          X_innerproduct_X( norm_moist_dyn_tmp, diff_moist_dyn(i) ) )
-          norm_moist_dyn = norm_moist_dyn + norm_moist_dyn_tmp
-      end do
-
       norm_mr=0.0_r_def
       do i = 1, nummr
         call invoke( &
@@ -347,20 +342,19 @@ module tl_test_semi_imp_alg_mod
       call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
       write( log_scratch_space, &
-            '(A, E32.12, A, E32.12 )' )     &
-             ' norm_theta = ' , norm_theta, &
-             ' norm_moist_dyn = ' , norm_moist_dyn
-
-      call log_event( log_scratch_space, LOG_LEVEL_INFO )
-
-      write( log_scratch_space, &
             '(A, E32.12, A, E32.12 )' ) &
              ' norm_mr = ' , norm_mr,   &
              ' norm_exner = ' , norm_exner
 
       call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
-      norm_diff = norm_rho + norm_theta + norm_exner + norm_u + norm_moist_dyn + norm_mr
+      write( log_scratch_space, &
+            '(A, E32.12 )' )     &
+             ' norm_theta = ' , norm_theta
+
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+      norm_diff = norm_rho + norm_theta + norm_exner + norm_u + norm_mr
       norm_diff = sqrt(norm_diff)
 
       if (n == 2) then
