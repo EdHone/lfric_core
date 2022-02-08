@@ -35,7 +35,6 @@ contains
     ! Prognostic fields
     type( field_type ), pointer :: zh             => null()
     type( field_type ), pointer :: z_lcl          => null()
-    type( field_type ), pointer :: du_bl          => null()
     type( field_type ), pointer :: wvar           => null()
     type( field_type ), pointer :: heat_flux_bl   => null()
     type( field_type ), pointer :: moist_flux_bl  => null()
@@ -55,7 +54,6 @@ contains
 
     zh             => turbulence_fields%get_field('zh')
     z_lcl          => turbulence_fields%get_field('z_lcl')
-    du_bl          => turbulence_fields%get_field('du_bl')
     wvar           => turbulence_fields%get_field('wvar')
     heat_flux_bl   => turbulence_fields%get_field('heat_flux_bl')
     moist_flux_bl  => turbulence_fields%get_field('moist_flux_bl')
@@ -77,7 +75,6 @@ contains
     ! or when no values is provided by the um2lfric dump
     call invoke( setval_c(zh,          1000.0_r_def), &
                  setval_c(z_lcl,          0.0_r_def), &
-                 setval_c(du_bl,          0.0_r_def), &
                  setval_c(wvar,           0.0_r_def), &
                  setval_c(heat_flux_bl,   0.0_r_def), &
                  setval_c(moist_flux_bl,  0.0_r_def), &

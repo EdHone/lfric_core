@@ -9,16 +9,16 @@ module bl_imp_du_kernel_mod
 
   use kernel_mod,               only: kernel_type
   use argument_mod,             only: arg_type, func_type,                    &
-                                      GH_FIELD, GH_INC, GH_READ, CELL_COLUMN, &
-                                      ANY_SPACE_1, ANY_SPACE_2, GH_INTEGER,   &
-                                      GH_REAL, GH_SCALAR
+                                      GH_FIELD, GH_READ, CELL_COLUMN,         &
+                                      ANY_SPACE_1, ANY_SPACE_2,               &
+                                      GH_INTEGER, GH_REAL, GH_SCALAR, GH_WRITE
   use constants_mod,            only: r_def, i_def
-  use fs_continuity_mod,        only: W1, W2
+  use fs_continuity_mod,        only: W1, W2, WTheta
   use kernel_mod,               only: kernel_type
   use nlsizes_namelist_mod,     only: bl_levels
   use planet_config_mod,        only: radius
   use timestepping_config_mod,  only: outer_iterations
-  use blayer_config_mod,        only: fric_heating
+  use blayer_config_mod,        only: fric_heating, bl_mix_w
 
   implicit none
 
@@ -32,27 +32,28 @@ module bl_imp_du_kernel_mod
   !> Kernel metadata type.
   type, public, extends(kernel_type) :: bl_imp_du_kernel_type
     private
-    type(arg_type) :: meta_args(20) = (/                    &
-         arg_type(GH_SCALAR, GH_INTEGER, GH_READ),          &! outer
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! du_bl
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! dissip
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! tau
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! wind10m
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! wind10m_neut
-         arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_SPACE_1), &! tau_land
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! tau_ssi
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! pseudotau
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! rhokm
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W1),          &! rdz
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! dtrdz
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! wetrho
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! u_physics
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! u_physics_star
-         arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_SPACE_2), &! surf_interp
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! du_conv
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! dA
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W1),          &! height_w1
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2)           &! height_w2
+    type(arg_type) :: meta_args(21) = (/                     &
+         arg_type(GH_SCALAR, GH_INTEGER, GH_READ),           &! outer
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, W2),          &! du_bl
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, W2),          &! dissip
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, W2),          &! tau
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_SPACE_1), &! wind10m
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_SPACE_1), &! wind10m_neut
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_SPACE_1), &! tau_land
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_SPACE_1), &! tau_ssi
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_SPACE_1), &! pseudotau
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! rhokm
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W1),          &! rdz
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! dtrdz
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! wetrho
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! u_physics
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! u_physics_star
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_SPACE_2), &! surf_interp
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! du_conv
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  WTheta),      &! dw_bl
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! dA
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W1),          &! height_w1
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2)           &! height_w2
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -85,7 +86,8 @@ contains
   !> @param[in]     u_physics      Wind in native space at time n
   !> @param[in]     u_physics_star Wind in native space after advection
   !> @param[in]     surf_interp    Surface variables which need interpolating
-  !> @param[in]     ngstress       NG stress function mapped to cell faces
+  !> @param[in]     du_conv        Wind increment from convection
+  !> @param[in]     dw_bl          Vertical wind increment from explicit BL
   !> @param[in]     dA             Area of faces
   !> @param[in]     height_w1      Height of cell top/bottom above surface
   !> @param[in]     height_w2      Height of cell centre above surface
@@ -101,6 +103,9 @@ contains
   !> @param[in]     ndf_w2_surf    Number of DOFs per cell for w2 surface space
   !> @param[in]     undf_w2_surf   Number of unique DOFs for w2 surface space
   !> @param[in]     map_w2_surf    Dofmap for the cell at the base of the column
+  !> @param[in]     ndf_wth        No of DOFs per cell for wtheta space
+  !> @param[in]     undf_wth       No of unique DOFs for wtheta space
+  !> @param[in]     map_wth        DOFmap for cell at base of wtheta column
   subroutine bl_imp_du_code(nlayers,       &
                             outer,         &
                             du_bl,         &
@@ -119,6 +124,7 @@ contains
                             u_physics_star,&
                             surf_interp,   &
                             du_conv,       &
+                            dw_bl,         &
                             dA,            &
                             height_w1,     &
                             height_w2,     &
@@ -133,7 +139,10 @@ contains
                             map_w1,        &
                             ndf_w2_surf,   &
                             undf_w2_surf,  &
-                            map_w2_surf)
+                            map_w2_surf,   &
+                            ndf_wth,       &
+                            undf_wth,      &
+                            map_wth)
 
     !---------------------------------------
     ! UM modules containing switches or global constants
@@ -153,6 +162,8 @@ contains
     integer(kind=i_def), intent(in) :: map_w2_surf(ndf_w2_surf)
     integer(kind=i_def), intent(in) :: ndf_w1, undf_w1
     integer(kind=i_def), intent(in) :: map_w1(ndf_w1)
+    integer(kind=i_def), intent(in) :: ndf_wth, undf_wth
+    integer(kind=i_def), intent(in) :: map_wth(ndf_wth)
 
     real(kind=r_def), dimension(undf_w2),  intent(inout) :: du_bl, dissip, tau
     real(kind=r_def), dimension(undf_w2_2d), intent(inout) :: wind10m,         &
@@ -163,6 +174,7 @@ contains
     real(kind=r_def), dimension(undf_w2_2d), intent(in) :: tau_land
     real(kind=r_def), dimension(undf_w2_surf), intent(in) :: surf_interp
     real(kind=r_def), dimension(undf_w1),   intent(in) :: height_w1, rdz
+    real(kind=r_def), dimension(undf_wth),  intent(in) :: dw_bl
 
     ! Internal variables
     integer(kind=i_def) :: k, df, k_blend
@@ -381,6 +393,13 @@ contains
       end if ! this face needs calculating
 
     end do ! loop over df
+
+    if (bl_mix_w) then
+      ! Copy dw_bl increment into du_bl
+      do k = 1, bl_levels
+        du_bl(map_w2(5)+k) = dw_bl(map_wth(1)+k)
+      end do
+    end if
 
   end subroutine bl_imp_du_code
 

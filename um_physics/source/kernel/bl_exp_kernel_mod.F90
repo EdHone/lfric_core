@@ -9,7 +9,7 @@ module bl_exp_kernel_mod
   use argument_mod,           only : arg_type,                   &
                                      GH_FIELD, GH_REAL,          & 
                                      GH_INTEGER,                 &
-                                     GH_READ, GH_WRITE, GH_INC,  &
+                                     GH_READ, GH_WRITE,          &
                                      GH_READWRITE, CELL_COLUMN,  &
                                      ANY_DISCONTINUOUS_SPACE_1,  &
                                      ANY_DISCONTINUOUS_SPACE_2,  &
@@ -26,7 +26,7 @@ module bl_exp_kernel_mod
                                      STENCIL, CROSS
   use constants_mod,          only : i_def, i_um, r_def, r_um, rmdi
   use empty_data_mod,         only : empty_real_data
-  use fs_continuity_mod,      only : W3, Wtheta, W2
+  use fs_continuity_mod,      only : W3, Wtheta
   use kernel_mod,             only : kernel_type
   use blayer_config_mod,      only : fixed_flux_e, fixed_flux_h, flux_bc_opt, &
                                      flux_bc_opt_specified_scalars, bl_mix_w
@@ -38,7 +38,8 @@ module bl_exp_kernel_mod
   use mixing_config_mod,      only : smagorinsky
   use surface_config_mod,     only : albedo_obs, sea_surf_alg, &
                                      sea_surf_alg_fixed_roughness, &
-                                     formdrag, formdrag_dist_drag
+                                     formdrag, formdrag_dist_drag, &
+                                     buddy_sea, buddy_sea_on
   use timestepping_config_mod, only: outer_iterations
   use water_constants_mod,     only: tfs
 
@@ -129,7 +130,7 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! wvar
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! visc_m_blend
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! visc_h_blend
-         arg_type(GH_FIELD, GH_REAL,  GH_INC,       W2),                       &! du_bl
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! dw_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! rhokm_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_7),&! surf_interp
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! rhokh_bl
@@ -284,7 +285,7 @@ contains
   !> @param[in,out] wvar                   Vertical velocity variance in wth
   !> @param[in,out] visc_m_blend           Blended BL-Smag diffusion coefficient for momentum
   !> @param[in,out] visc_h_blend           Blended BL-Smag diffusion coefficient for scalars
-  !> @param[in,out] du_bl                  Wind increment from BL scheme
+  !> @param[in,out] dw_bl                  Vertical wind increment from BL scheme
   !> @param[in,out] rhokm_bl               Momentum eddy diffusivity on BL levels
   !> @param[in,out] surf_interp            Surface variables for regridding
   !> @param[in,out] rhokh_bl               Heat eddy diffusivity on BL levels
@@ -470,7 +471,7 @@ contains
                          wvar,                                  &
                          visc_m_blend,                          &
                          visc_h_blend,                          &
-                         du_bl,                                 &
+                         dw_bl,                                 &
                          rhokm_bl,                              &
                          surf_interp,                           &
                          rhokh_bl,                              &
@@ -548,7 +549,6 @@ contains
                          ndf_sice, undf_sice, map_sice,         &
                          ndf_snow, undf_snow, map_snow,         &
                          ndf_soil, undf_soil, map_soil,         &
-                         ndf_w2, undf_w2, map_w2,               &
                          ndf_surf, undf_surf, map_surf,         &
                          ndf_smtile, undf_smtile, map_smtile,   &
                          ndf_bl, undf_bl, map_bl,               &
@@ -626,8 +626,6 @@ contains
     integer(kind=i_def), intent(in) :: map_pft(ndf_pft)
     integer(kind=i_def), intent(in) :: ndf_soil, undf_soil
     integer(kind=i_def), intent(in) :: map_soil(ndf_soil)
-    integer(kind=i_def), intent(in) :: ndf_w2, undf_w2
-    integer(kind=i_def), intent(in) :: map_w2(ndf_w2)
     integer(kind=i_def), intent(in) :: ndf_sice, undf_sice
     integer(kind=i_def), intent(in) :: map_sice(ndf_sice)
     integer(kind=i_def), intent(in) :: ndf_snow, undf_snow
@@ -654,8 +652,7 @@ contains
 
     real(kind=r_def), dimension(undf_wth), intent(inout):: rh_crit,            &
                                                            dsldzm,             &
-                                                           wvar
-    real(kind=r_def), dimension(undf_w2),  intent(inout):: du_bl
+                                                           wvar, dw_bl
 
     real(kind=r_def), dimension(undf_wth), intent(inout):: visc_h_blend,       &
                                                            visc_m_blend,       &
@@ -1017,17 +1014,33 @@ contains
     flandg = 0.0_r_um
     do i = 1, n_land_tile
       flandg(1,1) = flandg(1,1) + real(tile_fraction(tile_stencil(1,1)+i-1), r_um)
-      flandg(0,1) = flandg(0,1) + real(tile_fraction(tile_stencil(1,2)+i-1), r_um)
-      flandg(1,0) = flandg(1,0) + real(tile_fraction(tile_stencil(1,3)+i-1), r_um)
-      flandg(2,1) = flandg(2,1) + real(tile_fraction(tile_stencil(1,4)+i-1), r_um)
-      flandg(1,2) = flandg(1,2) + real(tile_fraction(tile_stencil(1,5)+i-1), r_um)
       frac_surft(1, i) = real(tile_fraction(tile_stencil(1,1)+i-1), r_um)
     end do
-    ! Set these to land to exclude them until full stencil is available
-    flandg(0,0) = 1.0_r_um
-    flandg(0,2) = 1.0_r_um
-    flandg(2,0) = 1.0_r_um
-    flandg(2,2) = 1.0_r_um
+    if (buddy_sea == buddy_sea_on) then
+      do i = 1, n_land_tile
+        flandg(0,1) = flandg(0,1) + real(tile_fraction(tile_stencil(1,2)+i-1), r_um)
+        flandg(1,0) = flandg(1,0) + real(tile_fraction(tile_stencil(1,3)+i-1), r_um)
+        flandg(2,1) = flandg(2,1) + real(tile_fraction(tile_stencil(1,4)+i-1), r_um)
+        flandg(1,2) = flandg(1,2) + real(tile_fraction(tile_stencil(1,5)+i-1), r_um)
+      end do
+      ! Set these to land to exclude them until full stencil is available
+      flandg(0,0) = 1.0_r_um
+      flandg(0,2) = 1.0_r_um
+      flandg(2,0) = 1.0_r_um
+      flandg(2,2) = 1.0_r_um
+      ! Set winds in stencil region
+      u_px(0,1,1) = u1_in_w3(u1_w3_stencil(1,2))
+      u_px(1,0,1) = u1_in_w3(u1_w3_stencil(1,3))
+      u_px(2,1,1) = u1_in_w3(u1_w3_stencil(1,4))
+      u_px(1,2,1) = u1_in_w3(u1_w3_stencil(1,5))
+      v_px(0,1,1) = u2_in_w3(u2_w3_stencil(1,2))
+      v_px(1,0,1) = u2_in_w3(u2_w3_stencil(1,3))
+      v_px(2,1,1) = u2_in_w3(u2_w3_stencil(1,4))
+      v_px(1,2,1) = u2_in_w3(u2_w3_stencil(1,5))
+    else
+      flandfac = 1.0_r_def
+      fseafac = 1.0_r_def
+    end if
 
     ! Sea-ice fraction
     i_sice = 0
@@ -1321,16 +1334,8 @@ contains
       exner_theta_levels(1,1,k) = exner_in_wth(map_wth(1) + k)
       ! u wind on rho levels
       u_px(1,1,k) = u1_in_w3(u1_w3_stencil(1,1) + k-1)
-      u_px(0,1,k) = u1_in_w3(u1_w3_stencil(1,2) + k-1)
-      u_px(1,0,k) = u1_in_w3(u1_w3_stencil(1,3) + k-1)
-      u_px(2,1,k) = u1_in_w3(u1_w3_stencil(1,4) + k-1)
-      u_px(1,2,k) = u1_in_w3(u1_w3_stencil(1,5) + k-1)
       ! v wind on rho levels
       v_px(1,1,k) = u2_in_w3(u2_w3_stencil(1,1) + k-1)
-      v_px(0,1,k) = u2_in_w3(u2_w3_stencil(1,2) + k-1)
-      v_px(1,0,k) = u2_in_w3(u2_w3_stencil(1,3) + k-1)
-      v_px(2,1,k) = u2_in_w3(u2_w3_stencil(1,4) + k-1)
-      v_px(1,2,k) = u2_in_w3(u2_w3_stencil(1,5) + k-1)
       ! w wind on theta levels
       w(1,1,k) = u3_in_wth(map_wth(1) + k)
       ! height of rho levels from centre of planet
@@ -1700,7 +1705,7 @@ contains
            )
 
       do k = 1, bl_levels
-        du_bl(map_w2(5)+k) = w_mixed(1,1,k) - w(1,1,k)
+        dw_bl(map_wth(1)+k) = w_mixed(1,1,k) - w(1,1,k)
       end do
 
     end if

@@ -75,7 +75,8 @@ module jules_physics_init_mod
                                      f_smc_p0 => fsmc_p0,                      &
                                      l_vg_bc_switch => l_vg_soil,              &
                                      use_variable_sst, heat_cap_sea,           &
-                                     evap_scale_sea
+                                     evap_scale_sea, buddy_sea_in => buddy_sea,&
+                                     buddy_sea_on
 
   ! UM modules used
   use jules_surface_types_mod, only : npft, nnvg
@@ -269,7 +270,7 @@ contains
     alpham               = real(alb_sice_melt, r_um)
     b_chrn_coare         = -0.0035_r_um
     beta_evap            = real(evap_scale_sea, r_um)
-    buddy_sea            = on
+    if (buddy_sea_in == buddy_sea_on) buddy_sea = on
     cdn_hw_sea           = real(cdn_highwind_sea, r_um)
     cdn_max_sea          = real(cdn_maximum_sea, r_um)
     dtice                = real(dt_ice_albedo, r_um)

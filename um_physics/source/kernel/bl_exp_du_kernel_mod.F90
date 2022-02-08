@@ -9,10 +9,11 @@ module bl_exp_du_kernel_mod
 
   use kernel_mod,               only: kernel_type
   use argument_mod,             only: arg_type, func_type,                    &
-                                      GH_FIELD, GH_INC, GH_READ, CELL_COLUMN, &
-                                      ANY_SPACE_1, ANY_SPACE_2, GH_REAL
+                                      GH_FIELD, GH_READ, CELL_COLUMN,         &
+                                      ANY_SPACE_1, ANY_SPACE_2,               &
+                                      GH_REAL, GH_WRITE
   use constants_mod,            only: r_def, i_def
-  use fs_continuity_mod,        only: W2, W1
+  use fs_continuity_mod,        only: W1, W2
   use kernel_mod,               only: kernel_type
   use nlsizes_namelist_mod,     only: bl_levels
   use surface_config_mod,       only: formdrag, formdrag_dist_drag
@@ -27,16 +28,16 @@ module bl_exp_du_kernel_mod
   !> Kernel metadata type.
   type, public, extends(kernel_type) :: bl_exp_du_kernel_type
     private
-    type(arg_type) :: meta_args(9) = (/                     &
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),          &! tau
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! tau_land
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1), &! tau_ssi
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! rhokm
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W1),          &! rdz
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! u_physics
-         arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_SPACE_2), &! surf_interp
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2),          &! ngstress
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W2)           &! fd_tau
+    type(arg_type) :: meta_args(9) = (/                      &
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, W2),          &! tau
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_SPACE_1), &! tau_land
+         arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_SPACE_1), &! tau_ssi
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! rhokm
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W1),          &! rdz
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! u_physics
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_SPACE_2), &! surf_interp
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2),          &! ngstress
+         arg_type(GH_FIELD, GH_REAL, GH_READ,  W2)           &! fd_tau
          /)
     integer :: operates_on = CELL_COLUMN
   contains

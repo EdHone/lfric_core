@@ -192,8 +192,7 @@ contains
     ! ...for methane oxidation
     type( field_type ) :: dmv_methox
     ! ...for boundary layer
-    type( field_type ) :: dtheta_bl
-    type( field_type ), pointer :: du_bl => null()
+    type( field_type ) :: dtheta_bl, du_bl
 #ifdef UM_PHYSICS
     ! ...for Convection
     type( field_type ), pointer :: dmv_conv => null()
@@ -514,7 +513,7 @@ contains
     ! UM implicit boundary layer and Jules surface schemes
     !--------------------------------------------------------------------
       if (blayer_placement == blayer_placement_slow) then
-        du_bl => turbulence_fields%get_field('du_bl')
+        call du%copy_field_properties(du_bl)
         call bl_imp_alg(dtheta_bl, du_bl, mr, snow_sublimation,             &
                         surf_heat_flux, canopy_evap, water_extraction,      &
                         total_snowmelt, theta, exner, mr_n, rho,            &

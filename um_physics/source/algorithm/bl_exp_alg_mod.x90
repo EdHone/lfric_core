@@ -22,7 +22,8 @@ module bl_exp_alg_mod
                                            get_rdz_fd1
   use map_fd_to_prognostics_alg_mod, only: set_wind
   use jules_control_init_mod,        only: n_surf_interp
-  use surface_config_mod,            only: formdrag, formdrag_dist_drag
+  use surface_config_mod,            only: formdrag, formdrag_dist_drag, &
+                                           buddy_sea, buddy_sea_on
 
   use io_config_mod,        only: subroutine_timers
   use timer_mod,            only: timer
@@ -71,7 +72,7 @@ contains
 
     use bl_exp_kernel_mod, only: bl_exp_kernel_type
     use interp_bl_kernel_mod, only: interp_bl_kernel_type
-    use bl_exp_du_kernel_mod, only: bl_exp_du_kernel_type
+    use psykal_lite_phys_mod, only: invoke_bl_exp_du_kernel_type
     use planet_constants_mod, only: lcrcp, lsrcp
 
     implicit none
@@ -122,7 +123,7 @@ contains
     type( field_type ), pointer :: heat_flux_bl    => null()
     type( field_type ), pointer :: dtrdz_tq_bl     => null()
     type( field_type ), pointer :: rdz_tq_bl       => null()
-    type( field_type ), pointer :: du_bl           => null()
+    type( field_type ), pointer :: dw_bl           => null()
     type( field_type ), pointer :: lmix_bl         => null()
     type( field_type ), pointer :: dsldzm          => null()
     type( field_type ), pointer :: wvar            => null()
@@ -245,8 +246,7 @@ contains
          fd_tau_w2, rhokm_bl, ngstress_bl, fd_taux, fd_tauy, fd_tauz,          &
          surf_interp, zht, z0h_eff
 
-    integer(i_def), parameter :: stencil_depth = 1
-    integer(i_def) :: mesh_id
+    integer(i_def) :: mesh_id, stencil_depth
 
     if ( subroutine_timers ) call timer('bl_exp_alg')
 
@@ -284,7 +284,7 @@ contains
     heat_flux_bl    => turbulence_fields%get_field('heat_flux_bl')
     dtrdz_tq_bl     => turbulence_fields%get_field('dtrdz_tq_bl')
     rdz_tq_bl       => turbulence_fields%get_field('rdz_tq_bl')
-    du_bl           => turbulence_fields%get_field('du_bl')
+    dw_bl           => turbulence_fields%get_field('dw_bl')
     lmix_bl         => turbulence_fields%get_field('lmix_bl')
     dsldzm          => turbulence_fields%get_field('dsldzm')
     wvar            => turbulence_fields%get_field('wvar')
@@ -429,6 +429,13 @@ contains
                                                      0, W3, n_surf_interp)
     call surf_interp%initialise(vector_space)
 
+    ! Set stencil depth if required
+    if (buddy_sea == buddy_sea_on) then
+      stencil_depth = 1
+    else
+      stencil_depth = 0
+    end if
+
                 ! Calculate TL = T - (lc/cp)*mcl - ((lc+lf)/cp)*mci
     call invoke(     X_times_Y(dtl_mphys, dtheta_mphys, exner_in_wth),         &
                 inc_X_minus_bY(dtl_mphys, lcrcp, dmr_mphys(imr_cl)),           &
@@ -466,7 +473,7 @@ contains
                            dtl_mphys, dmt_mphys,                               &
                            sw_heating_rate, lw_heating_rate, ozone,            &
                            cf_bulk, cf_liquid, rh_crit, dsldzm, wvar,          &
-                           visc_m, visc_h, du_bl,                              &
+                           visc_m, visc_h, dw_bl,                              &
                            rhokm_bl, surf_interp, rhokh_bl, tke_bl,            &
                            ngstress_bl, bq_bl, bt_bl, moist_flux_bl,           &
                            heat_flux_bl, dtrdz_tq_bl, rdz_tq_bl,               &
@@ -510,9 +517,9 @@ contains
     end if
 
     ! Calculate explicit momentum diffusion on cell faces
-    call invoke(bl_exp_du_kernel_type(tau_w2, tau_land_w2, tau_ssi_w2,         &
+    call invoke_bl_exp_du_kernel_type(tau_w2, tau_land_w2, tau_ssi_w2,         &
                                       rhokm_w2, rdz, u_physics,                &
-                                      surf_interp_w2, ngstress_w2, fd_tau_w2) )
+                                      surf_interp_w2, ngstress_w2, fd_tau_w2)
 
     if ( subroutine_timers ) call timer('bl_exp_alg')
 

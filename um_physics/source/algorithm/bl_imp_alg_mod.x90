@@ -79,7 +79,7 @@ contains
                         outer, clock)
 
     use bl_imp_kernel_mod, only: bl_imp_kernel_type
-    use bl_imp_du_kernel_mod, only: bl_imp_du_kernel_type
+    use psykal_lite_phys_mod, only: invoke_bl_imp_du_kernel_type
 
     implicit none
 
@@ -133,6 +133,7 @@ contains
     type( field_type ), pointer :: gradrinr       => null()
     type( field_type ), pointer :: rhokm_w2       => null()
     type( field_type ), pointer :: tau_w2         => null()
+    type( field_type ), pointer :: dw_bl          => null()
 
     type( field_type ), pointer :: ls_rain => null()
     type( field_type ), pointer :: ls_snow => null()
@@ -270,6 +271,7 @@ contains
     gradrinr        => turbulence_fields%get_field('gradrinr')
     rhokm_w2        => turbulence_fields%get_field('rhokm_w2')
     tau_w2          => turbulence_fields%get_field('tau_w2')
+    dw_bl           => turbulence_fields%get_field('dw_bl')
 
     ! Unpack cloud fields
     cf_area  => cloud_fields%get_field('area_fraction')
@@ -411,25 +413,22 @@ contains
     call tau_ssi_w2%copy_field_properties(wind10m_neut_w2)
     call tau_ssi_w2%copy_field_properties(pseudotau_w2)
 
-    call invoke(set_any_dof_kernel_type(du_bl, W, 0.0_r_def),                  &
-                set_any_dof_kernel_type(du_bl, S, 0.0_r_def),                  &
-                set_any_dof_kernel_type(du_bl, E, 0.0_r_def),                  &
-                set_any_dof_kernel_type(du_bl, N, 0.0_r_def),                  &
+    call invoke(setval_c(du_bl, 0.0_r_def),                                    &
                 setval_c(dissip, 0.0_r_def),                                   &
                 setval_c(wind10m_w2, 0.0_r_def),                               &
                 setval_c(wind10m_neut_w2, 0.0_r_def),                          &
-                setval_c(pseudotau_w2, 0.0_r_def),                             &
+                setval_c(pseudotau_w2, 0.0_r_def))
 
                 ! LFRic calculation of du on cell faces
-                bl_imp_du_kernel_type(outer, du_bl, dissip, tau_w2,            &
+    call invoke_bl_imp_du_kernel_type(outer, du_bl, dissip, tau_w2,            &
                                       wind10m_w2, wind10m_neut_w2,             &
                                       tau_land_w2, tau_ssi_w2, pseudotau_w2,   &
                                       rhokm_w2, rdz, dtrdz, wetrho_in_w2,      &
                                       u_physics, u_physics_star,               &
-                                      surf_interp_w2, du_conv_w2, dA,          &
-                                      height_w1, height_w2),                   &
+                                      surf_interp_w2, du_conv_w2, dw_bl, dA,   &
+                                      height_w1, height_w2)
                 ! Map the wind back into dynamics quantities
-                inc_X_times_Y(du_bl, dA),                                      &
+    call invoke(inc_X_times_Y(du_bl, dA),                                      &
                 inc_X_times_Y(dissip, dA) )
 
     if (fric_heating) then

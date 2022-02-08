@@ -502,19 +502,19 @@ contains
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'dtrdz_tq_bl', wtheta_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'rhokh_bl', w3_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'rdz_tq_bl', w3_space )
+      'dw_bl', wtheta_space )
 
     ! 3D fields on W3 (rho) levels
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'moist_flux_bl',     w3_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'heat_flux_bl',     w3_space )
+    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
+      'rhokh_bl', w3_space )
+    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
+      'rdz_tq_bl', w3_space )
 
     ! W2 fields, don't need checkpointing
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'du_bl', w2_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'rhokm_w2', w2_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &

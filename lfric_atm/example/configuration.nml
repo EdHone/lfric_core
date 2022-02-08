@@ -211,6 +211,7 @@ alb_snofree_nvg=0.18,0.12,-1.0,0.75,
 albedo_obs=.false.,
 basal_melting='none',
 blue_sky_alb=.true.,
+buddy_sea='On',
 can_cap_nvg=0.5,0.0,0.0,0.0
 can_clump=1.0,4.0,1.0,1.0,1.0
 can_rad_mod='four'
