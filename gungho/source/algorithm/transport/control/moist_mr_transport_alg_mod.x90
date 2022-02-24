@@ -71,10 +71,10 @@ contains
 
     ! Internal variables
     integer(kind=i_def)                :: i, imr
+    integer(kind=i_def)                :: num_dry_steps
     type(field_type)                   :: matrix_mr_to_sh_mass_n(3)
     type(field_type)                   :: matrix_mr_to_sh_mass_star(3)
     type(field_type)                   :: rho_X_n(nummr), rho_X_star(nummr)
-    type(field_type)                   :: moist_flux
     type(field_type),          pointer :: rho_d_n => null()
     type(field_type),          pointer :: rho_d_star => null()
     type(field_type),          pointer :: mm_w3_shifted_inv_diag => null()
@@ -133,12 +133,12 @@ contains
         call rho_X_star(imr)%initialise( vector_space=w3_shifted_fs )
       end do
 
-      ! Note: Moist flux is currently passed through and unused
-      call moist_flux%initialise( vector_space=w2_shifted_fs )
-
       ! Get dry density from transport runtime
-      rho_d_n => transport_runtime%get_rho_d_n(primary_mesh%get_id())
-      rho_d_star => transport_runtime%get_rho_d_np1(primary_mesh%get_id())
+      ! rho_d_n is from first step
+      rho_d_n => transport_runtime%get_rho_d_n(primary_mesh%get_id(), 1)
+      ! rho_d_np1 is from final step
+      num_dry_steps = transport_runtime%get_num_dry_steps()
+      rho_d_star => transport_runtime%get_rho_d_np1(primary_mesh%get_id(), num_dry_steps)
 
       ! Use dry densities to get tridiagonal matrices
       call invoke( name = "calculate_tridiagonal_matrix_values",                 &
@@ -168,7 +168,7 @@ contains
         ! -------------------------------------------------------------------- !
 
         call transport_field(rho_X_star(imr), rho_X_n(imr), model_dt, &
-                             transport_metadata, flux=moist_flux)
+                             transport_metadata)
 
         ! -------------------------------------------------------------------- !
         ! Return from densities on shifted mesh to mixing ratios in Wtheta

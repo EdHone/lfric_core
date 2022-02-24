@@ -219,6 +219,7 @@
   cfl_mol_1d_stab = 2.0
   cfl_mol_2d_stab = 2.0
   cfl_mol_3d_stab = 2.0
+  dry_field_name = 'density'
   consistent_metric  = .false.
   fv_flux_order = 2
   fv_advective_order = 2

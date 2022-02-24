@@ -41,10 +41,7 @@ contains
   !> @param[in]     model_dt           Time difference across time step
   !> @param[in]     transport_metadata Contains the configuration options for
   !!                                   transporting these fields
-  !> @param[in,out] flux               (Optional) mass flux, to be returned when
-  !!                                   solving the equation in conservative form
-  subroutine transport_field(field_np1, field_n, model_dt, &
-                             transport_metadata, flux)
+  subroutine transport_field(field_np1, field_n, model_dt, transport_metadata)
 
     implicit none
 
@@ -53,15 +50,6 @@ contains
     type(field_type),              intent(in)    :: field_n
     real(kind=r_def),              intent(in)    :: model_dt
     type(transport_metadata_type), intent(in)    :: transport_metadata
-    type(field_type),   optional,  intent(inout) :: flux
-
-    ! Check whether flux has been provided
-    if (.not. present(flux) .and. &
-        transport_metadata%get_equation() == equation_conservative) then
-
-        call log_event('For conservative form of transport equation, ' // &
-                       'a flux field must be supplied', LOG_LEVEL_ERROR)
-    end if
 
     ! First choose scheme, and for full 3D schemes then choose equation
     select case ( transport_metadata%get_scheme() )
@@ -73,12 +61,12 @@ contains
       ! Choose form of transport equation
       select case ( transport_metadata%get_equation() )
       case ( equation_conservative )
-         call mol_conservative_alg(field_np1, field_n, flux, direction_3d, &
-                                   transport_metadata            )
+         call mol_conservative_alg(field_np1, field_n, &
+                                   direction_3d, transport_metadata)
 
       case ( equation_advective )
-         call mol_advective_alg(field_np1, field_n, direction_3d, &
-                                transport_metadata      )
+         call mol_advective_alg(field_np1, field_n, &
+                                direction_3d, transport_metadata)
 
       case default
         call log_event('Trying to solve unrecognised form of transport equation', &
@@ -93,7 +81,7 @@ contains
       ! Choose form of transport equation
       select case ( transport_metadata%get_equation() )
       case ( equation_conservative )
-        call ffsl_conservative_control(field_np1, flux, field_n, direction_3d, &
+        call ffsl_conservative_control(field_np1, field_n, direction_3d, &
                                        model_dt, transport_metadata)
 
       case ( equation_advective )
@@ -111,7 +99,7 @@ contains
     ! -------------------------------------------------------------------------!
     case ( scheme_split )
       call split_transport_control(field_np1, field_n, model_dt, &
-                                   transport_metadata, flux)
+                                   transport_metadata)
 
     case default
       call log_event('Trying to transport with unrecognised scheme', &

@@ -248,7 +248,7 @@ contains
     integer(kind=i_def), intent(in)    :: nummr_to_transport
 
     real(kind=r_def)             :: current_time
-    type(field_type)             :: dry_flux, rho_n, theta_n
+    type(field_type)             :: rho_n, theta_n
     type(field_type)             :: tracer_n, mr_n(nummr)
 
     type(transport_runtime_type) :: transport_runtime
@@ -271,25 +271,17 @@ contains
     transport_runtime = transport_runtime_type(wind, wind, model_dt, shifted_mesh)
     call set_transport_runtime(transport_runtime)
 
-    call dry_flux%initialise(vector_space = wind%get_function_space())
-
     ! Transport dry density
     call log_event( "Transporting density...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('rho')
     call rho%copy_field(rho_n)
-    call transport_field(rho, rho_n, model_dt, &
-                         transport_metadata, flux=dry_flux)
-
-    ! Update transport runtime here with dry flux and dry density
-    call transport_runtime%set_dry_fields(rho_n, rho, dry_flux)
-    call set_transport_runtime(transport_runtime)
+    call transport_field(rho, rho_n, model_dt, transport_metadata)
 
     ! Transport potential temperature
     call log_event( "Transporting potential temperature...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('theta')
     call theta%copy_field(theta_n)
-    call transport_field(theta, theta_n, model_dt, &
-                         transport_metadata)
+    call transport_field(theta, theta_n, model_dt, transport_metadata)
 
     ! Transport W3 tracer
     call log_event( "Transporting tracer...", LOG_LEVEL_INFO)

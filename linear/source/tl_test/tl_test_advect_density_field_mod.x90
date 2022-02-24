@@ -84,7 +84,6 @@ module tl_test_advect_density_field_mod
 
     ! Temporary
     type(field_type) :: n_rho_np1, ls_rho_np1, p_rho_np1
-    type(field_type) :: dummy_flux
 
     ! Test
     type(field_type) :: diff
@@ -127,8 +126,6 @@ module tl_test_advect_density_field_mod
       function_space_collection%get_fs(mesh, element_order, W3) )
     call p_rho_np1%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, W3) )
-    call dummy_flux%initialise( vector_space = &
-      function_space_collection%get_fs(mesh, element_order, W2) )
 
     ! Test
     call diff%initialise( vector_space = &
@@ -149,8 +146,7 @@ module tl_test_advect_density_field_mod
                  assign_field_random_kernel_type( random_rho, 1.0_r_def ), &
                  setval_C( n1_advection_inc, 0.0_r_def ) )
 
-    call transport_field( ls_rho_np1, ls_rho, dt, &
-                          transport_metadata, flux=dummy_flux )
+    call transport_field( ls_rho_np1, ls_rho, dt, transport_metadata )
     call invoke( X_minus_Y( n1_advection_inc, ls_rho_np1, ls_rho ) )
 
     gamma_u = 6.e7
@@ -171,8 +167,7 @@ module tl_test_advect_density_field_mod
       transport_runtime = transport_runtime_type(n_u, n_u, dt)
       call set_transport_runtime(transport_runtime)
 
-      call transport_field( n_rho_np1, n_rho, dt, &
-                            transport_metadata, flux=dummy_flux )
+      call transport_field( n_rho_np1, n_rho, dt, transport_metadata )
       call invoke( X_minus_Y( n2_advection_inc, n_rho_np1, n_rho ) )
 
       transport_runtime = transport_runtime_type(ls_u, ls_u, dt)

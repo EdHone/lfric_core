@@ -98,7 +98,7 @@ contains
     integer(kind=i_def),         intent(in)    :: t_step
 
     ! Internal variables
-    type(field_type)    :: dry_flux, temp_inc
+    type(field_type)    :: temp_inc
     type(field_type)    :: fields_np1(bundle_size)
     logical(kind=l_def) :: any_ffsl
     type(operator_type), pointer :: mm_wt => null()
@@ -135,8 +135,6 @@ contains
     call set_transport_runtime(transport_runtime)
 
     ! Initialise fields
-    ! Dry flux is currently a dummy
-    call dry_flux%initialise(vector_space = wind_n%get_function_space())
     call clone_bundle(advected_fields, fields_np1, bundle_size)
     call set_bundle_scalar(0.0_r_def, fields_np1, bundle_size)
 
@@ -153,10 +151,6 @@ contains
                              transport_metadata )
     call invoke( X_minus_Y( advection_inc(igh_d), fields_np1(igh_d), &
                             advected_fields(igh_d) ) )
-
-    ! Update transport runtime here with dry flux and dry density
-    call tl_transport_runtime%set_dry_fields(advected_fields(igh_d), &
-                                             fields_np1(igh_d), dry_flux)
 
     ! ------------------------------------------------------------------------ !
     ! Transport potential temperature

@@ -223,6 +223,7 @@ cfl_mol_1d_stab = 2.0
 cfl_mol_2d_stab = 2.0
 cfl_mol_3d_stab = 2.0
 consistent_metric=.false.,
+dry_field_name='density'
 ffsl_advective_splitting='full'
 ffsl_flux_splitting='full'
 fv_advective_order=2,
