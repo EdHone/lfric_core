@@ -312,17 +312,18 @@ contains
   !> @param[in]     ls_exner               Exner pressure
   !> @param[in]     ls_mr                  Mixing ratios
   !> @param[in]     ls_moist_dyn           Factors for moist dynamics
+  !> @param[in]     advected_fields        Group of fields to be advected
   !> @param[in]     derived_fields         Group of derived fields
   !> @param[in]     cloud_fields           Group of derived fields
   !> @param[in]     clock                  Model time
-  !> @param[in]     dt                     The model timestep length
   !> @param[in]     mesh                   The current mesh
   !> @param[in]     twod_mesh              The current 2d mesh
   subroutine tl_semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn, &
                                        ls_u, ls_rho, ls_theta, ls_exner,    &
                                        ls_mr, ls_moist_dyn,                 &
+                                       advected_fields,                     &
                                        derived_fields,  cloud_fields,       &
-                                       clock, dt, mesh, twod_mesh)
+                                       clock, mesh, twod_mesh)
 
     implicit none
 
@@ -335,14 +336,16 @@ contains
     type( field_type ), intent( in ) :: ls_mr(nummr)
     type( field_type ), intent( in ) :: ls_moist_dyn(num_moist_factors)
     ! field groups
+    type( field_collection_type ), intent( inout ) :: advected_fields
     type( field_collection_type ), intent( inout ) :: derived_fields
     type( field_collection_type ), intent( inout ) :: cloud_fields
 
     class(clock_type), intent(in) :: clock
-    real(kind=r_def),  intent(in) :: dt
 
     type(mesh_type), intent(in), pointer :: mesh
     type(mesh_type), intent(in), pointer :: twod_mesh
+
+    real(kind=r_def) :: dt
 
     ! Quadrature object
     type( quadrature_xyoz_type ), pointer :: qr => null()
@@ -367,6 +370,8 @@ contains
     type( field_collection_type ) :: cloud_fields_after_slow
 
     if ( subroutine_timers ) call timer('semi_implicit_timestep_alg')
+
+    dt = real(clock%get_seconds_per_step(), r_def)
 
     call log_event( "Tangent linear: semi implicit timestep", LOG_LEVEL_INFO )
 
@@ -461,7 +466,8 @@ contains
     !==========================================================================
     ! Start the Outer (advection) loop
     !==========================================================================
-    call pre_advection_generic_field(cloud_fields_after_slow, cloud_fields)
+    call pre_advection_generic_field(cloud_fields_after_slow, cloud_fields, &
+                                     advected_fields)
 
     ls_outer_dynamics_loop: do outer = 1,outer_iterations
 

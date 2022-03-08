@@ -70,6 +70,7 @@ module tl_test_semi_imp_alg_mod
     type( field_collection_type ), pointer :: diagnostic_fields => null()
     type( field_type ),            pointer :: mr(:) => null()
     type( field_type ),            pointer :: ls_mr(:) => null()
+    type( field_collection_type ), pointer :: advected_fields => null()
     type( field_collection_type ), pointer :: derived_fields => null()
     type( field_collection_type ), pointer :: radiation_fields => null()
     type( field_collection_type ), pointer :: microphysics_fields => null()
@@ -131,6 +132,7 @@ module tl_test_semi_imp_alg_mod
 
     mr => model_data%mr
     moist_dyn => model_data%moist_dyn
+    advected_fields => model_data%advected_fields
     derived_fields => model_data%derived_fields
     radiation_fields => model_data%radiation_fields
     microphysics_fields => model_data%microphysics_fields
@@ -226,6 +228,7 @@ module tl_test_semi_imp_alg_mod
     call semi_implicit_alg_init(mesh, u, rho, theta, exner, mr)
 
     call semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn,     &
+                                advected_fields,                         &
                                 derived_fields, radiation_fields,        &
                                 microphysics_fields, orography_fields,   &
                                 turbulence_fields, convection_fields,    &
@@ -233,7 +236,7 @@ module tl_test_semi_imp_alg_mod
                                 soil_fields, snow_fields,                &
                                 chemistry_fields,                        &
                                 aerosol_fields, lbc_fields,              &
-                                clock, dt, mesh, twod_mesh)
+                                clock, mesh, twod_mesh)
 
     call semi_implicit_alg_final()
 
@@ -284,6 +287,7 @@ module tl_test_semi_imp_alg_mod
 
       call semi_implicit_alg_step(n_u, n_rho, n_theta, n_exner, n_mr,      &
                                   n_moist_dyn,                             &
+                                  advected_fields,                         &
                                   derived_fields, radiation_fields,        &
                                   microphysics_fields, orography_fields,   &
                                   turbulence_fields, convection_fields,    &
@@ -291,7 +295,7 @@ module tl_test_semi_imp_alg_mod
                                   soil_fields, snow_fields,                &
                                   chemistry_fields,                        &
                                   aerosol_fields, lbc_fields,              &
-                                  clock, dt, mesh, twod_mesh)
+                                  clock, mesh, twod_mesh)
 
       call semi_implicit_alg_final()
 
@@ -303,9 +307,10 @@ module tl_test_semi_imp_alg_mod
                                      p_exner, p_mr, p_moist_dyn,           &
                                      ls_u, ls_rho, ls_theta,               &
                                      ls_exner, ls_mr, ls_moist_dyn,        &
+                                     advected_fields,                      &
                                      derived_fields,                       &
                                      cloud_fields,                         &
-                                     clock, dt, mesh, twod_mesh)
+                                     clock, mesh, twod_mesh)
 
       call tl_semi_implicit_alg_final()
 

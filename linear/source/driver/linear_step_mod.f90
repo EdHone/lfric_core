@@ -67,6 +67,7 @@ module linear_step_mod
     type( field_collection_type ), pointer :: diagnostic_fields => null()
     type( field_type ),            pointer :: mr(:) => null()
     type( field_type ),            pointer :: moist_dyn(:) => null()
+    type( field_collection_type ), pointer :: advected_fields => null()
     type( field_collection_type ), pointer :: derived_fields => null()
     type( field_collection_type ), pointer :: ls_fields => null()
     type( field_type ),            pointer :: ls_mr(:) => null()
@@ -83,8 +84,6 @@ module linear_step_mod
     type( field_type), pointer :: ls_exner => null()
     type( field_type), pointer :: dA => null()  ! Areas of faces
 
-    real(r_def) :: dt
-
     write( log_scratch_space, '("/", A, "\ ")' ) repeat( "*", 76 )
     call log_event( log_scratch_space, LOG_LEVEL_TRACE )
     write( log_scratch_space, &
@@ -96,6 +95,7 @@ module linear_step_mod
     diagnostic_fields => model_data%diagnostic_fields
     mr => model_data%mr
     moist_dyn => model_data%moist_dyn
+    advected_fields => model_data%advected_fields
     derived_fields => model_data%derived_fields
     cloud_fields => model_data%cloud_fields
 
@@ -115,22 +115,20 @@ module linear_step_mod
     ls_exner => ls_fields%get_field('ls_exner')
     dA => get_da_at_w2( mesh%get_id() )
 
-    ! Get timestep parameters from clock
-    dt = real(clock%get_seconds_per_step(), r_def)
-
     select case( method )
       case( method_semi_implicit )  ! Semi-Implicit
         call tl_semi_implicit_alg_step(u, rho, theta,                     &
                                        exner, mr, moist_dyn,              &
                                        ls_u, ls_rho, ls_theta,            &
                                        ls_exner, ls_mr, ls_moist_dyn,     &
+                                       advected_fields,                   &
                                        derived_fields,                    &
                                        cloud_fields,                      &
-                                       clock, dt, mesh, twod_mesh)
+                                       clock, mesh, twod_mesh)
       case( method_rk )             ! RK
         call tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr,  &
                             cloud_fields, ls_u, ls_rho, ls_theta, &
-                            ls_moist_dyn, ls_exner, ls_mr, dt, clock)
+                            ls_moist_dyn, ls_exner, ls_mr, clock)
     end select
 
     if ( write_conservation_diag ) then

@@ -220,11 +220,10 @@ contains
   !> @param[in]     ls_moist_dyn Lin state for moist dynamics factors
   !> @param[in]     ls_exner     Linearisation state for exner pressure
   !> @param[in]     ls_mr        Linearisation state for moisture mixing ratios
-  !> @param[in]     dt           The model timestep length
   !> @param[in]     clock        Model time
   subroutine tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr, cloud_fields, &
                             ls_u, ls_rho, ls_theta, ls_moist_dyn, ls_exner,    &
-                            ls_mr, dt, clock)
+                            ls_mr, clock)
 
     implicit none
     ! Prognostic fields
@@ -238,8 +237,9 @@ contains
     type( field_type ), intent( inout ) :: ls_mr(nummr)
     type( field_type ), intent( inout ) :: ls_moist_dyn(num_moist_factors)
 
-    real( r_def ),      intent( in )    :: dt
     class(clock_type),  intent( in )    :: clock
+
+    real( r_def ) :: dt
 
     ! The quadrature object
     type( quadrature_xyoz_type ),  pointer :: qr => null()
@@ -262,8 +262,10 @@ contains
 
     integer(kind=i_def)            :: st, stage, mesh_id
 
-
     if ( subroutine_timers ) call timer('tl_rk_alg')
+
+    dt = real(clock%get_seconds_per_step(), r_def)
+
     qr => get_qr()
     mesh => theta%get_mesh()
     reference_element => mesh%get_reference_element()

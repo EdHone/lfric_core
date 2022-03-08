@@ -70,6 +70,7 @@ module gungho_step_mod
     type( field_collection_type ), pointer :: diagnostic_fields => null()
     type( field_type ),            pointer :: mr(:) => null()
     type( field_type ),            pointer :: moist_dyn(:) => null()
+    type( field_collection_type ), pointer :: advected_fields => null()
     type( field_collection_type ), pointer :: derived_fields => null()
     type( field_collection_type ), pointer :: radiation_fields => null()
     type( field_collection_type ), pointer :: microphysics_fields => null()
@@ -107,6 +108,7 @@ module gungho_step_mod
     diagnostic_fields => model_data%diagnostic_fields
     mr => model_data%mr
     moist_dyn => model_data%moist_dyn
+    advected_fields => model_data%advected_fields
     derived_fields => model_data%derived_fields
     radiation_fields => model_data%radiation_fields
     microphysics_fields => model_data%microphysics_fields
@@ -135,13 +137,14 @@ module gungho_step_mod
     select case( method )
       case( method_semi_implicit )  ! Semi-Implicit
         call semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn,     &
+                                    advected_fields,                         &
                                     derived_fields, radiation_fields,        &
                                     microphysics_fields, orography_fields,   &
                                     turbulence_fields, convection_fields,    &
                                     cloud_fields, surface_fields,            &
                                     soil_fields, snow_fields,                &
                                     chemistry_fields, aerosol_fields,        &
-                                    lbc_fields, clock, dt, mesh,             &
+                                    lbc_fields, clock, mesh,                 &
                                     twod_mesh)
       case( method_rk )             ! RK
         call rk_alg_step(u, rho, theta, moist_dyn, exner, mr, cloud_fields,  &

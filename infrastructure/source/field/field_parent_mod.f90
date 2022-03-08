@@ -35,9 +35,6 @@ module field_parent_mod
     type(halo_routing_type), pointer :: halo_routing => null()
     !> Flag that holds whether each depth of halo is clean or dirty (dirty=1)
     integer(kind=i_def),allocatable :: halo_dirty(:)
-    !> Flag that determines whether the field should be advected.
-    !! false by default.
-    logical(kind=l_def) :: advected = .false.
     !> Name of the field. Note the name is immutable once defined via
     !! the initialiser.
     character(str_def) :: name = 'unset'
@@ -77,8 +74,6 @@ module field_parent_mod
     !> Returns the name of the field
     !> @return field name
     procedure, public :: get_name
-    !> Returns whether the field is advected
-    procedure, public :: is_advected
     !> routine to get coupling id
     procedure         :: get_cpl_id
     !> routine to set coupling id
@@ -171,15 +166,13 @@ contains
   !> @param [in] name The name of the field. 'none' is a reserved name
   !> @param [in] fortran_type The Fortran type of the field data
   !> @param [in] fortran_kind The Fortran kind of the field data
-  !> @param [in] advection_flag Whether the field is to be advected
   !>
   subroutine field_parent_initialiser( self, &
                                        vector_space, &
                                        fortran_type, &
                                        fortran_kind, &
                                        name, &
-                                       ndata_first, &
-                                       advection_flag)
+                                       ndata_first)
 
     implicit none
 
@@ -191,7 +184,6 @@ contains
     integer(i_def), intent(in)                    :: fortran_kind
     character(*), optional, intent(in)            :: name
     logical,      optional, intent(in)            :: ndata_first
-    logical,      optional, intent(in)            :: advection_flag
 
     type (mesh_type), pointer :: mesh => null()
 
@@ -224,13 +216,6 @@ contains
       self%name = name
     else
       self%name = 'none'
-    end if
-
-    ! Set the advected flag if given, otherwise default to 'false'
-    if (present(advection_flag)) then
-      self%advected = advection_flag
-    else
-      self%advected = .false.
     end if
 
     ! Create a flag for holding whether a halo depth is dirty or not
@@ -360,20 +345,6 @@ contains
     name = self%name
 
   end function get_name
-
-  !> Returns whether the field is advected
-  !>
-  !> @return field advected
-  function is_advected(self) result(flag)
-
-    implicit none
-
-    class(field_parent_type), intent(in) :: self
-    logical :: flag
-
-    flag = self%advected
-
-  end function is_advected
 
   ! Returns the max halo depth of the field.
   function max_halo_depth(self) result(max_depth)

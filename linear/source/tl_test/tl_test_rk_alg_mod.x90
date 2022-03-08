@@ -237,7 +237,7 @@ module tl_test_rk_alg_mod
 
       call tl_rk_alg_step(p_u, p_rho, p_theta, p_moist_dyn, p_exner, &
                           p_mr, cloud_fields, ls_u, ls_rho,          &
-                          ls_theta, ls_moist_dyn, ls_exner, ls_mr, dt, clock)
+                          ls_theta, ls_moist_dyn, ls_exner, ls_mr, clock)
 
       call tl_rk_alg_final()
 

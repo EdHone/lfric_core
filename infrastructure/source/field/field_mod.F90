@@ -251,14 +251,12 @@ contains
   !> @param [in] name The name of the field. 'none' is a reserved name
   !> @param [in] ndata_first Whether mutlidata fields have data ordered by
   !>                         the multidata dimension first
-  !> @param [in] advection_flag Whether the field is to be advected
   !> @param [in] override_data Optional alternative data that can be attached to field
   !>
   subroutine field_initialiser(self, &
                                vector_space, &
                                name, &
                                ndata_first, &
-                               advection_flag, &
                                override_data)
 
     implicit none
@@ -267,7 +265,6 @@ contains
     type(function_space_type), pointer, intent(in) :: vector_space
     character(*), optional, intent(in)             :: name
     logical,      optional, intent(in)             :: ndata_first
-    logical,      optional, intent(in)             :: advection_flag
     real(r_def), target, optional, intent(in)      :: override_data( : )
 
     character(str_def) :: local_name
@@ -286,8 +283,7 @@ contains
                                        name=local_name, &
                                        fortran_type=real_type, &
                                        fortran_kind=r_def, &
-                                       ndata_first=ndata_first, &
-                                       advection_flag=advection_flag)
+                                       ndata_first=ndata_first)
 
     ! Associate data with the field
     if (present(override_data))then
@@ -370,12 +366,10 @@ contains
 
     if (present(name)) then
       call dest%initialise(vector_space = function_space,      &
-                           name = name,                        &
-                           advection_flag = self%is_advected())
+                           name = name)
     else
       call dest%initialise(vector_space = function_space,      &
-                           name = self%get_name(),             &
-                           advection_flag = self%is_advected())
+                           name = self%get_name())
     end if
 
     dest%write_method => self%write_method

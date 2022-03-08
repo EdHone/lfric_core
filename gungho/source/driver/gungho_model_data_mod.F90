@@ -98,6 +98,8 @@ module gungho_model_data_mod
     type( field_collection_type ), public   :: prognostic_fields
     !> All the diagnostic fields
     type( field_collection_type ), public   :: diagnostic_fields
+    !> Fields that should be advected
+    type( field_collection_type ), public   :: advected_fields
     !> FD fields derived from FE fields for use in physics time-stepping schemes
     type( field_collection_type ), public   :: derived_fields
     !> LBC fields - lateral boundary conditions to run a limited area model
@@ -377,6 +379,7 @@ contains
                                     model_data%depository,          &
                                     model_data%prognostic_fields,   &
                                     model_data%diagnostic_fields,   &
+                                    model_data%advected_fields,     &
                                     model_data%mr,                  &
                                     model_data%moist_dyn )
 
@@ -392,6 +395,7 @@ contains
                                        clock,                          &
                                        model_data%depository,          &
                                        model_data%prognostic_fields,   &
+                                       model_data%advected_fields,     &
                                        model_data%derived_fields,      &
                                        model_data%radiation_fields,    &
                                        model_data%microphysics_fields, &
@@ -632,6 +636,7 @@ contains
       call model_data%depository%clear()
       call model_data%prognostic_fields%clear()
       call model_data%diagnostic_fields%clear()
+      call model_data%advected_fields%clear()
       call model_data%derived_fields%clear()
       call model_data%radiation_fields%clear()
       call model_data%microphysics_fields%clear()

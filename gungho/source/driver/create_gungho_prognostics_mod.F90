@@ -57,10 +57,14 @@ contains
   !>                          kept in scope
   !> @param[inout] prognostic_fields A collection of the fields that make up the
   !>                                 prognostic variables in the model
+  !> @param[inout] diagnostic_fields A collection of the fields that make up the
+  !>                                 diagnostic variables in the model
+  !> @param[inout] advected_fields A collection of all fields to be advected
   !> @param[inout] mr An array of fields that hold the moisture mixing ratios
   !> @param[inout] moist_dyn An array of the moist dynamics fields
   subroutine create_gungho_prognostics( mesh, depository, &
                                         prognostic_fields, diagnostic_fields, &
+                                        advected_fields, &
                                         mr, moist_dyn )
     implicit none
 
@@ -69,6 +73,7 @@ contains
     type(field_collection_type), intent(inout):: depository
     type(field_collection_type), intent(inout):: prognostic_fields
     type(field_collection_type), intent(out)  :: diagnostic_fields
+    type(field_collection_type), intent(inout):: advected_fields
 
     type( field_type ), intent(inout), target :: mr(nummr)
     type( field_type ), intent(inout)         :: moist_dyn(num_moist_factors)
@@ -108,6 +113,8 @@ contains
        call prognostic_fields%initialise(name="prognostics", table_len=100)
     endif
     call diagnostic_fields%initialise(name="diagnostics", table_len=100)
+    ! Create collection of fields to be advected
+    call advected_fields%initialise(name='advected_fields', table_len=100)
 
     ! Create prognostic fields
     call theta%initialise( vector_space = &

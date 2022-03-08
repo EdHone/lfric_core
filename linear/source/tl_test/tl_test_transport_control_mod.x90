@@ -60,6 +60,7 @@ module tl_test_transport_control_mod
     character(str_def) :: label = "transport_control"
 
     type(field_collection_type), pointer :: prognostic_fields => null()
+    type(field_collection_type), pointer :: advected_fields => null()
     type(field_collection_type), pointer :: ls_fields => null()
 
     type(field_type), pointer :: ls_u => null()
@@ -111,6 +112,7 @@ module tl_test_transport_control_mod
                      LOG_LEVEL_INFO )
 
     prognostic_fields => model_data%prognostic_fields
+    advected_fields   => model_data%advected_fields
     ls_fields         => model_data%ls_fields
     ls_moist_dyn      => model_data%ls_moist_dyn
     ls_mr             => model_data%ls_mr
@@ -177,7 +179,8 @@ module tl_test_transport_control_mod
 
     call set_bundle_scalar( 0.0_r_def, n1_rhs, bundle_size )
 
-    call pre_advection_generic_field(cloud_fields_after_slow, cloud_fields)
+    call pre_advection_generic_field(cloud_fields_after_slow, cloud_fields, &
+                                     advected_fields)
 
     outer = 1
     call gungho_transport_control_alg(n1_rhs,                  &
