@@ -44,7 +44,7 @@ module set_blending_weights_kernel_mod_test
     use get_unit_test_m3x3_dofmap_mod,       only : get_w3_m3x3_dofmap
     use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w3_m3x3_q3x3x3_size
     use feign_config_mod,      only : feign_boundaries_config
-    use boundaries_config_mod, only : lbc_method_onion_layer
+    use boundaries_config_mod, only : lbc_method_onion_layer, blend_frequency_inner
     implicit none
 
     class(set_blending_weights_test_type), intent(inout) :: this
@@ -77,7 +77,8 @@ module set_blending_weights_kernel_mod_test
 
     ! Set boundaries configuration
     ! Only blending_weights is used
-    call feign_boundaries_config( blending_weights=[0.2_r_def,0.0_r_def], &
+    call feign_boundaries_config( blend_frequency=blend_frequency_inner,  &
+                                  blending_weights=[0.2_r_def, 0.1_r_def], &
                                   boundary_e=1,             &
                                   boundary_n=1,             &
                                   boundary_s=1,             &
@@ -139,14 +140,14 @@ module set_blending_weights_kernel_mod_test
     this%weights_field(:) = -1.0_r_def
     this%onion_layers(:) = 2.0_r_def
     this%onion_layers(5) = 1.0_r_def
-    this%depth = 2.0_i_def
+    this%depth = 2_i_def
 
     ! Define answer
     ! 3x3 cell domain, central cell is cell id = 5
     allocate(this%answer(this%undf3))
 
     this%answer(:) = 0.2_r_def
-    this%answer(5) = 0.0_r_def
+    this%answer(5) = 0.1_r_def
 
     do cell=1,this%ncells
       call set_blending_weights_code(this%nlayers,       &

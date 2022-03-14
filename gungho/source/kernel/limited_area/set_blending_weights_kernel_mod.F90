@@ -82,11 +82,14 @@ subroutine set_blending_weights_code( nlayers,       &
   integer(kind=i_def), dimension(ndf_in),  intent(in) :: map_in
 
   ! Internal variables
-  integer(kind=i_def)  :: k, df
-  integer(kind=i_def)  :: index
+  integer(kind=i_def) :: k, df
+  integer(kind=i_def) :: index
+  integer(kind=i_def) :: onion_layer
 
-  if ( onion_layers(map_in(1)) > 0.0_r_def )then
-    index = depth - INT(onion_layers(map_in(1))) + 1
+  onion_layer = int(onion_layers(map_in(1)))
+
+  if ( onion_layer > 0_i_def )then
+    index = depth - onion_layer + 1_i_def
     do k=0,nlayers-1
       do df=1,ndf_out
         weights_field(map_out(df)+k) = blending_weights(index)

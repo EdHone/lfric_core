@@ -256,7 +256,7 @@
                      env={"nrun":48,
                           "directives":{"default":{"mpi_parts":4,
                                                    "threads":6,
-                                                   "wallclock":"00:10:00"} } },
+                                                   "wallclock":"00:15:00"} } },
                      plotstr="sbr.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR dcmip 30 31 sbr-lam")',
     'run_application("gungho", "sbr",
                      resolutions=[("C24_MG",3600.0)],

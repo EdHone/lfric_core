@@ -16,10 +16,12 @@ module set_blending_weights_w2_kernel_mod
                                         GH_READ, GH_REAL,     &
                                         GH_INC,               &
                                         GH_INTEGER, GH_BASIS, &
-                                        CELL_COLUMN
+                                        CELL_COLUMN,          &
+                                        STENCIL, CROSS
   use fs_continuity_mod,         only : W3, W2
   use constants_mod,             only : r_def, i_def
   use kernel_mod,                only : kernel_type
+  use reference_element_mod,     only : T, B
 
   implicit none
 
@@ -31,10 +33,10 @@ module set_blending_weights_w2_kernel_mod
 
   type, public, extends(kernel_type) :: set_blending_weights_w2_kernel_type
     private
-    type(arg_type) :: meta_args(3) = (/              &
-         arg_type(GH_FIELD,   GH_REAL, GH_INC, W2),  & ! weights_field
-         arg_type(GH_FIELD,   GH_REAL, GH_READ, W3), & ! onion_layers
-         arg_type(GH_SCALAR,  GH_INTEGER, GH_READ)   & ! depth
+    type(arg_type) :: meta_args(3) = (/                              &
+         arg_type(GH_FIELD,   GH_REAL, GH_INC, W2),                  & ! weights_field
+         arg_type(GH_FIELD,   GH_REAL, GH_READ, W3, STENCIL(CROSS)), & ! onion_layers
+         arg_type(GH_SCALAR,  GH_INTEGER, GH_READ)                   & ! depth
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -58,9 +60,11 @@ contains
 !> @param[in] ndf_in    Number of degrees of freedom for onion_layers
 !> @param[in] undf_in   Total number of degrees of freedom for onion_layers
 !> @param[in] map_in    Dofmap for the cell at the base of the column for onion_layers
-subroutine set_blending_weights_w2_code( nlayers,   &
+subroutine set_blending_weights_w2_code( nlayers,       &
                                          weights_field, &
                                          onion_layers,  &
+                                         stencil_size,  &
+                                         stencil_map,   &
                                          depth,     &
                                          ndf_out,   &
                                          undf_out,  &
@@ -74,29 +78,52 @@ subroutine set_blending_weights_w2_code( nlayers,   &
   implicit none
 
   ! Arguments
-  integer(kind=i_def),                     intent(in) :: nlayers
-  integer(kind=i_def),                     intent(in) :: ndf_out, undf_out
-  integer(kind=i_def),                     intent(in) :: ndf_in, undf_in
-  real(kind=r_def), dimension(undf_out),   intent(inout) :: weights_field
-  real(kind=r_def), dimension(undf_in),    intent(in) :: onion_layers
-  integer(kind=i_def),                     intent(in) :: depth
-  integer(kind=i_def), dimension(ndf_out), intent(in) :: map_out
-  integer(kind=i_def), dimension(ndf_in),  intent(in) :: map_in
+  integer(kind=i_def),                                 intent(in)    :: nlayers
+  integer(kind=i_def),                                 intent(in)    :: ndf_out, undf_out
+  integer(kind=i_def),                                 intent(in)    :: ndf_in, undf_in
+  real(kind=r_def), dimension(undf_out),               intent(inout) :: weights_field
+  real(kind=r_def), dimension(undf_in),                intent(in)    :: onion_layers
+  integer(kind=i_def),                                 intent(in)    :: stencil_size
+  integer(kind=i_def), dimension(ndf_in,stencil_size), intent(in)    :: stencil_map
+  integer(kind=i_def),                                 intent(in)    :: depth
+  integer(kind=i_def), dimension(ndf_out),             intent(in)    :: map_out
+  integer(kind=i_def), dimension(ndf_in),              intent(in)    :: map_in
 
   ! Internal variables
-  integer(kind=i_def)  :: k, df
-  integer(kind=i_def)  :: index
+  integer(kind=i_def) :: k, df
+  integer(kind=i_def) :: index
+  integer(kind=i_def) :: onion_layer, cell_next_layer
+
+  onion_layer = int(onion_layers(stencil_map(1,1)))
 
   ! W2 weights should not go right up to the inner region
-  if (onion_layers(map_in(1)) > 1.0_r_def)then
-    index = depth - INT(onion_layers(map_in(1))) + 1
+  if (onion_layer > 0_i_def)then
+    index = depth - onion_layer + 1
+
+    ! Vertical dofs first - these are all set to the blending weight
+
     do k=0,nlayers-1
-      do df=1,ndf_out
-        ! W2 weights are averages of neighouring W3 weights
-        weights_field(map_out(df)+k) = weights_field(map_out(df)+k) &
-                      + 0.5_r_def*blending_weights(index)
+      do df=B,T
+        weights_field(map_out(df)+k) = blending_weights(index)
       end do
     end do
+
+    ! Next the horizontal dofs
+
+    do k=0,nlayers-1
+      do df=1,stencil_size-1
+        cell_next_layer = int(onion_layers(stencil_map(1,df+1)))
+        ! If the onion_layer > 1, then we write to all dofs
+        ! If the onion_layer == 1, then only write to dofs with
+        ! neighbouring cells that are within the blending region
+        if ( cell_next_layer > 0_i_def .or. onion_layer > 1_i_def ) then
+          ! W2 weights are averages of neighouring W3 weights
+          weights_field(map_out(df)+k) = min( 1.0_r_def, weights_field(map_out(df)+k) &
+                                                   + 0.5_r_def*blending_weights(index) )
+        end if
+      end do
+    end do
+
   end if
 
 end subroutine set_blending_weights_w2_code

@@ -51,7 +51,7 @@ module set_blending_weights_w2_kernel_mod_test
     use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w2_m3x3_q3x3x3_size, &
                                                     get_w3_m3x3_q3x3x3_size
     use feign_config_mod,      only : feign_boundaries_config
-    use boundaries_config_mod, only : lbc_method_onion_layer
+    use boundaries_config_mod, only : lbc_method_onion_layer, blend_frequency_inner
     implicit none
 
     class(set_blending_weights_w2_test_type), intent(inout) :: this
@@ -97,7 +97,8 @@ module set_blending_weights_w2_kernel_mod_test
 
     ! Set boundaries configuration
     ! Only blending_weights is used
-    call feign_boundaries_config( blending_weights=[0.2_r_def,0.0_r_def], &
+    call feign_boundaries_config( blend_frequency=blend_frequency_inner,  &
+                                  blending_weights=[0.2_r_def], &
                                   boundary_e=1,             &
                                   boundary_n=1,             &
                                   boundary_s=1,             &
@@ -161,19 +162,19 @@ module set_blending_weights_w2_kernel_mod_test
     !     +-------------+-------------+-------------+
     !     |             |             |             |
     !     |             |             |             |
-    !     |      2      |      2      |      2      |         Onion layers
+    !     |      1      |      1      |      1      |         Onion layers
     !     |             |             |             |
     !     |             |             |             |
     !     +-------------+-------------+-------------+
     !     |             |             |             |
     !     |             |             |             |
-    !     |      2      |      1      |      2      |
+    !     |      1      |      0      |      1      |
     !     |             |             |             |
     !     |             |             |             |
     !     +-------------+-------------+-------------+
     !     |             |             |             |
     !     |             |             |             |
-    !     |      2      |      2      |      2      |
+    !     |      1      |      1      |      1      |
     !     |             |             |             |
     !     |             |             |             |
     !     +-------- ----+-------------+-------------+
@@ -198,61 +199,43 @@ module set_blending_weights_w2_kernel_mod_test
     !     |             |             |             |
     !     +-------- ----+-------------+-------------+
     !
-    !     +-----0.1-----+-----0.1-----+-----0.1-----+
+    !     +-----0.2-----+-----0.2-----+-----0.2-----+
     !     |             |             |             |
     !     |             |             |             |
-    !    0.1  0.1/0.1  0.2  0.1/0.1  0.2  0.1/0.1  0.1       W2 Blending Weights
+    !    0.2  0.2/0.2  0.2  0.2/0.2  0.2  0.2/0.2  0.2       W2 Blending Weights
     !     |             |             |             |
     !     |             |             |             |
-    !     +-----0.2-----+-----0.1-----+-----0.2-----+        Values in cells are for DoFs on
+    !     +-----0.2-----+-----0.0-----+-----0.2-----+        Values in cells are for DoFs on
     !     |             |             |             |        top/bottom faces (Vertical DoFs).
-    !     |             |             |             |        Note that since we only have 1
-    !    0.1  0.1/0.1  0.1  0.0/0.0  0.1  0.1/0.1  0.1       layer, these vertical dof values
-    !     |             |             |             |        are 1/2 of what we might expect.
     !     |             |             |             |
-    !     +-----0.2-----+-----0.1-----+-----0.2-----+
+    !    0.2  0.2/0.2  0.0  0.0/0.0  0.0  0.2/0.2  0.2
     !     |             |             |             |
     !     |             |             |             |
-    !    0.1  0.1/0.1  0.2  0.1/0.1  0.2  0.1/0.1  0.1
+    !     +-----0.2-----+-----0.0-----+-----0.2-----+
     !     |             |             |             |
     !     |             |             |             |
-    !     +-----0.1-----+-----0.1-----+----0.1------+
+    !    0.2  0.2/0.2  0.2  0.2/0.2  0.2  0.2/0.2  0.2
+    !     |             |             |             |
+    !     |             |             |             |
+    !     +-----0.2-----+-----0.2-----+----0.2------+
 
     ! Set up input and output masks
     this%weights_w2_field(:) = 0.0_r_def
     ! 2 onion layers currently needed as blending
     ! mask doesn't extend right to the last onion layer.
-    this%onion_layers(:) = 2.0_r_def
-    this%onion_layers(5) = 1.0_r_def
-    this%depth = 2_i_def
-    this%stencil_size = 1_i_def
+    this%onion_layers(:) = 1.0_r_def
+    this%onion_layers(5) = 0.0_r_def
+    this%depth = 1_i_def
 
     ! Define answer
     allocate(this%answer(this%undf2))
 
     this%answer(:) = 0.2_r_def
-    ! vertical dofs in the rim
-    this%answer(5) = 0.1_r_def
-    this%answer(6) = 0.1_r_def
-    this%answer(10) = 0.1_r_def
-    this%answer(11) = 0.1_r_def
-    this%answer(14) = 0.1_r_def
-    this%answer(15) = 0.1_r_def
-    this%answer(19) = 0.1_r_def
-    this%answer(20) = 0.1_r_def
-    this%answer(26) = 0.1_r_def
-    this%answer(27) = 0.1_r_def
-    this%answer(30) = 0.1_r_def
-    this%answer(31) = 0.1_r_def
-    this%answer(33) = 0.1_r_def
-    this%answer(34) = 0.1_r_def
-    this%answer(35) = 0.1_r_def
-    this%answer(36) = 0.1_r_def
-    ! horizontal dofs in the blending region
-    this%answer(9) = 0.1_r_def
-    this%answer(17) = 0.1_r_def
-    this%answer(21) = 0.1_r_def
-    this%answer(22) = 0.1_r_def
+    ! horizontal dofs on the boundary of the inner region
+    this%answer(9) = 0.0_r_def
+    this%answer(17) = 0.0_r_def
+    this%answer(21) = 0.0_r_def
+    this%answer(22) = 0.0_r_def
     ! vertical dofs in the inner region
     this%answer(23) = 0.0_r_def
     this%answer(24) = 0.0_r_def
@@ -261,6 +244,8 @@ module set_blending_weights_w2_kernel_mod_test
       call set_blending_weights_w2_code(this%nlayers,          &
                                         this%weights_w2_field, &
                                         this%onion_layers,     &
+                                        this%stencil_size,     &
+                                        this%stencil_map3(:,:,cell),     &
                                         this%depth,            &
                                         this%ndf2,             &
                                         this%undf2,            &
@@ -273,7 +258,7 @@ module set_blending_weights_w2_kernel_mod_test
 
     ! Checking all DoFs
     do df = 1,this%undf2
-      @assertEqual(this%weights_w2_field(df),this%answer(df), tol)
+      @assertEqual(this%answer(df), this%weights_w2_field(df), tol)
     end do
 
     deallocate(this%answer)

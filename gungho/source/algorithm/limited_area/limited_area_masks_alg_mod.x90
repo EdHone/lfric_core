@@ -471,6 +471,8 @@ contains
                                         coord_rim_e,   coord_rim_w,   &
                                         coord_blend_s, coord_blend_n, &
                                         coord_blend_e, coord_blend_w
+    integer(i_def) :: stencil_depth = 1
+    real(r_def)    :: threshold
 
     if ( lbc_method == lbc_method_onion_layer )then
 
@@ -484,8 +486,16 @@ contains
          )
 
       case(W2)
+        ! Then method here involves applying the create_threshold mask
+        ! around the edge of the domain to initialize the blending weights to 1
+        ! there.  The actual blending weights are then applied afterwards.
+        ! This is done as we currently can't handle the missing parts of the
+        ! stencil right at the edge of the domain in set_blending_weights.
+        ! This could probably be remedied by using CROSS2D stencils.
+        threshold = size( blending_weights ) - 1_i_def
         call invoke(setval_c(mask, 0.0_r_def), &
-           set_blending_weights_w2_kernel_type(mask, onion_layers, rim_width) )
+           create_threshold_mask_kernel_type(mask, onion_layers, threshold, ON), &
+           set_blending_weights_w2_kernel_type(mask, onion_layers, stencil_depth, rim_width) )
 
       case default
         call log_event("No blend mask rule for this function space", &
