@@ -1,3 +1,4 @@
+
 !=======================  IO_Dev configuration namelist =======================
 &io_dev
   field_initialisation  = 'analytic'
@@ -20,9 +21,7 @@
   use_xios_io               = .true.
   write_diag                = .true.
   write_dump                = .false.
-  write_fluxes              = .false.
   diagnostic_frequency      = 1
-  nodal_output_on_w3        = .false.
   subroutine_timers         = .false.
   subroutine_counters       = .false.
   checkpoint_read           = .false.
@@ -36,18 +35,8 @@
 /
 
 &timestepping
-  method             = 'semi_implicit'
   dt                 = 86400.0
-  alpha              = 0.5
-  tau_u              = 0.5
-  tau_t              = 0.5
-  tau_r              = 0.5
-  outer_iterations   = 4
-  inner_iterations   = 1
-  runge_kutta_method = 'ssp3'
   spinup_period      = 1
-  spinup_alpha       = .false.
-  spinup_winds       = .false.
 /
 
 &base_mesh
@@ -66,10 +55,6 @@
   number_of_layers = 3
 /
 
-&boundaries
-  limited_area    = .false.
-/
-
 &finite_element
   cellshape        = 'quadrilateral'
   element_order    = 0
@@ -83,22 +68,8 @@
 /
 
 &planet
-  gravity        = 9.80665
   radius         = 6371229.0
-  omega          = 7.292116E-5
-  rd             = 287.05
-  cp             = 1005.0
-  p_zero         = 100000.0
   scaling_factor = 1.0
-/
-
-&formulation
-  l_multigrid = .false.
-/
-
-&departure_points
-  method             = 'euler'
-  n_dep_pt_iterations     = 1
 /
 
 &partitioning

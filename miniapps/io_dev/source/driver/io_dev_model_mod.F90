@@ -10,7 +10,6 @@ module io_dev_model_mod
 
   ! Infrastructure
   use base_mesh_config_mod,       only : prime_mesh_name
-  use check_configuration_mod,    only : get_required_stencil_depth
   use clock_mod,                  only : clock_type
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL
@@ -44,7 +43,6 @@ module io_dev_model_mod
   use timer_mod,                  only : timer, output_timer, init_timer
   ! Configuration
   use configuration_mod,          only : final_configuration
-  use derived_config_mod,         only : set_derived_config
   use io_config_mod,              only : use_xios_io, subroutine_timers, &
                                          timer_output_path
   use time_config_mod,            only : timestep_end, timestep_start
@@ -167,8 +165,6 @@ contains
         '-bit real numbers'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
-    call set_derived_config( .true. )
-
     ! Initialise timer
     if ( subroutine_timers ) then
       call init_timer(timer_output_path)
@@ -183,7 +179,7 @@ contains
     allocate( mesh_collection, &
               source=mesh_collection_type() )
 
-    stencil_depth = get_required_stencil_depth()
+    stencil_depth = 1
 
     call init_mesh( local_rank, total_ranks, stencil_depth, &
                     mesh, twod_mesh )
