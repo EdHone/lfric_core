@@ -347,7 +347,7 @@ fi""",
     [[[environment]]]
       OUTPUT_FILE = $DESTINATION_DIRECTORY/meshes/{{mesh}}.nc
 
-{{ directives(PRIMARY_TARGET, 'tech') }}
+{{ directives(PRIMARY_TARGET, 'run') }}
 {%-         endif %} {#- 'generate_' + mesh + '_' + label in scheduledTasks #}
 
 
