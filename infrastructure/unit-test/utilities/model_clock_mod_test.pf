@@ -137,11 +137,11 @@ contains
       end_spinup = 0.0
     end if
 
-    call unit_under_test%initialise( stub_calendar,       &
-                                     this%inject_first,   &
-                                     this%inject_last,    &
-                                     this%inject_delta_t, &
-                                     this%inject_spinup_period )
+    unit_under_test = model_clock_type( stub_calendar,       &
+                                        this%inject_first,   &
+                                        this%inject_last,    &
+                                        this%inject_delta_t, &
+                                        this%inject_spinup_period )
 
     ! There is no direct way to confirm the calendar made it through correctly
     ! so we just perform a single test to confirm it does what we think it
