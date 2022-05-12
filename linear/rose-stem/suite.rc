@@ -444,7 +444,7 @@ if [[ -d $SOURCE_DIRECTORY/integration-test ]] ; then
     INTEGRATION_TESTS=$(find $SOURCE_DIRECTORY/integration-test -name \"*.[Ff]90\" -exec egrep -l \"^\s*program\" {} \;)
 fi
 if [[ \"${INTEGRATION_TESTS}\" != \"\" ]] ; then
-    make -C $SOURCE_DIRECTORY integration-tests
+    make -C $SOURCE_DIRECTORY -j 4 integration-tests
 else
     echo \"No integration-tests to process\"
 fi""",
