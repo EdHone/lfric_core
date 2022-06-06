@@ -77,7 +77,6 @@ module tl_test_rk_alg_mod
     type(field_type), pointer :: exner => null()
     type(field_type), pointer :: moist_dyn(:) => null()
     type(field_type), pointer :: mr(:) => null()
-    type(field_collection_type), pointer :: cloud_fields => null()
 
     type(field_type), dimension(num_moist_factors) :: p_moist_dyn
     type(field_type), dimension(num_moist_factors) :: n_moist_dyn
@@ -108,7 +107,6 @@ module tl_test_rk_alg_mod
     ls_moist_dyn      => model_data%ls_moist_dyn
     ls_mr             => model_data%ls_mr
     mr                => model_data%mr
-    cloud_fields      => model_data%cloud_fields
 
     ! Input
     ls_u => ls_fields%get_field('ls_u')
@@ -188,7 +186,7 @@ module tl_test_rk_alg_mod
     call rk_alg_init(mesh, u, rho, theta, exner)
 
     call rk_alg_step(u, rho, theta, moist_dyn, exner, &
-                     mr, cloud_fields, dt )
+                     mr, dt )
 
     call rk_alg_final()
 
@@ -228,7 +226,7 @@ module tl_test_rk_alg_mod
       call rk_alg_init(mesh, n_u, n_rho, n_theta, n_exner)
 
       call rk_alg_step(n_u, n_rho, n_theta, n_moist_dyn, n_exner, &
-                       n_mr, cloud_fields, dt )
+                       n_mr, dt )
 
       call rk_alg_final()
 
@@ -236,7 +234,7 @@ module tl_test_rk_alg_mod
                           ls_u, ls_rho, ls_theta, ls_exner)
 
       call tl_rk_alg_step(p_u, p_rho, p_theta, p_moist_dyn, p_exner, &
-                          p_mr, cloud_fields, ls_u, ls_rho,          &
+                          p_mr, ls_u, ls_rho,                        &
                           ls_theta, ls_moist_dyn, ls_exner, ls_mr, clock)
 
       call tl_rk_alg_final()

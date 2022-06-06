@@ -31,7 +31,6 @@ module tl_test_transport_control_mod
                                             gungho_transport_control_alg
   use tl_transport_control_alg_mod,   only: tl_transport_control_alg
   use tl_test_convergence_rate_check, only: convergence_rate_check
-  use semi_implicit_timestep_alg_mod, only: pre_advection_generic_field
 
   implicit none
 
@@ -56,7 +55,6 @@ module tl_test_transport_control_mod
     character(str_def) :: label = "transport_control"
 
     type(field_collection_type), pointer :: prognostic_fields => null()
-    type(field_collection_type), pointer :: advected_fields => null()
     type(field_collection_type), pointer :: ls_fields => null()
 
     type(field_type), pointer :: ls_u => null()
@@ -67,7 +65,6 @@ module tl_test_transport_control_mod
     type(field_type), pointer :: ls_mr(:) => null()
     type(field_type), pointer :: moist_dyn(:) => null()
     type(field_type), pointer :: mr(:) => null()
-    type(field_collection_type), pointer :: cloud_fields => null()
 
     type(field_type) :: state(bundle_size)
     type(field_type) :: ls_state(bundle_size)
@@ -88,7 +85,6 @@ module tl_test_transport_control_mod
     type(field_type), dimension(nummr) :: n_mr_out
     type(field_type), dimension(nummr) :: r_mr
     type(field_type), dimension(nummr) :: diff_mr
-    type(field_collection_type) :: cloud_fields_after_slow
 
     type(field_type) :: ls_advected_u, p_advected_u, n_advected_u
     type(field_type) :: rho_guess
@@ -108,13 +104,11 @@ module tl_test_transport_control_mod
                      LOG_LEVEL_INFO )
 
     prognostic_fields => model_data%prognostic_fields
-    advected_fields   => model_data%advected_fields
     ls_fields         => model_data%ls_fields
     ls_moist_dyn      => model_data%ls_moist_dyn
     ls_mr             => model_data%ls_mr
     moist_dyn         => model_data%moist_dyn
     mr                => model_data%mr
-    cloud_fields      => model_data%cloud_fields
 
     ! Input
     ls_u => ls_fields%get_field('ls_u')
@@ -175,9 +169,6 @@ module tl_test_transport_control_mod
 
     call set_bundle_scalar( 0.0_r_def, n1_rhs, bundle_size )
 
-    call pre_advection_generic_field(cloud_fields_after_slow, cloud_fields, &
-                                     advected_fields)
-
     outer = 1
     call gungho_transport_control_alg(n1_rhs,                  &
                                       ls_state,                &
@@ -186,8 +177,6 @@ module tl_test_transport_control_mod
                                       ls_mr_out,               &
                                       ls_mr,                   &
                                       ls_moist_dyn,            &
-                                      cloud_fields,            &
-                                      cloud_fields_after_slow, &
                                       dt,                      &
                                       outer                    )
 
@@ -241,8 +230,6 @@ module tl_test_transport_control_mod
                                         n_mr_out,                &
                                         n_mr_in,                 &
                                         moist_dyn,               &
-                                        cloud_fields,            &
-                                        cloud_fields_after_slow, &
                                         dt,                      &
                                         outer                    )
 

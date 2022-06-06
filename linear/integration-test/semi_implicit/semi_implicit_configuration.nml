@@ -211,8 +211,8 @@ tau_t=0.5,
 tau_u=0.5,
 /
 &transport
-profile_size = 4
-field_names = 'density','potential_temperature','wind','moisture'
+profile_size = 5
+field_names = 'density','potential_temperature','wind','moisture','tracer'
 scheme = 4*1
 splitting = 4*1
 horizontal_method = 4*1

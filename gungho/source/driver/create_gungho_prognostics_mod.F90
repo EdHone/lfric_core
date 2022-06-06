@@ -57,12 +57,14 @@ contains
   !>                                 prognostic variables in the model
   !> @param[inout] diagnostic_fields A collection of the fields that make up the
   !>                                 diagnostic variables in the model
-  !> @param[inout] advected_fields A collection of all fields to be advected
+  !> @param[inout] adv_fields_all_outer A collection of fields to be advected every outer iteration
+  !> @param[inout] adv_fields_last_outer A collection of all fields to be advected on last outer iteration
   !> @param[inout] mr An array of fields that hold the moisture mixing ratios
   !> @param[inout] moist_dyn An array of the moist dynamics fields
   subroutine create_gungho_prognostics( mesh, depository, &
                                         prognostic_fields, diagnostic_fields, &
-                                        advected_fields, &
+                                        adv_fields_all_outer, &
+                                        adv_fields_last_outer, &
                                         mr, moist_dyn )
     implicit none
 
@@ -71,7 +73,8 @@ contains
     type(field_collection_type), intent(inout):: depository
     type(field_collection_type), intent(inout):: prognostic_fields
     type(field_collection_type), intent(out)  :: diagnostic_fields
-    type(field_collection_type), intent(inout):: advected_fields
+    type(field_collection_type), intent(inout):: adv_fields_all_outer
+    type(field_collection_type), intent(inout):: adv_fields_last_outer
 
     type( field_type ), intent(inout), target :: mr(nummr)
     type( field_type ), intent(inout)         :: moist_dyn(num_moist_factors)
@@ -110,7 +113,8 @@ contains
     endif
     call diagnostic_fields%initialise(name="diagnostics", table_len=100)
     ! Create collection of fields to be advected
-    call advected_fields%initialise(name='advected_fields', table_len=100)
+    call adv_fields_last_outer%initialise(name='adv_fields_last_outer', table_len=100)
+    call adv_fields_all_outer%initialise(name='adv_fields_all_outer', table_len=100)
 
     ! Create prognostic fields
     call theta%initialise( vector_space = &

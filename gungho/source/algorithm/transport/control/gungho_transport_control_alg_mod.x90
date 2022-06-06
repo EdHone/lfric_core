@@ -148,28 +148,21 @@ contains
   !> @param[in,out] mr_out          Moisture fields after transport
   !> @param[in]     mr_in           Moisture fields before transport
   !> @param[in]     moist_dyn       Moist dynamics factors
-  !> @param[in,out] cloud_fields    Fields for cloud scheme
-  !> @param[in]     cloud_fields_after_slow
-  !!                                Fields for cloud scheme with slow
-  !!                                physics forcings added
   !> @param[in]     model_dt        Difference in time through model time step
   !> @param[in]     outer           Outer (advection) iteration number
-  !> @param[in]     chemistry_fields Fields for chemistry scheme
-  !> @param[in]     chemistry_fields_after_slow Fields for chemistry scheme
-  !!                                            with slow physics forcings added
-  !> @param[in]     aerosol_fields Fields for aerosol scheme
-  !> @param[in]     aerosol_fields_after_slow Fields for aerosol scheme
-  !!                                          with slow physics forcings added
+  !> @param[in,out] adv_fields_all_outer Fields after transport on every iteration
+  !> @param[in]     adv_fields_all_outer_after_slow Fields to transport every iteration
+  !> @param[in,out] adv_fields_last_outer Fields after transport on final iteration only
+  !> @param[in]     adv_fields_last_outer_after_slow Fields to transport on final iteration only
 
   subroutine gungho_transport_control_alg(advection_inc, advected_fields,  &
                                           wind_np1, wind_n, mr_out, mr_in, &
-                                          moist_dyn, cloud_fields,         &
-                                          cloud_fields_after_slow,         &
+                                          moist_dyn,                       &
                                           model_dt, outer,                 &
-                                          chemistry_fields,                &
-                                          chemistry_fields_after_slow,     &
-                                          aerosol_fields,                  &
-                                          aerosol_fields_after_slow)
+                                          adv_fields_all_outer,            &
+                                          adv_fields_all_outer_after_slow, &
+                                          adv_fields_last_outer,           &
+                                          adv_fields_last_outer_after_slow)
 
     use check_configuration_mod,         only: check_any_scheme_ffsl
     use derived_config_mod,              only: bundle_size
@@ -205,14 +198,12 @@ contains
     type(field_type),            intent(inout) :: mr_out(nummr)
     type(field_type),            intent(in)    :: mr_in(nummr)
     type(field_type),            intent(inout) :: moist_dyn(num_moist_factors)
-    type(field_collection_type), intent(inout) :: cloud_fields
-    type(field_collection_type), intent(in)    :: cloud_fields_after_slow
     real(kind=r_def),            intent(in)    :: model_dt
     integer(kind=i_def),         intent(in)    :: outer
-    type(field_collection_type), intent(inout), optional :: chemistry_fields
-    type(field_collection_type), intent(in),    optional :: chemistry_fields_after_slow
-    type(field_collection_type), intent(inout), optional :: aerosol_fields
-    type(field_collection_type), intent(in),    optional :: aerosol_fields_after_slow
+    type(field_collection_type), intent(inout), optional :: adv_fields_all_outer
+    type(field_collection_type), intent(in),    optional :: adv_fields_all_outer_after_slow
+    type(field_collection_type), intent(inout), optional :: adv_fields_last_outer
+    type(field_collection_type), intent(in),    optional :: adv_fields_last_outer_after_slow
 
     ! Internal variables
     type(field_type)    :: temp_inc
@@ -320,40 +311,27 @@ contains
       call moist_dyn_factors_alg(moist_dyn, mr_out)
 
       ! ---------------------------------------------------------------------- !
-#ifdef UM_PHYSICS
-      ! #ifdef UM_PHYSICS added because of problems with cray compiler
-      ! and empty cloud fields field collection.
-      !
-      ! Transport some of the contents of cloud_fields.
-      ! If not using PC2, nothing will be transported.
-      call log_event("Transporting cloud fields...", LOG_LEVEL_INFO)
-      transport_metadata => transport_metadata_collection%get_transport_metadata('cloud')
-      call tracer_collection_transport_alg( cloud_fields,            &
-                                            cloud_fields_after_slow, &
-                                            model_dt,                &
-                                            transport_metadata )
+      ! Transport fields which are active in fast physics, and therefore need
+      ! transporting on every outer iteration
+      if (present(adv_fields_all_outer)) then
+        transport_metadata => transport_metadata_collection%get_transport_metadata('tracer')
+        call tracer_collection_transport_alg(adv_fields_all_outer,            &
+                                             adv_fields_all_outer_after_slow, &
+                                             model_dt,                        &
+                                             transport_metadata )
+      end if
       ! ---------------------------------------------------------------------- !
-      ! On final iteration, advect chemistry and aerosol fields as required
-      ! Use the same transport metadata as for cloud fields
+      ! Transport fields which aren't needed in fast physics, and therefore
+      ! only need transporting on the final outer iteration
       if (outer == outer_iterations) then
-        if (present(chemistry_fields)) then
-          call log_event("Transporting chemistry fields...", LOG_LEVEL_INFO)
-          transport_metadata => transport_metadata_collection%get_transport_metadata('cloud')
-          call tracer_collection_transport_alg( chemistry_fields,            &
-                                                chemistry_fields_after_slow, &
-                                                model_dt,                    &
-                                                transport_metadata )
-        end if
-        if (present(aerosol_fields)) then
-          call log_event("Transporting aerosol fields...", LOG_LEVEL_INFO)
-          transport_metadata => transport_metadata_collection%get_transport_metadata('cloud')
-          call tracer_collection_transport_alg( aerosol_fields,            &
-                                                aerosol_fields_after_slow, &
-                                                model_dt,                  &
-                                                transport_metadata )
+        if (present(adv_fields_last_outer)) then
+          transport_metadata => transport_metadata_collection%get_transport_metadata('tracer')
+          call tracer_collection_transport_alg(adv_fields_last_outer,            &
+                                               adv_fields_last_outer_after_slow, &
+                                               model_dt,                         &
+                                               transport_metadata )
         end if
       end if
-#endif
       ! ---------------------------------------------------------------------- !
       ! Write out moisture diagnostics
       if (do_moisture_diagnostics) then

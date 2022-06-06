@@ -213,7 +213,6 @@ contains
   !> @param[in,out] moist_dyn    Change in moist dynamics factors
   !> @param[in,out] exner        Change in exner pressure
   !> @param[in,out] mr           Change in moisture mixing ratios
-  !> @param[in,out] cloud_fields Fields for cloud scheme
   !> @param[in]     ls_u         Linearisation state for 3D wind field
   !> @param[in]     ls_rho       Linearisation state for density
   !> @param[in]     ls_theta     Linearisation state for potential temperature
@@ -221,7 +220,7 @@ contains
   !> @param[in]     ls_exner     Linearisation state for exner pressure
   !> @param[in]     ls_mr        Linearisation state for moisture mixing ratios
   !> @param[in]     clock        Model time
-  subroutine tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr, cloud_fields, &
+  subroutine tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr,               &
                             ls_u, ls_rho, ls_theta, ls_moist_dyn, ls_exner,    &
                             ls_mr, clock)
 
@@ -230,7 +229,6 @@ contains
     type( field_type ), intent( inout ) :: u, rho, theta, exner
     type( field_type ), intent( inout ) :: mr(nummr)
     type( field_type ), intent( inout ) :: moist_dyn(num_moist_factors)
-    type( field_collection_type ), intent( inout ) :: cloud_fields
 
     ! Linearisation state
     type( field_type ), intent( inout ) :: ls_u, ls_rho, ls_theta, ls_exner
@@ -301,7 +299,6 @@ contains
                                          ls_state_stage(igh_u,stage),  &
                                          ls_state_stage(igh_u,stage),  &
                                          ls_mr, ls_mr, ls_moist_dyn,   &
-                                         cloud_fields, cloud_fields,   &
                                          dt, 1_i_def )
 
       ! Compute new rhs

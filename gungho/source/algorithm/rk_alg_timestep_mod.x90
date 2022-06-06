@@ -181,16 +181,14 @@ contains
   !> @param[in,out] moist_dyn    Moist dynamics factors
   !> @param[in,out] exner        Exner pressure field
   !> @param[in,out] mr           Mixing ratios
-  !> @param[in,out] cloud_fields Fields for cloud scheme
   !> @param[in] dt               The model timestep length
-  subroutine rk_alg_step(u, rho, theta, moist_dyn, exner, mr, cloud_fields, dt )
+  subroutine rk_alg_step(u, rho, theta, moist_dyn, exner, mr, dt )
 
     implicit none
     ! Prognostic fields
     type(field_type),            intent(inout) :: u, rho, theta, exner, &
                                                   moist_dyn(num_moist_factors)
     type(field_type),            intent(inout) :: mr(nummr)
-    type(field_collection_type), intent(inout) :: cloud_fields
     real(kind=r_def),            intent(in)    :: dt
 
     ! The quadrature object
@@ -246,7 +244,6 @@ contains
       call gungho_transport_control_alg( rhs_prediction(:,stage), state, &
                                          state(igh_u), state(igh_u),     &
                                          mr, mr, moist_dyn,              &
-                                         cloud_fields, cloud_fields,     &
                                          dt, outer )
       ! Compute new rhs
       if ( rotating ) then

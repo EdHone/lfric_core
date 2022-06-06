@@ -67,12 +67,10 @@ module linear_step_mod
     type( field_collection_type ), pointer :: diagnostic_fields => null()
     type( field_type ),            pointer :: mr(:) => null()
     type( field_type ),            pointer :: moist_dyn(:) => null()
-    type( field_collection_type ), pointer :: advected_fields => null()
     type( field_collection_type ), pointer :: derived_fields => null()
     type( field_collection_type ), pointer :: ls_fields => null()
     type( field_type ),            pointer :: ls_mr(:) => null()
     type( field_type ),            pointer :: ls_moist_dyn(:) => null()
-    type( field_collection_type ), pointer :: cloud_fields => null()
 
     type( field_type), pointer :: theta => null()
     type( field_type), pointer :: u => null()
@@ -95,9 +93,7 @@ module linear_step_mod
     diagnostic_fields => model_data%diagnostic_fields
     mr => model_data%mr
     moist_dyn => model_data%moist_dyn
-    advected_fields => model_data%advected_fields
     derived_fields => model_data%derived_fields
-    cloud_fields => model_data%cloud_fields
 
     ls_fields => model_data%ls_fields
     ls_mr => model_data%ls_mr
@@ -121,13 +117,11 @@ module linear_step_mod
                                        exner, mr, moist_dyn,              &
                                        ls_u, ls_rho, ls_theta,            &
                                        ls_exner, ls_mr, ls_moist_dyn,     &
-                                       advected_fields,                   &
                                        derived_fields,                    &
-                                       cloud_fields,                      &
                                        clock, mesh, twod_mesh)
       case( method_rk )             ! RK
         call tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr,  &
-                            cloud_fields, ls_u, ls_rho, ls_theta, &
+                            ls_u, ls_rho, ls_theta,               &
                             ls_moist_dyn, ls_exner, ls_mr, clock)
     end select
 

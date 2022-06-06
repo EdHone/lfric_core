@@ -100,7 +100,8 @@ module gungho_model_data_mod
     !> All the diagnostic fields
     type( field_collection_type ), public   :: diagnostic_fields
     !> Fields that should be advected
-    type( field_collection_type ), public   :: advected_fields
+    type( field_collection_type ), public   :: adv_fields_last_outer
+    type( field_collection_type ), public   :: adv_fields_all_outer
     !> FD fields derived from FE fields for use in physics time-stepping schemes
     type( field_collection_type ), public   :: derived_fields
     !> LBC fields - lateral boundary conditions to run a limited area model
@@ -218,12 +219,13 @@ contains
     allocate(model_data%ls_mr(nummr))
 
     ! Create gungho prognostics and auxilliary (diagnostic) fields
-    call create_gungho_prognostics( mesh,                           &
-                                    model_data%depository,          &
-                                    model_data%prognostic_fields,   &
-                                    model_data%diagnostic_fields,   &
-                                    model_data%advected_fields,     &
-                                    model_data%mr,                  &
+    call create_gungho_prognostics( mesh,                             &
+                                    model_data%depository,            &
+                                    model_data%prognostic_fields,     &
+                                    model_data%diagnostic_fields,     &
+                                    model_data%adv_fields_all_outer,  &
+                                    model_data%adv_fields_last_outer, &
+                                    model_data%mr,                    &
                                     model_data%moist_dyn )
 
     if (limited_area) call create_lbc_fields( mesh,                         &
@@ -234,22 +236,23 @@ contains
 
     ! Create prognostics used by physics
     if (use_physics) then
-      call create_physics_prognostics( mesh, twod_mesh,                &
-                                       clock,                          &
-                                       model_data%depository,          &
-                                       model_data%prognostic_fields,   &
-                                       model_data%advected_fields,     &
-                                       model_data%derived_fields,      &
-                                       model_data%radiation_fields,    &
-                                       model_data%microphysics_fields, &
-                                       model_data%orography_fields,    &
-                                       model_data%turbulence_fields,   &
-                                       model_data%convection_fields,   &
-                                       model_data%cloud_fields,        &
-                                       model_data%surface_fields,      &
-                                       model_data%soil_fields,         &
-                                       model_data%snow_fields,         &
-                                       model_data%chemistry_fields,    &
+      call create_physics_prognostics( mesh, twod_mesh,                  &
+                                       clock,                            &
+                                       model_data%depository,            &
+                                       model_data%prognostic_fields,     &
+                                       model_data%adv_fields_all_outer,  &
+                                       model_data%adv_fields_last_outer, &
+                                       model_data%derived_fields,        &
+                                       model_data%radiation_fields,      &
+                                       model_data%microphysics_fields,   &
+                                       model_data%orography_fields,      &
+                                       model_data%turbulence_fields,     &
+                                       model_data%convection_fields,     &
+                                       model_data%cloud_fields,          &
+                                       model_data%surface_fields,        &
+                                       model_data%soil_fields,           &
+                                       model_data%snow_fields,           &
+                                       model_data%chemistry_fields,      &
                                        model_data%aerosol_fields )
 
 #ifdef UM_PHYSICS
@@ -500,7 +503,8 @@ contains
       call model_data%depository%clear()
       call model_data%prognostic_fields%clear()
       call model_data%diagnostic_fields%clear()
-      call model_data%advected_fields%clear()
+      call model_data%adv_fields_last_outer%clear()
+      call model_data%adv_fields_all_outer%clear()
       call model_data%derived_fields%clear()
       call model_data%radiation_fields%clear()
       call model_data%microphysics_fields%clear()

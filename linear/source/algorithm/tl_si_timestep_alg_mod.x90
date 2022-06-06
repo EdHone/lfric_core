@@ -81,8 +81,6 @@ module tl_si_timestep_alg_mod
                                    only: derive_exner_from_eos
   use tl_derive_exner_from_eos_alg_mod, &
                                    only: tl_derive_exner_from_eos
-  use semi_implicit_timestep_alg_mod, &
-                                   only: pre_advection_generic_field
 
   use moisture_conservation_alg_mod, &
                                    only: moisture_conservation_alg
@@ -317,17 +315,14 @@ contains
   !> @param[in]     ls_exner               Exner pressure
   !> @param[in]     ls_mr                  Mixing ratios
   !> @param[in]     ls_moist_dyn           Factors for moist dynamics
-  !> @param[in]     advected_fields        Group of fields to be advected
   !> @param[in]     derived_fields         Group of derived fields
-  !> @param[in]     cloud_fields           Group of derived fields
   !> @param[in]     clock                  Model time
   !> @param[in]     mesh                   The current mesh
   !> @param[in]     twod_mesh              The current 2d mesh
   subroutine tl_semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn, &
                                        ls_u, ls_rho, ls_theta, ls_exner,    &
                                        ls_mr, ls_moist_dyn,                 &
-                                       advected_fields,                     &
-                                       derived_fields,  cloud_fields,       &
+                                       derived_fields,                      &
                                        clock, mesh, twod_mesh)
 
     implicit none
@@ -341,9 +336,7 @@ contains
     type( field_type ), intent( in ) :: ls_mr(nummr)
     type( field_type ), intent( in ) :: ls_moist_dyn(num_moist_factors)
     ! field groups
-    type( field_collection_type ), intent( inout ) :: advected_fields
     type( field_collection_type ), intent( inout ) :: derived_fields
-    type( field_collection_type ), intent( inout ) :: cloud_fields
 
     class(clock_type), intent(in) :: clock
 
@@ -370,9 +363,6 @@ contains
     ! Density field used for moisture conservation diagnostics
     type( field_type ) :: rho_guess
     logical(kind=l_def) :: write_moisture_diag
-
-    ! Cloud fields after slow physics to be advected
-    type( field_collection_type ) :: cloud_fields_after_slow
 
     if ( subroutine_timers ) call timer('semi_implicit_timestep_alg')
 
@@ -471,9 +461,6 @@ contains
     !==========================================================================
     ! Start the Outer (advection) loop
     !==========================================================================
-    call pre_advection_generic_field(cloud_fields_after_slow, cloud_fields, &
-                                     advected_fields)
-
     ls_outer_dynamics_loop: do outer = 1,outer_iterations
 
       call gungho_transport_control_alg(ls_rhs_adv(:, outer, 1),        &
@@ -483,8 +470,6 @@ contains
                                         ls_mr_itns(:, outer, 1),        &
                                         ls_mr_after_slow(:),            &
                                         ls_moist_dyn_itns(:, outer, 1), &
-                                        cloud_fields,                   &
-                                        cloud_fields_after_slow,        &
                                         dt, outer)
 
       if (use_wavedynamics) then
