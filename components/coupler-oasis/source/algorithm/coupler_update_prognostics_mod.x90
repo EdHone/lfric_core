@@ -13,7 +13,7 @@ module coupler_update_prognostics_mod
   use constants_mod,                 only: l_def, i_def, r_def
   use log_mod,                       only: log_event,       &
                                            LOG_LEVEL_ERROR,  &
-                                           LOG_LEVEL_INFO,   &
+                                           LOG_LEVEL_DEBUG,  &
                                            log_scratch_space
   use multi_extract_kernel_mod,      only: multi_extract_kernel_type
   use multi_insert_kernel_mod,       only: multi_insert_kernel_type
@@ -21,11 +21,14 @@ module coupler_update_prognostics_mod
   use jules_control_init_mod,        only: n_sea_tile, first_sea_tile, &
                                            first_sea_ice_tile, n_surf_tile, &
                                            n_sea_ice_tile
+  use c_kappai,                      only: rhosnow
   use jules_physics_init_mod,        only: min_sea_ice_frac
   use process_ssi_kernel_mod,        only: process_ssi_kernel_type
 #endif
 
   implicit none
+
+  type( field_type )                 :: snow_mass
 
 #if !defined(UM_PHYSICS)
   !
@@ -38,7 +41,7 @@ module coupler_update_prognostics_mod
   integer(i_def),parameter              :: n_sea_ice_tile = imdi
 #endif
 
-  public coupler_update_prognostics
+  public coupler_update_prognostics, initialise_snow_mass
 
   contains
 
@@ -56,19 +59,13 @@ module coupler_update_prognostics_mod
 
    select case(fld%get_name())
       case ("lf_ocn_sst")
-         call fld%log_minmax(LOG_LEVEL_INFO,  'ocean SST')
+         call fld%log_minmax(LOG_LEVEL_DEBUG,  'ocean SST from coupler')
          fld_ptr1 => depository%get_field('tile_temperature')
          call invoke( multi_insert_kernel_type(fld_ptr1, fld, &
                                  first_sea_tile, n_sea_tile ) )
          fld_ptr1 => null()
-      case ("lf_ti")
-         call fld%log_minmax(LOG_LEVEL_INFO,  'ocean ICE sst')
-         fld_ptr1 => depository%get_field('tile_temperature')
-         call invoke( multi_insert_kernel_type(fld_ptr1, fld, &
-                                 first_sea_ice_tile, n_sea_ice_tile ) )
-         fld_ptr1 => null()
       case ("lf_icefrc")
-         call fld%log_minmax(LOG_LEVEL_INFO,  'sea ice fraction')
+         call fld%log_minmax(LOG_LEVEL_DEBUG,  'sea ice fraction from coupler')
          fld_ptr1 => depository%get_field('tile_fraction')
 
 #if defined(UM_PHYSICS)
@@ -78,21 +75,56 @@ module coupler_update_prognostics_mod
 
          fld_ptr1 => null()
       case ("lf_icetck")
-         call fld%log_minmax(LOG_LEVEL_INFO,  'sea ice thickness in coupler')
+         call fld%log_minmax(LOG_LEVEL_DEBUG,  'sea ice thickness from coupler')
          fld_ptr1 => depository%get_field('sea_ice_thickness')
          call invoke(setval_X( fld_ptr1, fld ))
          fld_ptr1 => null()
       case ("lf_icelayert")
-         call fld%log_minmax(LOG_LEVEL_INFO,                                   &
+         call fld%log_minmax(LOG_LEVEL_DEBUG,                                   &
                                         'sea ice layer temperature in coupler')
          fld_ptr1 => depository%get_field('sea_ice_temperature')
          call invoke(setval_X( fld_ptr1, fld ))
+
          fld_ptr1 => null()
-      case ("r_lf_dummy_t")
-         call fld%log_minmax(LOG_LEVEL_INFO,  'dummy t')
-         write(log_scratch_space, '(A)' )                                      &
-                       "dummy variable r_lf_dummy_t detected but not processed"
-         call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+      case ("lf_conductivity")
+         call fld%log_minmax(LOG_LEVEL_DEBUG,'sea ice conductivity from coupler')
+         fld_ptr1 => depository%get_field('sea_ice_conductivity')
+
+         call invoke(setval_X( fld_ptr1, fld ))
+
+         fld_ptr1 => null()
+
+      case ("lf_pond_frac")
+         call fld%log_minmax(LOG_LEVEL_DEBUG, 'melt pond fraction from coupler')
+         fld_ptr1 => depository%get_field('melt_pond_fraction')
+
+         call invoke(setval_X( fld_ptr1, fld ))
+
+         fld_ptr1 => null()
+
+      case ("lf_pond_depth")
+         call fld%log_minmax(LOG_LEVEL_DEBUG,  'melt pond depth from coupler')
+         fld_ptr1 => depository%get_field('melt_pond_depth')
+
+         call invoke(setval_X( fld_ptr1, fld ))
+
+         fld_ptr1 => null()
+
+      case ("lf_snow_depth")
+         call fld%log_minmax(LOG_LEVEL_DEBUG, 'sea ice snow depth from coupler')
+         fld_ptr1 => depository%get_field('tile_snow_mass')
+
+         ! Calculate snow mass from snow depth
+         ! snow_mass = rhosnow * snow_depth(fld)
+         call invoke( a_times_X(snow_mass, rhosnow, fld ) )
+
+         ! Insert into the sea ice section of tile_snow_mass
+         call invoke( multi_insert_kernel_type(fld_ptr1, snow_mass, &
+                                 first_sea_ice_tile, n_sea_ice_tile ) )
+
+         fld_ptr1 => null()
+
       case default
          write(log_scratch_space, '(3A)' )                                     &
                                "PROBLEM coupler_update_prognostics variable ", &
@@ -101,4 +133,20 @@ module coupler_update_prognostics_mod
       end select
 
   end subroutine coupler_update_prognostics
+
+  !> @brief Initialises snow_mass field for use in this routine.
+  !> @param[in] sice_space Sea ice function space
+  subroutine initialise_snow_mass(sice_space)
+
+    use function_space_mod, only: function_space_type
+
+    implicit none
+
+    type(function_space_type), intent(in), pointer :: sice_space
+
+    call snow_mass%initialise( vector_space = sice_space, &
+                                      name = "snow_mass" )
+
+  end subroutine initialise_snow_mass
+
 end module coupler_update_prognostics_mod

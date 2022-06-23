@@ -361,10 +361,10 @@
             DATAM            = $CYLC_SUITE_SHARE_DIR/data/{{DATAM}}
             NEMO_DATA        = $CYLC_SUITE_SHARE_DIR/data/{{NEMO_RST}}
             NEMO_RST         = $CYLC_SUITE_SHARE_DIR/data/{{NEMO_RST}}
-            TASKSTART        = $( rose date 19760101T0000Z --print-format %Y,%m,%d,%H,%M )
-            TASKEND       = $( ROSE_CYCLING_MODE={{EXPT_CALENDAR}}  rose date 19760101T0000Z \
-19760101T0000Z --offset -{{EXPT_RESUB}} --print-format y,m,d,h,M,s )
-            TASKLENGTH       = $( rose date 19760101T0000Z 19760101T0000Z --calendar {{EXPT_CALENDAR}} --offset2 {{EXPT_RESUB}} -f y,m,d,h,M,s )
+            TASKSTART        = $( rose date 19790101T0000Z --print-format %Y,%m,%d,%H,%M )
+            TASKEND       = $( ROSE_CYCLING_MODE={{EXPT_CALENDAR}}  rose date 19790101T0000Z \
+19790101T0000Z --offset -{{EXPT_RESUB}} --print-format y,m,d,h,M,s )
+            TASKLENGTH       = $( rose date 19790101T0000Z 19790101T0000Z --calendar {{EXPT_CALENDAR}} --offset2 {{EXPT_RESUB}} -f y,m,d,h,M,s )
             ROSE_TASK_APP = ocean_ice
             ROSE_APP_OPT_CONF_KEYS={{OCEAN_ICE_OPT_KEYS}}
             OMP_NUM_THREADS = 1
@@ -384,7 +384,7 @@
     [[fcm_make_ocean]] 
         [[[job]]]
             batch system = slurm
-            execution time limit = PT5M
+            execution time limit = PT10M
         [[[directives]]]
             --mem=1G
             --ntasks=1

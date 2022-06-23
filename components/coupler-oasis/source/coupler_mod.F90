@@ -37,6 +37,7 @@ module coupler_mod
   use timestepping_config_mod,        only: dt
   use log_mod,                        only: log_event,       &
                                             LOG_LEVEL_INFO,  &
+                                            LOG_LEVEL_DEBUG, &
                                             LOG_LEVEL_ERROR, &
                                             log_scratch_space
   use mesh_collection_mod,            only: mesh_collection
@@ -45,9 +46,9 @@ module coupler_mod
                                             checkpoint_write_interface,       &
                                             checkpoint_read_interface
   use coupler_diagnostics_mod,        only: cpl_diagnostics, cpl_reset_field, &
-
                                             initialise_extra_coupling_fields
-  use coupler_update_prognostics_mod, only: coupler_update_prognostics
+  use coupler_update_prognostics_mod, only: coupler_update_prognostics,       &
+                                            initialise_snow_mass
   use process_o2a_algorithm_mod,      only: process_o2a_algorithm,            &
                                             initialise_sea_ice_frac_raw,      &
                                             sea_ice_frac_raw
@@ -222,7 +223,7 @@ module coupler_mod
          else
             write(log_scratch_space, '(3A)' ) "cpl_field_send: field ", &
                            trim(sname), " NOT exchanged on this timestep"
-            call log_event( log_scratch_space, LOG_LEVEL_INFO )
+            call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
          endif
       else
          ldfail = .true.
@@ -299,7 +300,7 @@ module coupler_mod
             write(log_scratch_space, '(3A)' ) "cpl_field_receive: field ", &
                                            trim(rname), &
                                            " NOT exchanged on this timestep"
-            call log_event( log_scratch_space, LOG_LEVEL_INFO )
+            call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
          endif
       else
          ldfail = .true.
@@ -664,6 +665,7 @@ module coupler_mod
    ! Initialize extra coupling variables
    call initialise_extra_coupling_fields( fld_cpld_fs, sice_space )
    call initialise_sea_ice_frac_raw( sice_space )
+   call initialise_snow_mass( sice_space )
 
    nullify(field)
    deallocate(global_index)
@@ -749,7 +751,7 @@ module coupler_mod
    vector_space => function_space_collection%get_fs( twod_mesh, 0, W3, ndata=1 )
 
    call add_cpl_field(depository, prognostic_fields, &
-        'r_lf_dummy_t',   vector_space, checkpoint_restart_flag, twod=.true.)
+        'lf_ocn_sst', vector_space, checkpoint_restart_flag, twod=.true.)
 
    call add_cpl_field(depository, prognostic_fields, &
         'lf_icefrc',   sice_space, checkpoint_restart_flag, twod=.true.)
@@ -759,6 +761,18 @@ module coupler_mod
 
    call add_cpl_field(depository, prognostic_fields, &
         'lf_icelayert',sice_space, checkpoint_restart_flag, twod=.true.)
+
+   call add_cpl_field(depository, prognostic_fields, &
+        'lf_conductivity',sice_space, checkpoint_restart_flag, twod=.true.)
+
+   call add_cpl_field(depository, prognostic_fields, &
+        'lf_snow_depth',sice_space, checkpoint_restart_flag, twod=.true.)
+
+   call add_cpl_field(depository, prognostic_fields, &
+        'lf_pond_frac',sice_space, checkpoint_restart_flag, twod=.true.)
+
+   call add_cpl_field(depository, prognostic_fields, &
+        'lf_pond_depth',sice_space, checkpoint_restart_flag, twod=.true.)
 
   end subroutine cpl_fields
 

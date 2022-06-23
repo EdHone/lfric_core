@@ -274,13 +274,12 @@
 	<field id="checkpoint_frozen_soil_moisture" name="frozen_soil_moisture" long_name="frozen_soil_moisture_proportion" unit="1" domain_ref="face" axis_ref="soil_levels" />
       </field_group>
 
-      <!-- Main diagnostic group -->
-      <field_group id="diagnostic_fields" freq_op="1ts" operation="instant" enabled=".TRUE." >
-	<!-- coupling diagnostics -->
-        <field id="r_lf_dummy_t" name="r_lf_dummy_t" long_name="r_lf_dummy_t" unit="m" domain_ref="face" />
+      <!-- Coupling fields group -->
+      <field_group id="coupled_fields" freq_op="1ts" operation="instant" enabled=".TRUE." >
         <field id="lf_icefrc" name="lf_icefrc" long_name="lf_icefrc" unit="1" domain_ref="face" axis_ref="sea_ice_categories" />
         <field id="lf_icetck" name="lf_icetck" long_name="lf_icetck" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
         <field id="lf_icelayert" name="lf_icelayert" long_name="lf_icelayert" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="lf_ocn_sst" name="lf_ocn_sst" long_name="lf_ocn_sst" unit="K" domain_ref="face" />
         <field id="lf_taux" name="lf_taux" long_name="lf_taux" unit="m" domain_ref="face" />
         <field id="lf_tauy" name="lf_tauy" long_name="lf_tauy" unit="m" domain_ref="face" />
         <field id="lf_solar" name="lf_solar" long_name="lf_solar" unit="m" domain_ref="face" />
@@ -293,8 +292,14 @@
         <field id="lf_iceheatflux" name="lf_iceheatflux" long_name="lf_iceheatflux" unit="W m-2" domain_ref="face" axis_ref="sea_ice_categories" />
         <field id="lf_sublimation" name="lf_sublimation" long_name="lf_sublimation" unit="kg m-2 s-1" domain_ref="face" axis_ref="sea_ice_categories" />
         <field id="lf_iceskint" name="lf_iceskint" long_name="lf_iceskint" unit="K" domain_ref="face" axis_ref="sea_ice_categories" />
-        <field id="sea_ice_thickness" name="sea_ice_thickness" long_name="sea_ice_thickness" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
-	<!-- below as non-coupled model -->
+        <field id="lf_conductivity" name="lf_conductivity" long_name="lf_conductivity" unit="W m-2 K-1" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="lf_snow_depth" name="lf_snow_depth" long_name="snow depth on sea ice" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="lf_pond_frac" name="lf_pond_frac" long_name="lf_pond_frac" unit="1" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="lf_pond_depth" name="lf_pond_depth" long_name="lf_pond_depth" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
+      </field_group>
+
+      <!-- Main diagnostic group -->
+      <field_group id="diagnostic_fields" freq_op="1ts" operation="instant" enabled=".TRUE." >
 	<field id="theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
 	<field id="theta_in_w3" name="theta_in_w3" long_name="air_potential_temperature_at_cell_centres" unit="K" grid_ref="half_level_face_grid" />
 	<field id="m_v" name="m_v" long_name="vapour_mixing_ratio" unit="kg kg-1" grid_ref="full_level_face_grid" />
@@ -631,6 +636,12 @@
 	<field id="snow__snow_layer_ice_mass" name="snow_layer_ice_mass" long_name="snow_layer_ice_mass" unit="kg m-2" domain_ref="face" axis_ref="snow_layers_and_tiles"/>
 	<field id="snow__snow_layer_liq_mass" name="snow_layer_liq_mass" long_name="snow_layer_liquid_mass" unit="kg m-2" domain_ref="face" axis_ref="snow_layers_and_tiles"/>
 	<field id="snow__snow_layer_rgrain" name="snow_layer_rgrain" long_name="snow_layer_grain_size" unit="microns" domain_ref="face" axis_ref="snow_layers_and_tiles"/>
+        <!-- Jules sea ice diagnostics -->
+        <field id="seaice__sea_ice_thickness" name="sea_ice_thickness" long_name="sea_ice_thickness" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="seaice__sea_ice_temperature" name="sea_ice_temperature" long_name="sea_ice_temperature" unit="K" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="seaice__sea_ice_conductivity" name="sea_ice_conductivity" long_name="sea_ice_conductivity" unit="W m-2 K-1" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="seaice__melt_pond_fraction" name="melt_pond_fraction" long_name="sea ice melt pond fraction" unit="1" domain_ref="face" axis_ref="sea_ice_categories" />
+        <field id="seaice__melt_pond_depth" name="melt_pond_depth" long_name="sea ice melt pond depth" unit="m" domain_ref="face" axis_ref="sea_ice_categories" />
 	<!-- Jules soil diagnostics -->
 	<field id="soil__surface_runoff" name="surface_runoff" long_name="surface_runoff_flux" unit="kg m-2 s-1" domain_ref="face" />
 	<field id="soil__sub_surface_runoff" name="sub_surface_runoff" long_name="subsurface_runoff_flux" unit="kg m-2 s-1" domain_ref="face" />
@@ -1067,14 +1078,6 @@
       </file>
 
       <file id="lfric_diag" name="lfric_diag" output_freq="6h" convention="UGRID" enabled=".TRUE.">
-	<field field_ref="r_lf_dummy_t"/>
-	<field field_ref="lf_taux"/>
-	<field field_ref="lf_tauy"/>
-	<field field_ref="lf_solar"/>
-	<field field_ref="lf_heatflux"/>
-	<field field_ref="lf_train"/>
-	<field field_ref="lf_tsnow"/>
-	<field field_ref="lf_w10"/>
 	<field field_ref="theta" />
 	<field field_ref="m_v" />
 	<field field_ref="m_cl" />
@@ -1138,6 +1141,22 @@
 	<field field_ref="aerosol__acc_ins_du" />
 	<field field_ref="aerosol__cor_ins_du" />
 	<field field_ref="aerosol__cloud_drop_no_conc" />
+      </file>
+
+      <file id="lfric_coupled" name="lfric_coupled" output_freq="1h" convention="UGRID" enabled=".TRUE.">
+
+        <!-- All the raw data coming through the coupler is already in a field_group so we just use that -->
+        <field_group group_ref="coupled_fields" />
+
+        <!-- The prognostic fields that get updated by the coupler should also be output -->
+	<field id="surface__tile_temperature" />      <!-- For sea surface temperature -->
+	<field id="surface__tile_fraction" />         <!-- For sea ice fraction -->
+        <field id="seaice__sea_ice_thickness" />
+        <field id="seaice__sea_ice_temperature" />
+        <field id="seaice__sea_ice_conductivity" />
+        <field id="seaice__melt_pond_fraction" />
+        <field id="seaice__melt_pond_depth" />
+	<field id="snow__snow_mass" />                <!-- For snow on sea ice. tile_snow_mass in the code. -->
       </file>
 
       <file id="lfric_averages" name="lfric_averages" output_freq="12h" convention="UGRID" enabled=".TRUE.">

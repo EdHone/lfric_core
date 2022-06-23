@@ -78,6 +78,13 @@ contains
     type( field_type ), pointer :: snowice_melt           => null()
     type( field_type ), pointer :: snowice_sublimation    => null()
 
+    ! Sea ice fields
+    type( field_type ), pointer :: sea_ice_thickness      => null()
+    type( field_type ), pointer :: sea_ice_temperature    => null()
+    type( field_type ), pointer :: sea_ice_conductivity   => null()
+    type( field_type ), pointer :: melt_pond_fraction     => null()
+    type( field_type ), pointer :: melt_pond_depth        => null()
+
     type( field_type ), pointer :: soil_moist_wilt        => null()
     type( field_type ), pointer :: soil_moist_crit        => null()
     type( field_type ), pointer :: soil_moist_sat         => null()
@@ -144,6 +151,13 @@ contains
     canopy_water           => surface_fields%get_field('canopy_water')
     snowice_melt           => surface_fields%get_field('snowice_melt')
     snowice_sublimation    => surface_fields%get_field('snowice_sublimation')
+
+    ! Sea ice fields
+    sea_ice_thickness      => surface_fields%get_field('sea_ice_thickness')
+    sea_ice_temperature    => surface_fields%get_field('sea_ice_temperature')
+    sea_ice_conductivity   => surface_fields%get_field('sea_ice_conductivity')
+    melt_pond_fraction     => surface_fields%get_field('melt_pond_fraction')
+    melt_pond_depth        => surface_fields%get_field('melt_pond_depth')
 
     ! Soil fields
     soil_moist_wilt        => soil_fields%get_field('soil_moist_wilt')
@@ -244,6 +258,13 @@ contains
                                      surface_runoff, sub_surface_runoff,       &
                                      water_table,                              &
                                      grid_canopy_water,grid_throughfall)
+
+      ! Output sea ice diagnostics
+      call sea_ice_thickness%write_field('seaice__sea_ice_thickness')
+      call sea_ice_temperature%write_field('seaice__sea_ice_temperature')
+      call sea_ice_conductivity%write_field('seaice__sea_ice_conductivity')
+      call melt_pond_fraction%write_field('seaice__melt_pond_fraction')
+      call melt_pond_depth%write_field('seaice__melt_pond_depth')
 
     end if
 

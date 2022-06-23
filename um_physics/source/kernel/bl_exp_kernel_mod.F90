@@ -54,7 +54,7 @@ module bl_exp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_exp_kernel_type
     private
-    type(arg_type) :: meta_args(140) = (/                                      &
+    type(arg_type) :: meta_args(141) = (/                                      &
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! theta_in_wth
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3),                       &! rho_in_w3
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! wetrho_in_wth
@@ -94,6 +94,7 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! soil_respiration
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! thermal_cond_wet_soil
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_4),&! sea_ice_temperature
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_4),&! sea_ice_conductivity
          arg_type(GH_FIELD, GH_REAL,  GH_READWRITE, ANY_DISCONTINUOUS_SPACE_2),&! tile_temperature
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_2),&! tile_snow_mass
          arg_type(GH_FIELD, GH_INTEGER,  GH_READ,   ANY_DISCONTINUOUS_SPACE_2),&! n_snow_layers
@@ -250,6 +251,7 @@ contains
   !> @param[in,out] soil_respiration       Soil respiration  (kg m-2 s-1)
   !> @param[in,out] thermal_cond_wet_soil  Thermal conductivity of wet soil (W m-1 K-1)
   !> @param[in]     sea_ice_temperature    Bulk temperature of sea-ice (K)
+  !> @param[in]     sea_ice_conductivity   Sea ice thermal conductivity (W m-2 K-1)
   !> @param[in,out] tile_temperature       Surface tile temperatures
   !> @param[in]     tile_snow_mass         Snow mass on tiles (kg/m2)
   !> @param[in]     n_snow_layers          Number of snow layers on tiles
@@ -437,6 +439,7 @@ contains
                          soil_respiration,                      &
                          thermal_cond_wet_soil,                 &
                          sea_ice_temperature,                   &
+                         sea_ice_conductivity,                  &
                          tile_temperature,                      &
                          tile_snow_mass,                        &
                          n_snow_layers,                         &
@@ -784,6 +787,7 @@ contains
     real(kind=r_def), intent(in) :: canopy_height(undf_pft)
 
     real(kind=r_def), intent(in) :: sea_ice_temperature(undf_sice)
+    real(kind=r_def), intent(in) :: sea_ice_conductivity(undf_sice)
 
     real(kind=r_def), intent(in) :: sd_orog_2d(undf_2d)
     real(kind=r_def), intent(in) :: peak_to_trough_orog(undf_2d)
@@ -1345,7 +1349,7 @@ contains
     ti_sice = 0.0_r_um
     if (ice_fract(1, 1) > 0.0_r_um) then
       do i = 1, n_sea_ice_tile
-        k_sice_ncat(1, 1, i) = 2.0_r_um * kappai / de
+        k_sice_ncat(1, 1, i) = real(sea_ice_conductivity(map_sice(1)+i-1), r_um)
         ti_sice_ncat(1, 1, i) = real(sea_ice_temperature(map_sice(1)+i-1), r_um)
         ti_sice = ti_sice &
                 + ice_fract_ncat(1,1,i) * ti_sice_ncat(1,1,i) / ice_fract

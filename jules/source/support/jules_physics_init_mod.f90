@@ -147,7 +147,8 @@ contains
          ratio_albsoil, swdn_frac_albsoil
     use jules_science_fixes_mod, only: l_dtcanfix, l_fix_alb_ice_thick,     &
          l_fix_albsnow_ts, ctile_orog_fix, l_fix_wind_snow,                 &
-         l_accurate_rho, l_fix_osa_chloro, l_fix_ustar_dust, correct_sea_only
+         l_accurate_rho, l_fix_osa_chloro, l_fix_ustar_dust,                &
+         correct_sea_only, l_fix_lake_ice_temperatures
     use jules_sea_seaice_mod, only: nice, nice_use, iseasurfalg, emis_sea,  &
          seasalinityfactor, ip_ss_surf_div, z0sice,                   &
          z0h_z0m_sice, emis_sice, l_ctile, l_tstar_sice_new,                &
@@ -155,6 +156,7 @@ contains
          ip_ss_coare_mq, a_chrn_coare, b_chrn_coare, u10_max_coare,         &
          l_10m_neut, alpham, dtice, l_iceformdrag_lupkes,                   &
          l_stability_lupkes, l_use_dtstar_sea, hcap_sea, beta_evap,         &
+         l_sice_meltponds, l_sice_meltponds_cice,                           &
          buddy_sea, cdn_hw_sea, cdn_max_sea, u_cdn_hw, u_cdn_max,           &
          i_high_wind_drag, ip_hwdrag_null, ip_hwdrag_limited,               &
          ip_hwdrag_reduced_v1
@@ -290,6 +292,14 @@ contains
     z0h_z0m_miz          = 0.2_r_um
     z0h_z0m_sice         = 0.2_r_um
     z0sice               = 5.0e-4_r_um
+
+    if (l_esm_couple) then
+      l_sice_meltponds      = .true.
+      l_sice_meltponds_cice = .true.
+    else
+      l_sice_meltponds      = .false.
+      l_sice_meltponds_cice = .false.
+    end if
 
     ! Check the contents of the sea_seaice parameters module
     call check_jules_sea_seaice()
@@ -464,6 +474,7 @@ contains
     l_fix_osa_chloro    = .true.
     l_fix_ustar_dust    = .true.
     l_fix_wind_snow     = .true.
+    l_fix_lake_ice_temperatures = .true.
 
     ! The following routine initialises 3D arrays which are used direct
     ! from modules throughout the Jules code base.

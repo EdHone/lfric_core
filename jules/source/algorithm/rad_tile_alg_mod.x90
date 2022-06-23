@@ -91,6 +91,8 @@ subroutine rad_tile_alg(tile_sw_direct_albedo, tile_sw_diffuse_albedo,       &
   type( field_type ), pointer :: albedo_obs_scaling => null()
   type( field_type ), pointer :: chloro_sea        => null()
   type( field_type ), pointer :: sea_ice_thickness => null()
+  type( field_type ), pointer :: melt_pond_fraction => null()
+  type( field_type ), pointer :: melt_pond_depth   => null()
   type( field_type ), pointer :: z0msea            => null()
 
   type( field_type ), pointer :: soil_albedo       => null()
@@ -172,6 +174,8 @@ subroutine rad_tile_alg(tile_sw_direct_albedo, tile_sw_diffuse_albedo,       &
     albedo_obs_scaling => surface_fields%get_field('albedo_obs_scaling')
     chloro_sea        => surface_fields%get_field('chloro_sea')
     sea_ice_thickness => surface_fields%get_field('sea_ice_thickness')
+    melt_pond_fraction => surface_fields%get_field('melt_pond_fraction')
+    melt_pond_depth   => surface_fields%get_field('melt_pond_depth')
     z0msea            => surface_fields%get_field('z0msea')
 
     soil_albedo       => soil_fields%get_field('soil_albedo')
@@ -206,6 +210,7 @@ subroutine rad_tile_alg(tile_sw_direct_albedo, tile_sw_diffuse_albedo,       &
         tile_temperature, tile_snow_mass, tile_snow_rgrain, &
         snow_depth, snowpack_density, snow_soot, &
         chloro_sea, sea_ice_thickness, &
+        melt_pond_fraction, melt_pond_depth, &
         u_in_w3, v_in_w3, dz_wth, z0msea, &
         cos_zenith_angle_rts, n_sw_band))
     end if
@@ -224,6 +229,7 @@ subroutine rad_tile_alg(tile_sw_direct_albedo, tile_sw_diffuse_albedo,       &
           tile_temperature, tile_snow_mass, tile_snow_rgrain, &
           snow_depth, snowpack_density, snow_soot, &
           chloro_sea, sea_ice_thickness, &
+          melt_pond_fraction, melt_pond_depth, &
           u_in_w3, v_in_w3, dz_wth, z0msea, &
           cos_zenith_angle_rts, n_swinc_band))
 

@@ -33,8 +33,10 @@ module bl_imp_kernel_mod
                                         lowest_level_constant, &
                                         lowest_level_gradient, &
                                         lowest_level_flux
-  use planet_config_mod,        only : cp
-  use water_constants_mod,      only : tfs, lc, lf
+  use planet_config_mod,         only : cp
+  use jules_control_init_mod,    only : n_sea_ice_tile
+  use water_constants_mod,       only : tfs, lc, lf
+  use derived_config_mod,        only : l_esm_couple
 
   implicit none
 
@@ -47,7 +49,7 @@ module bl_imp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_imp_kernel_type
     private
-    type(arg_type) :: meta_args(103) = (/                                         &
+    type(arg_type) :: meta_args(104) = (/                                         &
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                &! outer
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! theta_in_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! wetrho_in_w3
@@ -69,6 +71,7 @@ module bl_imp_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! silhouette_area_orog
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_4),&! sea_ice_thickness
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, ANY_DISCONTINUOUS_SPACE_4),&! sea_ice_temperature
+         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_4),&! sea_ice_conductivity
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, ANY_DISCONTINUOUS_SPACE_2),&! tile_temperature
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, ANY_DISCONTINUOUS_SPACE_2),&! screen_temperature
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1),&! time_since_transition
@@ -189,6 +192,7 @@ contains
   !> @param[in]     silhouette_area_orog Silhouette area of orography
   !> @param[in]     sea_ice_thickness    Depth of sea-ice (m)
   !> @param[in,out] sea_ice_temperature  Bulk temperature of sea-ice (K)
+  !> @param[in]     sea_ice_conductivity Sea ice thermal conductivity (W m-2 K-1)
   !> @param[in,out] tile_temperature     Surface tile temperatures
   !> @param[in,out] screen_temperature   Tiled screen level liquid temperature
   !> @param[in,out] time_since_transition Time since decoupled screen transition
@@ -320,6 +324,7 @@ contains
                          silhouette_area_orog,               &
                          sea_ice_thickness,                  &
                          sea_ice_temperature,                &
+                         sea_ice_conductivity,               &
                          tile_temperature,                   &
                          screen_temperature,                 &
                          time_since_transition,              &
@@ -423,7 +428,6 @@ contains
                           nsurft, nsoilt, dim_cslayer, rad_nband, nmasst
     use atm_fields_bounds_mod, only: pdims, pdims_s
     use atm_step_local, only: dim_cs1, dim_cs2
-    use c_kappai, only: kappai, de
     use csigma, only: sbcon
     use dust_parameters_mod, only: ndiv, ndivh
     use jules_deposition_mod, only: l_deposition
@@ -585,6 +589,7 @@ contains
 
     real(kind=r_def), intent(in) :: sea_ice_thickness(undf_sice)
     real(kind=r_def), intent(inout) :: sea_ice_temperature(undf_sice)
+    real(kind=r_def), intent(inout) :: sea_ice_conductivity(undf_sice)
 
     real(kind=r_def), intent(in) :: peak_to_trough_orog(undf_2d)
     real(kind=r_def), intent(in) :: silhouette_area_orog(undf_2d)
@@ -1067,14 +1072,20 @@ contains
 
     ! Sea-ice conductivity, bulk temperature and thickness
     do i = 1, n_sea_ice_tile
-      k_sice_ncat(1, 1, i) = 2.0_r_um * kappai / de
+      k_sice_ncat(1, 1, i) = real(sea_ice_conductivity(map_sice(1)+i-1), r_um)
       ti_sice_ncat(1, 1, i) = real(sea_ice_temperature(map_sice(1)+i-1), r_um)
       di_sice_ncat(1, 1, i) = real(sea_ice_thickness(map_sice(1)+i-1), r_um)
     end do
 
-    ! Ocean coupling point set to false temporarily
-    ! (will be populated by coupling routines)
-    ainfo%ocn_cpl_point(1, 1) = .false.
+    ! Ocean coupling point
+    ! Temporarily set to true for all points in coupled models.
+    ! This will need to be fed from ocn_cpl_point lfric variable
+    ! as part of LFRIC#3250
+    if ( l_esm_couple ) then
+      ainfo%ocn_cpl_point(1, 1) = .true.
+    else
+      ainfo%ocn_cpl_point(1, 1) = .false.
+    end if
 
     do n = 1, npft
       ! Leaf area index

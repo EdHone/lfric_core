@@ -947,6 +947,15 @@ contains
     call add_physics_field( surface_fields, depository, prognostic_fields,     &
       adv_fields_last_outer, &
       'sea_ice_temperature', sice_space, checkpoint_flag=checkpoint_flag, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      adv_fields_last_outer, &
+      'sea_ice_conductivity', sice_space, checkpoint_flag=.false., twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      adv_fields_last_outer, &
+      'melt_pond_fraction', sice_space, checkpoint_flag=.false., twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      adv_fields_last_outer, &
+      'melt_pond_depth', sice_space, checkpoint_flag=.false., twod=.true. )
 
     ! Fields on surface tiles, don't need checkpointing
     call add_physics_field( surface_fields, depository, prognostic_fields,     &

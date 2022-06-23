@@ -175,6 +175,7 @@ contains
     type( field_type ), pointer :: leaf_area_index     => null()
     type( field_type ), pointer :: canopy_height       => null()
     type( field_type ), pointer :: sea_ice_temperature => null()
+    type( field_type ), pointer :: sea_ice_conductivity => null()
     type( field_type ), pointer :: tile_temperature    => null()
     type( field_type ), pointer :: surface_conductance => null()
     type( field_type ), pointer :: canopy_water        => null()
@@ -345,6 +346,7 @@ contains
     leaf_area_index     => surface_fields%get_field('leaf_area_index')
     canopy_height       => surface_fields%get_field('canopy_height')
     sea_ice_temperature => surface_fields%get_field('sea_ice_temperature')
+    sea_ice_conductivity => surface_fields%get_field('sea_ice_conductivity')
     tile_temperature    => surface_fields%get_field('tile_temperature')
     surface_conductance => surface_fields%get_field('surface_conductance')
     canopy_water        => surface_fields%get_field('canopy_water')
@@ -462,6 +464,7 @@ contains
                            soil_thermal_cond, soil_suction_sat, clapp_horn_b,  &
                            soil_respiration,                                   &
                            thermal_cond_wet_soil, sea_ice_temperature,         &
+                           sea_ice_conductivity,                               &
                            tile_temperature,                                   &
                            tile_snow_mass, n_snow_layers, snow_depth,          &
                            snow_layer_thickness, snow_layer_ice_mass,          &

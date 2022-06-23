@@ -11,6 +11,7 @@ module init_surface_fields_alg_mod
   ! Derived Types
   use field_mod,                 only: field_type
   use field_collection_mod,      only: field_collection_type
+  use c_kappai,                  only: kappai, de
 
   implicit none
 
@@ -58,6 +59,14 @@ contains
     type( field_type ), pointer :: gc_tile             => null()
     type( field_type ), pointer :: surface_conductance => null()
     type( field_type ), pointer :: canopy_water        => null()
+    type( field_type ), pointer :: sea_ice_conductivity => null()
+    type( field_type ), pointer :: melt_pond_fraction  => null()
+    type( field_type ), pointer :: melt_pond_depth     => null()
+
+    ! Local variables
+    real(kind=r_def)            :: default_conductivity
+
+    default_conductivity = 2.0_r_def * kappai / de
 
     z0msea              => surface_fields%get_field('z0msea')
     z0m                 => surface_fields%get_field('z0m')
@@ -76,6 +85,9 @@ contains
     gc_tile             => surface_fields%get_field('gc_tile')
     surface_conductance => surface_fields%get_field('surface_conductance')
     canopy_water        => surface_fields%get_field('canopy_water')
+    sea_ice_conductivity => surface_fields%get_field('sea_ice_conductivity')
+    melt_pond_fraction  => surface_fields%get_field('melt_pond_fraction')
+    melt_pond_depth     => surface_fields%get_field('melt_pond_depth')
 
     call invoke(                                                              &
                  ! Set sea/land surface prognostics for use in SCM testing
@@ -102,7 +114,15 @@ contains
                  setval_c(time_since_transition, rmdi),                       &
                  ! Initialise fields which vary with surface tile
                  initial_surface_kernel_type( tile_fraction, leaf_area_index, &
-                                              canopy_height, tile_temperature ))
+                                             canopy_height, tile_temperature),&
+                 ! Sea ice conductivity will use either this fixed value or
+                 ! it will get overwritten by the coupler
+                 setval_c(sea_ice_conductivity, default_conductivity ),       &
+                 ! Initialise melt ponds to zero
+                 setval_c(melt_pond_fraction, 0.0_r_def ),                    &
+                 setval_c(melt_pond_depth, 0.0_r_def ))
+
+
 
   end subroutine init_surface_fields_alg
 

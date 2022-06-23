@@ -36,12 +36,13 @@ module coupler_diagnostics_mod
 
   private
   ! workspace used for coupling field calculation
-  type( field_type )                 :: cpl_field1, cpl_field2, cpl_field3
+  type( field_type )                 :: cpl_field1, cpl_field2, cpl_field3,    &
+                                        cpl_field4, cpl_field5
   type( field_type )                 :: cpl_field1_si, cpl_field2_si,          &
                                         cpl_field3_si
 
   ! Sea ice fractions used in the previous timestep
-  ! (i.e. not unpaded by the coupling)
+  ! (i.e. not updated by the coupling)
   ! These ice fractions are stored as a fraction of
   ! the marine portion of the grid box
   type( field_type )                 :: sea_ice_frac_previous
@@ -108,15 +109,27 @@ module coupler_diagnostics_mod
             fld_ptr1 => depository%get_field("sw_up_tile")
             fld_ptr2 => depository%get_field("sw_down_surf")
             call invoke(                                                       &
-            !
-            ! Extract SW up from tile field, subtract from SW down at surface
-            ! and increment our coupling field with the net (SW/solar)
-            ! contribution.
-            !
-                        multi_extract_kernel_type(cpl_field1, fld_ptr1,        &
-                        first_sea_tile, n_sea_tile),                           &
-                        X_minus_Y(cpl_field2, fld_ptr2, cpl_field1),           &
-                        inc_X_plus_bY( fld, dtime, cpl_field2 ))
+
+                  ! Extract SW up (SW_up = cpl_field1)
+                  multi_extract_kernel_type(cpl_field1, fld_ptr1,              &
+                                      first_sea_tile, n_sea_tile),             &
+
+                  ! Use SW down (SW_down = fld_ptr2)
+
+                  ! Now we need to combine the above fluxes
+                  ! net_SW_down = SW_down - SW_up
+                  ! (net_SW_down = cpl_field5)
+                  X_minus_Y(cpl_field5, fld_ptr2, cpl_field1),                 &
+
+                  ! Scale by sea area fraction so that this flux is an
+                  ! average over the whole marine portion of the grid box
+                  ! (net_SW_scaled = cpl_field2)
+                  X_times_Y( cpl_field2, cpl_field5, sea_frac_previous ),      &
+
+                  ! Multiply by the length of the timestep as part of the
+                  ! time averaging process
+                  inc_X_plus_bY( fld, dtime, cpl_field2 ))
+
             fld_ptr1 => null()
             fld_ptr2 => null()
          case ("lf_heatflux")
@@ -127,31 +140,44 @@ module coupler_diagnostics_mod
 
             ! Concoct our heatflux value from various contributing fields.
             call invoke(                                                       &
-            !
-            ! Extract LW up from tile field, subtract from LW down at surface
-            ! and increment our coupling field with the net (LW) contribution.
-            !
-                        multi_extract_kernel_type(cpl_field1, fld_ptr1,        &
-                        first_sea_tile, n_sea_tile),                           &
-                        X_minus_Y(cpl_field2, fld_ptr2, cpl_field1),           &
-                        inc_X_plus_bY(fld, dtime, cpl_field2),                 &
-            !
-            ! Extract heat flux from tile field
-            !
-                        multi_extract_kernel_type(cpl_field1, fld_ptr3,        &
-                        first_sea_tile, n_sea_tile),                           &
-            !
-            ! Extract moisture heat flux from tile field
-            !
-                        multi_extract_kernel_type(cpl_field2, fld_ptr4,        &
-                        first_sea_tile, n_sea_tile),                           &
-            !
-            ! Add heat flux + hlat*moisture heat flux and
-            ! increment coupling field with the net contribution
-            !
-                        aX_plus_bY(cpl_field3, 1._r_def, cpl_field1,           &
-                        latent_heat_h2o_condensation, cpl_field2),             &
-                        inc_X_minus_bY( fld, dtime, cpl_field3 ))
+
+                  ! Extract LW up (LW_up = cpl_field1)
+                  multi_extract_kernel_type(cpl_field1, fld_ptr1,              &
+                                     first_sea_tile, n_sea_tile),              &
+
+                  ! Use LW down (LW_down = fld_ptr2)
+
+                  ! Extract heat flux (heat_flux = cpl_field3)
+                  multi_extract_kernel_type(cpl_field3, fld_ptr3,              &
+                                     first_sea_tile, n_sea_tile),              &
+
+                  ! Extract evaporative mass flux
+                  ! (evap_mass = cpl_field2)
+                  multi_extract_kernel_type(cpl_field2, fld_ptr4,              &
+                                     first_sea_tile, n_sea_tile),              &
+
+                  ! Convert evaporative mass flux to energy flux
+                  ! (evap_energy = cpl_field4)
+                  a_times_X(cpl_field4, latent_heat_h2o_condensation,          &
+                                     cpl_field2),                              &
+
+                  ! Now we need to combine the above fluxes
+                  ! net_heat_down = LW_down - LW_up - heat_flux - evap_energy
+                  ! (net_heat_down = cpl_field5)
+                  X_minus_Y(cpl_field5, fld_ptr2, cpl_field1),                 &
+                  inc_X_minus_Y(cpl_field5, cpl_field3),                       &
+                  inc_X_minus_Y(cpl_field5, cpl_field4),                       &
+
+                  ! Scale by sea area fraction so that this flux is an
+                  ! average over the whole marine portion of the grid box
+                  ! (net_heat_scaled = cpl_field2)
+                  X_times_Y( cpl_field2, cpl_field5, sea_frac_previous ),      &
+
+                  ! Multiply by the length of the timestep as part of the
+                  ! time averaging process
+                  inc_X_plus_bY( fld, dtime, cpl_field2 ))
+
+
             fld_ptr1 => null()
             fld_ptr2 => null()
             fld_ptr3 => null()
@@ -345,6 +371,8 @@ module coupler_diagnostics_mod
     call cpl_field1%initialise( vector_space=fld_cpld_fs, name="cpl_field1_W3" )
     call cpl_field2%initialise( vector_space=fld_cpld_fs, name="cpl_field2_W3" )
     call cpl_field3%initialise( vector_space=fld_cpld_fs, name="cpl_field3_W3" )
+    call cpl_field4%initialise( vector_space=fld_cpld_fs, name="cpl_field4_W3" )
+    call cpl_field5%initialise( vector_space=fld_cpld_fs, name="cpl_field5_W3" )
 
     ! initialise sea ice scratch variables
     call cpl_field1_si%initialise( vector_space = sice_space,             &

@@ -36,7 +36,7 @@ public :: sw_rad_tile_code
 ! Contains the metadata needed by the PSy layer.
 type, extends(kernel_type) :: sw_rad_tile_kernel_type
   private
-  type(arg_type) :: meta_args(25) = (/                                &
+  type(arg_type) :: meta_args(27) = (/                                &
     arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1), & ! tile_sw_direct_albedo
     arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1), & ! tile_sw_diffuse_albedo
     arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_2), & ! tile_fraction
@@ -56,6 +56,8 @@ type, extends(kernel_type) :: sw_rad_tile_kernel_type
     arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_4), & ! snow_soot
     arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_4), & ! chloro_sea
     arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_6), & ! sea_ice_thickness
+    arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_6), & ! melt_pond_fraction
+    arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_6), & ! melt_pond_depth
     arg_type(GH_FIELD, GH_REAL, GH_READ,  W3),                        & ! u_in_w3
     arg_type(GH_FIELD, GH_REAL, GH_READ,  W3),                        & ! v_in_w3
     arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! dz_wth
@@ -93,6 +95,8 @@ contains
 !> @param[in]     snow_soot              Snow soot content (kg/kg)
 !> @param[in]     chloro_sea             Chlorophyll content of the sea
 !> @param[in]     sea_ice_thickness      Sea ice thickness (m)
+!> @param[in]     melt_pond_fraction     Sea ice melt pond fraction
+!> @param[in]     melt_pond_depth        Sea ice melt pond depth (m)
 !> @param[in]     u_in_w3                'Zonal' wind in density space
 !> @param[in]     v_in_w3                'Meridional' wind in density space
 !> @param[in]     dz_wth                 Delta z at wtheta levels
@@ -143,6 +147,8 @@ subroutine sw_rad_tile_code(nlayers,                                &
                             snow_soot,                              &
                             chloro_sea,                             &
                             sea_ice_thickness,                      &
+                            melt_pond_fraction,                     &
+                            melt_pond_depth,                        &
                             u_in_w3,                                &
                             v_in_w3,                                &
                             dz_wth,                                 &
@@ -266,6 +272,8 @@ subroutine sw_rad_tile_code(nlayers,                                &
   real(r_def), intent(in)    :: cos_zenith_angle_rts(undf_2d)
 
   real(r_def), intent(in) :: sea_ice_thickness(undf_sice)
+  real(r_def), intent(in) :: melt_pond_fraction(undf_sice)
+  real(r_def), intent(in) :: melt_pond_depth(undf_sice)
 
   real(r_def), intent(in) :: u_in_w3(undf_w3)
   real(r_def), intent(in) :: v_in_w3(undf_w3)
@@ -468,9 +476,14 @@ subroutine sw_rad_tile_code(nlayers,                                &
     end if
   end do
 
+  ! Other sea ice fields
   do n = 1, n_sea_ice_tile
     ! Sea-ice thickness
     progs%di_ncat_sicat(1,1,n) = real(sea_ice_thickness(map_sice(1)+n-1),r_um)
+
+    ! Sea ice melt ponds
+    ainfo%pond_frac_cat_sicat(1,1,n) = real(melt_pond_fraction(map_sice(1)+n-1),r_um)
+    ainfo%pond_depth_cat_sicat(1,1,n) = real(melt_pond_depth(map_sice(1)+n-1),r_um)
   end do
 
   do n = 1, npft
