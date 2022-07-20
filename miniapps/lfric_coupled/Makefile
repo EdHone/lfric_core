@@ -208,26 +208,26 @@ build: ALWAYS
 	$(call MESSAGE,========================================)
 	$(call MESSAGE,PSycloning coupler-oasis component)
 	$(call MESSAGE,========================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	        SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
 	$(call MESSAGE,========================================)
 	$(call MESSAGE,PSycloning Gungho dynamical core)
 	$(call MESSAGE,========================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	        SOURCE_DIR=$(ROOT_DIR)/gungho/source
 	$(call MESSAGE,========================================)
 	$(call MESSAGE,PSycloning UM Physics)
 	$(call MESSAGE,========================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/um_physics/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/socrates/source
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	          SOURCE_DIR=$(ROOT_DIR)/jules/source
 	$(call MESSAGE,========================================)
 	$(call MESSAGE,PSycloning $(PROJECT_NAME))
 	$(call MESSAGE,========================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
                   SOURCE_DIR=source
 	$(call MESSAGE,=========================================================)
 	$(call MESSAGE,Generating $(PROJECT) namelist loaders)

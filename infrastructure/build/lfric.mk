@@ -257,7 +257,7 @@ configuration:
 #
 .PHONY: %/psyclone
 %/psyclone: $$(addsuffix /extract, $$*)
-	$(Q)$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$(Q)$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	            SOURCE_DIR=$* \
 	            WORKING_DIR=$(WORKING_DIR)
 

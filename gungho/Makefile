@@ -128,7 +128,7 @@ build: ALWAYS
 	$(call MESSAGE,========================================)
 	$(call MESSAGE,PSycloning $(PROJECT_NAME))
 	$(call MESSAGE,========================================)
-	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	          SOURCE_DIR=source
 	$(call MESSAGE,=========================================================)
 	$(call MESSAGE,Generating $(PROJECT) namelist loaders)
