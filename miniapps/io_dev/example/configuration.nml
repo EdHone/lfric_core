@@ -5,6 +5,8 @@
   time_variation        = 'analytic'
   ancil_update_freq     = 'always'
   field_kind            = 'real'
+  multi_mesh            = .false.
+  alt_mesh_name         = ''
 /
 !==============================================================================
 

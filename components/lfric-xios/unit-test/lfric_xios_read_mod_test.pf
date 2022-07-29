@@ -9,6 +9,7 @@ module lfric_xios_read_mod_test
 
   use constants_mod,                  only : i_def
   use lfric_xios_constants_mod,       only : dp_xios
+  use lfric_xios_utils_mod,           only : set_prime_io_mesh
   use halo_routing_collection_mod,    only : halo_routing_collection_type, &
                                              halo_routing_collection
   use function_space_collection_mod,  only : function_space_collection_type, &
@@ -74,6 +75,8 @@ contains
     mesh_id = mesh_collection%add_new_mesh( unit_test_mesh )
     this%mesh => mesh_collection%get_mesh( mesh_id )
 
+    call set_prime_io_mesh(this%mesh)
+
     ! Make a function space to be used to create fields in the tests
     this%w0_fs => function_space_collection%get_fs( this%mesh, &
                                                     element_order, W0 )
@@ -83,7 +86,6 @@ contains
                                                     element_order, WTheta )
     this%w3_fs => function_space_collection%get_fs( this%mesh, &
                                                     element_order, W3 )
-
   end subroutine setUp
 
 

@@ -14,7 +14,7 @@ module io_dev_driver_mod
   use cli_mod,                    only: get_initial_filename
   use clock_mod,                  only: clock_type
   use configuration_mod,          only: final_configuration
-  use constants_mod,              only: i_def, i_native, &
+  use constants_mod,              only: i_def, i_native, str_def, &
                                         PRECISION_REAL, r_def
   use convert_to_upper_mod,       only: convert_to_upper
   use driver_comm_mod,            only: init_comm, final_comm
@@ -24,6 +24,7 @@ module io_dev_driver_mod
   use driver_io_mod,              only: init_io, final_io, &
                                         get_clock, filelist_populator
   use field_mod,                  only: field_type
+  use io_dev_config_mod,          only: multi_mesh, alt_mesh_name
   use io_config_mod,              only: write_diag, diagnostic_frequency, &
                                         subroutine_timers, timer_output_path
   use local_mesh_collection_mod,  only: local_mesh_collection, &
@@ -74,6 +75,16 @@ module io_dev_driver_mod
 
     integer(i_native) :: communicator
 
+    character(str_def), allocatable :: multires_mesh_tags(:)
+    integer(i_def),     allocatable :: multires_mesh_ids(:), multires_twod_mesh_ids(:)
+
+    type(field_type), allocatable, target :: multires_coords(:,:)
+    type(field_type), allocatable, target :: multires_panel_ids(:)
+
+    type(field_type), pointer :: alt_io_coords(:,:) => null()
+    type(field_type), pointer :: alt_io_panel_ids(:) => null()
+    type(mesh_type),  pointer :: alt_mesh => null()
+
     procedure(filelist_populator), pointer :: files_init_ptr => null()
 
     call init_comm(program_name, communicator)
@@ -98,21 +109,45 @@ module io_dev_driver_mod
     !-------------------------------------------------------------------------
     call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
-    ! Create the mesh
-    call init_mesh( get_comm_rank(), get_comm_size(), mesh, twod_mesh = twod_mesh )
+    ! Create the meshes used to test multi-mesh output
+    multires_mesh_tags = [alt_mesh_name]
+    call init_mesh( get_comm_rank(), get_comm_size(),                      &
+                    mesh, twod_mesh = twod_mesh,                           &
+                    use_multires_coupling = multi_mesh,                    &
+                    multires_coupling_mesh_tags = multires_mesh_tags,      &
+                    multires_coupling_mesh_ids = multires_mesh_ids ,       &
+                    multires_coupling_2D_mesh_ids = multires_twod_mesh_ids )
 
-    ! Create FEM specifics (function spaces and chi field)
-    call init_fem( mesh, chi, panel_id )
+    ! Create FEM specifics (function spaces and chi fields)
+    call init_fem( mesh, chi, panel_id,                                    &
+                   use_multires_coupling = multi_mesh,                     &
+                   multires_coupling_mesh_ids = multires_mesh_ids ,        &
+                   multires_coupling_2D_mesh_ids = multires_twod_mesh_ids, &
+                   chi_multires_coupling         = multires_coords,        &
+                   panel_id_multires_coupling    = multires_panel_ids )
 
-    ! Set up IO
+    ! Create IO and instantiate the fields stored in model_data
     files_init_ptr => init_io_dev_files
-    call init_io( program_name, communicator, chi, panel_id, &
-                  populate_filelist=files_init_ptr )
+    if (multi_mesh) then
+      alt_io_coords => multires_coords
+      alt_io_panel_ids => multires_panel_ids
+      alt_mesh => mesh_collection%get_mesh(multires_mesh_ids(1))
+      call init_io( program_name, communicator, chi, panel_id, &
+                    populate_filelist = files_init_ptr,        &
+                    alt_coords = alt_io_coords,                &
+                    alt_panel_ids = alt_io_panel_ids )
 
-    ! Instantiate the fields stored in model_data
-    call create_model_data( model_data, &
-                            mesh,       &
-                            twod_mesh )
+      call create_model_data( model_data, &
+                              mesh,       &
+                              twod_mesh,  &
+                              alt_mesh )
+    else
+      call init_io( program_name, communicator, chi, panel_id, &
+                    populate_filelist = files_init_ptr )
+      call create_model_data( model_data, &
+                              mesh,       &
+                              twod_mesh )
+    end if
 
     ! Initialise the fields stored in the model_data
     call initialise_model_data( model_data, chi, panel_id )

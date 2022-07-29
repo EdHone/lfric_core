@@ -26,6 +26,8 @@ module lfric_xios_read_mod
   use integer_field_mod,        only: integer_field_type, &
                                       integer_field_proxy_type
   use io_mod,                   only: ts_fname
+  use lfric_xios_utils_mod,     only: prime_io_mesh_is
+  use mesh_mod,                 only: mesh_type
   use log_mod,                  only: log_event,         &
                                       log_scratch_space, &
                                       LOG_LEVEL_INFO,    &
@@ -103,12 +105,22 @@ subroutine read_field_node(xios_field_name, field_proxy)
 
   integer(i_def) :: i, undf
   integer(i_def) :: domain_size, axis_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: recv_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "node"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_node"
+  end if
 
   undf = field_proxy%vspace%get_last_dof_owned()
 
   ! Get the expected horizontal and vertical axis size
-  call xios_get_domain_attr('node', ni=domain_size)
+  call xios_get_domain_attr(trim(domain_id), ni=domain_size)
   call xios_get_axis_attr("vert_axis_full_levels", n_glo=axis_size)
 
   ! Size the arrays to be what is expected
@@ -162,12 +174,22 @@ subroutine read_field_edge(xios_field_name, field_proxy)
 
   integer(i_def) :: i, undf
   integer(i_def) :: domain_size, axis_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: recv_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "edge"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_edge"
+  end if
 
   undf = field_proxy%vspace%get_last_dof_owned()
 
   ! Get the expected horizontal and vertical axis size
-  call xios_get_domain_attr('edge', ni=domain_size)
+  call xios_get_domain_attr(trim(domain_id), ni=domain_size)
   call xios_get_axis_attr("vert_axis_half_levels", n_glo=axis_size)
 
   ! Size the arrays to be what is expected
@@ -222,7 +244,17 @@ subroutine read_field_face(xios_field_name, field_proxy)
   integer(i_def) :: i, undf
   integer(i_def) :: fs_id
   integer(i_def) :: domain_size, axis_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: recv_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "face"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_face"
+  end if
 
   ! Get the size of undf as we only read in up to last owned
   undf = field_proxy%vspace%get_last_dof_owned()
@@ -230,10 +262,10 @@ subroutine read_field_face(xios_field_name, field_proxy)
 
   ! get the horizontal / vertical domain sizes
   if ( fs_id == W3 ) then
-    call xios_get_domain_attr('face', ni=domain_size)
+    call xios_get_domain_attr(trim(domain_id), ni=domain_size)
     call xios_get_axis_attr("vert_axis_half_levels", n_glo=axis_size)
   else
-    call xios_get_domain_attr('face', ni=domain_size)
+    call xios_get_domain_attr(trim(domain_id), ni=domain_size)
     call xios_get_axis_attr("vert_axis_full_levels", n_glo=axis_size)
   end if
 
@@ -290,7 +322,17 @@ subroutine read_field_single_face(xios_field_name, field_proxy)
 
   integer(i_def) :: i, undf, ndata
   integer(i_def) :: domain_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: recv_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "face"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_face"
+  end if
 
   ! Get the size of undf as we only read in up to last owned
   undf = field_proxy%vspace%get_last_dof_owned()
@@ -298,7 +340,7 @@ subroutine read_field_single_face(xios_field_name, field_proxy)
 
   ! Get the expected horizontal size
   ! all 2D fields are nominally in W3, hence half levels
-  call xios_get_domain_attr('face', ni=domain_size)
+  call xios_get_domain_attr(trim(domain_id), ni=domain_size)
 
   ! Size the array to be what is expected
   allocate(recv_field(domain_size*ndata))
@@ -371,6 +413,15 @@ subroutine read_field_time_var(xios_field_name, field_proxy, time_indices, time_
   real(r_def),   allocatable :: time_slice(:)
   real(r_def),   allocatable :: field_data(:)
   character(str_def)         :: axis_id
+
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Call error if field not on prime mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( .not. prime_io_mesh_is(mesh) ) then
+    call log_event( "Read method 'read_field_time_var' only works for " // &
+                    "fields on the model's primary mesh", LOG_LEVEL_ERROR)
+  end if
 
   fs_id = field_proxy%vspace%which()
   ! get the horizontal / vertical / time domain sizes
@@ -570,73 +621,85 @@ end subroutine read_state
 !>  @param[in]  state                 The collection of fields to populate
 !>  @param[in]  timestep              The current timestep
 !>  @param[in]  checkpoint_stem_name  The checkpoint file stem name
+!>  @param[in,optional]  prefix  A prefix to be added to the field name to
+!>                               create the XIOS field ID
+!>  @param[in,optional]  suffix  A suffix to be added to the field name to
+!>                               create the XIOS field ID
 !>
-subroutine read_checkpoint(state, timestep, checkpoint_stem_name)
+subroutine read_checkpoint(state, timestep, checkpoint_stem_name, prefix, suffix)
 
   implicit none
 
   type( field_collection_type ), intent(inout) :: state
   integer(i_def),                intent(in)    :: timestep
   character(len=*),              intent(in)    :: checkpoint_stem_name
+  character(len=*), optional,    intent(in)    :: prefix
+  character(len=*), optional,    intent(in)    :: suffix
 
-  type( field_collection_iterator_type) :: iter
+  type(field_collection_iterator_type) :: iter
 
-  class( field_parent_type ), pointer :: fld => null()
+  class(field_parent_type), pointer    :: fld => null()
+
+  character(str_def)                   :: xios_field_id
 
   ! Create the iter iterator on the state collection
   call iter%initialise(state)
   do
     if ( .not.iter%has_next() ) exit
     fld => iter%next()
+    ! Construct the XIOS field ID from the LFRic field name and optional arguments
+    xios_field_id = trim(adjustl(fld%get_name()))
+    if ( present(prefix) ) xios_field_id = trim(adjustl(prefix)) // trim(adjustl(xios_field_id))
+    if ( present(suffix) ) xios_field_id = trim(adjustl(xios_field_id)) // trim(adjustl(suffix))
     select type(fld)
     type is (field_r32_type)
        if ( fld%can_checkpoint() ) then
 
           call log_event( 'Reading checkpoint file to restart '// &
-               trim(adjustl(fld%get_name())), LOG_LEVEL_INFO )
-          call fld%read_checkpoint( trim(adjustl(fld%get_name())), &
+               xios_field_id, LOG_LEVEL_INFO )
+          call fld%read_checkpoint( xios_field_id, &
                trim(ts_fname(checkpoint_stem_name, "",    &
-               trim(adjustl(fld%get_name())),timestep,"")) )
+               xios_field_id, timestep,"")) )
        else if ( fld%can_read() ) then
           write(log_scratch_space,'(2A)') &
-               "Reading UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+               "Reading UGRID checkpoint for ", xios_field_id
           call log_event(log_scratch_space, LOG_LEVEL_INFO)
-          call fld%read_field( "restart_" // trim(adjustl(fld%get_name())) )
+          call fld%read_field( "restart_" // xios_field_id )
        else
-          call log_event( 'Reading not set up for  '// trim(adjustl(fld%get_name())), &
+          call log_event( 'Reading not set up for  '// xios_field_id, &
                LOG_LEVEL_INFO )
        end if
     type is (field_r64_type)
        if ( fld%can_checkpoint() ) then
 
           call log_event( 'Reading checkpoint file to restart '// &
-               trim(adjustl(fld%get_name())), LOG_LEVEL_INFO )
-          call fld%read_checkpoint( trim(adjustl(fld%get_name())), &
+              xios_field_id, LOG_LEVEL_INFO )
+          call fld%read_checkpoint( xios_field_id, &
                trim(ts_fname(checkpoint_stem_name, "",    &
-               trim(adjustl(fld%get_name())),timestep,"")) )
+               xios_field_id, timestep,"")) )
        else if ( fld%can_read() ) then
           write(log_scratch_space,'(2A)') &
-               "Reading UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+               "Reading UGRID checkpoint for ", xios_field_id
           call log_event(log_scratch_space, LOG_LEVEL_INFO)
-          call fld%read_field( "restart_" // trim(adjustl(fld%get_name())) )
+          call fld%read_field( "restart_" // xios_field_id )
        else
-          call log_event( 'Reading not set up for  '// trim(adjustl(fld%get_name())), &
+          call log_event( 'Reading not set up for  '// xios_field_id, &
                LOG_LEVEL_INFO )
        end if
     type is (integer_field_type)
        if ( fld%can_checkpoint() ) then
           call log_event( 'Reading checkpoint file to restart '// &
-               trim(adjustl(fld%get_name())), LOG_LEVEL_INFO )
-          call fld%read_checkpoint( trim(adjustl(fld%get_name())), &
+               xios_field_id, LOG_LEVEL_INFO )
+          call fld%read_checkpoint( xios_field_id, &
                trim(ts_fname(checkpoint_stem_name, "",    &
-               trim(adjustl(fld%get_name())),timestep,"")) )
+               xios_field_id,timestep,"")) )
        else if ( fld%can_read() ) then
           write(log_scratch_space,'(2A)') &
-               "Reading UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+               "Reading UGRID checkpoint for ", xios_field_id
           call log_event(log_scratch_space, LOG_LEVEL_INFO)
-          call fld%read_field( "restart_" // trim(adjustl(fld%get_name())) )
+          call fld%read_field( "restart_" // xios_field_id )
        else
-          call log_event( 'Reading not set up for  '// trim(adjustl(fld%get_name())), &
+          call log_event( 'Reading not set up for  '// xios_field_id, &
                LOG_LEVEL_INFO )
        end if
     class default

@@ -23,6 +23,8 @@ module lfric_xios_write_mod
   use fs_continuity_mod,    only: W3
   use io_mod,               only: ts_fname
   use integer_field_mod,    only: integer_field_type, integer_field_proxy_type
+  use lfric_xios_utils_mod, only: prime_io_mesh_is
+  use mesh_mod,             only: mesh_type
   use log_mod,              only: log_event,         &
                                   log_scratch_space, &
                                   LOG_LEVEL_INFO,    &
@@ -112,12 +114,22 @@ subroutine write_field_node(xios_field_name, field_proxy)
 
   integer(i_def) :: i, undf
   integer(i_def) :: domain_size, axis_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: send_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "node"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_node"
+  end if
 
   undf = field_proxy%vspace%get_last_dof_owned()
 
   ! Get the expected horizontal domain size for the rank
-  call xios_get_domain_attr('node', ni=domain_size)
+  call xios_get_domain_attr(trim(domain_id), ni=domain_size)
   ! Get the expected vertical axis size
   call xios_get_axis_attr("vert_axis_full_levels", n_glo=axis_size)
 
@@ -183,12 +195,23 @@ subroutine write_field_edge(xios_field_name, field_proxy)
 
   integer(i_def) :: i, undf
   integer(i_def) :: domain_size, axis_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: send_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "edge"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_edge"
+  end if
+
 
   undf = field_proxy%vspace%get_last_dof_owned()
 
   ! Get the expected horizontal and vertical axis size
-  call xios_get_domain_attr('edge', ni=domain_size)
+  call xios_get_domain_attr(trim(domain_id), ni=domain_size)
   call xios_get_axis_attr("vert_axis_half_levels", n_glo=axis_size)
 
   ! Size the arrays to be what is expected
@@ -254,14 +277,26 @@ subroutine write_field_single_face(xios_field_name, field_proxy)
 
   integer(i_def) :: i, undf, ndata
   integer(i_def) :: domain_size
+  character(str_def) :: domain_id, mesh_name
   real(dp_xios), allocatable :: send_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "face"
+  else
+    ! Mesh is 2D so remove tag from name
+    mesh_name = trim(mesh%get_mesh_name())
+    domain_id =  mesh_name(1:len(trim(mesh_name))-3)//"_face"
+  end if
 
   undf = field_proxy%vspace%get_last_dof_owned()
   ndata = field_proxy%vspace%get_ndata()
 
   ! Get the expected horizontal size
   ! all 2D fields are nominally in W3, hence half levels
-  call xios_get_domain_attr('face', ni=domain_size)
+  call xios_get_domain_attr(trim(domain_id), ni=domain_size)
 
   ! Size the array to be what is expected
   allocate(send_field(domain_size*ndata))
@@ -325,7 +360,17 @@ subroutine write_field_face(xios_field_name, field_proxy)
   integer(i_def) :: i, undf
   integer(i_def) :: fs_id
   integer(i_def) :: domain_size, axis_size
+  character(str_def) :: domain_id
   real(dp_xios), allocatable :: send_field(:)
+  type(mesh_type), pointer   :: mesh => null()
+
+  ! Get domain ID from mesh
+  mesh => field_proxy%vspace%get_mesh()
+  if ( prime_io_mesh_is(mesh) ) then
+    domain_id = "face"
+  else
+    domain_id = trim(mesh%get_mesh_name())//"_face"
+  end if
 
   ! Field must be cast to kind to get function space ID
   select type(field_proxy)
@@ -348,10 +393,10 @@ subroutine write_field_face(xios_field_name, field_proxy)
 
   ! Get the expected horizontal and vertical axis size
   if ( fs_id == W3 ) then
-    call xios_get_domain_attr('face', ni=domain_size)
+    call xios_get_domain_attr(trim(domain_id), ni=domain_size)
     call xios_get_axis_attr("vert_axis_half_levels", n_glo=axis_size)
   else
-    call xios_get_domain_attr('face', ni=domain_size)
+    call xios_get_domain_attr(trim(domain_id), ni=domain_size)
     call xios_get_axis_attr("vert_axis_full_levels", n_glo=axis_size)
   end if
 
@@ -498,83 +543,95 @@ end subroutine write_state
 !>  @param[in]  state  Fields to checkpoint.
 !>  @param[in]  clock  Model time
 !>  @param[in]  checkpoint_stem_name  The checkpoint file stem name
+!>  @param[in,optional]  prefix  A prefix to be added to the field name to
+!>                               create the XIOS field ID
+!>  @param[in,optional]  suffix  A suffix to be added to the field name to
+!>                               create the XIOS field ID
 !>
-subroutine write_checkpoint( state, clock, checkpoint_stem_name )
+subroutine write_checkpoint( state, clock, checkpoint_stem_name, prefix, suffix )
 
   implicit none
 
   type(field_collection_type), intent(inout) :: state
   class(clock_type),           intent(in)    :: clock
   character(len=*),            intent(in)    :: checkpoint_stem_name
+  character(len=*), optional,  intent(in)    :: prefix
+  character(len=*), optional,  intent(in)    :: suffix
 
   type(field_collection_iterator_type) :: iter
 
-  class(field_parent_type), pointer :: fld => null()
+  class(field_parent_type), pointer    :: fld => null()
+
+  character(str_def)                   :: xios_field_id
 
   ! Create the iter iterator on the state collection
   call iter%initialise(state)
   do
      if ( .not.iter%has_next() ) exit
      fld => iter%next()
+     ! Construct the XIOS field ID from the LFRic field name and optional arguments
+     xios_field_id = trim(adjustl(fld%get_name()))
+     if ( present(prefix) ) xios_field_id = trim(adjustl(prefix)) // trim(adjustl(xios_field_id))
+     if ( present(suffix) ) xios_field_id = trim(adjustl(xios_field_id)) // trim(adjustl(suffix))
      select type(fld)
      type is (field_r32_type)
         if ( fld%can_checkpoint() ) then
            write(log_scratch_space,'(2A)') &
-                "Checkpointing ", trim(adjustl(fld%get_name()))
+                "Checkpointing ", xios_field_id
            call log_event(log_scratch_space, LOG_LEVEL_INFO)
-           call fld%write_checkpoint( trim(adjustl(fld%get_name())),      &
+           call fld%write_checkpoint( xios_field_id,      &
                                       trim(ts_fname(checkpoint_stem_name, &
                                       "",                                 &
-                                      trim(adjustl(fld%get_name())),      &
+                                      xios_field_id,      &
                                       clock%get_step(),                   &
                                       "")) )
         else if ( fld%can_write() ) then
            write(log_scratch_space,'(2A)') &
-                "Writing checkpoint for ", trim(adjustl(fld%get_name()))
+                "Writing checkpoint for ", xios_field_id
            call log_event(log_scratch_space, LOG_LEVEL_INFO)
-           call fld%write_field( "checkpoint_" // trim(adjustl(fld%get_name())) )
+           call fld%write_field( "checkpoint_" // xios_field_id )
         else
-           call log_event( 'Writing not set up for '// trim(adjustl(fld%get_name())), &
+           call log_event( 'Writing not set up for '// xios_field_id, &
                           LOG_LEVEL_INFO )
         end if
      type is (field_r64_type)
         if ( fld%can_checkpoint() ) then
            write(log_scratch_space,'(2A)') &
-                "Checkpointing ", trim(adjustl(fld%get_name()))
+                "Checkpointing ", xios_field_id
            call log_event(log_scratch_space, LOG_LEVEL_INFO)
-           call fld%write_checkpoint( trim(adjustl(fld%get_name())),      &
+           call fld%write_checkpoint( xios_field_id,      &
                                       trim(ts_fname(checkpoint_stem_name, &
                                       "",                                 &
-                                      trim(adjustl(fld%get_name())),      &
+                                      xios_field_id,      &
                                       clock%get_step(),                   &
                                       "")) )
         else if ( fld%can_write() ) then
            write(log_scratch_space,'(2A)') &
-                "Writing checkpoint for ", trim(adjustl(fld%get_name()))
+                "Writing checkpoint for ", xios_field_id
            call log_event(log_scratch_space, LOG_LEVEL_INFO)
-           call fld%write_field( "checkpoint_" // trim(adjustl(fld%get_name())) )
+           call fld%write_field( "checkpoint_" // xios_field_id )
         else
-           call log_event( 'Writing not set up for '// trim(adjustl(fld%get_name())), &
+           call log_event( 'Writing not set up for '// xios_field_id, &
                           LOG_LEVEL_INFO )
         end if
      type is (integer_field_type)
         if ( fld%can_checkpoint() ) then
            write(log_scratch_space,'(2A)') &
-                "Checkpointing ", trim(adjustl(fld%get_name()))
+                "Checkpointing ", xios_field_id
            call log_event(log_scratch_space, LOG_LEVEL_INFO)
            call fld%write_checkpoint( trim(adjustl(fld%get_name()) ),     &
                                       trim(ts_fname(checkpoint_stem_name, &
                                       "",                                 &
-                                      trim(adjustl(fld%get_name())),      &
+                                      xios_field_id,      &
                                       clock%get_step(),                   &
                                       "")) )
         else if ( fld%can_write() ) then
            write(log_scratch_space,'(2A)') &
-                "Writing checkpoint for ", trim(adjustl(fld%get_name()))
+                "Writing checkpoint for ", xios_field_id
            call log_event(log_scratch_space, LOG_LEVEL_INFO)
-           call fld%write_field( "checkpoint_" // trim(adjustl(fld%get_name())) )
+           call fld%write_field( "checkpoint_" // xios_field_id )
         else
-           call log_event( 'Writing not set up for '// trim(adjustl(fld%get_name())), &
+           call log_event( 'Writing not set up for '// xios_field_id, &
                 LOG_LEVEL_INFO )
         end if
      class default

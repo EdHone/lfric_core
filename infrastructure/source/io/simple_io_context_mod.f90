@@ -53,6 +53,8 @@ contains
   !> @param [in]     calendar_type     Type of calendar.
   !> @param [in]     list_of_files     List of file objects attached to the
   !!                                   context
+  !> @param [in]     alt_coords        Array of coordinate fields for alternative meshes
+  !> @param [in]     alt_panel_ids     Panel ID fields for alternative meshes
   !>
   subroutine initialise( this,                    &
                          id, communicator,        &
@@ -62,7 +64,8 @@ contains
                          seconds_per_step,        &
                          calendar_start,          &
                          calendar_type,           &
-                         list_of_files )
+                         list_of_files,           &
+                         alt_coords, alt_panel_ids )
 
     implicit none
 
@@ -78,6 +81,8 @@ contains
     character(*),                  intent(in)    :: calendar_start
     character(*),                  intent(in)    :: calendar_type
     class(file_type),    optional, intent(in)    :: list_of_files(:)
+    type(field_type),    optional, intent(in)    :: alt_coords(:,:)
+    type(field_type),    optional, intent(in)    :: alt_panel_ids(:)
 
     type(step_calendar_type), allocatable :: calendar
     integer(i_native)                     :: rc

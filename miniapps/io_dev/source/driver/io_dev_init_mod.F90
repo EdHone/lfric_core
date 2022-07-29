@@ -63,12 +63,14 @@ module io_dev_init_mod
   !> @param[out] dump_fields             Collection of fields to be passed to PSyCloned
   !>                                     kernels
   !> @param[in,out] variable_times_list  List of time_axis objects in model data
-  subroutine setup_io_dev_fields( mesh,         &
-                                  twod_mesh,    &
-                                  core_fields,  &
-                                  dump_fields,  &
-                                  alg_fields,   &
-                                  variable_times_list )
+  !> @param[in]  alt_mesh                Alternative 3D mesh
+  subroutine setup_io_dev_fields( mesh,                &
+                                  twod_mesh,           &
+                                  core_fields,         &
+                                  dump_fields,         &
+                                  alg_fields,          &
+                                  variable_times_list, &
+                                  alt_mesh )
 
     implicit none
 
@@ -79,6 +81,7 @@ module io_dev_init_mod
     type(field_collection_type), intent(out)   :: dump_fields
     type(field_collection_type), intent(out)   :: alg_fields
     type(linked_list_type),      intent(inout) :: variable_times_list
+    type(mesh_type), pointer, optional, intent(in) :: alt_mesh
 
     ! Local variables
     type(time_axis_type), save  :: seconds_axis, days_axis, months_axis
@@ -114,6 +117,10 @@ module io_dev_init_mod
                               mesh, twod_mesh, W3, twod=.true. )
       call create_real_field( core_fields, "multi_data_field", &
                               mesh, twod_mesh, W3, ndata=n_multi_data, twod=.true. )
+
+      if (present(alt_mesh)) then
+        call create_real_field( core_fields, "alt_W3_field", alt_mesh, twod_mesh, W3 )
+      end if
 
       !----------------------------------------------------------------------------
       ! Time varying fields

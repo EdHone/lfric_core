@@ -56,9 +56,14 @@ contains
   !!                              vertex
   !> @param[in] populate_filelist Optional procedure for creating a list of
   !!                              file descriptions used by the model I/O
+  !> @param[in] alt_coords        Optional array of coordinate fields 
+  !!                              for alternative meshes
+  !> @param[in] alt_panel_ids     Optional panel ID fields for alternative meshes
   subroutine init_io( id, communicator, &
                       chi, panel_id,    &
-                      populate_filelist )
+                      populate_filelist,& 
+                      alt_coords,       &
+                      alt_panel_ids )
 
     implicit none
 
@@ -68,6 +73,8 @@ contains
     class(field_type),               intent(in) :: panel_id
     procedure(filelist_populator), &
                   optional, pointer, intent(in) :: populate_filelist
+    type(field_type), optional,      intent(in) :: alt_coords(:,:)
+    type(field_type), optional,      intent(in) :: alt_panel_ids(:)
 
     class(file_type), allocatable :: file_list(:)
     integer(i_native) :: rc
@@ -101,7 +108,8 @@ contains
                                spinup_period, dt,                     &
                                calendar_start,                        &
                                key_from_calendar_type(calendar_type), &
-                               file_list )
+                               file_list,                             &
+                               alt_coords, alt_panel_ids )
 
     else
       call context%initialise( id, communicator,                      &
@@ -110,7 +118,8 @@ contains
                                timestep_end,                          &
                                spinup_period, dt,                     &
                                calendar_start,                        &
-                               key_from_calendar_type(calendar_type) )
+                               key_from_calendar_type(calendar_type), &
+                               alt_coords=alt_coords, alt_panel_ids=alt_panel_ids )
 
     end if
 

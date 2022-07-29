@@ -8,11 +8,14 @@
 module lfric_xios_utils_mod
 
     use xios,           only : xios_date
-    use constants_mod,  only : i_native
+    use constants_mod,  only : i_def, i_native
+    use mesh_mod,       only : mesh_type
 
     implicit none
     private
-    public :: parse_date_as_xios
+    public :: parse_date_as_xios, set_prime_io_mesh, prime_io_mesh_is
+
+    integer(kind=i_def), private, allocatable :: prime_io_mesh_ids(:)
 
     contains
 
@@ -42,5 +45,43 @@ module lfric_xios_utils_mod
       date_obj = xios_date( y, mo, d, h, mi, s )
 
     end function parse_date_as_xios
+
+    !> @brief Registers a mesh to be used as the primary I/O mesh
+    !> @param[in] mesh  The mesh object to be registered
+    subroutine set_prime_io_mesh( mesh )
+
+      implicit none
+
+      type(mesh_type), intent(in) :: mesh
+
+      integer(i_def), allocatable :: mesh_id_list(:)
+
+      ! Set up array of ints to hold mesh ids, bring in previous mesh IDs if
+      ! already present and add the new mesh ID to the new array
+      if (allocated(prime_io_mesh_ids)) then
+        allocate(mesh_id_list(size(prime_io_mesh_ids) + 1))
+        mesh_id_list(1:size(prime_io_mesh_ids)) = prime_io_mesh_ids
+        mesh_id_list(size(prime_io_mesh_ids)+1) = mesh%get_id()
+      else
+        allocate(mesh_id_list(1))
+        mesh_id_list(1) = mesh%get_id()
+      end if
+
+      ! Make the new array the main array
+      call move_alloc(mesh_id_list, prime_io_mesh_ids)
+
+    end subroutine set_prime_io_mesh
+
+    function prime_io_mesh_is( mesh ) result( mesh_is_prime_io )
+
+      implicit none
+
+      type(mesh_type), intent(in) :: mesh
+
+      logical :: mesh_is_prime_io
+
+      mesh_is_prime_io = (any(prime_io_mesh_ids == mesh%get_id()))
+
+    end function prime_io_mesh_is
 
   end module lfric_xios_utils_mod

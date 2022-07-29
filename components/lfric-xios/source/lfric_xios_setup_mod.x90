@@ -28,6 +28,7 @@ module lfric_xios_setup_mod
                                            file_convention_cf
   use lfric_xios_clock_mod,          only: lfric_xios_clock_type
   use lfric_xios_file_mod,           only: lfric_xios_file_type
+  use lfric_xios_utils_mod,          only: set_prime_io_mesh
   use log_mod,                       only: log_event, log_level_error
   use mesh_mod,                      only: mesh_type
   use mesh_collection_mod,           only: mesh_collection
@@ -50,7 +51,8 @@ module lfric_xios_setup_mod
                                            xios_set_domain_attr, &
                                            xios_add_child,       &
                                            xios_domain,          &
-                                           xios_domaingroup
+                                           xios_domaingroup,     &
+                                           xios_is_valid_domain
 
   implicit none
 
@@ -67,13 +69,56 @@ contains
   !> @param[in]  chi           Coordinate field
   !> @param[in]  panel_id      Field with IDs of mesh panels
   !>
-  subroutine init_xios_dimensions(chi, panel_id)
+  subroutine init_xios_dimensions(chi, panel_id, alt_coords, alt_panel_ids)
 
     implicit none
 
     ! Arguments
-    type(field_type),    intent(in)          :: chi(:)
-    type(field_type),    intent(in)          :: panel_id
+    type(field_type),           intent(in) :: chi(:)
+    type(field_type),           intent(in) :: panel_id
+    type(field_type), optional, intent(in) :: alt_coords(:,:)
+    type(field_type), optional, intent(in) :: alt_panel_ids(:)
+
+    integer(i_def) :: i
+    type(mesh_type), pointer :: mesh => null()
+
+    ! Initialise XIOS prime mesh
+    call init_xios_mesh( chi, panel_id, prime_mesh=.true. )
+
+    ! Initialise additional meshes
+    if (present(alt_coords) .and. present(alt_panel_ids)) then
+      do i = 1, size(alt_panel_ids)
+        call init_xios_mesh( alt_coords(:,i), alt_panel_ids(i), prime_mesh=.false. )
+      end do
+    end if
+
+    ! Initialise XIOS axes
+    mesh => chi(1)%get_mesh()
+    call init_xios_axis( "vert_axis_full_levels", mesh, W0 )
+    call init_xios_axis( "vert_axis_half_levels", mesh, W3 )
+    call init_xios_axis( "radiation_levels", mesh, W0 )
+
+  end subroutine init_xios_dimensions
+
+
+  !> @brief    Performs XIOS domain and axis initialisation.
+  !> @details  Calculates the coordinates and bounds for the different kinds
+  !!           of XIOS dimensionality (domains, axes, etc) and initialised the
+  !!           corresponding XIOS objects.
+  !>
+  !> @param[in]  chi           Coordinate field
+  !> @param[in]  panel_id      Field with IDs of mesh panels
+  !> @param[in]  prime_mesh    Logical flag denoting if the mesh is the primary
+  !!                           I/O mesh
+  !>
+  subroutine init_xios_mesh(chi, panel_id, prime_mesh)
+
+    implicit none
+
+    ! Arguments
+    type(field_type),  intent(in) :: chi(:)
+    type(field_type),  intent(in) :: panel_id
+    logical, optional, intent(in) :: prime_mesh
 
     ! Local variables
     integer(kind=i_def) :: i
@@ -131,6 +176,15 @@ contains
     ! Factor to convert coords from radians to degrees if needed
     ! set as 1.0 for planar mesh
     real(kind=r_def) :: r2d
+
+    logical :: mesh_is_prime_mesh
+
+    ! Set optional prime_mesh_flag
+    if (present(prime_mesh)) then
+      mesh_is_prime_mesh = prime_mesh
+    else
+      mesh_is_prime_mesh = .false.
+    end if
 
     ! Get mesh from chi
     mesh => chi(1)%get_mesh()
@@ -210,59 +264,81 @@ contains
     allocate(bnd_edges_lat(nodes_per_edge,num_edge_local))
 
     ! Calculate the node coords arrays and also the face and edge bounds
-    call calc_xios_domain_coords(twod_mesh, coord_output, sample_chi, &
-                                 nfull_levels, num_face_local,        &
-                                 nodes_lon_full, nodes_lat_full,      &
-                                 bnd_faces_lon, bnd_faces_lat,        &
-                                 bnd_edges_lon, bnd_edges_lat)
+    call calc_xios_domain_coords( twod_mesh, coord_output, sample_chi, &
+                                  nfull_levels, num_face_local,        &
+                                  nodes_lon_full, nodes_lat_full,      &
+                                  bnd_faces_lon, bnd_faces_lat,        &
+                                  bnd_edges_lon, bnd_edges_lat )
 
     ! Construct node bounds arrays
     bnd_nodes_lon=(reshape(nodes_lon, (/1, size(nodes_lon)/) ) )
     bnd_nodes_lat=(reshape(nodes_lat, (/1, size(nodes_lat)/) ) )
 
     ! Initialise XIOS UGRID domains
-    call init_xios_ugrid_domain( "node", mesh, W0, sample_chi,  &
-                                 bnd_nodes_lon, bnd_nodes_lat, nverts=1 )
-    call init_xios_ugrid_domain( "edge", mesh, W2H, sample_chi, &
-                                 bnd_edges_lon, bnd_edges_lat, nverts=2 )
-    call init_xios_ugrid_domain( "face", mesh, W3,  sample_chi, &
-                                 bnd_faces_lon, bnd_faces_lat, nverts=4 )
-
-    ! Initialise XIOS axes
-    call init_xios_axis( "vert_axis_full_levels", mesh, W0 )
-    call init_xios_axis( "vert_axis_half_levels", mesh, W3 )
-    call init_xios_axis( "radiation_levels", mesh, W0 )
+    if (mesh_is_prime_mesh) then
+      call set_prime_io_mesh(mesh)
+      call set_prime_io_mesh(twod_mesh)
+      call init_xios_ugrid_domain( "node", mesh, W0, sample_chi,  &
+                                   bnd_nodes_lon, bnd_nodes_lat,  &
+                                   "Mesh2d", nverts=1 )
+      call init_xios_ugrid_domain( "edge", mesh, W2H, sample_chi, &
+                                   bnd_edges_lon, bnd_edges_lat,  &
+                                   "Mesh2d", nverts=2 )
+      call init_xios_ugrid_domain( "face", mesh, W3,  sample_chi, &
+                                   bnd_faces_lon, bnd_faces_lat,  &
+                                   "Mesh2d", nverts=4 )
+    else
+      call init_xios_ugrid_domain( trim(adjustl(mesh%get_mesh_name()))//"_node", mesh, W0, &
+                                   sample_chi, bnd_nodes_lon, bnd_nodes_lat,      &
+                                   trim(adjustl(mesh%get_mesh_name())), nverts=1 )
+      call init_xios_ugrid_domain( trim(adjustl(mesh%get_mesh_name()))//"_edge", mesh, W2H, &
+                                   sample_chi, bnd_edges_lon, bnd_edges_lat,       &
+                                   trim(adjustl(mesh%get_mesh_name())), nverts=2 )
+      call init_xios_ugrid_domain( trim(adjustl(mesh%get_mesh_name()))//"_face", mesh, W3, &
+                                   sample_chi, bnd_faces_lon, bnd_faces_lat,      &
+                                   trim(adjustl(mesh%get_mesh_name())), nverts=4 )
+    end if
 
     ! Create all the regular checkpoint domains based on current function spaces
-    ! Loop over function spaces we need to create domains for:
-    do fs_index = lbound(domain_function_spaces, 1), &
-                  ubound(domain_function_spaces, 1)
+    ! Loop over function spaces we need to create domains for (just for the prime mesh):
+    if (mesh_is_prime_mesh) then
+      do fs_index = lbound(domain_function_spaces, 1), &
+                    ubound(domain_function_spaces, 1)
 
-      domain_fs_name = name_from_functionspace(domain_function_spaces(fs_index))
-      domain_name = "checkpoint_" // trim(domain_fs_name)
+        domain_fs_name = name_from_functionspace(domain_function_spaces(fs_index))
+        domain_name = "checkpoint_" // trim(domain_fs_name)
 
-      ! Enable use of the XIOS i_index for relevant function spaces
-      if (any( use_i_index == domain_function_spaces(fs_index) )) then
-        call checkpoint_domain_init(domain_function_spaces(fs_index), &
-                                    trim(domain_name), mesh, &
-                                    sample_chi, .true.)
-      else
-        call checkpoint_domain_init(domain_function_spaces(fs_index), &
-                                    trim(domain_name), mesh, &
-                                    sample_chi, .false.)
-      end if
-
-    end do
+        ! Enable use of the XIOS i_index for relevant function spaces
+        if (any( use_i_index == domain_function_spaces(fs_index) )) then
+          call checkpoint_domain_init( domain_function_spaces(fs_index), &
+                                       trim(domain_name), mesh, &
+                                       sample_chi, .true. )
+        else
+          call checkpoint_domain_init( domain_function_spaces(fs_index), &
+                                       trim(domain_name), mesh, &
+                                       sample_chi, .false. )
+        end if
+      end do
+    end if
 
     ! Clean up things that are not needed after dimension setup
-    if ( allocated(bnd_nodes_lon) ) deallocate(bnd_nodes_lon)
-    if ( allocated(bnd_nodes_lat) ) deallocate(bnd_nodes_lat)
-    if ( allocated(bnd_edges_lon) ) deallocate(bnd_edges_lon)
-    if ( allocated(bnd_edges_lat) ) deallocate(bnd_edges_lat)
-    if ( allocated(bnd_faces_lon) ) deallocate(bnd_faces_lon)
-    if ( allocated(bnd_faces_lat) ) deallocate(bnd_faces_lat)
+    if ( allocated(nodes_lon) )      deallocate(nodes_lon)
+    if ( allocated(nodes_lat) )      deallocate(nodes_lat)
+    if ( allocated(nodes_lon_full) ) deallocate(nodes_lon_full)
+    if ( allocated(nodes_lat_full) ) deallocate(nodes_lat_full)
+    if ( allocated(bnd_nodes_lon) )  deallocate(bnd_nodes_lon)
+    if ( allocated(bnd_nodes_lat) )  deallocate(bnd_nodes_lat)
+    if ( allocated(bnd_edges_lon) )  deallocate(bnd_edges_lon)
+    if ( allocated(bnd_edges_lat) )  deallocate(bnd_edges_lat)
+    if ( allocated(bnd_faces_lon) )  deallocate(bnd_faces_lon)
+    if ( allocated(bnd_faces_lat) )  deallocate(bnd_faces_lat)
 
-  end subroutine init_xios_dimensions
+    nullify(mesh)
+    nullify(twod_mesh)
+    nullify(output_field_fs)
+    nullify(w2h_fs)
+
+  end subroutine init_xios_mesh
 
   !> @brief  Sets up XIOS context file information from list of file objects
   !>
@@ -697,11 +773,13 @@ contains
   !> @param[in]  chi                Input coordinate field
   !> @param[in]  lon_bounds         Longitude coords of the domain bounds
   !> @param[in]  lat_bounds         Latitude coords of the domain bounds
+  !> @param[in]  mesh_name          Name of the consolidated mesh
   !> @param[in]  nverts             Number of vertices bounding each domain
   !!                                element
   !>
-  subroutine init_xios_ugrid_domain( domain_id, mesh, fs_id, chi, &
-                                     lon_bounds, lat_bounds, nverts )
+  subroutine init_xios_ugrid_domain( domain_id, mesh, fs_id, chi,       &
+                                     lon_bounds, lat_bounds, mesh_name, &
+                                     nverts )
 
     implicit none
 
@@ -711,6 +789,7 @@ contains
     type(field_type),           intent(in)    :: chi(:)
     real(dp_xios), allocatable, intent(inout) :: lat_bounds(:,:)
     real(dp_xios), allocatable, intent(inout) :: lon_bounds(:,:)
+    character(len=*),           intent(in)    :: mesh_name
     integer(kind=i_native),     intent(in)    :: nverts
 
     type(function_space_type), pointer :: domain_fs   => null()
@@ -855,6 +934,11 @@ contains
     end if
 
     call xios_get_handle("domain_definition", domain_definition)
+    if (xios_is_valid_domain(trim(domain_id))) then
+      call log_event( "XIOS domain ['"//trim(domain_id)//"'] is already " // &
+                      "registered. The same domain cannot be registered " // &
+                      "more than once", log_level_error )
+    end if
     call xios_add_child(domain_definition, new_domain, trim(domain_id))
 
     ! Pass domain attibutes to XIOS
@@ -868,7 +952,7 @@ contains
 
     ! Consolidate the domains into a single 2D UGRID mesh
     if (file_convention == file_convention_ugrid) then
-      call xios_set_domain_attr( trim(domain_id), name="Mesh2d" )
+      call xios_set_domain_attr( trim(domain_id), name=trim(mesh_name) )
     end if
 
     ! Pass local portion of domain_index to XIOS

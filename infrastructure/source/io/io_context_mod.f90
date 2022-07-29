@@ -42,6 +42,8 @@ module io_context_mod
     !> @param [in]     calendar_type     Type of calendar.
     !> @param [in]     list_of_files     List of file objects attached to the
     !!                                   context
+    !> @param [in]     alt_coords        Array of coordinate fields for alternative meshes
+    !> @param [in]     alt_panel_ids     Panel ID fields for alternative meshes
     !>
     subroutine initialise_if( this, id, communicator,  &
                               chi, panel_id,           &
@@ -50,7 +52,8 @@ module io_context_mod
                               seconds_per_step,        &
                               calendar_start,          &
                               calendar_type,           &
-                              list_of_files )
+                              list_of_files,           &
+                              alt_coords, alt_panel_ids )
       import io_context_type, field_type, file_type, r_second, i_native
       implicit none
       class(io_context_type),     intent(inout) :: this
@@ -61,6 +64,8 @@ module io_context_mod
       real(r_second),             intent(in)    :: spinup_period, seconds_per_step
       character(*),               intent(in)    :: calendar_start, calendar_type
       class(file_type), optional, intent(in)    :: list_of_files(:)
+      type(field_type), optional, intent(in)    :: alt_coords(:,:)
+      type(field_type), optional, intent(in)    :: alt_panel_ids(:)
     end subroutine initialise_if
   end interface
 

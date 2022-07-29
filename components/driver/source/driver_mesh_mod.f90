@@ -240,11 +240,12 @@ subroutine init_mesh( local_rank, total_ranks,        &
     ! 3.0 Read in all global meshes and create local meshes from them.
     !=================================================================
     allocate( global_mesh_collection, source = global_mesh_collection_type() )
-    call create_all_base_meshes( local_rank, total_ranks,     &
-                                 xproc, yproc,                &
-                                 stencil_depth,               &
-                                 partitioner_ptr,             &
-                                 create_multigrid,            &
+    call create_all_base_meshes( local_rank, total_ranks,         &
+                                 xproc, yproc,                    &
+                                 stencil_depth,                   &
+                                 partitioner_ptr,                 &
+                                 create_multigrid,                &
+                                 create_multires_coupling_meshes, &
                                  multires_coupling_mesh_tags )
 
     ! 4.0 Read in the global intergrid mesh mappings, then create the
@@ -510,19 +511,22 @@ end subroutine set_partition_parameters
 !> @brief  Reads in global meshes from UGRID file, partitions them
 !!         and creates local meshes.
 !>
-!> @param[in]  local_rank                   Number of the local MPI rank
-!> @param[in]  total_ranks                  Total number of MPI ranks in this job
-!> @param[in]  xproc                        Number of ranks in mesh panel x-direction
-!> @param[in]  yproc                        Number of ranks in mesh panel y-direction
-!> @param[in]  stencil_depth                Depth of cells outside the base cell
-!!                                          of stencil
-!> @param[in]  partitioner_ptr              Mesh partitioning strategy
-!> @param[in]  multires_coupling_mesh_tags  Multiresolution Coupling miniapp mesh names
-subroutine create_all_base_meshes( local_rank, total_ranks,     &
-                                   xproc, yproc,                &
-                                   stencil_depth,               &
-                                   partitioner_ptr,             &
-                                   create_multigrid,            &
+!> @param[in]  local_rank                      Number of the local MPI rank
+!> @param[in]  total_ranks                     Total number of MPI ranks in this job
+!> @param[in]  xproc                           Number of ranks in mesh panel x-direction
+!> @param[in]  yproc                           Number of ranks in mesh panel y-direction
+!> @param[in]  stencil_depth                   Depth of cells outside the base cell
+!!                                             of stencil
+!> @param[in]  partitioner_ptr                 Mesh partitioning strategy
+!> @param[in]  create_multigrid                Logical for making multigrid meshes
+!> @param[in]  create_multires_coupling_meshes Logical for making multiresolution coupling meshes
+!> @param[in]  multires_coupling_mesh_tags     Multiresolution Coupling miniapp mesh names
+subroutine create_all_base_meshes( local_rank, total_ranks,         &
+                                   xproc, yproc,                    &
+                                   stencil_depth,                   &
+                                   partitioner_ptr,                 &
+                                   create_multigrid,                &
+                                   create_multires_coupling_meshes, &
                                    multires_coupling_mesh_tags )
 
   use multigrid_config_mod, only: chain_mesh_tags
@@ -536,6 +540,7 @@ subroutine create_all_base_meshes( local_rank, total_ranks,     &
   integer(kind=i_def),                       intent(in) :: stencil_depth
   procedure(partitioner_interface), pointer, intent(in) :: partitioner_ptr
   logical(kind=l_def),                       intent(in) :: create_multigrid
+  logical(kind=l_def),                       intent(in) :: create_multires_coupling_meshes
   character(len=str_def),          optional, intent(in) :: multires_coupling_mesh_tags(:)
 
   integer(kind=i_def) :: n_panels
@@ -573,7 +578,8 @@ subroutine create_all_base_meshes( local_rank, total_ranks,     &
                                                  xproc, yproc,            &
                                                  stencil_depth,           &
                                                  partitioner_ptr )
-  if (present(multires_coupling_mesh_tags))                                   &
+  if (create_multires_coupling_meshes .and. &
+      present(multires_coupling_mesh_tags))                                   &
                         call create_base_meshes( multires_coupling_mesh_tags, &
                                                  n_panels,                    &
                                                  local_rank, total_ranks,     &

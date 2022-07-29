@@ -8,19 +8,86 @@
 
 module lfric_xios_utils_mod_test
 
-    use xios,      only : xios_date
+    use constants_mod,                  only : i_def
+    use local_mesh_mod,                 only : local_mesh_type
+    use mesh_collection_mod,            only : mesh_collection_type, &
+                                               mesh_collection
+    use mesh_mod,                       only : mesh_type, PLANE, PLANE_BI_PERIODIC
+    use xios,                           only : xios_date
+
     use pfunit_mod
 
     implicit none
 
+    @TestCase
+    type, extends(TestCase), public :: utils_test_type
+      private
+      type(mesh_type),           pointer :: mesh_1 => null()
+      type(mesh_type),           pointer :: mesh_2 => null()
+      type(local_mesh_type)              :: unit_test_local_mesh
+
     contains
+      procedure setUp
+      procedure tearDown
+      procedure get_local_mesh_ptr
+    end type utils_test_type
+
+  contains
+
+  ! Set up meshes for prime io mesh tests
+  subroutine setUp( this )
+
+    implicit none
+
+    class(utils_test_type), intent(inout) :: this
+
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
+    type(mesh_type) :: unit_test_mesh_1, unit_test_mesh_2
+    integer(i_def)  :: mesh_id_1, mesh_id_2
+
+    ! Create top level mesh collection
+    mesh_collection = mesh_collection_type()
+
+    call this%unit_test_local_mesh%initialise()
+    unit_test_local_mesh_ptr => this%get_local_mesh_ptr()
+
+    ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
+    unit_test_mesh_1 = mesh_type( PLANE, unit_test_local_mesh_ptr )
+    unit_test_mesh_2 = mesh_type( PLANE_BI_PERIODIC, unit_test_local_mesh_ptr )
+    mesh_id_1 = mesh_collection%add_new_mesh( unit_test_mesh_1 )
+    mesh_id_2 = mesh_collection%add_new_mesh( unit_test_mesh_2 )
+    this%mesh_1 => mesh_collection%get_mesh( mesh_id_1 )
+    this%mesh_2 => mesh_collection%get_mesh( mesh_id_2 )
+
+  end subroutine setUp
+
+  subroutine tearDown( this )
+
+    implicit none
+
+    class(utils_test_type), intent(inout) :: this
+
+    call mesh_collection%clear()
+
+  end subroutine tearDown
+
+  ! Need mesh as pointer but can't declare type bound target, so this function exists
+  function get_local_mesh_ptr(this) result(unit_test_local_mesh_ptr)
+    implicit none
+    class(utils_test_type), intent(inout), target :: this
+    type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
+    unit_test_local_mesh_ptr => this%unit_test_local_mesh
+  end function get_local_mesh_ptr
+
 
     @test
-    subroutine parse_date_as_xios_test()
+    subroutine parse_date_as_xios_test( this )
 
       use lfric_xios_utils_mod, only : parse_date_as_xios
 
       implicit none
+
+      class(utils_test_type), intent(inout) :: this
 
       character(19)   :: simple_input
       character(21)   :: long_input
@@ -47,5 +114,32 @@ module lfric_xios_utils_mod_test
       @assertEqual( output%second, 48     )
 
     end subroutine parse_date_as_xios_test
+
+    @test
+    subroutine prime_io_mesh_test( this )
+
+      use lfric_xios_utils_mod, only : set_prime_io_mesh, prime_io_mesh_is
+
+      implicit none
+
+      class(utils_test_type), intent(inout) :: this
+
+      ! One mesh can be made the prime io mesh
+      @assertFalse( prime_io_mesh_is(this%mesh_1) )
+      call set_prime_io_mesh(this%mesh_1)
+      @assertTrue( prime_io_mesh_is(this%mesh_1) )
+
+      ! We need to have "multiple" prime io meshes because in terms of I/O the
+      ! 2D version of the prime mesh is also "prime". NOTE: If we ever get to
+      ! splitting the mesh into a single 2D mesh and a separate set of
+      ! extrusions this functionality should be removed
+      @assertFalse( prime_io_mesh_is(this%mesh_2) )
+      call set_prime_io_mesh(this%mesh_2)
+      @assertTrue( prime_io_mesh_is(this%mesh_2) )
+
+      ! Check mesh 1 is still "prime"
+      @assertTrue( prime_io_mesh_is(this%mesh_1) )
+
+    end subroutine prime_io_mesh_test
 
   end module lfric_xios_utils_mod_test

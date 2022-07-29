@@ -84,15 +84,17 @@ contains
   !> @param[in]     mesh         The current 3d mesh
   !> @param[in]     twod_mesh    The current 2d mesh
   !> @param[in]     clock        The model clock object
+  !> @param[in]     alt_mesh     The alternate 3d mesh
   subroutine create_model_data( model_data, &
-                                mesh,    &
-                                twod_mesh )
-
+                                mesh,       &
+                                twod_mesh,  &
+                                alt_mesh )
     implicit none
 
-    type( io_dev_data_type ),   intent(inout) :: model_data
-    type( mesh_type ), pointer, intent(in)    :: mesh
-    type( mesh_type ), pointer, intent(in)    :: twod_mesh
+    type( io_dev_data_type ),             intent(inout) :: model_data
+    type( mesh_type ), pointer,           intent(in)    :: mesh
+    type( mesh_type ), pointer,           intent(in)    :: twod_mesh
+    type( mesh_type ), pointer, optional, intent(in)    :: alt_mesh
 
     ! Create model data fields
     call setup_io_dev_fields( mesh,                           &
@@ -100,7 +102,8 @@ contains
                               model_data%core_fields,         &
                               model_data%dump_fields,         &
                               model_data%alg_fields,          &
-                              model_data%variable_field_times )
+                              model_data%variable_field_times,&
+                              alt_mesh )
 
   end subroutine create_model_data
 

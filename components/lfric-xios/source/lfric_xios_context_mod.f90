@@ -73,13 +73,17 @@ contains
   !> @param [in]     calendar_type     Type of calendar.
   !> @param [in]     list_of_files     List of file objects attached to the
   !!                                   context
+  !> @param [in]     alt_coords        Array of coordinate fields for alternative meshes
+  !> @param [in]     alt_panel_ids     Panel ID fields for alternative meshes
+  !>
   !>
   subroutine initialise( this, id, communicator,          &
                          chi, panel_id,                   &
                          start_time, finish_time,         &
                          spinup_period, seconds_per_step, &
                          calendar_start, calendar_type,   &
-                         list_of_files)
+                         list_of_files,                   &
+                         alt_coords, alt_panel_ids )
 
     implicit none
 
@@ -95,6 +99,9 @@ contains
     character(*),                   intent(in)    :: calendar_start
     character(*),                   intent(in)    :: calendar_type
     class(file_type),     optional, intent(in)    :: list_of_files(:)
+    type(field_type),     optional, intent(in)    :: alt_coords(:,:)
+    type(field_type),     optional, intent(in)    :: alt_panel_ids(:)
+
 
     type(step_calendar_type), allocatable :: calendar
     integer(i_native)                     :: rc
@@ -140,7 +147,7 @@ contains
     end if
 
     ! Run XIOS setup routines
-    call init_xios_dimensions(chi, panel_id)
+    call init_xios_dimensions(chi, panel_id, alt_coords, alt_panel_ids)
     call setup_xios_files(this%filelist, this%clock)
 
     call xios_close_context_definition()
