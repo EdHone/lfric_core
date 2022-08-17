@@ -220,12 +220,18 @@ contains
       'exner_wth_n',   wtheta_space )
 
     if ( boundary_layer == boundary_layer_um .or. &
-         convection     == convection_um     .or. &
-         smagorinsky ) then
+         convection     == convection_um ) then
 
       call add_physics_field( derived_fields, depository, prognostic_fields,     &
         adv_fields_last_outer, &
         'theta_star',     wtheta_space )
+
+    end if
+
+    if ( boundary_layer == boundary_layer_um .or. &
+         convection     == convection_um     .or. &
+         smagorinsky ) then
+
       call add_physics_field( derived_fields, depository, prognostic_fields,     &
         adv_fields_last_outer, &
         'shear',          wtheta_space )
