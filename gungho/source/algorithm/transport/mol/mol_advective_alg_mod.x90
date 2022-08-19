@@ -100,11 +100,9 @@ contains
       ! Reset field_n ready for the this substep
       call field_np1%copy_field(field_n)
 
-      final_rk_stage = .false.
-
       stage_loop: do stage = 1, nstage
 
-        if ( stage == nstage ) final_rk_stage = .true.
+        final_rk_stage = ( stage == nstage )
 
         ! Compute the field for this stage:
         ! rhs_field = sum(s=1,stage): a(stage,s)*field^(s)

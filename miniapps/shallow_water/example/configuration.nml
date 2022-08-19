@@ -147,6 +147,7 @@ tau_u              = 0.0
 /
 
 &transport
+advective_then_flux = .false.
 cfl_mol_1d_stab    = 2.0
 cfl_mol_2d_stab    = 2.0
 cfl_mol_3d_stab    = 2.0

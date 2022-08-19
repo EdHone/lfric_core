@@ -220,6 +220,7 @@ stretching_method='linear',
 /
 
 &transport
+  advective_then_flux = .false.
   moisture_eqn='advective'
   profile_size = 3
   field_names = 'density', 'potential_temperature', 'wind'

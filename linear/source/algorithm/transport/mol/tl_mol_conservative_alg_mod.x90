@@ -20,15 +20,22 @@ module tl_mol_conservative_alg_mod
   use transport_metadata_mod,         only: transport_metadata_type
   use flux_alg_mod,                   only: flux_alg
   use tl_flux_alg_mod,                only: tl_flux_alg
+  use advective_increment_alg_mod,    only: advective_increment_alg
+  use tl_advective_increment_alg_mod, only: tl_advective_increment_alg
+  use advective_and_flux_alg_mod,     only: advective_and_flux_alg
+  use tl_advective_and_flux_alg_mod,  only: tl_advective_and_flux_alg
   use mesh_mod,                       only: mesh_type
   use tl_transport_runtime_collection_mod, &
                                       only: tl_transport_runtime
   use transport_runtime_alg_mod,      only: transport_runtime_type
   use transport_runtime_collection_mod, &
                                       only: get_transport_runtime
-  use transport_config_mod,           only: runge_kutta_method
+  use transport_config_mod,           only: runge_kutta_method, &
+                                            dry_field_name,     &
+                                            advective_then_flux
   use psykal_lite_mod,                only: invoke_impose_min_flux_kernel_type
-
+  use boundaries_config_mod,          only: limited_area
+  use base_mesh_config_mod,           only: topology, topology_non_periodic
 
   implicit none
 
@@ -63,42 +70,48 @@ module tl_mol_conservative_alg_mod
     type(field_type),     pointer :: ls_advecting_wind => null()
     type(field_type),     pointer :: divergence_factor => null()
     type(field_type),     pointer :: ls_divergence_factor => null()
+    type(field_type),     pointer :: old_flux_inc => null()
+    type(field_type),     pointer :: field_start => null()
     type(operator_type),  pointer :: div => null()
     type(field_type)              :: flux
+    type(field_type)              :: ls_flux_inc, flux_inc, adv_inc
+    type(field_type)              :: sum_flux, ls_sum_flux
     type(field_type)              :: rhs, field_n
-    type(field_type)              :: field_inc
     type(field_type)              :: ls_field_np1, ls_field_n
     type(field_type), allocatable :: rk_field(:)
     real(r_def),      allocatable :: rk_weights(:,:)
     type(field_type), allocatable :: stored_ls_field(:,:)
     type(field_type)              :: flux_step
-    integer(i_def)                :: stage, s
+    integer(i_def)                :: stage, s, step
     integer(i_def)                :: nstage, substep
     logical(l_def)                :: include_div_term_with_density
+    real(r_def)                   :: inv_num_substeps
     integer(i_def)                :: number_substeps
     real(r_def)                   :: dt_substep
-    real(r_def)                   :: minus_dt
     logical(l_def)                :: enforce_min_value
     type(mesh_type),      pointer :: mesh => null()
     type(transport_runtime_type), pointer :: transport_runtime => null()
     type(field_type)              :: rhs_field
     logical(l_def)                :: final_rk_stage
+    logical(l_def)                :: final_substep
+    logical(l_def)                :: final_split_step
 
     if ( subroutine_timers ) call timer('tl_mol_conservative_alg')
 
-    ! Get transport_runtime
-    mesh => field%get_mesh()
-    transport_runtime => get_transport_runtime(mesh)
-
-    ! Get all the stuff needed by the transport algorithm
-    mesh_id = field%get_mesh_id()
-    number_substeps = transport_runtime%get_number_substeps(mesh_id,direction,transport_metadata%get_splitting())
-    dt_substep = transport_runtime%get_dt_substep(mesh_id,direction,transport_metadata%get_splitting())
-    enforce_min_value = transport_metadata%get_enforce_min_value()
+    ! ------------------------------------------------------------------------ !
+    ! Extract transport metadata and initialise temporary fields
+    ! ------------------------------------------------------------------------ !
+    mesh                          => field%get_mesh()
+    transport_runtime             => get_transport_runtime(mesh)
+    mesh_id                       = field%get_mesh_id()
+    number_substeps               = transport_runtime%get_number_substeps(mesh_id,direction,transport_metadata%get_splitting())
+    dt_substep                    = transport_runtime%get_dt_substep(mesh_id,direction,transport_metadata%get_splitting())
+    enforce_min_value             = transport_metadata%get_enforce_min_value()
     include_div_term_with_density = transport_metadata%get_divergence_factor()
-    advecting_wind => tl_transport_runtime%get_directional_advecting_wind(mesh_id,direction)
-    ls_advecting_wind => transport_runtime%get_directional_advecting_wind(mesh_id,direction)
-    minus_dt = - dt_substep
+    advecting_wind                => tl_transport_runtime%get_directional_advecting_wind(mesh_id,direction)
+    ls_advecting_wind             => transport_runtime%get_directional_advecting_wind(mesh_id,direction)
+    inv_num_substeps              = 1.0_r_def/real(number_substeps, r_def)
+    div                           => get_directional_im3_div(mesh_id, direction)
 
     call get_rk_transport_weights(nstage, rk_weights, runge_kutta_method)
     allocate( rk_field(nstage) )
@@ -115,15 +128,21 @@ module tl_mol_conservative_alg_mod
     call flux%initialise(advecting_wind%get_function_space())
     call flux_step%initialise(advecting_wind%get_function_space())
     call rhs%initialise(field%get_function_space())
-    call field_inc%initialise(field%get_function_space())
     call field_n%initialise(field%get_function_space())
+    call adv_inc%initialise(field%get_function_space())
+    call flux_inc%initialise(field%get_function_space())
+    call ls_flux_inc%initialise(field%get_function_space())
+    call sum_flux%initialise(advecting_wind%get_function_space())
+    call ls_sum_flux%initialise(advecting_wind%get_function_space())
 
     call field%copy_field(field_np1)
     call field%copy_field(field_n)
     call ls_field%copy_field(ls_field_np1)
 
-    ! Perform the number of rk-stages and substeps required
-    div => get_directional_im3_div(mesh_id, direction)
+    call invoke( setval_c(sum_flux, 0.0_r_def) )
+    call invoke( setval_c(ls_sum_flux, 0.0_r_def) )
+    call invoke( setval_c(flux_inc, 0.0_r_def) )
+    call invoke( setval_c(ls_flux_inc, 0.0_r_def) )
 
     ! Get the div-term if required
     if ( include_div_term_with_density ) then
@@ -131,12 +150,17 @@ module tl_mol_conservative_alg_mod
                      LOG_LEVEL_ERROR)
     end if
 
-    !--------------------------------------------------------------------------!
+    ! Can use either transport_runtime or tl_transport_runtime to determine this
+    ! as both should give the same value
+    final_split_step = ( transport_runtime%get_tracer_step_ctr() &
+                         == transport_runtime%get_num_dry_steps() )
+
+    ! ======================================================================== !
     !                    Linearisation state
     !
     !       This calculates the values of ls_field. These are stored as an
     !       array for each substep and each RK stage to use in the perturbation
-    !--------------------------------------------------------------------------!
+    ! ======================================================================== !
 
     ! Get the div-term if required
     ! In this case we are solving: d(rho)/dt + div(div_factor*rho u) = 0
@@ -145,7 +169,12 @@ module tl_mol_conservative_alg_mod
       ls_divergence_factor => transport_runtime%get_div_factor(mesh_id)
     end if
 
-    do substep = 1, number_substeps
+    ! ------------------------------------------------------------------------ !
+    ! Start of substepping loop
+    ! ------------------------------------------------------------------------ !
+    ls_substep_loop: do substep = 1, number_substeps
+
+      final_substep = ( substep == number_substeps )
 
       ! Reset field_n ready for the this substep
       call ls_field_np1%copy_field(ls_field_n)
@@ -155,16 +184,13 @@ module tl_mol_conservative_alg_mod
         call invoke( inc_X_times_Y(ls_field_np1, ls_divergence_factor) )
       end if
 
-      final_rk_stage = .false.
+      ls_stage_loop: do stage = 1, nstage
 
-      do stage = 1, nstage
-
-        if ( stage == nstage ) final_rk_stage = .true.
+        final_rk_stage = ( stage == nstage )
 
         ! Store values for use in the perturbation code. This is done before
         ! advecting so as to pick up the correct linearisation state
         call invoke( setval_X(stored_ls_field(substep,stage), ls_field_np1) )
-
 
         ! Compute the field for this stage:
         ! rhs_field = sum(s=1,stage): a(stage,s)*field^(s)
@@ -174,17 +200,68 @@ module tl_mol_conservative_alg_mod
           call invoke( inc_X_plus_bY( rhs_field, rk_weights(stage,s), rk_field(s) ) )
         end do
 
-        ! Compute the flux using desired spatial reconstruction
-        call invoke( setval_c( flux_step, 0.0_r_def ) )
-        call flux_alg(flux_step, rhs_field, ls_advecting_wind, direction, &
-                      transport_metadata, final_rk_stage)
-        ! Compute: rhs = div(F) and update field: f = f^n - dt_substep*rhs
-        call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div), &
-                     X_minus_bY(ls_field_np1, ls_field_n, dt_substep, rhs) )
+        ! -------------------------------------------------------------------- !
+        ! Apply advection / flux operator depending on formulation
+        ! -------------------------------------------------------------------- !
+        if (.not. advective_then_flux) then
+          ! Old behaviour: entirely conservative form of equation
+          call invoke( setval_c(flux_step, 0.0_r_def) )
+          call flux_alg(flux_step, rhs_field, ls_advecting_wind, direction, &
+                        transport_metadata, final_rk_stage)
+          ! Compute: rhs = div(F) and update field: f = f^n - dt_substep*rhs
+          call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div), &
+                       X_minus_bY(ls_field_np1, ls_field_n, dt_substep, rhs) )
 
-      end do
+        else if (.not. final_rk_stage) then
+          ! Advective-then-flux form but not last stage: just advective
+          call advective_increment_alg(adv_inc, rhs_field,               &
+                                       ls_advecting_wind, dt_substep,    &
+                                       direction, transport_metadata,    &
+                                       final_rk_stage )
+          call invoke( X_minus_bY(ls_field_np1, ls_field_n, dt_substep, adv_inc) )
 
-    end do ! End substepping
+        else if ( (.not. final_split_step) .or. (.not. final_substep) ) then
+          ! Advective-then-flux form and last stage: both advective and flux
+          call invoke( setval_c(flux_step, 0.0_r_def) )
+          call advective_and_flux_alg(flux_step, adv_inc, rhs_field, &
+                                      ls_advecting_wind, direction,  &
+                                      transport_metadata, final_rk_stage)
+          ! Compute: rhs = div(F) and update field: f = f^n - dt_substep*rhs
+          call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div), &
+                       X_minus_bY(ls_field_np1, ls_field_n, dt_substep, adv_inc) )
+        else
+          ! Last stage of last substep of last split step: just flux form
+          call invoke( setval_c(flux_step, 0.0_r_def) )
+          call flux_alg(flux_step, rhs_field, ls_advecting_wind, &
+                        direction, transport_metadata, final_rk_stage)
+          ! Compute: rhs = div(F)
+          call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div) )
+
+        end if
+
+        ! -------------------------------------------------------------------- !
+        ! Blending zone update
+        ! -------------------------------------------------------------------- !
+        if ( limited_area .and. topology == topology_non_periodic ) then
+          call log_event('T.L.: limited area in mol conservative not ' // &
+                         'yet implemented', LOG_LEVEL_ERROR)
+        end if
+
+      end do ls_stage_loop
+
+      ! Increment the total flux by the substep flux
+      call invoke( inc_X_plus_bY(ls_sum_flux, inv_num_substeps, flux_step), &
+      ! Increment the total flux increment
+                   inc_X_minus_bY(ls_flux_inc, dt_substep, rhs) )
+
+      ! ---------------------------------------------------------------------- !
+      ! Blending zone update
+      ! ---------------------------------------------------------------------- !
+      if ( limited_area .and. topology == topology_non_periodic ) then
+        call log_event('T.L.: limited area in mol conservative not ' // &
+                        'yet implemented', LOG_LEVEL_ERROR)
+      end if
+    end do ls_substep_loop
 
     ! Enforce a minimum value if required while still conservative
     if ( enforce_min_value ) then
@@ -192,13 +269,27 @@ module tl_mol_conservative_alg_mod
                      'yet implemented', LOG_LEVEL_ERROR)
     end if
 
-    ! --------------------------------------------------------------------------
+    ! ------------------------------------------------------------------------ !
+    ! For the last split step, flux form and sum flux increments
+    ! ------------------------------------------------------------------------ !
+    if ( final_split_step .and. advective_then_flux ) then
+      ! Get final field at end of transport
+      ! field_np1 = field + sum(flux_inc)
+      field_start => transport_runtime%get_field_n(mesh_id)
+      call invoke( X_plus_Y(ls_field_np1, field_start, ls_flux_inc))
+      do step = 1, transport_runtime%get_num_dry_steps() - 1
+        old_flux_inc => transport_runtime%get_flux_inc(mesh_id, step)
+        call invoke( inc_X_plus_Y(ls_field_np1, old_flux_inc) )
+      end do
+    end if
+
+    ! ======================================================================== !
     !                    Perturbation
     !
     !   Repeat the calculation, but now for the tangent linear - adding in
     !   the values of ls_field_np1(substep,stage) obtained in the
     !   linearisation stage stage
-    !---------------------------------------------------------------------------
+    ! ======================================================================== !
 
     ! Get the div-term if required
     if ( include_div_term_with_density ) then
@@ -207,7 +298,15 @@ module tl_mol_conservative_alg_mod
                      'yet implemented', LOG_LEVEL_ERROR)
     end if
 
-    do substep = 1, number_substeps
+    ! ------------------------------------------------------------------------ !
+    ! Start of substepping loop
+    ! ------------------------------------------------------------------------ !
+    substep_loop: do substep = 1, number_substeps
+
+      final_substep = ( substep == number_substeps )
+
+      ! Reset field_n ready for the this substep
+      call field_np1%copy_field(field_n)
 
       if ( include_div_term_with_density ) then
         ! Not yet implemented, but this might be:
@@ -216,11 +315,9 @@ module tl_mol_conservative_alg_mod
                        'yet implemented', LOG_LEVEL_ERROR)
       end if
 
-      final_rk_stage = .false.
+      stage_loop: do stage = 1, nstage
 
-      do stage = 1, nstage
-
-        if ( stage == nstage ) final_rk_stage = .true.
+        final_rk_stage = ( stage == nstage )
 
         ! Compute the field for this stage:
         ! rhs_field = sum(s=1,stage): a(stage,s)*field^(s)
@@ -230,24 +327,109 @@ module tl_mol_conservative_alg_mod
           call invoke( inc_X_plus_bY( rhs_field, rk_weights(stage,s), rk_field(s) ) )
         end do
 
-        ! Compute the flux using desired spatial reconstruction
-        call invoke( setval_c( flux_step, 0.0_r_def ) )
-        call tl_flux_alg(flux_step, rhs_field, advecting_wind,              &
-                         stored_ls_field(substep,stage), ls_advecting_wind, &
-                         direction, transport_metadata, final_rk_stage)
-        ! Compute: div(F) and update field: f = f^n - dt_substep*rhs
-        call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div), &
-                     X_minus_bY(field_np1, field_n, dt_substep, rhs) )
+        ! -------------------------------------------------------------------- !
+        ! Apply advection / flux operator depending on formulation
+        ! -------------------------------------------------------------------- !
+        if (.not. advective_then_flux) then
+          ! Old behaviour: entirely conservative form of equation
+          call invoke( setval_c( flux_step, 0.0_r_def ) )
+          call tl_flux_alg(flux_step, rhs_field, advecting_wind,              &
+                           stored_ls_field(substep,stage), ls_advecting_wind, &
+                           direction, transport_metadata, final_rk_stage)
+          ! Compute: div(F) and update field: f = f^n - dt_substep*rhs
+          call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div), &
+                       X_minus_bY(field_np1, field_n, dt_substep, rhs) )
 
-      end do ! End RK stages
+        else if (.not. final_rk_stage) then
+          ! Advective-then-flux form but not last stage: just advective
+          call tl_advective_increment_alg(adv_inc, rhs_field,               &
+                                          advecting_wind,                   &
+                                          stored_ls_field(substep,stage),   &
+                                          ls_advecting_wind, dt_substep,    &
+                                          direction, transport_metadata,    &
+                                          final_rk_stage )
+          call invoke( X_minus_bY(field_np1, field_n, dt_substep, adv_inc) )
 
-    end do ! End substepping
+        else if ( (.not. final_split_step) .or. (.not. final_substep) ) then
+          ! Advective-then-flux form and last stage: both advective and flux
+          call invoke( setval_c(flux_step, 0.0_r_def) )
+          call tl_advective_and_flux_alg(flux_step, adv_inc, rhs_field,  &
+                                         advecting_wind,                 &
+                                         stored_ls_field(substep,stage), &
+                                         ls_advecting_wind, direction,   &
+                                         transport_metadata, final_rk_stage)
+          ! Compute: rhs = div(F) and update field: f = f^n - dt_substep*rhs
+          call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div), &
+                       X_minus_bY(field_np1, field_n, dt_substep, adv_inc) )
+        else
+          ! Last stage of last substep of last split step: just flux form
+          call invoke( setval_c(flux_step, 0.0_r_def) )
+          call flux_alg(flux_step, rhs_field, advecting_wind, &
+                        direction, transport_metadata, final_rk_stage)
+          ! Compute: rhs = div(F)
+          call invoke( dg_matrix_vector_kernel_type(rhs, flux_step, div) )
+
+        end if
+
+        ! -------------------------------------------------------------------- !
+        ! Blending zone update
+        ! -------------------------------------------------------------------- !
+        if ( limited_area .and. topology == topology_non_periodic ) then
+          call log_event('T.L.: limited area in mol conservative not ' // &
+                         'yet implemented', LOG_LEVEL_ERROR)
+        end if
+
+      end do stage_loop
+
+      ! Increment the total flux by the substep flux
+      call invoke( inc_X_plus_bY(sum_flux, inv_num_substeps, flux_step), &
+      ! Increment the total flux increment
+                   inc_X_minus_bY(flux_inc, dt_substep, rhs) )
+
+      ! ---------------------------------------------------------------------- !
+      ! Blending zone update
+      ! ---------------------------------------------------------------------- !
+      if ( limited_area .and. topology == topology_non_periodic ) then
+        call log_event('T.L.: limited area in mol conservative not ' // &
+                        'yet implemented', LOG_LEVEL_ERROR)
+      end if
+    end do substep_loop
 
     ! Enforce a minimum value if required while still conservative
     if ( enforce_min_value ) then
       call log_event('T.L.: enforcing min value in mol conservative not ' // &
                      'yet implemented', LOG_LEVEL_ERROR)
     end if
+
+    ! ------------------------------------------------------------------------ !
+    ! For the last split step, flux form and sum flux increments
+    ! ------------------------------------------------------------------------ !
+    if ( final_split_step .and. advective_then_flux ) then
+      ! Get final field at end of transport
+      ! field_np1 = field + sum(flux_inc)
+      field_start => tl_transport_runtime%get_field_n(mesh_id)
+      call invoke( X_plus_Y(field_np1, field_start, flux_inc))
+      do step = 1, tl_transport_runtime%get_num_dry_steps() - 1
+        old_flux_inc => tl_transport_runtime%get_flux_inc(mesh_id, step)
+        call invoke( inc_X_plus_Y(field_np1, old_flux_inc) )
+      end do
+    end if
+
+    ! ------------------------------------------------------------------------ !
+    ! End of split step things
+    ! ------------------------------------------------------------------------ !
+
+    ! Store field in tl_transport_runtime for conservative transport
+    ! if this is the underlying dry field
+    if (trim(transport_metadata%get_name()) == trim(dry_field_name)) then
+      call transport_runtime%set_dry_fields(ls_field, ls_field_np1, ls_sum_flux)
+      call tl_transport_runtime%set_dry_fields(field, field_np1, sum_flux)
+    end if
+
+    call tl_transport_runtime%set_flux_inc(flux_inc)
+    call transport_runtime%set_flux_inc(ls_flux_inc)
+    call tl_transport_runtime%inc_tracer_step_ctr()
+    call transport_runtime%inc_tracer_step_ctr()
 
     if ( allocated(rk_field) ) deallocate(rk_field)
     if ( allocated(rk_weights) ) deallocate(rk_weights)

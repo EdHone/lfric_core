@@ -219,6 +219,7 @@ spinup_period=0,
 spinup_winds=.false.,
 /
 &transport
+advective_then_flux=.false.
 profile_size=5
 cfl_mol_1d_stab = 2.0,
 cfl_mol_2d_stab = 2.0,

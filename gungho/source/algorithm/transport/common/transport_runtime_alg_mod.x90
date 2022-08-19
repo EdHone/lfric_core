@@ -59,8 +59,10 @@ module transport_runtime_alg_mod
     type(field_type),    allocatable, dimension(:)   :: departure_points_y_w2
     type(field_type),    allocatable, dimension(:)   :: departure_points_z_w2
     type(field_type),    allocatable, dimension(:)   :: div_factor
+    type(field_type),    allocatable, dimension(:)   :: field_n
     type(field_type),    allocatable, dimension(:,:) :: rho_d_n
     type(field_type),    allocatable, dimension(:,:) :: rho_d_np1
+    type(field_type),    allocatable, dimension(:,:) :: flux_inc
     type(field_type),    allocatable, dimension(:,:) :: dry_flux
     type(field_type),    allocatable, dimension(:,:) :: hori_dry_flux
     type(field_type),    allocatable, dimension(:,:) :: vert_dry_flux
@@ -76,6 +78,8 @@ module transport_runtime_alg_mod
     procedure, public  :: get_local_mesh_id
     procedure, public  :: get_prime_extrusion_mesh_id
     procedure, public  :: set_dry_fields
+    procedure, public  :: set_field_n
+    procedure, public  :: set_flux_inc
     procedure, public  :: copy_all_dry_fields
     procedure, public  :: get_number_substeps
     procedure, public  :: get_dt_substep
@@ -88,8 +92,10 @@ module transport_runtime_alg_mod
     procedure, public  :: get_departure_points_y_w2
     procedure, public  :: get_departure_points_z_w2
     procedure, public  :: get_div_factor
+    procedure, public  :: get_field_n
     procedure, public  :: get_rho_d_n
     procedure, public  :: get_rho_d_np1
+    procedure, public  :: get_flux_inc
     procedure, public  :: get_dry_flux
     procedure, public  :: get_hori_dry_flux
     procedure, public  :: get_vert_dry_flux
@@ -217,7 +223,8 @@ contains
               self%departure_points_z_w2(self%n_meshes),     &
               self%div_factor(self%n_meshes),                &
               self%horizontal_cfl_max(self%n_meshes),        &
-              self%vertical_cfl_max(self%n_meshes) )
+              self%vertical_cfl_max(self%n_meshes),          &
+              self%field_n(self%n_meshes) )
 
     ! Get mesh ID and element order
     self%mesh_ids(1) = primal_wind_n%get_mesh_id()
@@ -265,6 +272,7 @@ contains
       call self%departure_points_x_w2(mesh_idx)%initialise( w2_fs )
       call self%departure_points_y_w2(mesh_idx)%initialise( w2_fs )
       call self%div_factor(mesh_idx)%initialise( w3_fs  )
+      call self%field_n(mesh_idx)%initialise( w3_fs  )
     end do
 
     ! ======================================================================== !
@@ -389,6 +397,7 @@ contains
     ! Allocate arrays for dry fields
     allocate( self%rho_d_n(self%n_meshes, self%num_dry_steps),       &
               self%rho_d_np1(self%n_meshes, self%num_dry_steps),     &
+              self%flux_inc(self%n_meshes, self%num_dry_steps),      &
               self%dry_flux(self%n_meshes, self%num_dry_steps),      &
               self%hori_dry_flux(self%n_meshes, self%num_dry_steps), &
               self%vert_dry_flux(self%n_meshes, self%num_dry_steps) )
@@ -404,6 +413,7 @@ contains
       do i = 1, self%num_dry_steps
         call self%rho_d_n(mesh_idx, i)%initialise( vector_space = w3_fs )
         call self%rho_d_np1(mesh_idx, i)%initialise( vector_space = w3_fs )
+        call self%flux_inc(mesh_idx, i)%initialise( vector_space = w3_fs )
         call self%hori_dry_flux(mesh_idx, i)%initialise( vector_space = w2h_fs )
         call self%vert_dry_flux(mesh_idx, i)%initialise( vector_space = w2v_fs )
         ! Dry flux could be 3D, horizontal or vertical
@@ -437,8 +447,10 @@ contains
     if ( allocated( self%departure_points_y_w2 ) )     deallocate( self%departure_points_y_w2 )
     if ( allocated( self%departure_points_z_w2 ) )     deallocate( self%departure_points_z_w2 )
     if ( allocated( self%div_factor ) )                deallocate( self%div_factor )
+    if ( allocated( self%field_n ) )                   deallocate( self%field_n )
     if ( allocated( self%rho_d_n ) )                   deallocate( self%rho_d_n )
     if ( allocated( self%rho_d_np1 ) )                 deallocate( self%rho_d_np1 )
+    if ( allocated( self%flux_inc ) )                  deallocate( self%flux_inc )
     if ( allocated( self%dry_flux ) )                  deallocate( self%dry_flux )
     if ( allocated( self%hori_dry_flux ) )             deallocate( self%hori_dry_flux )
     if ( allocated( self%vert_dry_flux ) )             deallocate( self%vert_dry_flux )
@@ -473,8 +485,10 @@ contains
     if (.not. allocated( dest%departure_points_x_w2 ) )     allocate( dest%departure_points_x_w2(dest%n_meshes) )
     if (.not. allocated( dest%departure_points_z_w2 ) )     allocate( dest%departure_points_z_w2(dest%n_meshes) )
     if (.not. allocated( dest%div_factor ) )                allocate( dest%div_factor(dest%n_meshes) )
+    if (.not. allocated( dest%field_n ) )                   allocate( dest%field_n(dest%n_meshes) )
     if (.not. allocated( dest%rho_d_n ) )                   allocate( dest%rho_d_n(dest%n_meshes, dest%num_dry_steps) )
     if (.not. allocated( dest%rho_d_np1 ) )                 allocate( dest%rho_d_np1(dest%n_meshes, dest%num_dry_steps) )
+    if (.not. allocated( dest%flux_inc ) )                  allocate( dest%flux_inc(dest%n_meshes, dest%num_dry_steps) )
     if (.not. allocated( dest%dry_flux ) )                  allocate( dest%dry_flux(dest%n_meshes, dest%num_dry_steps) )
     if (.not. allocated( dest%hori_dry_flux ) )             allocate( dest%hori_dry_flux(dest%n_meshes, dest%num_dry_steps) )
     if (.not. allocated( dest%vert_dry_flux ) )             allocate( dest%vert_dry_flux(dest%n_meshes, dest%num_dry_steps) )
@@ -490,9 +504,11 @@ contains
       call source%departure_points_y_w2(mesh_idx)%copy_field(dest%departure_points_y_w2(mesh_idx))
       call source%departure_points_z_w2(mesh_idx)%copy_field(dest%departure_points_z_w2(mesh_idx))
       call source%div_factor(mesh_idx)%copy_field(dest%div_factor(mesh_idx))
+      call source%field_n(mesh_idx)%copy_field(dest%field_n(mesh_idx))
       do i = 1, source%num_dry_steps
         call source%rho_d_n(mesh_idx,i)%copy_field(dest%rho_d_n(mesh_idx,i))
         call source%rho_d_np1(mesh_idx,i)%copy_field(dest%rho_d_np1(mesh_idx,i))
+        call source%flux_inc(mesh_idx,i)%copy_field(dest%flux_inc(mesh_idx,i))
         call source%dry_flux(mesh_idx,i)%copy_field(dest%dry_flux(mesh_idx,i))
         call source%hori_dry_flux(mesh_idx,i)%copy_field(dest%hori_dry_flux(mesh_idx,i))
         call source%vert_dry_flux(mesh_idx,i)%copy_field(dest%vert_dry_flux(mesh_idx,i))
@@ -507,6 +523,7 @@ contains
   end subroutine transport_runtime_assign
 
   !> @brief Sets dry fields for use in conservative mixing ratio transport
+  !> @pre Fields passed to this routine must be on the prime extrusion mesh
   !> @param[in,out] self      The transport_runtime object
   !> @param[in]     rho_d_n   Dry density field at start of time step
   !> @param[in]     rho_d_np1 Dry density field at end of time step
@@ -536,8 +553,7 @@ contains
     type(field_type), pointer :: rmultiplicity_w2 => null()
     type(mesh_type),  pointer :: prime_extrusion_mesh => null()
 
-    ! Only set fields for prime extrusion mesh. Since dry flux is used for
-    ! transporting a prognostic field, it is on the prime extrusion
+    ! The dry flux is on the prime extrusion mesh
     prime_extrusion_mesh => dry_flux%get_mesh()
     fs_idx = dry_flux%which_function_space()
 
@@ -629,6 +645,40 @@ contains
     nullify( prime_extrusion_mesh )
 
   end subroutine set_dry_fields
+
+  !> @brief Stores a W3 field at the start of the whole transport step
+  !> @param[in,out] self      The transport_runtime object
+  !> @param[in]     field_n   W3 field at start of whole transport step
+  subroutine set_field_n(self, field_n)
+
+    implicit none
+
+    class(transport_runtime_type), target, intent(inout) :: self
+    type(field_type),                      intent(in)    :: field_n
+
+    integer(kind=i_def) :: idx
+
+    idx = self%idx_from_mesh_id(field_n%get_mesh_id())
+    call field_n%copy_field(self%field_n(idx))
+
+  end subroutine set_field_n
+
+  !> @brief Sets flux increments for use in conservative transport
+  !> @param[in,out] self      The transport_runtime object
+  !> @param[in]     flux_inc  Flux increment for a particular split step
+  subroutine set_flux_inc(self, flux_inc)
+
+    implicit none
+
+    class(transport_runtime_type), target, intent(inout) :: self
+    type(field_type),                      intent(in)    :: flux_inc
+
+    integer(kind=i_def) :: idx
+
+    idx = self%idx_from_mesh_id(flux_inc%get_mesh_id())
+    call flux_inc%copy_field(self%flux_inc(idx,self%tracer_step_ctr))
+
+  end subroutine set_flux_inc
 
   !> @brief Copies across all the dry fields from one transport runtime to
   !!        another, restricting the fields if the target mesh is coarser
@@ -784,7 +834,7 @@ contains
                               /(cfl_mol_1d_stab+tiny_eps),i_def) &
                          + 1_i_def
         ! Strang_vhv splitting uses half timestep for the vertical stage
-        if ( splitting  == splitting_strang_vhv ) then
+        if ( splitting == splitting_strang_vhv ) then
           number_substeps = int( self%vertical_cfl_max(idx)        &
                               /(2.0_r_def*cfl_mol_1d_stab+tiny_eps),i_def) &
                           + 1_i_def
@@ -794,7 +844,7 @@ contains
                               /(cfl_mol_2d_stab+tiny_eps),i_def) &
                         + 1_i_def
         ! Strang_hvh splitting uses half timestep for the horizontal stage
-        if ( splitting  == splitting_strang_hvh ) then
+        if ( splitting == splitting_strang_hvh ) then
           number_substeps = int( self%horizontal_cfl_max(idx)        &
                               /(2.0_r_def*cfl_mol_2d_stab+tiny_eps),i_def) &
                           + 1_i_def
@@ -1060,6 +1110,21 @@ contains
 
   end function get_num_dry_steps
 
+  !> @brief Returns a pointer stored field at the start of the time step
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The field at the start of the time step
+  function get_field_n(self, mesh_id) result(field_n)
+
+    implicit none
+
+    class(transport_runtime_type), target, intent(in) :: self
+    integer(kind=i_def),                   intent(in) :: mesh_id
+    type(field_type),                      pointer    :: field_n
+
+    field_n => self%field_n(self%idx_from_mesh_id(mesh_id))
+
+  end function get_field_n
+
   !> @brief Returns a pointer to the dry density field at start of transport step
   !> @param[in] mesh_id The ID of the mesh to get the object for
   !> @param[in] step    The step from which to return the density
@@ -1099,6 +1164,23 @@ contains
     call check_initialised_field(rho_d_np1, field_name, mesh_id)
 
   end function get_rho_d_np1
+
+  !> @brief Returns a pointer to a flux increment for a particular step
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @param[in] step The step from which to return the flux increment
+  !> @return The flux increment
+  function get_flux_inc(self, mesh_id, step) result(flux_inc)
+
+    implicit none
+
+    class(transport_runtime_type), target, intent(in) :: self
+    integer(kind=i_def),                   intent(in) :: mesh_id
+    integer(kind=i_def),                   intent(in) :: step
+    type(field_type),                      pointer    :: flux_inc
+
+    flux_inc => self%flux_inc(self%idx_from_mesh_id(mesh_id), step)
+
+  end function get_flux_inc
 
   !> @brief Returns a pointer to the flux from transporting dry density
   !> @param[in] mesh_id The ID of the mesh to get the object for

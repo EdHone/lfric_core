@@ -114,14 +114,12 @@ contains
       ! Reset field_n ready for the this substep
       call ls_field_np1%copy_field(ls_field_n)
 
-      final_rk_stage = .false.
-
       do stage = 1, nstage
         ! Store values for use in the perturbation code. This is done before
         ! advecting so as to pick up the correct linearisation state
         call invoke( setval_X(stored_ls_field(substep, stage), ls_field_np1) )
 
-        if ( stage == nstage ) final_rk_stage = .true.
+        final_rk_stage = ( stage == nstage )
 
         ! Compute the field for this stage:
         ! rhs_field = sum(s=1,stage): a(stage,s)*field^(s)
@@ -163,11 +161,9 @@ contains
       ! Reset field_n ready for the this substep
       call field_np1%copy_field(field_n)
 
-      final_rk_stage = .false.
-
       do stage = 1, nstage
 
-        if ( stage == nstage ) final_rk_stage = .true.
+        final_rk_stage = ( stage == nstage )
 
         ! Compute the field for this stage:
         ! rhs_field = sum(s=1,stage): a(stage,s)*field^(s)

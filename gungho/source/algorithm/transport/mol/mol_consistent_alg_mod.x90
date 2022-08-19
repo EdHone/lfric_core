@@ -29,7 +29,8 @@ module mol_consistent_alg_mod
   use psykal_lite_mod,                only: invoke_impose_min_flux_kernel_type
   use runge_kutta_init_mod,           only: get_rk_transport_weights
   use timer_mod,                      only: timer
-  use transport_config_mod,           only: runge_kutta_method
+  use transport_config_mod,           only: runge_kutta_method, &
+                                            advective_then_flux
   use transport_metadata_mod,         only: transport_metadata_type
   use transport_runtime_alg_mod,      only: transport_runtime_type
   use transport_runtime_collection_mod,   &
@@ -72,11 +73,13 @@ module mol_consistent_alg_mod
     integer(kind=i_def)                :: prime_extrusion_mesh_id
     integer(kind=i_def)                :: shifted_mesh_id
     integer(kind=i_def)                :: stage, s
-    integer(kind=i_def)                :: substeps, transport_step
+    integer(kind=i_def)                :: substep, transport_step
     integer(kind=i_def)                :: nstage_this_substep
     integer(kind=i_def)                :: nstage, number_substeps
     logical(kind=l_def)                :: enforce_min_value
     logical(kind=l_def)                :: final_rk_stage
+    logical(kind=l_def)                :: final_substep
+    logical(kind=l_def)                :: final_split_step
     logical(kind=l_def)                :: include_div_term_with_density
     real(kind=r_def)                   :: dt_substep
     real(kind=r_def)                   :: min_value
@@ -89,12 +92,15 @@ module mol_consistent_alg_mod
     type(field_type),          pointer :: dry_flux => null()
     type(field_type),          pointer :: rho_d_n => null()
     type(field_type),          pointer :: rho_d_np1 => null()
+    type(field_type),          pointer :: mr_wt_start => null()
+    type(field_type),          pointer :: rho_d_start => null()
+    type(field_type),          pointer :: old_flux_inc => null()
     type(field_type),          pointer :: divergence_factor => null()
     type(field_type)                   :: flux_X
-    type(field_type)                   :: mr_sh_w3_n, mr_sh_w3_np1
+    type(field_type)                   :: mr_sh_w3_n, mr_sh_w3_np1, mr_sh_w3_start
     type(field_type)                   :: mr_sh_w3_for_flux, mr_wt_for_flux
     type(field_type)                   :: mr_wt_n
-    type(field_type)                   :: rho_X_n, rho_X_np1
+    type(field_type)                   :: rho_X_n, rho_X_np1, rho_X_start
     type(field_type)                   :: rhs_adv, rhs_flux, rhs_field
     type(field_type),      allocatable :: rk_field(:)
     type(mesh_type),           pointer :: prime_extrusion_mesh => null()
@@ -168,18 +174,24 @@ module mol_consistent_alg_mod
                  ! Initialise the mixing ratio used for the flux to zero
                  setval_c( mr_wt_for_flux, 0.0_r_def ) )
 
-    ! ------------------------------------------------------------------------ !
-    ! Do advective form for until last stage of last substep
-    ! ------------------------------------------------------------------------ !
-    substep_loop: do substeps = 1, number_substeps
+    final_split_step = ( transport_step == transport_runtime%get_num_dry_steps() )
 
-      if (substeps == number_substeps) then
-        nstage_this_substep = nstage - 1
-      else
+    ! ------------------------------------------------------------------------ !
+    ! Do advective form until last stage of last substep
+    ! ------------------------------------------------------------------------ !
+    substep_loop: do substep = 1, number_substeps
+
+      final_substep = ( substep == number_substeps )
+
+      ! On the last substep we don't do advective form on the last stage, so
+      ! loop over fewer stages. This is for the last split step when using
+      ! the advective_then_flux option, otherwise at the end of each split step
+      if ( ( .not. final_substep ) .or. &
+           ( advective_then_flux .and. .not. final_split_step) ) then
         nstage_this_substep = nstage
+      else
+        nstage_this_substep = nstage - 1
       end if
-
-      final_rk_stage = .false.
 
       ! Set initial value for mr used in flux calculation
       call mr_wt_np1%copy_field(mr_wt_n)
@@ -187,7 +199,7 @@ module mol_consistent_alg_mod
 
       stage_loop: do stage = 1, nstage_this_substep
 
-        if ( stage == nstage ) final_rk_stage = .true.
+        final_rk_stage = ( stage == nstage )
 
         ! Compute the field for this stage:
         ! rhs_field = sum(s=1,stage): a(stage,s)*field^(s)
@@ -207,7 +219,7 @@ module mol_consistent_alg_mod
         call invoke( X_minus_bY(mr_wt_np1, mr_wt_n, dt_substep, rhs_adv) )
 
         ! Increment mixing ratio used for flux in last step
-        if (stage /= nstage) then
+        if ( .not. final_rk_stage ) then
           call invoke( inc_X_plus_bY(mr_wt_for_flux, &
                                      rk_weights(nstage, stage+1), mr_wt_np1) )
         end if
@@ -225,6 +237,9 @@ module mol_consistent_alg_mod
 
       end do stage_loop
 
+      ! ---------------------------------------------------------------------- !
+      ! Blending zone update
+      ! ---------------------------------------------------------------------- !
       if ( limited_area .and. topology == topology_non_periodic ) then
         ! This code is required while LAMs loop over cells right up to
         ! the edge of a limited area domain.  It can be removed if
@@ -239,19 +254,17 @@ module mol_consistent_alg_mod
 
     end do substep_loop
 
-    ! Shift accumulated mixing ratio
-
     ! ------------------------------------------------------------------------ !
-    ! Conservative form: in shifted W3
+    ! End of split step: transporting moisture density in shifted W3
     ! ------------------------------------------------------------------------ !
-
     final_rk_stage = .true.
 
-    ! For final stage of RK scheme, we go to flux form. We use the
-    ! mixing ratio in place of density, and dry flux for advecting wind
+    ! Obtain mixing ratio used for reconstruction in shifted W3
     call invoke( inject_wt_to_sh_w3_kernel_type(mr_sh_w3_for_flux, &
                                                 mr_wt_for_flux),   &
                  setval_c(flux_X, 0.0_r_def) )
+
+    ! In all cases, compute flux to rho_X
     call flux_alg(flux_X, mr_sh_w3_for_flux, dry_flux, &
                   direction, transport_metadata, final_rk_stage)
 
@@ -263,15 +276,58 @@ module mol_consistent_alg_mod
                                               div, min_value, dt_substep)
     end if
 
-    ! Compute div(flux_X)
-    call invoke( dg_matrix_vector_kernel_type(rhs_flux, flux_X, div),  &
-    ! Increment rho_X
-                 X_minus_bY(rho_X_np1, rho_X_n, dt_substep, rhs_flux), &
-    ! Turn density back into mixing ratio
-                 X_divideby_Y(mr_sh_w3_np1, rho_X_np1, rho_d_np1) )
-    ! Turn back to Wtheta -- separate invoke as on different mesh
-    call invoke( inject_sh_w3_to_wt_kernel_type(mr_wt_np1, mr_sh_w3_np1) )
+    ! Now apply increment differently depending on formulation
+    if ( .not. advective_then_flux ) then
+      ! Old behaviour: apply increment to rho_X and recompute mixing ratio
+      ! Compute div(flux_X)
+      call invoke( dg_matrix_vector_kernel_type(rhs_flux, flux_X, div),  &
+      ! Increment rho_X
+                  X_minus_bY(rho_X_np1, rho_X_n, dt_substep, rhs_flux), &
+      ! Turn density back into mixing ratio
+                  X_divideby_Y(mr_sh_w3_np1, rho_X_np1, rho_d_np1) )
+      ! Turn back to Wtheta -- separate invoke as on different mesh
+      call invoke( inject_sh_w3_to_wt_kernel_type(mr_wt_np1, mr_sh_w3_np1) )
 
+    else
+      dt_substep = -1.0_r_def*dt_substep
+      ! Compute div(flux_X)
+      call invoke( dg_matrix_vector_kernel_type(rhs_flux, flux_X, div), &
+                   inc_a_times_X(dt_substep, rhs_flux) )
+
+      if ( final_split_step ) then
+        ! -------------------------------------------------------------------- !
+        ! 3D MoL or the last step of a split scheme
+        ! Transport rho in flux form and sum increments
+        ! -------------------------------------------------------------------- !
+        ! Compute rho from very start of time step
+        call mr_sh_w3_start%initialise( w3_sh_fs )
+        call rho_X_start%initialise( w3_sh_fs )
+        mr_wt_start => transport_runtime%get_field_n(prime_extrusion_mesh_id)
+        rho_d_start => transport_runtime%get_rho_d_n(shifted_mesh_id, 1_i_def)
+        call invoke( inject_wt_to_sh_w3_kernel_type(mr_sh_w3_start, mr_wt_start), &
+                     X_times_Y(rho_X_start, mr_sh_w3_start, rho_d_start),         &
+        ! Obtain final field at end of transport
+        ! rho_X_np1 = rho_X_start + sum(flux_incs)
+                     X_plus_Y(rho_X_np1, rho_X_start, rhs_flux) )
+        do s = 1, transport_runtime%get_num_dry_steps() - 1
+          old_flux_inc => transport_runtime%get_flux_inc(shifted_mesh_id, s)
+          call invoke( inc_X_plus_Y(rho_X_np1, old_flux_inc) )
+        end do
+      ! Turn density back into mixing ratio
+      call invoke( X_divideby_Y(mr_sh_w3_np1, rho_X_np1, rho_d_np1) )
+      ! Turn back to Wtheta -- separate invoke as on different mesh
+      call invoke( inject_sh_w3_to_wt_kernel_type(mr_wt_np1, mr_sh_w3_np1) )
+
+      end if
+      ! Do nothing if not 3D MoL or not last split step
+      ! Mix. ratio transported with adv inc (this has already been done above)
+      ! Just need to store flux increment that has been computed
+
+    end if
+
+    ! ------------------------------------------------------------------------ !
+    ! Blending zone update
+    ! ------------------------------------------------------------------------ !
     if ( limited_area .and. topology == topology_non_periodic ) then
       ! This code is required while LAMs loop over cells right up to
       ! the edge of a limited area domain.  It can be removed if
@@ -288,6 +344,7 @@ module mol_consistent_alg_mod
     ! End of whole step things
     ! ------------------------------------------------------------------------ !
 
+    if (advective_then_flux) call transport_runtime%set_flux_inc(rhs_flux)
     call transport_runtime%inc_tracer_step_ctr()
 
     if ( allocated( rk_field ) ) deallocate( rk_field )

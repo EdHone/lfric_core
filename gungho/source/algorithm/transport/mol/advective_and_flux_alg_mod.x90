@@ -1,0 +1,89 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2022 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> @brief Computes the flux F of a density by a wind U: F = density*U, as
+!!        well as the advective increment U.grad(density)
+
+module advective_and_flux_alg_mod
+
+  use constants_mod,                   only: i_def, l_def
+  use fem_constants_mod,               only: get_inverse_w3_mass_matrix
+  use field_mod,                       only: field_type
+  use fs_continuity_mod,               only: W2, W2h, W2v
+  use log_mod,                         only: log_event, LOG_LEVEL_ERROR
+  use operator_mod,                    only: operator_type
+  use reconstruct_w3_field_alg_mod,    only: reconstruct_w3_field_alg
+  use transport_enumerated_types_mod,  only: direction_3d, &
+                                             direction_h,  &
+                                             direction_v
+  use transport_metadata_mod,          only: transport_metadata_type
+  use w3_advective_update_kernel_mod,  only: w3_advective_update_kernel_type
+  use w3h_advective_update_kernel_mod, only: w3h_advective_update_kernel_type
+  use w3v_advective_update_kernel_mod, only: w3v_advective_update_kernel_type
+
+  implicit none
+
+  private
+
+  public :: advective_and_flux_alg
+
+contains
+
+  !============================================================================!
+  !> @brief Computes the flux F of a density by a wind U: F = density*U, as
+  !!        well as the advective increment U.grad(density)
+  !> @details Compute the mass flux and advective increment
+  !> @param[in,out] mass_flux           Mass flux field: f = density*wind
+  !> @param[in,out] adv_inc             Advective increment: wind.grad(density)
+  !> @param[in]     density             Field to advect
+  !> @param[in]     wind                Advecting wind field
+  !> @param[in]     direction           Direction of the transport
+  !> @param[in]     transport_metadata  Contains transport configuration options
+  !> @param[in]     final_rk_stage      Whether this is the last Runge-Kutta stage
+  subroutine advective_and_flux_alg(mass_flux, adv_inc, density, wind, &
+                                    direction, transport_metadata, final_rk_stage)
+
+    implicit none
+
+    type(field_type),              intent(in)    :: density, wind
+    type(field_type),              intent(inout) :: mass_flux, adv_inc
+    integer(kind=i_def),           intent(in)    :: direction
+    type(transport_metadata_type), intent(in)    :: transport_metadata
+    logical(kind=l_def),           intent(in)    :: final_rk_stage
+
+    ! Internal variables
+    type(field_type)             :: w2_recon
+    type(operator_type), pointer :: m3_inv => null()
+
+    ! Reconstruct W3 variable in W2
+    call w2_recon%initialise( wind%get_function_space() )
+    call reconstruct_w3_field_alg(w2_recon, density, wind, direction, &
+                                  transport_metadata, final_rk_stage)
+
+    ! Obtain mass flux by multiplying by the wind
+    call invoke( X_times_Y(mass_flux, w2_recon, wind), &
+    ! Prepare to obtain advective increment
+                 setval_c(adv_inc, 0.0_r_def) )
+
+    m3_inv => get_inverse_w3_mass_matrix( density%get_mesh_id() )
+
+    ! Different advective update kernel dependent on direction
+    select case( direction )
+    case ( direction_3d )
+      call invoke( w3_advective_update_kernel_type(adv_inc, w2_recon,  &
+                                                   wind, m3_inv) )
+    case ( direction_h )
+      call invoke( w3h_advective_update_kernel_type(adv_inc, w2_recon, &
+                                                    wind, m3_inv) )
+    case ( direction_v )
+      call invoke( w3v_advective_update_kernel_type(adv_inc, w2_recon, &
+                                                    wind, m3_inv) )
+    case default
+      call log_event("Advective update only on W2, W2h and W2v spaces", LOG_LEVEL_ERROR)
+    end select
+
+  end subroutine advective_and_flux_alg
+
+end module advective_and_flux_alg_mod

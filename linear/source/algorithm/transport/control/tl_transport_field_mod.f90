@@ -21,6 +21,8 @@ module tl_transport_field_mod
                                               equation_advective
   use tl_mol_conservative_alg_mod,      only: tl_mol_conservative_alg
   use tl_mol_advective_alg_mod,         only: tl_mol_advective_alg
+  use tl_transport_runtime_collection_mod, &
+                                        only: tl_transport_runtime
 
   implicit none
 
@@ -50,6 +52,10 @@ contains
     type(field_type),              intent(in)    :: ls_field_n
     real(kind=r_def),              intent(in)    :: model_dt
     type(transport_metadata_type), intent(in)    :: transport_metadata
+
+    ! Reset the counter for tracer transport steps and store nth level field
+    call tl_transport_runtime%reset_tracer_step_ctr()
+    call tl_transport_runtime%set_field_n(field_n)
 
     ! First choose scheme, and for full 3D schemes then choose equation
     select case ( transport_metadata%get_scheme() )

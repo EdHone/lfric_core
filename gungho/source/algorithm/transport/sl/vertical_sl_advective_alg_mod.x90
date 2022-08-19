@@ -78,7 +78,7 @@ contains
     end if
 
     ! Compute SL advective transport (vertical only) of
-    !field_np1 =  field_n_D
+    ! field_np1 =  field_n_D
     call invoke( setval_X( field_np1, field_n ) )
 
     select case ( field_n%which_function_space() )

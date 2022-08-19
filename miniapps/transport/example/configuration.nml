@@ -84,6 +84,7 @@ y1=0.0,
 y2=0.0,
 /
 &transport
+advective_then_flux=.true.
 cfl_mol_1d_stab = 1.5,
 cfl_mol_2d_stab = 1.5,
 cfl_mol_3d_stab = 1.5,

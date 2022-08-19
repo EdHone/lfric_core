@@ -56,9 +56,10 @@ contains
     type(transport_metadata_type), intent(in)    :: transport_metadata
     type(transport_runtime_type),  pointer       :: transport_runtime => null()
 
-    ! Reset the counter for tracer transport steps
+    ! Reset the counter for tracer transport steps and store nth level field
     transport_runtime => get_transport_runtime(field_n%get_mesh())
     call transport_runtime%reset_tracer_step_ctr()
+    call transport_runtime%set_field_n(field_n)
     nullify( transport_runtime )
 
     ! First choose scheme, and for full 3D schemes then choose equation
