@@ -43,9 +43,16 @@ contains
     use operator_mod,                    only: operator_type
     use fem_constants_mod,               only: get_inverse_w3_mass_matrix
     use transport_metadata_mod,          only: transport_metadata_type
-    use transport_enumerated_types_mod,  only: direction_3d, &
-                                               direction_h,  &
-                                               direction_v
+    use transport_enumerated_types_mod,  only: direction_3d,                 &
+                                               direction_h,                  &
+                                               direction_v,                  &
+                                               horizontal_monotone_clipping, &
+                                               vertical_monotone_clipping
+    use monotonic_update_kernel_mod,     only: monotonic_update_kernel_type
+    use transport_config_mod,            only: operators,           &
+                                               fv_horizontal_order, &
+                                               operators_fem
+
 
     implicit none
 
@@ -58,6 +65,9 @@ contains
 
     type(field_type)             :: field_new
     type(operator_type), pointer :: m3_inv => null()
+    integer(kind=i_def)          :: mono_stencil
+    logical(kind=l_def)          :: do_horizontal_monotone, &
+                                    do_vertical_monotone
 
     select case ( field%which_function_space() )
 
@@ -92,6 +102,30 @@ contains
         call log_event( "Advective increment only valid for W3 & Wtheta spaces", LOG_LEVEL_ERROR )
 
     end select
+
+    ! Apply monotonicity (using the substepped timestep)
+    do_horizontal_monotone = .false.
+    if ( (direction == direction_h .or. direction == direction_3d ) .and. &
+         transport_metadata%get_horizontal_monotone() == horizontal_monotone_clipping ) &
+      do_horizontal_monotone = .true.
+    do_vertical_monotone = .false.
+    if ( (direction == direction_v .or. direction == direction_3d ) .and. &
+         transport_metadata%get_vertical_monotone() == vertical_monotone_clipping ) &
+      do_vertical_monotone = .true.
+
+    if ( do_horizontal_monotone .or. do_vertical_monotone ) then
+      if ( operators == operators_fem ) then
+        mono_stencil = 1_i_def
+      else
+        mono_stencil = fv_horizontal_order / 2_i_def
+      end if
+      call invoke( monotonic_update_kernel_type(advective_increment,     &
+                                                field,                   &
+                                                mono_stencil,            &
+                                                dt,                      &
+                                                do_horizontal_monotone,  &
+                                                do_vertical_monotone ) )
+    end if
 
   end subroutine advective_increment_alg
 

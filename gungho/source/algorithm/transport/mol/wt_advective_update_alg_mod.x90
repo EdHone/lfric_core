@@ -528,7 +528,6 @@ contains
   !> @brief Compute advective update of a Wtheta field.
   !> @details Compute advective update wind.grad(adv_field) using desired spatial
   !!          reconstruction. Options for this are either FE or FV reconstructions.
-  !!          A monotonicity filter is also optionally applied
   !> @param[in,out] rhs                 Advective increment
   !> @param[in]     adv_field           Field to advect
   !> @param[in]     wind                Advecting wind field
@@ -543,7 +542,6 @@ contains
     use poly1d_vert_adv_kernel_mod,     only: poly1d_vert_adv_kernel_type
     use rtheta_kernel_mod,              only: rtheta_kernel_type
     use rtheta_bd_kernel_mod,           only: rtheta_bd_kernel_type
-    use monotonic_update_kernel_mod,    only: monotonic_update_kernel_type
     use reference_element_mod,          only: reference_element_type
     use mesh_mod,                       only: mesh_type
 
@@ -573,7 +571,6 @@ contains
     type(quadrature_rule_gaussian_type)    :: quadrature_rule
     integer(kind=i_def)                    :: wt_stencil_size
     integer(kind=i_def)                    :: w2_stencil_size
-    integer(kind=i_def)                    :: mono_stencil
     logical(kind=l_def)                    :: horizontal_faces
     logical(kind=l_def)                    :: vertical_faces
 
@@ -669,28 +666,8 @@ contains
 
     end select
 
+    ! rhs = u_grad_f * mt_lumped_inv
     mt_lumped_inv => get_inverse_lumped_mass_matrix(Wtheta, mesh%get_id())
-    ! Apply clipping monotonicity (as if this is a full timestep)
-    if ( ( direction == direction_3d                                                           &
-          .AND. transport_metadata%get_horizontal_monotone() == horizontal_monotone_clipping   &
-          .AND. transport_metadata%get_vertical_monotone()   == vertical_monotone_clipping )   &
-        .OR.                                                                                   &
-        ( direction == direction_h                                                             &
-          .AND. transport_metadata%get_horizontal_monotone() == horizontal_monotone_clipping ) &
-        .OR.                                                                                   &
-        ( direction == direction_v                                                             &
-          .AND. transport_metadata%get_vertical_monotone()   == vertical_monotone_clipping ) ) then
-      if ( operators == operators_fem ) then
-        mono_stencil = 1_i_def
-      else
-        mono_stencil = fv_horizontal_order / 2_i_def
-      end if
-      call invoke( monotonic_update_kernel_type(u_grad_f,                      &
-                                                adv_field,                     &
-                                                mono_stencil, mt_lumped_inv,   &
-                                                dt, fv_horizontal_order) )
-    end if
-
     ! Scale by lumped inverse mass matrix
     call invoke( X_times_Y(rhs, u_grad_f, mt_lumped_inv) )
 

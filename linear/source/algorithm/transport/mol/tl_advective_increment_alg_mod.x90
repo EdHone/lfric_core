@@ -46,9 +46,11 @@ contains
     use operator_mod,                    only: operator_type
     use fem_constants_mod,               only: get_inverse_w3_mass_matrix
     use transport_metadata_mod,          only: transport_metadata_type
-    use transport_enumerated_types_mod,  only: direction_3d, &
-                                               direction_h,  &
-                                               direction_v
+    use transport_enumerated_types_mod,  only: direction_3d,                 &
+                                               direction_h,                  &
+                                               direction_v,                  &
+                                               horizontal_monotone_clipping, &
+                                               vertical_monotone_clipping
 
     implicit none
 
@@ -133,6 +135,12 @@ contains
         call log_event( "Advective increment only valid for W3 & Wtheta spaces", LOG_LEVEL_ERROR )
 
     end select
+
+    ! Apply monotonicity (as if this is a full timestep)
+    if ( (transport_metadata%get_horizontal_monotone() == horizontal_monotone_clipping) .OR. &
+         (transport_metadata%get_vertical_monotone()   == vertical_monotone_clipping) ) then
+      call log_event( "TL: monotonicity not available", LOG_LEVEL_ERROR )
+    end if
 
   end subroutine tl_advective_increment_alg
 
