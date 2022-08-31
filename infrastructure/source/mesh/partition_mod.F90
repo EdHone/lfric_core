@@ -22,6 +22,7 @@
 module partition_mod
 
   use global_mesh_mod, only : global_mesh_type
+  use sort_mod,        only : bubble_sort
   use log_mod,         only : log_event,         &
                               LOG_LEVEL_ERROR
   use constants_mod,   only: i_def, r_def, l_def
@@ -946,29 +947,29 @@ contains
     do depth = max_stencil_depth+1, 1, -1
       start_sort = end_sort + 1
       end_sort = start_sort + num_inner(depth) - 1
-      call bubble_sort( partitioned_cells(start_sort:end_sort), &
-                        end_sort-start_sort+1 )
+      call bubble_sort( end_sort-start_sort+1, &
+                        partitioned_cells(start_sort:end_sort) )
     end do
     !
     ! Sort edge cells
     start_sort = end_sort + 1
     end_sort = start_sort + num_edge - 1
-    call bubble_sort( partitioned_cells(start_sort:end_sort), &
-                      end_sort-start_sort+1 )
+    call bubble_sort( end_sort-start_sort+1, &
+                      partitioned_cells(start_sort:end_sort) )
     !
     ! Sort the individual depths of halo cells
     do depth = 1,max_stencil_depth+1
       start_sort = end_sort + 1
       end_sort = start_sort + num_halo(depth) - 1
-      call bubble_sort( partitioned_cells(start_sort:end_sort), &
-                        end_sort-start_sort+1 )
+      call bubble_sort( end_sort-start_sort+1, &
+                        partitioned_cells(start_sort:end_sort) )
     end do
     !
     ! Sort the ghost halo
     start_sort = end_sort + 1
     end_sort = start_sort + num_ghost - 1
-    call bubble_sort( partitioned_cells(start_sort:end_sort), &
-                      end_sort-start_sort+1 )
+    call bubble_sort( end_sort-start_sort+1, &
+                      partitioned_cells(start_sort:end_sort) )
 
     nullify( last, start_subsect, insert_point, loop )
 
@@ -1377,39 +1378,5 @@ contains
     number_of_panels = self%npanels
 
   end function get_num_panels_global_mesh
-
-  !-------------------------------------------------------------------------------
-  ! Performs a simple bubble sort on an array. PRIVATE function.
-  !-------------------------------------------------------------------------------
-  ! Details: Performs a bubble sort on an array of data.
-  ! Input:   array  The array that will be sorted
-  !          len  The length of the array to be sorted
-  !-------------------------------------------------------------------------------
-  subroutine bubble_sort(array, len)
-
-    implicit none
-
-    integer(i_def), intent(inout) :: array(:)
-    integer(i_def), intent(in)    :: len
-
-    logical(l_def) :: swapped
-    integer(i_def) :: i
-    integer(i_def) :: swap_temp
-
-    do
-      swapped = .false.
-      do i = 1,len-1
-        if(array(i) > array(i+1))then
-          swap_temp = array(i)
-          array(i) = array(i+1)
-          array(i+1) = swap_temp
-          swapped = .true.
-        end if
-      end do
-      if( .not.swapped )exit
-    end do
-
-  end subroutine bubble_sort
-
 
 end module partition_mod

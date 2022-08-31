@@ -31,7 +31,7 @@ module coupler_mod
   use function_space_collection_mod,  only: function_space_collection
   use field_collection_iterator_mod,  only: field_collection_iterator_type
   use field_collection_mod,           only: field_collection_type
-  use coupler_utils_mod,              only: bubble_sort
+  use sort_mod,                       only: bubble_sort
   use constants_mod,                  only: i_def, r_def, i_halo_index, l_def, &
                                             imdi, rmdi
   use timestepping_config_mod,        only: dt
@@ -531,8 +531,12 @@ module coupler_mod
    sglobal_index(1:icpl_size) =                                   &
            int(global_index(1:int(icpl_size, i_halo_index)), i_def)
 
+   do i = 1, icpl_size
+     slocal_index(i) = i
+   enddo
+
    !sort global index to improve OASIS performance
-   call bubble_sort(sglobal_index, slocal_index, icpl_size)
+   call bubble_sort(icpl_size, sglobal_index, slocal_index)
 
    !oasis partition
    il_var_nodims(1) = 1 ! rank of coupling field

@@ -348,7 +348,8 @@ module coupler_diagnostics_mod
 
                ! Convert from Kelvin to Celsius
                ! (NEMO is expecting the data in Celsius)
-               convert_to_celsius_kernel_type(cpl_field2_si, cpl_field1_si),   &
+               convert_to_celsius_kernel_type(cpl_field2_si, cpl_field1_si,	   &
+                                              n_sea_ice_tile),                 &
 
                ! Multiply by the length of the timestep as part of the
                ! time averaging process

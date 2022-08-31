@@ -97,8 +97,14 @@ document-api: api-documentation
 ##############################################################################
 # Unit tests
 #
-unit-tests/%: export ADDITIONAL_EXTRACTION = $(ROOT_DIR)/infrastructure/source/utilities \
-                                             $(ROOT_DIR)/gungho/source/kernel
+unit-tests/%: export ADDITIONAL_EXTRACTION = $(ROOT_DIR)/infrastructure/source \
+                                             $(ROOT_DIR)/components/driver/source \
+                                             $(ROOT_DIR)/components/science/source \
+                                             $(ROOT_DIR)/components/lfric-xios/source \
+                                             $(ROOT_DIR)/lfric_atm/source/constants \
+                                             $(ROOT_DIR)/gungho/source/kernel/support \
+                                             $(ROOT_DIR)/gungho/unit-test/support
+
 unit-tests/%: export BIN_DIR ?= $(PROJECT_DIR)/test
 #
 # It should not be necessary to explicitly link the pfunit library as it is
