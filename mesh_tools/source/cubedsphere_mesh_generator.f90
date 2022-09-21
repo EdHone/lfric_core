@@ -62,7 +62,7 @@ program cubedsphere_mesh_generator
                                          geometry, geometry_planar,  &
                                          geometry_spherical,         &
                                          key_from_geometry
-  use partitioning_config_mod,     only: max_stencil_depth, &
+  use partitions_config_mod,       only: max_stencil_depth, &
                                          partition_range
   use rotation_config_mod,         only: target_north_pole,           &
                                          target_null_island,          &

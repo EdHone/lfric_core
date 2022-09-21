@@ -80,7 +80,7 @@
   lbc_parent_mesh = '<lam mesh name>'
 /
 
-&partitioning
+&partitions
   panel_decomposition='auto'
   panel_xproc=1
   panel_yproc=1

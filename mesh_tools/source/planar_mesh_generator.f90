@@ -65,7 +65,7 @@ program planar_mesh_generator
                                      geometry, geometry_planar,  &
                                      geometry_spherical,         &
                                      key_from_geometry
-  use partitioning_config_mod, only: max_stencil_depth, &
+  use partitions_config_mod,   only: max_stencil_depth, &
                                      partition_range
   use planar_mesh_config_mod,  only: edge_cells_x, edge_cells_y, &
                                      periodic_x, periodic_y,     &

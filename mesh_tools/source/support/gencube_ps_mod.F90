@@ -1945,13 +1945,13 @@ subroutine set_partition_parameters( xproc, yproc, &
                                partitioner_cubedsphere_serial
 
   ! Configuration modules
-  use mesh_config_mod,         only: n_partitions
-  use partitioning_config_mod, only: panel_xproc, panel_yproc,   &
-                                     panel_decomposition,        &
-                                     PANEL_DECOMPOSITION_AUTO,   &
-                                     PANEL_DECOMPOSITION_ROW,    &
-                                     PANEL_DECOMPOSITION_COLUMN, &
-                                     PANEL_DECOMPOSITION_CUSTOM
+  use mesh_config_mod,       only: n_partitions
+  use partitions_config_mod, only: panel_xproc, panel_yproc,   &
+                                   panel_decomposition,        &
+                                   PANEL_DECOMPOSITION_AUTO,   &
+                                   PANEL_DECOMPOSITION_ROW,    &
+                                   PANEL_DECOMPOSITION_COLUMN, &
+                                   PANEL_DECOMPOSITION_CUSTOM
 
   implicit none
 
