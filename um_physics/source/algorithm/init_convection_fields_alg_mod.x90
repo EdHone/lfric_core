@@ -51,6 +51,9 @@ contains
     type( field_type ), pointer :: dd_mf_cb  => null()
     type( field_type ), pointer :: cca       => null()
     type( field_type ), pointer :: ccw       => null()
+    type( field_type ), pointer :: conv_prog_dtheta => null()
+    type( field_type ), pointer :: conv_prog_dmv    => null()
+    type( field_type ), pointer :: conv_prog_precip => null()
 
     dt_conv   => convection_fields%get_field('dt_conv')
     dmv_conv  => convection_fields%get_field('dmv_conv')
@@ -70,6 +73,9 @@ contains
     dd_mf_cb  => convection_fields%get_field('dd_mf_cb')
     cca       => convection_fields%get_field('cca')
     ccw       => convection_fields%get_field('ccw')
+    conv_prog_dtheta => convection_fields%get_field('conv_prog_dtheta')
+    conv_prog_dmv    => convection_fields%get_field('conv_prog_dmv')
+    conv_prog_precip => convection_fields%get_field('conv_prog_precip')
 
     ! Initialise increment fields to zero for use when the scheme is off
     call invoke( setval_c(dt_conv,      0.0_r_def), &
@@ -89,8 +95,10 @@ contains
                  setval_c(cca_2d,       0.0_r_def), &
                  setval_c(dd_mf_cb,     0.0_r_def), &
                  setval_c(ccw,          0.0_r_def), &
-                 setval_c(cca,          0.0_r_def) )
-
+                 setval_c(cca,          0.0_r_def), &
+                 setval_c(conv_prog_dtheta, 0.0_r_def), &
+                 setval_c(conv_prog_dmv,    0.0_r_def), &
+                 setval_c(conv_prog_precip, 0.0_r_def) )
   end subroutine init_convection_fields_alg
 
 end module init_convection_fields_alg_mod

@@ -213,6 +213,7 @@ contains
                            fd_field_collection, mesh, twod_mesh)
     call setup_ancil_field("frozen_fraction", depository, &
                            fd_field_collection, mesh, twod_mesh)
+
     ! surface fields
     call setup_ancil_field("z0msea", depository, fd_field_collection, &
                            mesh, twod_mesh, twod=.true.)

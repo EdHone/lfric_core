@@ -195,7 +195,7 @@ contains
       end if
 
       dbcf_adv_flag = .true.
-      if (dbcf_adv_flag .and. cloud_fields_after_slow%get_length() > 0) then
+      if (dbcf_adv_flag .and. cloud_fields_after_adv%get_length() > 0) then
         bcf_after_slow => cloud_fields_after_slow%get_field('bulk_fraction')
         bcf_after_adv => cloud_fields_after_adv%get_field('bulk_fraction')
         call bcf_after_slow%copy_field_properties(dbcf_adv)
@@ -204,7 +204,7 @@ contains
       end if
 
       dcfl_adv_flag = .true.
-      if (dcfl_adv_flag .and. cloud_fields_after_slow%get_length() > 0) then
+      if (dcfl_adv_flag .and. cloud_fields_after_adv%get_length() > 0) then
         cfl_after_slow => cloud_fields_after_slow%get_field('liquid_fraction')
         cfl_after_adv => cloud_fields_after_adv%get_field('liquid_fraction')
         call cfl_after_slow%copy_field_properties(dcfl_adv)
@@ -213,7 +213,7 @@ contains
       end if
 
       dcff_adv_flag = .true.
-      if (dcff_adv_flag .and. cloud_fields_after_slow%get_length() > 0) then
+      if (dcff_adv_flag .and. cloud_fields_after_adv%get_length() > 0) then
         cff_after_slow => cloud_fields_after_slow%get_field('frozen_fraction')
         cff_after_adv => cloud_fields_after_adv%get_field('frozen_fraction')
         call cff_after_slow%copy_field_properties(dcff_adv)

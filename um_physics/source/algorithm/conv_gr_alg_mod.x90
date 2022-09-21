@@ -112,6 +112,9 @@ contains
     type( field_type ), pointer :: dbcf_conv => null()
     type( field_type ), pointer :: du_conv => null()
     type( field_type ), pointer :: dv_conv => null()
+    type( field_type ), pointer :: conv_prog_precip => null()
+    type( field_type ), pointer :: conv_prog_dtheta => null()
+    type( field_type ), pointer :: conv_prog_dmv => null()
     type( field_type ), pointer :: dd_mf_cb => null()
     type( field_type ), pointer :: massflux_up => null()
     type( field_type ), pointer :: massflux_down => null()
@@ -228,6 +231,9 @@ contains
     dbcf_conv => convection_fields%get_field('dbcf_conv')
     du_conv => convection_fields%get_field('du_conv')
     dv_conv => convection_fields%get_field('dv_conv')
+    conv_prog_precip => convection_fields%get_field('conv_prog_precip')
+    conv_prog_dtheta => convection_fields%get_field('conv_prog_dtheta')
+    conv_prog_dmv => convection_fields%get_field('conv_prog_dmv')
     dd_mf_cb => convection_fields%get_field('dd_mf_cb')
     massflux_up => convection_fields%get_field('massflux_up')
     massflux_down => convection_fields%get_field('massflux_down')
@@ -353,6 +359,7 @@ contains
                           ntml, cumulus, tile_fraction,                       &
                           dt_conv, dmv_conv, dmcl_conv,                       &
                           dmci_conv, du_conv, dv_conv,                        &
+                          conv_prog_precip, conv_prog_dtheta, conv_prog_dmv,  &
                           mr(imr_v), mr(imr_cl), mr(imr_ci),                  &
                           mr(imr_r), mr(imr_g),                               &
                           cf_fro, cf_liq, cf_bulk, cca, ccw,                  &

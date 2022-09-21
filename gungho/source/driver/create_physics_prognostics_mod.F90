@@ -60,6 +60,11 @@ module create_physics_prognostics_mod
 #ifdef UM_PHYSICS
   use multidata_field_dimensions_mod, only :                                   &
        get_ndata_val => get_multidata_field_dimension
+  use cv_run_mod,                     only:  l_conv_prog_precip,               &
+                                             l_conv_prog_dtheta,               &
+                                             l_conv_prog_dq,                   &
+                                             adv_conv_prog_dtheta,             &
+                                             adv_conv_prog_dq
 #endif
 
   implicit none
@@ -903,6 +908,20 @@ contains
     call add_physics_field( convection_fields, depository, prognostic_fields,  &
       adv_fields_last_outer, &
       'dv_conv', w3_space )
+
+    call add_physics_field( convection_fields, depository, prognostic_fields,  &
+      adv_fields_all_outer,  'conv_prog_dtheta', wtheta_space,                 &
+      checkpoint_flag=l_conv_prog_dtheta,                                      &
+      advection_flag=(l_conv_prog_dtheta .and. adv_conv_prog_dtheta))
+    call add_physics_field( convection_fields, depository, prognostic_fields,  &
+      adv_fields_all_outer,  'conv_prog_dmv', wtheta_space,                    &
+      checkpoint_flag=l_conv_prog_dq,                                          &
+      advection_flag=(l_conv_prog_dq .and. adv_conv_prog_dq))
+
+    call add_physics_field( convection_fields, depository, prognostic_fields,  &
+      adv_fields_all_outer, 'conv_prog_precip', wtheta_space,                  &
+      checkpoint_flag=l_conv_prog_precip,                                      &
+      advection_flag=l_conv_prog_precip)
 
     !========================================================================
     ! Fields owned by the cloud scheme

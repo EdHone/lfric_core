@@ -32,7 +32,7 @@ module conv_gr_kernel_mod
   !>
   type, public, extends(kernel_type) :: conv_gr_kernel_type
     private
-    type(arg_type) :: meta_args(128) = (/                                         &
+    type(arg_type) :: meta_args(131) = (/                                         &
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                &! outer
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! rho_in_w3
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! rho_in_wth
@@ -56,6 +56,9 @@ module conv_gr_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! dmci_conv
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, W3),                       &! du_conv
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, W3),                       &! dv_conv
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! conv_prog_precip
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! conv_prog_dtheta
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! conv_prog_dmv
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! m_v
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! m_cl
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! m_ci
@@ -199,6 +202,9 @@ contains
   !> @param[in,out] dmci_conv            Convection cloud ice increment
   !> @param[in,out] du_conv              Convection 'zonal' wind increment
   !> @param[in,out] dv_conv              Convection 'meridional' wind increment
+  !> @param[in,out] conv_prog_precip     Surface precipitation based 3d convective prognostic (kg/m2/s)
+  !> @param[in,out] conv_prog_dtheta     Time smoothed convective theta increment
+  !> @param[in,out] conv_prog_dmv        Time smoothed convective humidity increment
   !> @param[in]     m_v                  Vapour mixing ratio after advection
   !> @param[in]     m_cl                 Cloud liq mixing ratio after advection
   !> @param[in]     m_ci                 Cloud ice mixing ratio after advection
@@ -340,6 +346,9 @@ contains
                           dmci_conv,                         &
                           du_conv,                           &
                           dv_conv,                           &
+                          conv_prog_precip,                  &
+                          conv_prog_dtheta,                  &
+                          conv_prog_dmv,                      &
                           m_v,                               &
                           m_cl,                              &
                           m_ci,                              &
@@ -506,8 +515,13 @@ contains
     use bl_option_mod, only: max_tke
     use cloud_inputs_mod, only: i_cld_vn
     use cv_run_mod, only: n_conv_calls, iconv_deep, iconv_shallow, l_mom, &
-                          qmin_conv, l_safe_conv
-    use cv_param_mod, only: max_mf_fall
+                          qmin_conv, l_safe_conv,                         &
+                          l_conv_prog_dtheta, l_conv_prog_dq,             &
+                          l_conv_prog_precip,                             &
+                          tau_conv_prog_dtheta, tau_conv_prog_dq,         &
+                          tau_conv_prog_precip
+    use cv_param_mod, only: max_mf_fall, dthetadt_conv_active_threshold, &
+                            conv_prog_precip_min_threshold
     use jules_surface_mod, only: srf_ex_cnv_gust, IP_SrfExWithCnv
     use mphys_inputs_mod, only: l_mcr_qcf2, l_mcr_qgraup, l_mcr_qrain
     use nlsizes_namelist_mod, only: row_length, rows, bl_levels, n_cca_lev
@@ -561,7 +575,9 @@ contains
     real(kind=r_def), dimension(undf_wth), intent(inout) :: dt_conv, dmv_conv, &
                                           dmcl_conv, dmci_conv, cca, ccw,      &
                                           massflux_up, massflux_down,          &
-                                          conv_rain_3d, conv_snow_3d, tke_bl
+                                          conv_rain_3d, conv_snow_3d, tke_bl,  &
+                                          conv_prog_precip,                    &
+                                          conv_prog_dtheta, conv_prog_dmv
 
     real(kind=r_def), dimension(undf_w3), intent(inout) :: du_conv, dv_conv
 
@@ -676,13 +692,15 @@ contains
 
     logical :: l_tracer, l_calc_dxek, l_q_interact, l_scm_convss_dg
 
-    real(r_um) :: timestep_conv, one_over_conv_calls, orig_value
+    real(r_um) :: timestep_conv, one_over_conv_calls, orig_value,            &
+                  decay_amount, conv_active, theta_inc_threshold
 
     ! profile fields from level 1 upwards
     real(r_um), dimension(row_length,rows,nlayers) ::                        &
          p_rho_levels, rho_wet, rho_dry, z_rho, z_theta, cca_3d, rho_wet_tq, &
          rho_dry_theta, exner_rho_levels,                                    &
          theta_conv, q_conv, qcl_conv, qcf_conv,                             &
+         dtheta_conv,                                                        &
          qrain_conv, qcf2_conv, qgraup_conv, cf_liquid_conv, cf_frozen_conv, &
          bulk_cf_conv, u_conv, v_conv, dq_add, ccw_3d, dthbydt, dqbydt,      &
          dqclbydt, dqcfbydt, dcflbydt, dcffbydt, dbcfbydt, dubydt_p,         &
@@ -709,7 +727,7 @@ contains
          it_cclwp0, it_conv_rain, it_conv_snow, it_precip_dp, it_precip_sh,  &
          it_precip_md, it_cape_diluted, it_dp_cfl_limited,                   &
          it_md_cfl_limited, cape_ts_used, it_ind_deep, it_ind_shall,         &
-         it_precip_cg, it_wstar_up, it_mb1, it_mb2
+         it_precip_cg, it_wstar_up, it_mb1, it_mb2, tot_conv_precip_2d
 
     ! single level integer fields
     integer(i_um), dimension(row_length,rows) :: ntml, ntpar, lcbase,        &
@@ -742,7 +760,7 @@ contains
 
     real(r_um), dimension(row_length,rows,bl_levels) :: fqw, ftl
 
-    real(r_um), dimension(row_length,rows,0:nlayers) :: conv_prog_precip
+    real(r_um), dimension(row_length,rows,nlayers) :: conv_prog_precip_conv
 
     real(r_um), dimension(row_length,rows,nlayers) :: tnuc_new
 
@@ -895,9 +913,14 @@ contains
       if (l_mcr_qgraup) then
         qgraup_conv(1,1,k) = m_g(map_wth(1) + k)
       end if
-
+      if (l_conv_prog_precip) then
+        conv_prog_precip_conv(1,1,k) = conv_prog_precip(map_wth(1) + k)
+      end if
       ! Note need to pass down qcf2
       qcf2_conv(1,1,k)= 0.0_r_um
+
+      ! Total theta increment
+      dtheta_conv(1,1,k) = 0.0_r_um
     end do
 
     ccb(1,1) = 0_i_um
@@ -906,6 +929,7 @@ contains
     lcbase(1,1) = 0_i_um
     cca_3d = 0.0_r_um
     ccw_3d = 0.0_r_um
+    w_max(1,1) = 0.0_r_um
 
     ! Check for negative (less than a minimum) q being passed to convection
     if (l_safe_conv) then
@@ -1151,7 +1175,7 @@ contains
         , it_mb1, it_mb2, it_cg_term                                        &
         , uw0, vw0, w_max                                                   &
         , zlcl, zlcl_uv, tnuc_new, tnuc_nlcl, zhpar, entrain_coef           &
-        , conv_prog_precip, conv_prog_flx, deep_flag                        &
+        , conv_prog_precip_conv, conv_prog_flx, deep_flag                 &
         , past_conv_ht, it_cape_diluted, n_deep, n_congestus, n_shallow     &
         , n_mid, r_rho_levels(1,1,1), r_theta_levels(1,1,0)                 &
         , rho_wet, rho_wet_tq, rho_dry, rho_dry_theta, delta_smag           &
@@ -1306,6 +1330,8 @@ contains
                                 + (dcffbydt(1,1,k) * timestep_conv)
         bulk_cf_conv(1,1,k)   = bulk_cf_conv(1,1,k)                   &
                                 +(dbcfbydt(1,1,k) * timestep_conv)
+        dtheta_conv(1,1,k)   = dtheta_conv(1,1,k)                     &
+                                    + dthbydt(1,1,k) * timestep_conv
         dt_conv(map_wth(1) + k)   = dt_conv(map_wth(1) + k)               &
                                     + dthbydt(1,1,k) * timestep_conv      &
                                     * exner_theta_levels(1,1,k)
@@ -1454,6 +1480,58 @@ contains
       do k = 1, n_conv_levels
         dmv_conv(map_wth(1) + k) = dmv_conv(map_wth(1) + k) + dq_add(1,1,k)
       end do
+    end if
+
+    ! Update the time-smoothed convection prognostics
+    if (l_conv_prog_precip .and. outer == outer_iterations) then
+      decay_amount            = timestep / tau_conv_prog_precip
+      theta_inc_threshold     = dthetadt_conv_active_threshold * timestep_conv
+      tot_conv_precip_2d(1,1) = MAX(conv_rain(map_2d(1)) +        &
+                                conv_snow(map_2d(1)),             &
+                                conv_prog_precip_min_threshold )
+      do k = 1, n_conv_levels
+        if (abs(dtheta_conv(1,1,k)) > theta_inc_threshold) then
+          conv_active = 1.0
+        else
+          conv_active = 0.0
+        end if
+        conv_prog_precip(map_wth(1) + k)                          &
+            = decay_amount * tot_conv_precip_2d(1,1) * conv_active &
+            + (1.0 - decay_amount) * conv_prog_precip(map_wth(1) + k)
+      end do
+      conv_prog_precip(map_wth(1) + 0) = conv_prog_precip(map_wth(1) + 1)
+    end if
+
+    if (l_conv_prog_dtheta) then
+      decay_amount = timestep / tau_conv_prog_dtheta
+      do k = 1, n_conv_levels
+        dt_conv(map_wth(1) + k)  = (decay_amount * dtheta_conv(1,1,k) &
+                    + (1.0 - decay_amount) * conv_prog_dtheta(map_wth(1) + k))&
+                    * exner_in_wth(map_wth(1) + k)
+      end do
+
+      if (outer == outer_iterations) then
+        do k = 1, n_conv_levels
+          conv_prog_dtheta(map_wth(1) + k) = dt_conv(map_wth(1) + k)         &
+                                           / exner_in_wth(map_wth(1) + k)
+        end do
+        conv_prog_dtheta(map_wth(1) + 0) = conv_prog_dtheta(map_wth(1) + 1)
+      end if
+    end if
+
+    if (l_conv_prog_dq) then
+      decay_amount = timestep / tau_conv_prog_dq
+      do k = 1, n_conv_levels
+        dmv_conv(map_wth(1) + k) = decay_amount * dmv_conv(map_wth(1) + k)   &
+                     + (1.0 - decay_amount) * conv_prog_dmv(map_wth(1) + k)
+      end do
+
+      if (outer == outer_iterations) then
+        do k = 1, n_conv_levels
+          conv_prog_dmv(map_wth(1) + k) = dmv_conv(map_wth(1) + k)
+        end do
+        conv_prog_dmv(map_wth(1) + 0) = conv_prog_dmv(map_wth(1) + 1)
+      end if
     end if
 
     ! Convection/PC2 checks

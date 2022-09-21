@@ -229,7 +229,11 @@ contains
          check_run_convection, l_fcape, cape_ts_min, cape_ts_max,          &
          cpress_term, pr_melt_frz_opt, llcs_opt_crit_condens,              &
          llcs_detrain_coef, l_prog_pert, md_pert_opt, l_jules_flux,        &
-         l_reset_neg_delthvu
+         l_reset_neg_delthvu,                                              &
+         l_conv_prog_precip, l_conv_prog_dtheta, l_conv_prog_dq,           &
+         adv_conv_prog_dtheta, adv_conv_prog_dq,                           &
+         tau_conv_prog_precip, tau_conv_prog_dtheta, tau_conv_prog_dq,     &
+         prog_ent_grad, prog_ent_int, prog_ent_max, prog_ent_min
     use cv_param_mod, only: mtrig_ntml, md_pert_efrac
     use cv_stash_flg_mod, only: set_convection_output_flags
     use cv_set_dependent_switches_mod, only: cv_set_dependent_switches
@@ -528,6 +532,8 @@ contains
 
         i_convection_vn     = i_convection_vn_6a
         adapt               = 8
+        adv_conv_prog_dtheta  = .false.
+        adv_conv_prog_dq      = .false.
         amdet_fac           = 3.0_r_um
         anv_opt             = 0
         anvil_factor        = 1.0000_r_um
@@ -558,7 +564,7 @@ contains
         ent_dp_power        = 1.00_r_um
         ent_fac_md          = 1.00_r_um
         ent_opt_dp          = 3
-        ent_opt_md          = 0
+        ent_opt_md          = 6
         fdet_opt            = 2
         iconv_mid           = 1
         iconv_shallow       = 1
@@ -567,6 +573,9 @@ contains
         l_anvil             = .true.
         l_ccrad             = .true.
         l_cmt_heating       = .true.
+        l_conv_prog_precip  = .true.
+        l_conv_prog_dtheta  = .true.
+        l_conv_prog_dq      = .true.
         l_cv_conserve_check = .true.
         l_fcape             = .true.
         l_mom               = .true.
@@ -590,6 +599,13 @@ contains
         thpixs_mid          = 0.5_r_um
         tower_factor        = 1.0000_r_um
         ud_factor           = 1.0000_r_um
+        tau_conv_prog_precip = 10800.0_r_um
+        tau_conv_prog_dtheta = 2700.0_r_um
+        tau_conv_prog_dq    =  2700.0_r_um
+        prog_ent_grad       = -1.1_r_um
+        prog_ent_int        = -2.9_r_um
+        prog_ent_min        = 0.5_r_um
+        prog_ent_max        = 2.5_r_um
 
         ! Derived switches and parameters are set here based on the options
         ! above
