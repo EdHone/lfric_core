@@ -25,6 +25,8 @@ module transport_init_fields_alg_mod
   use geometric_constants_mod,           only: get_coordinates,     &
                                                get_panel_id
   use init_gungho_prognostics_alg_mod,   only: init_u_field
+  use initial_tracer_field_sample_kernel_mod, &
+                                         only: initial_tracer_field_sample_kernel_type
   use initial_pressure_config_mod,       only: method, method_sampled
   use initial_rho_sample_kernel_mod,     only: initial_rho_sample_kernel_type
   use io_config_mod,                     only: write_diag, use_xios_io
@@ -33,6 +35,7 @@ module transport_init_fields_alg_mod
   use mr_indices_mod,                    only: nummr, mr_names
   use quadrature_xyoz_mod,               only: quadrature_xyoz_type
   use set_rho_kernel_mod,                only: set_rho_kernel_type
+  use set_tracer_field_kernel_mod,       only: set_tracer_field_kernel_type
 
   implicit none
 
@@ -47,16 +50,20 @@ contains
 !> @param[in,out] wind              Transporting wind field
 !> @param[in,out] density           Density field (in W3)
 !> @param[in,out] theta             Theta field (in Wtheta)
-!> @param[in,out] tracer            Tracer field (in W3)
+!> @param[in,out] tracer_con        Conservative tracer field (in W3)
+!> @param[in,out] tracer_adv        Advective tracer field (in W3)
+!> @param[in,out] constant          Constant tracer field (in W3)
 !> @param[in,out] mr                Moisture mixing ratio fields (in Wtheta)
 !> @param[in,out] divergence        Divergence field
 !-----------------------------------------------------------------------------
-subroutine transport_init_fields_alg( mesh,      &
-                                      wind,      &
-                                      density,   &
-                                      theta,     &
-                                      tracer,    &
-                                      mr,        &
+subroutine transport_init_fields_alg( mesh,       &
+                                      wind,       &
+                                      density,    &
+                                      theta,      &
+                                      tracer_con, &
+                                      tracer_adv, &
+                                      constant,   &
+                                      mr,         &
                                       divergence )
 
     implicit none
@@ -67,13 +74,15 @@ subroutine transport_init_fields_alg( mesh,      &
     type(field_type),     intent(inout) :: wind
     type(field_type),     intent(inout) :: density
     type(field_type),     intent(inout) :: theta
-    type(field_type),     intent(inout) :: tracer
+    type(field_type),     intent(inout) :: tracer_con
+    type(field_type),     intent(inout) :: tracer_adv
+    type(field_type),     intent(inout) :: constant
     type(field_type),     intent(inout) :: mr(nummr)
     type(field_type),     intent(inout) :: divergence
 
     ! Internal variables
     real(kind=r_def), parameter         :: initial_time = 0.0_r_def
-    integer(kind=i_def)                 :: imr
+    integer(kind=i_def)                 :: imr, const_flag, config_flag
 
     type(field_type),           pointer :: chi(:) => null()
     type(field_type),           pointer :: panel_id => null()
@@ -91,11 +100,17 @@ subroutine transport_init_fields_alg( mesh,      &
     panel_id => get_panel_id(mesh%get_id())
     qr => get_qr()
 
+    ! Set constants
+    const_flag  = 1_i_def
+    config_flag = 0_i_def
+
     ! Initialise field objects
     call wind%initialise( name='u', vector_space=w2_fs )
     call density%initialise( name='rho', vector_space=w3_fs )
     call theta%initialise( name='theta', vector_space=wt_fs )
-    call tracer%initialise( name='tracer', vector_space=w3_fs )
+    call tracer_con%initialise( name='tracer_con', vector_space=w3_fs )
+    call tracer_adv%initialise( name='tracer_adv', vector_space=w3_fs )
+    call constant%initialise( name='constant', vector_space=w3_fs )
     call divergence%initialise( name='divergence', vector_space=w3_fs )
     do imr = 1, nummr
       call mr(imr)%initialise( name=trim(mr_names(imr)), vector_space=wt_fs )
@@ -107,17 +122,21 @@ subroutine transport_init_fields_alg( mesh,      &
 
     ! Read in rho and theta first
     if ( method == method_sampled ) then
-      call invoke( initial_rho_sample_kernel_type( density, chi, panel_id, initial_time ), &
-                   initial_rho_sample_kernel_type( theta  , chi, panel_id, initial_time )  )
+      call invoke( initial_rho_sample_kernel_type(          density, chi, panel_id, initial_time ),   &
+                   initial_tracer_field_sample_kernel_type( theta, chi, panel_id, config_flag ),      &
+                   initial_tracer_field_sample_kernel_type( tracer_con, chi, panel_id, config_flag ), &
+                   initial_tracer_field_sample_kernel_type( constant, chi, panel_id, const_flag )  )
      else
-      call invoke( set_rho_kernel_type( density, chi, panel_id, initial_time, qr ), &
-                   set_rho_kernel_type( theta  , chi, panel_id, initial_time, qr )  )
+      call invoke( set_rho_kernel_type(          density, chi, panel_id, initial_time, qr ),   &
+                   set_tracer_field_kernel_type( theta, chi, panel_id, config_flag, qr ),      &
+                   set_tracer_field_kernel_type( tracer_con, chi, panel_id, config_flag, qr ), &
+                   set_tracer_field_kernel_type( constant, chi, panel_id, const_flag, qr ) )
     end if
 
-    ! Duplicate these values for tracer and mixing ratio
+    ! Duplicate these values for tracer_adv and mixing ratio
     ! Mixing ratios are set to zero for all but first value
     call set_bundle_scalar( 0.0_r_def, mr, nummr )
-    call invoke( setval_X( tracer, density ), &
+    call invoke( setval_X( tracer_adv, tracer_con ), &
                  setval_X( mr(1), theta ) )
 
     ! Set winds and divergence
@@ -133,7 +152,9 @@ subroutine transport_init_fields_alg( mesh,      &
        call wind%set_write_behaviour( tmp_write_ptr )
        call density%set_write_behaviour( tmp_write_ptr )
        call theta%set_write_behaviour( tmp_write_ptr )
-       call tracer%set_write_behaviour( tmp_write_ptr )
+       call tracer_con%set_write_behaviour( tmp_write_ptr )
+       call tracer_adv%set_write_behaviour( tmp_write_ptr )
+       call constant%set_write_behaviour( tmp_write_ptr )
        call mr(1)%set_write_behaviour( tmp_write_ptr )
        call divergence%set_write_behaviour( tmp_write_ptr )
     end if

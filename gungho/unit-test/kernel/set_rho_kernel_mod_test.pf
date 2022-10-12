@@ -44,10 +44,10 @@ module set_rho_kernel_mod_test
   real(r_def), parameter :: rd      = 287.05_r_def
   real(r_def), parameter :: cp      = 1005.0_r_def
   real(r_def), parameter :: scaling = 1.0_r_def
-  real(r_def), parameter :: tracer_max        = 2.0_r_def
-  real(r_def), parameter :: tracer_background = 0.1_r_def
-  real(r_def), parameter :: y1                = 0.0_r_def
-  real(r_def), parameter :: y2                = 0.0_r_def
+  real(r_def), parameter :: density_max        = 2.0_r_def
+  real(r_def), parameter :: density_background = 0.1_r_def
+  real(r_def), parameter :: y1                 = 0.0_r_def
+  real(r_def), parameter :: y2                 = 0.0_r_def
 
   real(r_def), parameter :: bvf_square = 0.0001_r_def
   real(r_def), parameter :: theta_surf = 300.0_r_def
@@ -113,8 +113,8 @@ contains
              vorticity_in_w1=.false. )
 
     call feign_idealised_config( test=test_gravity_wave )
-    call feign_initial_density_config( tracer_background=tracer_background,   &
-                                       tracer_max=tracer_max,                 &
+    call feign_initial_density_config( density_background=density_background, &
+                                       density_max=density_max,               &
                                        r1=0.0_r_def, x1=0.0_r_def,            &
                                        y1=y1,        z1=0.0_r_def,            &
                                        r2=0.0_r_def, x2=0.0_r_def,            &

@@ -80,17 +80,17 @@ def make_figures(filein, plotpath, field_list, slice_list,
         zmax = 2400.
 
     elif testname in ['baroclinic', 'aquaplanet', 'spherical', 'lam_gw',
-                      'sbr', 'dcmip101', 'vert_def']:
+                      'sbr', 'dcmip101', 'vert_def', 'hadley', 'cos_phi']:
         spherical = True
 
-        if testname == 'spherical':
+        if testname in ['spherical', 'cos_phi']:
             # This is a special 2D spherical shell
             zmin = 0.0
             zmax = 1.0
         elif testname == 'lam_gw':
             zmin = 0.0
             zmax = 10000.0  # A 10 km lid
-        elif testname in ['sbr', 'dcmip101', 'vert_def']:
+        elif testname in ['sbr', 'dcmip101', 'vert_def', 'hadley']:
             zmin = 0.0
             zmax = 12000.0  # A 12 km lid
         elif spherical:
@@ -113,6 +113,9 @@ def make_figures(filein, plotpath, field_list, slice_list,
                   'm_v': r'$m_v \ / $ kg kg$^{-1}$',
                   'm_cl': r'$m_{cl} \ / $ kg kg$^{-1}$',
                   'tracer': r'$m_v \ / $ kg kg$^{-1}$',
+                  'tracer_con': r'$q_c \ / $ kg kg$^{-1}$',
+                  'tracer_adv': r'$q_a \ / $ kg kg$^{-1}$',
+                  'constant': r'$q_c \ / $ kg kg$^{-1}$',
                   'buoyancy': r'$b \ / $ m s$^{-2}$'}
 
     # Find number of full levels by asking for theta
@@ -393,12 +396,14 @@ def make_figures(filein, plotpath, field_list, slice_list,
 
                 # Special contours for our known tests
                 if ((testname in ['cylinder', 'div_free',
-                                  'eternal_fountain', 'rotational',
-                                  'translational', 'sbr',
-                                  'dcmip101', 'vert_def']
-                    and field in ['theta', 'density', 'rho', 'm_v', 'tracer'])
-                        or (testname == 'curl_free' and
-                            field in ['theta', 'm_v'])):
+                                 'eternal_fountain', 'rotational',
+                                 'translational'] and
+                        field in ['theta', 'density', 'rho', 'm_v',
+                                  'tracer', 'tracer_con', 'tracer_adv'])
+                    or (testname == 'curl_free' and
+                        field in ['theta', 'm_v'])
+                    or (testname in ['sbr', 'dcmip101', 'vert_def'] and
+                        field in ['theta', 'm_v', 'tracer', 'tracer_con', 'tracer_adv'])):
 
                     # Hardwire contour details
                     # 2.0 is the background value (usually the minimum)
@@ -417,8 +422,30 @@ def make_figures(filein, plotpath, field_list, slice_list,
                     for contour in contour_colours:
                         if abs(contour - tracer_background) > epsilon:
                             contour_lines.append(contour)
-                elif (testname == 'curl_free' and
-                      field in ['density', 'rho', 'tracer']):
+                elif (testname in ['hadley', 'cos_phi']
+                      or (testname in ['sbr', 'dcmip101', 'vert_def'] and
+                          field in ['density', 'rho'])):
+                    step = 0.1
+                    tracer_background = 0.0
+                    tracer_max = 1.0
+                    max_field = tracer_max + 2*step
+                    min_field = tracer_background - 2*step
+                    contour_colours = np.arange(min_field, max_field+step,
+                                                step=step)
+                    contour_lines = []
+                    epsilon = 1e-14
+                    for contour in contour_colours:
+                        if abs(contour - tracer_background) > epsilon:
+                            contour_lines.append(contour)
+                elif (field == 'constant'):
+                    step = 0.05
+                    min_field = 0.8
+                    max_field = 1.2
+                    contour_colours = np.arange(min_field, max_field+step,
+                                                step=step)
+                    contour_lines = np.copy(contour_colours)
+                elif (testname == 'curl_free'
+                      and field in ['density', 'rho', 'tracer', 'tracer_con', 'tracer_adv']):
                     step = 0.5
                     min_field = 0.0
                     max_field = 6.0

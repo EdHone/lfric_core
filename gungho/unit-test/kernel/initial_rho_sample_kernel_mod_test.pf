@@ -47,7 +47,7 @@ contains
     use finite_element_config_mod,  only : cellshape_quadrilateral, &
                                            coord_system_xyz
     use idealised_config_mod,       only : test_constant_field
-    use initial_density_config_mod, only : tracer_background
+    use initial_density_config_mod, only : density_background
 
 
     use extrusion_config_mod, only: method_uniform
@@ -73,11 +73,11 @@ contains
         rehabilitate=.true.,               &
         vorticity_in_w1=.false. )
 
-    call feign_initial_density_config( tracer_background=1.0_r_def, &
-                                       tracer_max=0.0_r_def,        &
-                                       r1=0.0_r_def, x1=0.0_r_def,  &
-                                       y1=0.0_r_def, z1=0.0_r_def,  &
-                                       r2=0.0_r_def, x2=0.0_r_def,  &
+    call feign_initial_density_config( density_background=1.0_r_def, &
+                                       density_max=0.0_r_def,        &
+                                       r1=0.0_r_def, x1=0.0_r_def,   &
+                                       y1=0.0_r_def, z1=0.0_r_def,   &
+                                       r2=0.0_r_def, x2=0.0_r_def,   &
                                        y2=0.0_r_def, z2=0.0_r_def)
     call feign_idealised_config( test=test_constant_field )
 

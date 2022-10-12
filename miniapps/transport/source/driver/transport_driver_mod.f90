@@ -25,8 +25,6 @@ module transport_driver_mod
   use divergence_alg_mod,               only: divergence_alg
   use field_mod,                        only: field_type
   use formulation_config_mod,           only: l_multigrid
-  use idealised_config_mod,             only: test, &
-                                              test_hadley_like_dcmip
   use io_context_mod,                   only: io_context_type
   use io_config_mod,                    only: diagnostic_frequency,            &
                                               nodal_output_on_w3,              &
@@ -74,7 +72,9 @@ module transport_driver_mod
   type(field_type) :: wind
   type(field_type) :: density
   type(field_type) :: theta
-  type(field_type) :: tracer
+  type(field_type) :: tracer_con
+  type(field_type) :: tracer_adv
+  type(field_type) :: constant
   type(field_type) :: mr(nummr)
   type(field_type) :: divergence
 
@@ -181,17 +181,13 @@ contains
 
     ! Initialise prognostic variables
     call transport_init_fields_alg( mesh, wind, density, theta, &
-                                    tracer, mr, divergence )
+                                    tracer_con, tracer_adv,     &
+                                    constant, mr, divergence )
 
     ! Initialise all transport-only control algorithm
-    call transport_init( density, theta, tracer, mr )
+    call transport_init( density, theta, tracer_con, tracer_adv, constant, mr )
 
-    ! Set number of moisutre specis to transport based on test case
-    if ( test == test_hadley_like_dcmip ) then
-      nummr_to_transport = 0_i_def
-    else
-      nummr_to_transport = 1_i_def
-    end if
+    nummr_to_transport = 1_i_def
 
     ! I/O initialisation
     call init_io( xios_ctx,           &
@@ -216,7 +212,11 @@ contains
                                     mesh, nodal_output_on_w3 )
       call write_scalar_diagnostic( 'theta', theta, clock, &
                                     mesh, nodal_output_on_w3 )
-      call write_scalar_diagnostic( 'tracer', tracer, clock, &
+      call write_scalar_diagnostic( 'tracer_con', tracer_con, clock, &
+                                    mesh, nodal_output_on_w3 )
+      call write_scalar_diagnostic( 'tracer_adv', tracer_adv, clock, &
+                                    mesh, nodal_output_on_w3 )
+      call write_scalar_diagnostic( 'constant', constant, clock, &
                                     mesh, nodal_output_on_w3 )
       call write_scalar_diagnostic( 'm_v', mr(1), clock, &
                                     mesh, nodal_output_on_w3 )
@@ -263,7 +263,8 @@ contains
       if ( subroutine_timers ) call timer( 'transport step' )
 
       call transport_step( clock%get_step(), dt, wind, &
-                           density, theta, tracer, mr, &
+                           density, theta, tracer_con, &
+                           tracer_adv, constant, mr,   &
                            nummr_to_transport )
 
       if ( subroutine_timers ) call timer( 'transport step' )
@@ -272,7 +273,9 @@ contains
       call mass_conservation( clock%get_step(), density, mr )
       call density%log_minmax( LOG_LEVEL_INFO, 'rho' )
       call theta%log_minmax( LOG_LEVEL_INFO, 'theta' )
-      call tracer%log_minmax( LOG_LEVEL_INFO, 'tracer' )
+      call tracer_con%log_minmax( LOG_LEVEL_INFO, 'tracer_con' )
+      call tracer_adv%log_minmax( LOG_LEVEL_INFO, 'tracer_adv' )
+      call constant%log_minmax( LOG_LEVEL_INFO, 'constant' )
       call mr(1)%log_minmax( LOG_LEVEL_INFO, 'm_v' )
 
 
@@ -294,7 +297,11 @@ contains
                                       clock, mesh, nodal_output_on_w3 )
         call write_scalar_diagnostic( 'theta', theta,           &
                                       clock, mesh, nodal_output_on_w3 )
-        call write_scalar_diagnostic( 'tracer', tracer,         &
+        call write_scalar_diagnostic( 'tracer_con', tracer_con,         &
+                                      clock, mesh, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'tracer_adv', tracer_adv,         &
+                                      clock, mesh, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'constant', constant,         &
                                       clock, mesh, nodal_output_on_w3 )
         call write_scalar_diagnostic( 'm_v', mr(1),             &
                                       clock, mesh, nodal_output_on_w3 )
@@ -306,7 +313,7 @@ contains
 
     end do ! while clock%is_running()
 
-    call transport_final( density, theta, tracer, mr )
+    call transport_final( density, theta, tracer_con, tracer_adv, constant, mr )
 
   end subroutine run_transport
 
@@ -324,7 +331,7 @@ contains
 
     ! Write checksums to file
     call checksum_alg( program_name, density, 'rho',  wind, 'u',  &
-                       theta, 'theta', tracer, 'tracer',          &
+                       theta, 'theta', tracer_adv, 'tracer',      &
                        field_bundle=mr, bundle_name='mr' )
 
     if ( subroutine_timers ) then

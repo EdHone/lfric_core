@@ -84,8 +84,11 @@ def make_figure(plotpath, field, component, timestep,
                                p_data[val_col].values, (xi, yi),
                                method='linear')
 
-    cc = np.linspace(np.amin(data[val_col].values),
-                     np.amax(data[val_col].values), 13)
+    if field == 'constant':
+        cc = np.linspace(0.85,1.15, 13)
+    else:
+        cc = np.linspace(np.amin(data[val_col].values),
+                         np.amax(data[val_col].values), 13)
 
     c_map = cm.summer
 
@@ -179,7 +182,8 @@ if __name__ == "__main__":
     for field in field_list:
 
         if field in ['rho', 'theta', 'exner', 'buoyancy', 'density',
-                     'pressure', 'm_v']:
+                     'pressure', 'm_v', 'tracer_con', 'tracer_adv',
+                     'constant']:
             # Scalar fields
             ncomp = 1
             comp = 1

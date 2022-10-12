@@ -40,7 +40,9 @@ module transport_control_alg_mod
   ! These are allocatable as there might be one for each mesh
   type(field_type), allocatable :: rho0(:)
   type(field_type), allocatable :: theta0(:)
-  type(field_type), allocatable :: tracer0(:)
+  type(field_type), allocatable :: tracer_con0(:)
+  type(field_type), allocatable :: tracer_adv0(:)
+  type(field_type), allocatable :: constant0(:)
   type(field_type), allocatable :: mr0(:,:)
 
   type(transport_metadata_collection_type) :: transport_metadata_collection
@@ -102,10 +104,12 @@ contains
     ! Allocate arrays for initial/true fields
     ! ------------------------------------------------------------------------ !
     if (.not. variables_allocated) then
-      if (.not. allocated(rho0)) allocate(rho0(number_of_meshes))
-      if (.not. allocated(theta0)) allocate(theta0(number_of_meshes))
-      if (.not. allocated(tracer0)) allocate(tracer0(number_of_meshes))
-      if (.not. allocated(mr0)) allocate(mr0(nummr, number_of_meshes))
+      if (.not. allocated(rho0))        allocate(rho0(number_of_meshes))
+      if (.not. allocated(theta0))      allocate(theta0(number_of_meshes))
+      if (.not. allocated(tracer_con0)) allocate(tracer_con0(number_of_meshes))
+      if (.not. allocated(tracer_adv0)) allocate(tracer_adv0(number_of_meshes))
+      if (.not. allocated(constant0))   allocate(constant0(number_of_meshes))
+      if (.not. allocated(mr0))         allocate(mr0(nummr, number_of_meshes))
       variables_allocated = .true.
     else
       call log_event('Variables have already been allocated for ' // &
@@ -145,8 +149,10 @@ contains
       call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
       ! Set hardwired defaults based upon which field is being advected
-      if ( trim(field_names(config)) == 'rho' .or. &
-          (trim(field_names(config)) == 'mr' .and. &
+      if ( trim(field_names(config)) == 'rho'        .or. &
+           trim(field_names(config)) == 'tracer_con' .or. &
+           trim(field_names(config)) == 'constant'   .or. &
+          (trim(field_names(config)) == 'mr' .and.        &
            moisture_eqn == moisture_eqn_conservative ) ) then
         equation_form = equation_conservative
       else if ( trim(field_names(config)) == 'mr' .and. &
@@ -185,11 +191,13 @@ contains
   !!          allows us to compare the final states of the field with their
   !!          initial values, so that the errors incurred by the transport can
   !!          be measured.
-  !> @param[in] rho     Dry density field (in W3)
-  !> @param[in] theta   Potential temperature field (in Wtheta)
-  !> @param[in] tracer  Tracer field obeying advective equation (in W3)
-  !> @param[in] mr      Bundle of mixing ratio fields (in Wtheta)
-  subroutine transport_init( rho, theta, tracer, mr )
+  !> @param[in] rho         Dry density field (in W3)
+  !> @param[in] theta       Potential temperature field (in Wtheta)
+  !> @param[in] tracer_con  Tracer field obeying conservative equation (in W3)
+  !> @param[in] tracer_adv  Tracer field obeying advective equation (in W3)
+  !> @param[in] constant    Constant tracer field obeying conservative equation (in W3)
+  !> @param[in] mr          Bundle of mixing ratio fields (in Wtheta)
+  subroutine transport_init( rho, theta, tracer_con, tracer_adv, constant, mr )
 
     use reconstruct_w3_field_alg_mod, only: reconstruct_w3_field_alg_init
     use wt_advective_update_alg_mod,  only: wt_advective_update_alg_init
@@ -197,7 +205,7 @@ contains
     implicit none
 
     ! Prognostic fields
-    type(field_type), intent(in) :: rho, theta, tracer
+    type(field_type), intent(in) :: rho, theta, tracer_con, tracer_adv, constant
     type(field_type), intent(in) :: mr(nummr)
 
     ! Internal variables
@@ -214,7 +222,9 @@ contains
     ! Store initial values for computing errors
     call rho%copy_field(rho0(mesh_index))
     call theta%copy_field(theta0(mesh_index))
-    call tracer%copy_field(tracer0(mesh_index))
+    call tracer_con%copy_field(tracer_con0(mesh_index))
+    call tracer_adv%copy_field(tracer_adv0(mesh_index))
+    call constant%copy_field(constant0(mesh_index))
     call mr(1)%copy_field(mr0(1,mesh_index))
 
     ! Initialise any necessary transport fields or coefficients
@@ -238,11 +248,14 @@ contains
   !> @param[in,out] wind               The transporting wind field
   !> @param[in,out] rho                Dry density field to transport
   !> @param[in,out] theta              Pot. temperature field to transport
-  !> @param[in,out] tracer             Tracer field to transport
+  !> @param[in,out] tracer_con         Tracer field to transport conservatively
+  !> @param[in,out] tracer_adv         Tracer field to transport advectively
+  !> @param[in,out] constant           Constant tracer field to transport conservatively
   !> @param[in,out] mr                 Bundle of mixing ratio fields to transport
   !> @param[in]     nummr_to_transport Number of moisture species to transport
   subroutine transport_step( timestep, model_dt, wind, &
-                             rho, theta, tracer, mr,   &
+                             rho, theta, tracer_con,   &
+                             tracer_adv, constant, mr, &
                              nummr_to_transport )
 
     use field_bundle_mod,                 only: clone_bundle, copy_bundle
@@ -255,13 +268,14 @@ contains
     ! Arguments
     integer(kind=i_def), intent(in)    :: timestep
     real(kind=r_def),    intent(in)    :: model_dt
-    type(field_type),    intent(inout) :: wind, rho, theta, tracer
+    type(field_type),    intent(inout) :: wind, rho, theta
+    type(field_type),    intent(inout) :: tracer_con, tracer_adv, constant
     type(field_type),    intent(inout) :: mr(nummr)
     integer(kind=i_def), intent(in)    :: nummr_to_transport
 
     real(kind=r_def)             :: current_time
-    type(field_type)             :: rho_n, theta_n
-    type(field_type)             :: tracer_n, mr_n(nummr)
+    type(field_type)             :: rho_n, theta_n, constant_n
+    type(field_type)             :: tracer_con_n, tracer_adv_n, mr_n(nummr)
 
     type(transport_runtime_type) :: transport_runtime
     type(mesh_type),     pointer :: primary_mesh => null()
@@ -295,11 +309,23 @@ contains
     call theta%copy_field(theta_n)
     call transport_field(theta, theta_n, model_dt, transport_metadata)
 
-    ! Transport W3 tracer
-    call log_event( "Transporting tracer...", LOG_LEVEL_INFO)
-    transport_metadata => transport_metadata_collection%get_transport_metadata('tracer')
-    call tracer%copy_field(tracer_n)
-    call transport_field(tracer, tracer_n, model_dt, transport_metadata)
+    ! Transport conservative W3 tracer
+    call log_event( "Transporting conservative tracer...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('tracer_con')
+    call tracer_con%copy_field(tracer_con_n)
+    call transport_field(tracer_con, tracer_con_n, model_dt, transport_metadata)
+
+    ! Transport advective W3 tracer
+    call log_event( "Transporting advective tracer...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('tracer_adv')
+    call tracer_adv%copy_field(tracer_adv_n)
+    call transport_field(tracer_adv, tracer_adv_n, model_dt, transport_metadata)
+
+    ! Transport constant W3 tracer
+    call log_event( "Transporting constant tracer...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('constant')
+    call constant%copy_field(constant_n)
+    call transport_field(constant, constant_n, model_dt, transport_metadata)
 
     ! Transport moisture mixing ratio fields
     call log_event("Transporting moisture mixing ratio fields...", LOG_LEVEL_INFO)
@@ -318,11 +344,13 @@ contains
   !> @brief Finalises transport only run.
   !> @details Calculates final error norms for transport schemes and calls
   !!          finalising routines for transport only run.
-  !> @param[in] rho      Transported dry density field
-  !> @param[in] theta    Transported pot. temperature field
-  !> @param[in] tracer   Transported tracer field
-  !> @param[in] mr       Transported bundle of mixing ratio fields
-  subroutine transport_final( rho, theta, tracer, mr )
+  !> @param[in] rho         Transported dry density field
+  !> @param[in] theta       Transported pot. temperature field
+  !> @param[in] tracer_con  Transported conservative tracer field
+  !> @param[in] tracer_adv  Transported advective tracer field
+  !> @param[in] constant    Transported constant tracer field
+  !> @param[in] mr          Transported bundle of mixing ratio fields
+  subroutine transport_final( rho, theta, tracer_con, tracer_adv, constant, mr )
 
     use transport_stats_mod,          only: write_transport_stats
     use reconstruct_w3_field_alg_mod, only: reconstruct_w3_field_alg_final
@@ -331,7 +359,7 @@ contains
     implicit none
 
     ! Prognostic fields
-    type(field_type), intent(in) :: rho, theta, tracer
+    type(field_type), intent(in) :: rho, theta, tracer_con, tracer_adv, constant
     type(field_type), intent(in) :: mr(nummr)
 
     ! Internal variables
@@ -347,8 +375,12 @@ contains
     call write_transport_stats(rho, rho0(mesh_index), field_name)
     field_name = 'theta'
     call write_transport_stats(theta, theta0(mesh_index), field_name)
-    field_name = 'tracer'
-    call write_transport_stats(tracer, tracer0(mesh_index), field_name)
+    field_name = 'tracer_con'
+    call write_transport_stats(tracer_con, tracer_con0(mesh_index), field_name)
+    field_name = 'tracer_adv'
+    call write_transport_stats(tracer_adv, tracer_adv0(mesh_index), field_name)
+    field_name = 'constant'
+    call write_transport_stats(constant, constant0(mesh_index), field_name)
     field_name = 'mr'
     call write_transport_stats(mr(1), mr0(1,mesh_index), field_name)
 

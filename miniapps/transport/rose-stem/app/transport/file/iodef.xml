@@ -37,7 +37,9 @@
        <field id="checkpoint_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" domain_ref="checkpoint_W3" />
        <field id="checkpoint_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" domain_ref="checkpoint_Wtheta" />
        <field id="checkpoint_u" name="u" long_name="wind" unit="m s-1" domain_ref="checkpoint_W2" />
-       <field id="checkpoint_tracer" name="tracer" long_name="tracer" standard_name="tracer" unit="kg/kg" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_tracer_con" name="tracer_con" long_name="tracer_con" standard_name="tracer_con" unit="kg/kg" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_tracer_adv" name="tracer_adv" long_name="tracer_adv" standard_name="tracer_adv" unit="kg/kg" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_constant" name="constant" long_name="constant" standard_name="constant" unit="kg/kg" domain_ref="checkpoint_W3" />
        <field id="checkpoint_m_v" name="m_v" long_name="m_v" unit="kg/kg" domain_ref="checkpoint_Wtheta" />
        <field id="checkpoint_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" domain_ref="checkpoint_W3" />
      </field_group>
@@ -49,7 +51,9 @@
        <field id="w_in_wth" name="w_in_wth" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
        <field id="rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
        <field id="theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
-       <field id="tracer" name="tracer" long_name="m_v" standard_name="tracer" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="tracer_con" name="tracer_con" long_name="tracer_con" standard_name="tracer_con" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="tracer_adv" name="tracer_adv" long_name="tracer_adv" standard_name="tracer_adv" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="constant" name="constant" long_name="constant" standard_name="constant" unit="kg/kg" grid_ref="half_level_face_grid" />
        <field id="m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" grid_ref="full_level_face_grid" />
        <field id="divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
      </field_group>
@@ -61,7 +65,9 @@
        <field id="init_w_in_wth" name="w_in_wth" long_name="upward_air_velocity" standard_name="upward_air_velocity" unit="m s-1" grid_ref="full_level_face_grid" />
        <field id="init_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" grid_ref="half_level_face_grid" />
        <field id="init_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
-       <field id="init_tracer" name="tracer" long_name="tracer" standard_name="tracer" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="init_tracer_con" name="tracer_con" long_name="tracer_con" standard_name="tracer_con" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="init_tracer_adv" name="tracer_adv" long_name="tracer_adv" standard_name="tracer_adv" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="init_constant" name="constant" long_name="constant" standard_name="constant" unit="kg/kg" grid_ref="half_level_face_grid" />
        <field id="init_m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" grid_ref="full_level_face_grid" />
        <field id="init_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
      </field_group>
@@ -79,7 +85,9 @@
       <file id="lfric_checkpoint_write" name="lfric_checkpoint" convention="CF" enabled=".FALSE.">
         <field field_ref="checkpoint_rho"/>
         <field field_ref="checkpoint_theta"/>
-        <field field_ref="checkpoint_tracer"/>
+        <field field_ref="checkpoint_tracer_con"/>
+        <field field_ref="checkpoint_tracer_adv"/>
+        <field field_ref="checkpoint_constant"/>
         <field field_ref="checkpoint_m_v"/>
         <field field_ref="checkpoint_u"/>
         <field field_ref="checkpoint_divergence"/>
@@ -89,7 +97,9 @@
       <file id="lfric_checkpoint_read" name="lfric_checkpoint" mode="read" output_freq="1ts" cyclic="true" enabled=".FALSE.">
        <field id="restart_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
        <field id="restart_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" operation="instant" domain_ref="checkpoint_Wtheta" />
-       <field id="restart_tracer" name="tracer" long_name="tracer" standard_name="tracer" unit="kg/kg" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_tracer_con" name="tracer_con" long_name="tracer_con" standard_name="tracer_con" unit="kg/kg" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_tracer_adv" name="tracer_adv" long_name="tracer_adv" standard_name="tracer_adv" unit="kg/kg" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_constant" name="constant" long_name="constant" standard_name="constant" unit="kg/kg" operation="instant" domain_ref="checkpoint_W3" />
        <field id="restart_m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" operation="instant" domain_ref="checkpoint_Wtheta" />
        <field id="restart_u" name="u" long_name="wind" unit="m s-1" operation="instant" domain_ref="checkpoint_W2" />
        <field id="restart_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
@@ -101,7 +111,9 @@
         <field field_ref="w_in_wth"/>
         <field field_ref="rho"/>
         <field field_ref="theta"/>
-        <field field_ref="tracer"/>
+        <field field_ref="tracer_con"/>
+        <field field_ref="tracer_adv"/>
+        <field field_ref="constant"/>
         <field field_ref="m_v"/>
         <field field_ref="divergence"/>
       </file>
@@ -112,7 +124,9 @@
         <field field_ref="init_w_in_wth"/>
         <field field_ref="init_rho"/>
         <field field_ref="init_theta"/>
-        <field field_ref="init_tracer"/>
+        <field field_ref="init_tracer_con"/>
+        <field field_ref="init_tracer_adv"/>
+        <field field_ref="init_constant"/>
         <field field_ref="init_m_v"/>
         <field field_ref="init_divergence"/>
       </file>

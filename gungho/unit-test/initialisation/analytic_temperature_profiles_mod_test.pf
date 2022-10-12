@@ -112,8 +112,8 @@ contains
                                     wavelength=1.0_r_def,       &
                                     wind_time_period=0.0_r_def, &
                                     smp_init_wind=.false. )
-    call feign_initial_density_config( tracer_max = 1.0_r_def,                         &
-                                       tracer_background = 1.0_r_def,                  &
+    call feign_initial_density_config( density_max = 1.0_r_def,                                      &
+                                       density_background = 1.0_r_def,                               &
                                        r1 = 0.1_r_def, x1 = 0.0_r_def, y1 = 0.0_r_def, z1=0.0_r_def, &
                                        r2 = 0.1_r_def, x2 = 0.0_r_def, y2 = 0.0_r_def, z2=0.0_r_def )
   end subroutine setUp

@@ -18,15 +18,9 @@ use idealised_config_mod,       only : test_cold_bubble_x,           &
                                        test_cold_bubble_y,           &
                                        test_warm_bubble,             &
                                        test_warm_bubble_3d,          &
-                                       test_gaussian_hill,           &
-                                       test_cosine_hill,             &
-                                       test_cosine_bell,             &
-                                       test_yz_cosine_hill,          &
-                                       test_slotted_cylinder,        &
                                        test_constant_field,          &
                                        test_cosine_stripe,           &
                                        test_vortex_field,            &
-                                       test_hadley_like_dcmip,       &
                                        test_gravity_wave,            &
                                        test_solid_body_rotation,     &
                                        test_solid_body_rotation_alt, &
@@ -40,17 +34,11 @@ use idealised_config_mod,       only : test_cold_bubble_x,           &
                                        test_shallow_conv,            &
                                        test_cos_phi,                 &
                                        test_cosine_bubble,           &
-                                       test_div_free_reversible,     &
-                                       test_eternal_fountain,        &
-                                       test_curl_free_reversible,    &
-                                       test_rotational,              &
-                                       test_translational,           &
-                                       test_vertical_cylinder,       &
                                        test_specified_profiles,      &
                                        test_bryan_fritsch,           &
                                        test_grabowski_clark
 use initial_density_config_mod, only : r1, x1, y1, z1, r2, x2, y2, z2, &
-                                       tracer_max, tracer_background
+                                       density_max, density_background
 use base_mesh_config_mod,       only : geometry, &
                                        geometry_spherical
 use planet_config_mod,          only : p_zero, Rd, kappa, scaled_radius
@@ -138,7 +126,6 @@ contains
                                     ZR = 2000.0_r_def
     real(kind=r_def)             :: long, lat, radius
     real(kind=r_def)             :: l1, l2
-    real(kind=r_def)             :: h1, h2
     real(kind=r_def)             :: density, temperature
     real(kind=r_def)             :: t0
     real(kind=r_def)             :: u, v, w
@@ -182,80 +169,19 @@ contains
           test_bryan_fritsch, test_grabowski_clark )
       call reference_profile(pressure, density, temperature, chi, choice)
 
-    case (test_gaussian_hill)
-      h1 = tracer_max*exp( -(l1/r1)**2 )
-      h2 = tracer_max*exp( -(l2/r2)**2 )
-      pressure = h1 + h2
-
-    case (test_cosine_hill)
-      if ( l1 < r1 ) then
-        h1 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
-      else
-        h1 = tracer_background
-      end if
-      if (l2 < r2) then
-        h2 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l2/r2)*PI))
-      else
-        h2 = tracer_background
-      end if
-      pressure = h1+h2
-
-    case (test_slotted_cylinder)
-      ! Cylinder 1
-      if ( l1 < r1 ) then
-        if (abs(long-x1) > r1/6.0_r_def) then
-          h1 = tracer_max
-        else
-          if (lat < y1-r1*5.0_r_def/12.0_r_def) then
-            h1 = tracer_max
-          else
-            h1 = tracer_background
-          end if
-        end if
-      else
-        h1 = tracer_background
-      end if
-      ! Cylinder 2
-      if ( l2 < r2 ) then
-        if (abs(long-x2) > r2/6.0_r_def) then
-          h2 = tracer_max
-        else
-          if (lat > y2+r2*5.0_r_def/12.0_r_def) then
-            h2 = tracer_max
-          else
-            h2 = tracer_background
-          end if
-        end if
-      else
-        h2 = tracer_background
-      end if
-      pressure = h1 + h2
-
     case (test_constant_field)
-      pressure = tracer_background
+      pressure = density_background
 
     case (test_cosine_stripe)
       l1 = sqrt((long-x1)**2)
       if ( l1 < r1 ) then
-        pressure = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
+        pressure = density_background + (density_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
       else
-        pressure = tracer_background
+        pressure = density_background
       end if
 
     case (test_vortex_field)
       pressure = vortex_field(lat,long,radius,time)
-
-    case( test_yz_cosine_hill,       &
-          test_cosine_bell,          &
-          test_hadley_like_dcmip,    &
-          test_eternal_fountain,     &
-          test_curl_free_reversible, &
-          test_div_free_reversible,  &
-          test_rotational,           &
-          test_translational,        &
-          test_vertical_cylinder )
-      ! This case is for transport of tracers and density only so it is not
-      ! calculated here.
 
     case (test_solid_body_rotation, &
           test_solid_body_rotation_alt)
@@ -272,14 +198,14 @@ contains
       call reference_profile(pressure, density, temperature, chi, choice)
 
     case( test_cos_phi )
-      pressure = tracer_max*cos(lat)**4
+      pressure = density_max*cos(lat)**4
 
     case( test_cosine_bubble )
       l1 = sqrt( ((chi(1) - x1)/r1)**2 + ((chi(3) - y1)/r2)**2 )
       if ( l1 < 1.0_r_def ) then
-        pressure = tracer_background + tracer_max*cos(0.5_r_def*l1*PI)**2
+        pressure = density_background + density_max*cos(0.5_r_def*l1*PI)**2
       else
-        pressure = tracer_background
+        pressure = density_background
       end if
     case default
       write( log_scratch_space, '(A)' )  'Invalid pressure profile choice, stopping'

@@ -47,7 +47,7 @@ use idealised_config_mod,       only : test_cold_bubble_x,           &
                                        test_translational,           &
                                        test_vertical_cylinder
 use initial_density_config_mod, only : r1, x1, y1, z1, r2, x2, y2, z2, &
-                                       tracer_max, tracer_background
+                                       density_max, density_background
 use base_mesh_config_mod,       only : geometry, &
                                        geometry_spherical
 use planet_config_mod,          only : p_zero, Rd, kappa, scaled_radius
@@ -64,7 +64,6 @@ private
 
 public :: vortex_field
 public :: analytic_density
-public :: hadley_like_dcmip
 
 contains
 
@@ -128,36 +127,6 @@ function vortex_field(lat,long,radius,time) result(density)
 end function vortex_field
 
 
-!>@brief Compute the density function from Allen and Zerroukat 2016
-!>@details  Equations below have been taken from Allen and Zerroukat, "A deep
-!> non-hydrostatic compressible atmospheric model on a Yin-Yang grid", JCP, 2016,
-!> equation (5.5)
-!> Parameter values have been taken from the paper and are currently
-!> hard-wired
-!>@param[in] radius Distance from the centre of the planet to the point of interest
-!>@return density Value of the tracer field at this point
-function hadley_like_dcmip(radius) result(density)
-  implicit none
-  real(kind=r_def), intent(in) :: radius
-  real(kind=r_def)             :: density
-
-  real(kind=r_def) :: z, z1, z2, z0
-
-  z = radius - scaled_radius
-
-  z1 = 2000.0_r_def
-  z2 = 5000.0_r_def
-  z0 = 0.5_r_def*(z1+z2)
-
-  if ((z-z1)*(z2-z)>0) then
-    density = 0.5_r_def*(1.0_r_def + cos(2.0_r_def*pi*(z-z0)/(z2-z1)))
-  else
-    density = 0.0_r_def
-  end if
-
-end function hadley_like_dcmip
-
-
 !> @brief Compute an analytic density field
 !> @param[in] chi Position in physical coordinates
 !> @param[in] choice Integer defining which specified formula to use
@@ -170,21 +139,16 @@ function analytic_density(chi, choice, time) result(density)
   real(kind=r_def), intent(in) :: time
   real(kind=r_def)             :: density
 
-  real(kind=r_def)             :: l, dt
+  real(kind=r_def)             :: l, dt, z
   real(kind=r_def), parameter  :: XC = 0.0_r_def, &
                                   XR = 4000.0_r_def, &
                                   ZC_cold = 3000.0_r_def, &
                                   ZR = 2000.0_r_def
   real(kind=r_def)             :: long, lat, radius
   real(kind=r_def)             :: l1, l2
-  real(kind=r_def)             :: d1, d2
-  real(kind=r_def)             :: h1, h2
   real(kind=r_def)             :: pressure, temperature
-  real(kind=r_def)             :: t0
+  real(kind=r_def)             :: t0, rd, g
   real(kind=r_def)             :: u, v, w
-  real(kind=r_def)             :: bubble_dist, bubble_zc
-  real(kind=r_def)             :: bubble_radius, bubble_width, bubble_height
-  real(kind=r_def)             :: slot_width, slot_length
 
   integer                      :: id
 
@@ -225,97 +189,39 @@ function analytic_density(chi, choice, time) result(density)
   !> (isentropic) value
   case ( test_warm_bubble, test_warm_bubble_3d  )
     call reference_profile(pressure, density, temperature, chi, choice)
-  case( test_gaussian_hill )
-    h1 = tracer_max*exp( -(l1/r1)**2 )
-    h2 = tracer_max*exp( -(l2/r2)**2 )
-    density = tracer_background + h1 + h2
 
-  case( test_cosine_hill )
-    if ( l1 < r1 ) then
-      h1 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
-    else
-      h1 = tracer_background
-    end if
-    if (l2 < r2) then
-      h2 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l2/r2)*PI))
-    else
-      h2 = tracer_background
-    end if
-    density = h1+h2
+  ! For planar or horizontal transport miniapp tests we set background constant density
+  case( test_eternal_fountain, test_rotational, test_cos_phi,                  &
+        test_curl_free_reversible, test_translational, test_cosine_hill,       &
+        test_div_free_reversible, test_vertical_cylinder, test_yz_cosine_hill, &
+        test_constant_field, test_slotted_cylinder )
 
-  case( test_cosine_bell )
-    bubble_height = domain_top/12.0_r_def
-    d1 = min( 1.0_r_def, ( l1 / 0.5_r_def )**2 + &
-         ( ( radius - scaled_radius - domain_top/2.0_r_def ) / bubble_height )**2 )
-    d2 = min( 1.0_r_def, ( l2 / 0.5_r_def )**2 + &
-         ( ( radius - scaled_radius - domain_top/2.0_r_def ) / bubble_height )**2 )
-    density = tracer_background + ( (tracer_max - tracer_background) / 2.0_r_def ) * &
-              ( ( 1.0_r_def + cos( pi*d1 ) ) + ( 1.0_r_def + cos( pi*d2 ) ) )
+    density = density_background
 
-  case( test_yz_cosine_hill )
+  ! For 3D spherical transport miniapp tests we set height based density
+  case( test_cosine_bell, test_hadley_like_dcmip, &
+        test_gaussian_hill )
 
-    l1 = sqrt((chi(2)-y1)**2 + (chi(3)-z1)**2)
-    l2 = sqrt((chi(2)-y2)**2 + (chi(3)-z2)**2)
+    ! Use values from Kent et al. (2014), Dynamical Core Model Intercomparison
+    ! Project: Tracer Transport Test Cases, QJRMS
+    z  = radius - scaled_radius
+    t0 = 300.0_r_def
+    Rd = 287.0_r_def
+    g  = 9.80616_r_def
 
-    if ( l1 < r1 ) then
-      h1 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
-    else
-      h1 = tracer_background
-    end if
-    if (l2 < r2) then
-      h2 = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l2/r2)*PI))
-    else
-      h2 = tracer_background
-    end if
-    density = h1+h2
-
-  case( test_slotted_cylinder )
-    ! Cylinder 1
-    if ( l1 < r1 ) then
-      if (abs(long-x1) > r1/6.0_r_def) then
-        h1 = tracer_max
-      else
-        if (lat < y1-r1*5.0_r_def/12.0_r_def) then
-          h1 = tracer_max
-        else
-          h1 = tracer_background
-        end if
-      end if
-    else
-      h1 = tracer_background
-    end if
-    ! Cylinder 2
-    if ( l2 < r2 ) then
-      if (abs(long-x2) > r2/6.0_r_def) then
-        h2 = tracer_max
-      else
-        if (lat > y2+r2*5.0_r_def/12.0_r_def) then
-          h2 = tracer_max
-        else
-          h2 = tracer_background
-        end if
-      end if
-    else
-      h2 = tracer_background
-    end if
-    density = h1 + h2
-
-  case( test_constant_field )
-    density = tracer_background
+    ! density_background plays the role of reference pressure
+    density = density_background / (Rd*t0) * exp( - (g*z) / (Rd*t0) )
 
   case( test_cosine_stripe )
     l1 = sqrt((long-x1)**2)
     if ( l1 < r1 ) then
-      density = tracer_background + (tracer_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
+      density = density_background + (density_max/2.0_r_def)*(1.0_r_def+cos((l1/r1)*PI))
     else
-      density = tracer_background
+      density = density_background
     end if
 
   case( test_vortex_field )
     density = vortex_field(lat,long,radius,time)
-
-  case( test_hadley_like_dcmip )
-    density = hadley_like_dcmip(radius)
 
   case( test_solid_body_rotation,                                    &
         test_solid_body_rotation_alt )
@@ -329,70 +235,12 @@ function analytic_density(chi, choice, time) result(density)
                               pressure, temperature, density, &
                               u, v, w)
 
-  case( test_cos_phi )
-    density = tracer_max*cos(lat)**4
-
   case( test_cosine_bubble )
     l1 = sqrt( ((chi(1) - x1)/r1)**2 + ((chi(3) - y1)/r2)**2 )
     if ( l1 < 1.0_r_def ) then
-      density = tracer_background + tracer_max*cos(0.5_r_def*l1*PI)**2
+      density = density_background + density_max*cos(0.5_r_def*l1*PI)**2
     else
-      density = tracer_background
-    end if
-
-  case( test_eternal_fountain )
-    bubble_width = 0.4_r_def * planar_domain_max_x
-    bubble_height = 0.1_r_def * domain_top
-
-    if ( ( (chi(1) + bubble_width / 2.0_r_def) &
-            * (bubble_width / 2.0_r_def - chi(1)) > 0.0_r_def ) &
-      .and. ( chi(3) * (bubble_height - chi(3)) > 0.0_r_def ) ) then
-      density = tracer_max
-    else
-      density = tracer_background
-    end if
-
-  case ( test_rotational, test_curl_free_reversible, &
-         test_translational, test_div_free_reversible )
-    bubble_zc = domain_top / 4.0_r_def
-    bubble_width = planar_domain_max_x / 5.0_r_def
-    bubble_height = domain_top / 10.0_r_def
-    bubble_radius = bubble_height / 2.0_r_def
-
-    ! Elliptical distance from centre of bubble
-    bubble_dist = bubble_radius &
-      * sqrt( ((chi(1) - XC) / (bubble_width / 2.0_r_def) ) ** 2.0_r_def &
-            + ((chi(3) - bubble_zc) / (bubble_height / 2.0_r_def)) ** 2.0_r_def)
-
-    density = tracer_background + (tracer_max - tracer_background) &
-                * exp(-(bubble_dist / bubble_radius)**2.0_r_def)
-
-  case( test_vertical_cylinder )
-    bubble_zc = domain_top / 4.0_r_def
-    bubble_width = planar_domain_max_x / 2.0_r_def
-    bubble_height = domain_top / 4.0_r_def
-    bubble_radius = bubble_height / 2.0_r_def
-
-    ! Elliptical distance from centre of bubble
-    bubble_dist = bubble_radius &
-      * sqrt( ((chi(1) - XC) / (bubble_width / 2.0_r_def) ) ** 2.0_r_def &
-            + ((chi(3) - bubble_zc) / (bubble_height / 2.0_r_def)) ** 2.0_r_def)
-
-    slot_width = bubble_width / 12.0_r_def
-    slot_length = 17.0_r_def * bubble_height / 24.0_r_def
-
-    if ( bubble_dist < bubble_radius ) then
-      if ( abs(chi(1) - XC) > slot_width / 2.0_r_def ) then
-        density = tracer_max
-      else
-        if ( chi(3) < (bubble_zc + bubble_height / 2.0_r_def - slot_length) ) then
-          density = tracer_max
-        else
-          density = tracer_background
-        end if
-      end if
-    else
-      density = tracer_background
+      density = density_background
     end if
 
   case default

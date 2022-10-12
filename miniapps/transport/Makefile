@@ -155,9 +155,23 @@ build: ALWAYS
 ##############################################################################
 # Unit tests
 #
-unit-tests:
-	$(call MESSAGE,Testing,"There are no unit tests.")
-
+.PHONY: unit-tests
+unit-tests/%: export ADDITIONAL_EXTRACTION = $(ROOT_DIR)/infrastructure/source           \
+                                             $(ROOT_DIR)/components/driver/source        \
+                                             $(ROOT_DIR)/components/science/source       \
+                                             $(ROOT_DIR)/components/lfric-xios/source    \
+											 $(ROOT_DIR)/gungho/source                   \
+                                             $(ROOT_DIR)/gungho/unit-test/support
+unit-tests/%: export BIN_DIR ?= $(PROJECT_DIR)/test
+unit-tests/%: export CXX_LINK = true
+unit-tests/%: export META_FILE_DIR = rose-meta/lfric-transport/HEAD
+unit-tests/%: export PROGRAMS = $(PROJECT_NAME)_unit_tests
+unit-tests/%: export PROJECT = $(PROJECT_NAME)
+unit-tests/%: export SOURCE_DIR = source
+unit-tests/%: export TEST_DIR = unit-test
+unit-tests/%: export WORKING_DIR := $(WORKING_DIR)/unit-tests
+unit-tests/%: export UNIT_TEST_PRE_PROCESS_MACROS = "NO_MPI=no_mpi"
+unit-tests: unit-tests/run
 
 ##############################################################################
 # Integration tests

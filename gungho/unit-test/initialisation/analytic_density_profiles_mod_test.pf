@@ -14,8 +14,8 @@ module analytic_density_profiles_mod_test
   implicit none
 
   private
-  public :: analytic_density_profiles_test_type, vortex_field_test
-  public :: yz_cosine_hill_test, hadley_like_dcmip_test
+  public :: analytic_density_profiles_test_type
+  public :: analytic_density_test, vortex_field_test
 
   @TestCase
   type, extends(TestCase) :: analytic_density_profiles_test_type
@@ -24,8 +24,6 @@ module analytic_density_profiles_mod_test
     procedure setUp
     procedure tearDown
     procedure vortex_field_test
-    procedure yz_cosine_hill_test
-    procedure hadley_like_dcmip_test
   end type analytic_density_profiles_test_type
 
   real(r_def), parameter :: surface_pressure = 1000.0e2_r_def
@@ -49,8 +47,8 @@ contains
                               cp=1000.0_r_def, p_zero=100000.0_r_def,     &
                               scaling_factor=1.0_r_def )
 
-    call feign_initial_density_config( tracer_background=0.0_r_def,     &
-                                       tracer_max=1.0_r_def,            &
+    call feign_initial_density_config( density_background=0.5_r_def,    &
+                                       density_max=1.0_r_def,           &
                                        r1=1.0_r_def, x1=2.0_r_def,      &
                                        y1=3.0_r_def, z1=4.0_r_def,      &
                                        r2=1.0_r_def, x2=0.0_r_def,      &
@@ -104,7 +102,7 @@ contains
 
 
   @Test
-  subroutine yz_cosine_hill_test( this )
+  subroutine analytic_density_test( this )
 
     use, intrinsic :: iso_fortran_env, only : real64
     use analytic_density_profiles_mod, only : analytic_density
@@ -125,39 +123,10 @@ contains
     else
        tol = 10.0_r_def * spacing( rho )
     endif
-    @assertEqual(0.407826538399892_r_def, rho, tol)
+    @assertEqual(0.5_r_def, rho, tol)
 
 
-  end subroutine yz_cosine_hill_test
-
-
-  @Test
-  subroutine hadley_like_dcmip_test( this )
-
-    use analytic_density_profiles_mod, only:    hadley_like_dcmip
-
-    implicit none
-
-    class(analytic_density_profiles_test_type), intent(inout) :: this
-
-    real(kind=r_def) :: density, height
-    real(kind=r_def) :: tol
-
-    tol = 10.0e-8_r_def
-
-    height = 6000000.0_r_def + 3500.0_r_def
-    density = hadley_like_dcmip(height)
-    @assertEqual(1.0_r_def, density, tol)
-
-    height = 6000000.0_r_def + 2500.0_r_def
-    density = hadley_like_dcmip(height)
-    @assertEqual(0.25_r_def, density, tol)
-
-    height = 6000000.0_r_def + 500.0_r_def
-    density = hadley_like_dcmip(height)
-    @assertEqual(0.0_r_def, density, tol)
-
-  end subroutine hadley_like_dcmip_test
+  end subroutine analytic_density_test
 
 
 end module analytic_density_profiles_mod_test

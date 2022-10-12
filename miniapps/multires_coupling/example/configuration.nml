@@ -61,8 +61,8 @@ prime_mesh_name='dynamics',
 /
 
 &initial_density
-  tracer_max = 2.0
-  tracer_background = 0.1
+  density_max = 2.0
+  density_background = 0.1
   r1 = 0.4
   x1 = 0.4
   y1 = 0.0
