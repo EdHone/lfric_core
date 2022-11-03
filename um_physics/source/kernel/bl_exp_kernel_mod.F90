@@ -1092,6 +1092,8 @@ contains
     type(jules_vars_type) :: jules_vars
     type(jules_vars_data_type), TARGET :: jules_vars_data
 
+    integer(i_um) :: ndry_dep_species  ! For Dry deposition, dummy for now
+
     !-----------------------------------------------------------------------
     ! Initialisation of JULES data and pointer types
     !-----------------------------------------------------------------------
@@ -1154,7 +1156,10 @@ contains
                       fluxes_data)
     call fluxes_assoc(fluxes, fluxes_data)
 
-    call chemvars_alloc(land_field,npft,chemvars_data)
+    ! Set num dry dep species to fixed = 1 for now
+    ndry_dep_species = 1
+    call chemvars_alloc(land_field, t_i_length, t_j_length, npft, ntype,       &
+                        l_deposition, ndry_dep_species, chemvars_data)
     call chemvars_assoc(chemvars, chemvars_data)
 
     ! Note, jules_vars needs setting up after the change to pdims_s below so is

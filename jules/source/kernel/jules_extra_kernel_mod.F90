@@ -275,6 +275,7 @@ contains
     use jules_soil_biogeochem_mod, only: dim_ch4layer, soil_bgc_model,         &
                                         soil_model_ecosse, l_layeredc
     use jules_snow_mod,           only: nsmax, cansnowtile
+    use jules_deposition_mod,     only: l_deposition
     use jules_sea_seaice_mod,     only: nice, nice_use
     use jules_deposition_mod,     only: l_deposition
     use jules_surface_mod,        only: l_urban2t, l_flake_model
@@ -343,6 +344,10 @@ contains
                                         rivers_assoc, jules_rivers_alloc,      &
                                         rivers_nullify, rivers_dealloc
     use cable_fields_mod,         only: work_vars_cbl
+    use jules_chemvars_mod,       only: chemvars_type, chemvars_data_type,     &
+                                        chemvars_alloc, chemvars_assoc,        &
+                                        chemvars_nullify, chemvars_dealloc
+    use coastal,                  only: coastal_type
 
     use nlsizes_namelist_mod, only: row_length, rows, land_pts => land_field,  &
                                     sm_levels, ntiles, bl_levels
@@ -538,6 +543,12 @@ contains
     type(rivers_type) :: rivers
     type(rivers_data_type) :: rivers_data
 
+    ! Variables for dry deposition
+    type(chemvars_type) :: chemvars
+    type(chemvars_data_type) :: chemvars_data
+    type( coastal_type ) :: coast
+    integer(i_um) :: ndry_dep_species  ! Dummy variable for now
+
     !-----------------------------------------------------------------------
     ! Initialisation of JULES data and pointer types
     !-----------------------------------------------------------------------
@@ -621,6 +632,13 @@ contains
 
     call jules_rivers_alloc(land_pts, rivers_data)
     call rivers_assoc(rivers,rivers_data)
+
+    ! Chemvars for Dry deposition
+    ndry_dep_species = 1
+    call chemvars_alloc(land_pts, t_i_length, t_j_length, npft, ntype,        &
+                        l_deposition, ndry_dep_species, chemvars_data)
+    call chemvars_assoc(chemvars, chemvars_data)
+
     !-------------------------------------------------------------------
 
     ! Data from 2D fields
@@ -867,11 +885,12 @@ contains
 
     ! JULES TYPES containing field data
     crop_vars, psparms, toppdm, fire_vars, ainfo, trif_vars, soilecosse,      &
-    urban_param, progs, trifctltype, jules_vars,                              &
+    urban_param, progs, trifctltype, coast, jules_vars,                       &
     fluxes,                                                                   &
     lake_vars,                                                                &
     forcing,                                                                  &
     rivers,                                                                   &
+    chemvars,                                                                 &
     work_vars_cbl                                                             &
     )
 
