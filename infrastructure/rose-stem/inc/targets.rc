@@ -63,6 +63,7 @@
         'setup' : {
             'base' : [
                 'umask 0022',
+                'module purge',
                 'module unuse /data/users/lfric/modules/modulefiles.rhel7',
                 'module unuse /project/ukmo/rhel7/fortran/opt/gfortran/modulefiles',
                 'module use /project/extrasoftware/modulefiles.rhel7',
@@ -73,7 +74,7 @@
             'compiler' : {
                 'intel' : [
                     'module unload ifort/17.0_64',
-                    'module load environment/lfric/ifort/19.0_64/1'
+                    'module load environment/lfric/ifort/19.0_64/2'
                 ],
                 'gnu' : [
                     'module load environment/lfric/gcc/6.1.0/5'
@@ -81,7 +82,7 @@
             },
             'plot' : ['module load scitools/production-os45-1'],
             'reveal' : ['module list 2>&1', 'export'],
-            'tech' : ['module load environment/lfric/common/9'],
+            'tech' : ['module load environment/lfric/common/10'],
             'run'  : ['ulimit -s unlimited'],
         },
         'teardown' : {
