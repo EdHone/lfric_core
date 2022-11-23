@@ -76,7 +76,8 @@ module gw_mixed_schur_precon_alg_mod
                                                get_div_r_solver
   use limited_area_constants_mod,        only: get_mask_r_solver
   use initial_temperature_config_mod,    only: bvf_square
-  use timestepping_config_mod,           only: dt
+  use timestepping_config_mod,           only: dt, &
+                                               alpha
   use gravity_wave_constants_config_mod, only: cs_square,  &
                                                b_space,    &
                                                b_space_w0, &
@@ -225,7 +226,7 @@ contains
     wp => wp_fs
     wu => wu_fs
 
-    self%alpha = 0.5_r_solver
+    self%alpha = real(alpha, r_solver)
 
     mesh => wu%get_mesh()
 

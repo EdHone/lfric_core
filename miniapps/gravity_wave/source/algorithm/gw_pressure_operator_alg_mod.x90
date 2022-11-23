@@ -27,7 +27,8 @@ module gw_pressure_operator_alg_mod
                                                 get_inverse_w3_mass_matrix_r_solver, &
                                                 get_div_r_solver
   use fs_continuity_mod,                  only: W0, W2, W3, Wtheta
-  use timestepping_config_mod,            only: dt
+  use timestepping_config_mod,            only: dt, &
+                                                alpha
 
   use initial_temperature_config_mod,     only: bvf_square
 
@@ -132,7 +133,7 @@ contains
 
     call log_event( 'Constructing pressure operator...', LOG_LEVEL_INFO )
 
-    self%alpha = 0.5_r_solver
+    self%alpha = real(alpha, r_solver)
     self%level = level
 
     ! Get needed function spaces
