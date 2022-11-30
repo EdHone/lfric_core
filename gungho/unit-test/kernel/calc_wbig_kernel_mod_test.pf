@@ -47,7 +47,7 @@ contains
 
     map_wth = 1_i_def
 
-    do k = 0, nlayers-1
+    do k = 0, nlayers
         w_phys(map_wth(1) + k) = real(k, r_def)*0.5_r_def
     end do
 
@@ -61,7 +61,7 @@ contains
     call calc_wbig_code( nlayers, w_phys, wbig,       &
                            ndf, undf_wth, map_wth )
 
-    do k = 0, nlayers-1
+    do k = 0, nlayers
       @assertEqual(answer(map_wth(1) + k), wbig(map_wth(1) + k), tol)
     end do
 
