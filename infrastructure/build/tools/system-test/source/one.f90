@@ -1,5 +1,5 @@
 program one
-  use iso_fortran_env, only : output_unit
+  use, intrinsic :: iso_fortran_env, only : output_unit
   use alpha_mod, only: alpha_sub
   use gamma_mod, only: gamma_print
   use epsilon_mod, only : cart_type

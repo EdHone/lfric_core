@@ -45,11 +45,13 @@ endif
 FFLAGS_FORTRAN_STANDARD   = -stand f08
 
 #########################################################################
-# Application and file-specific options referenced in build/compile_options.mk files 
+# Application and file-specific options referenced in
+# build/compile_options.mk files 
 # 
 # These variables need explanatory comments and need to be exported
 #
-# -qoverride-limits applied to PSy-layer code due to Intel compiler bug ref #1486
+# -qoverride-limits applied to PSy-layer code due to Intel compiler bug
+# ref #1486
 # When the Intel bug is fixed, this option will be removed by #1490
 export FFLAGS_INTEL_FIX_ARG         = -qoverride-limits
 ########################################################################
