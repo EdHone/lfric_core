@@ -362,7 +362,7 @@ contains
   function get_field_from_position(self, position) result(field)
     implicit none
     class(field_vector_type), target, intent(in) :: self
-    integer(kind=i_def)                          :: position
+    integer(kind=i_def), intent(in)              :: position
     type(field_type), pointer                    :: field
 
     field => self%vector(position)

@@ -455,7 +455,7 @@ contains
   function get_field_from_position(self, idx) result(field)
     implicit none
     class(r_solver_field_vector_type), target, intent(in) :: self
-    integer(kind=i_def) :: idx
+    integer(kind=i_def), intent(in) :: idx
     type(r_solver_field_type), pointer :: field
 
     field => self%vector(idx)
