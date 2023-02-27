@@ -161,7 +161,7 @@ subroutine poly1d_vert_adv_code( nlayers,              &
     ! reconstructions only.
     ! if wind > 0 -> upwind_offset = 1
     ! if wind < 0 -> upwind_offset = 0
-    upwind = int(0.5_r_tran*(1.0_r_tran + sign(1.0_r_tran,wind(map_w2v(1)+k))),i_def)
+    upwind = nint(0.5_r_tran*(1.0_r_tran + sign(1.0_r_tran,wind(map_w2v(1)+k))),i_def)
     upwind_offset = use_upwind*upwind
     stencil = stencil - upwind_offset
 
