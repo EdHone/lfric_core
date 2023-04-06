@@ -37,7 +37,7 @@ module {{listname}}_config_mod
 {%- endfor %}
 
 {%- if arrays %}{{ '\n' }}
-  integer(i_native), parameter, public :: max_array_size = 100
+  integer(i_native), parameter, public :: max_array_size = 500
 {%- endif %}
 
 {%- for name, parameter in parameters | dictsort %}
@@ -211,7 +211,7 @@ contains
 {{'\n'}}
 {%- if ns.drefvars -%}
 {{'    use constants_mod, only: i_def, r_def'}}
-{%- else -%} 
+{%- else -%}
 {{'    use constants_mod, only: i_def'}}
 {%- endif %}
 

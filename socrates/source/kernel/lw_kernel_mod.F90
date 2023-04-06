@@ -264,10 +264,6 @@ subroutine lw_code(nlayers,                                                    &
                    ndf_mode, undf_mode, map_mode,                              &
                    ndf_rmode, undf_rmode, map_rmode)
 
-  use well_mixed_gases_config_mod, only:         &
-    co2_mix_ratio, n2o_mix_ratio, ch4_mix_ratio, &
-    cfc11_mix_ratio, cfc12_mix_ratio,            &
-    cfc113_mix_ratio, hcfc22_mix_ratio, hfc134a_mix_ratio
   use radiation_config_mod, only: &
     i_cloud_ice_type_lw, i_cloud_liq_type_lw, &
     i_cloud_ice_type_lwinc, i_cloud_liq_type_lwinc, &
@@ -282,6 +278,14 @@ subroutine lw_code(nlayers,                                                    &
     ip_source_thermal, ip_inhom_scaling, ip_inhom_mcica
   use socrates_bones, only: bones
   use empty_data_mod, only: empty_real_data
+  use gas_calc_all_mod, only: co2_mix_ratio_now,    &
+                              n2o_mix_ratio_now,    &
+                              ch4_mix_ratio_now,    &
+                              cfc11_mix_ratio_now,  &
+                              cfc12_mix_ratio_now,  &
+                              cfc113_mix_ratio_now, &
+                              hcfc22_mix_ratio_now, &
+                              hfc134a_mix_ratio_now
 
   implicit none
 
@@ -371,7 +375,6 @@ subroutine lw_code(nlayers,                                                    &
   integer(i_def) :: flux_0, flux_nlayers, twod_1, twod_last
   real(r_def), parameter :: weight_min = tiny(1.0_r_def)
   type(StrDiag) :: lw_diag, lwinc_diag
-
 
   ! Set indexing
   wth_0 = map_wth(1)
@@ -472,14 +475,14 @@ subroutine lw_code(nlayers,                                                    &
       t_level_1d              = t_layer_boundaries(flux_0:flux_nlayers),       &
       h2o_1d                  = mv(wth_1:wth_nlayers),                         &
       o3_1d                   = ozone(wth_1:wth_nlayers),                      &
-      co2_mix_ratio           = co2_mix_ratio,                                 &
-      n2o_mix_ratio           = n2o_mix_ratio,                                 &
-      ch4_mix_ratio           = ch4_mix_ratio,                                 &
-      cfc11_mix_ratio         = cfc11_mix_ratio,                               &
-      cfc12_mix_ratio         = cfc12_mix_ratio,                               &
-      cfc113_mix_ratio        = cfc113_mix_ratio,                              &
-      hcfc22_mix_ratio        = hcfc22_mix_ratio,                              &
-      hfc134a_mix_ratio       = hfc134a_mix_ratio,                             &
+      co2_mix_ratio           = co2_mix_ratio_now,                             &
+      n2o_mix_ratio           = n2o_mix_ratio_now,                             &
+      ch4_mix_ratio           = ch4_mix_ratio_now,                             &
+      cfc11_mix_ratio         = cfc11_mix_ratio_now,                           &
+      cfc12_mix_ratio         = cfc12_mix_ratio_now,                           &
+      cfc113_mix_ratio        = cfc113_mix_ratio_now,                          &
+      hcfc22_mix_ratio        = hcfc22_mix_ratio_now,                          &
+      hfc134a_mix_ratio       = hfc134a_mix_ratio_now,                         &
       n_tile                  = n_surf_tile,                                   &
       frac_tile_1d            = tile_fraction(tile_1:tile_last),               &
       t_tile_1d               = tile_temperature(tile_1:tile_last),            &
@@ -617,14 +620,14 @@ subroutine lw_code(nlayers,                                                    &
       t_level_1d              = t_layer_boundaries(flux_0:flux_nlayers),       &
       h2o_1d                  = mv(wth_1:wth_nlayers),                         &
       o3_1d                   = ozone(wth_1:wth_nlayers),                      &
-      co2_mix_ratio           = co2_mix_ratio,                                 &
-      n2o_mix_ratio           = n2o_mix_ratio,                                 &
-      ch4_mix_ratio           = ch4_mix_ratio,                                 &
-      cfc11_mix_ratio         = cfc11_mix_ratio,                               &
-      cfc12_mix_ratio         = cfc12_mix_ratio,                               &
-      cfc113_mix_ratio        = cfc113_mix_ratio,                              &
-      hcfc22_mix_ratio        = hcfc22_mix_ratio,                              &
-      hfc134a_mix_ratio       = hfc134a_mix_ratio,                             &
+      co2_mix_ratio           = co2_mix_ratio_now,                             &
+      n2o_mix_ratio           = n2o_mix_ratio_now,                             &
+      ch4_mix_ratio           = ch4_mix_ratio_now,                             &
+      cfc11_mix_ratio         = cfc11_mix_ratio_now,                           &
+      cfc12_mix_ratio         = cfc12_mix_ratio_now,                           &
+      cfc113_mix_ratio        = cfc113_mix_ratio_now,                          &
+      hcfc22_mix_ratio        = hcfc22_mix_ratio_now,                          &
+      hfc134a_mix_ratio       = hfc134a_mix_ratio_now,                         &
       n_tile                  = n_surf_tile,                                   &
       frac_tile_1d            = tile_fraction(tile_1:tile_last),               &
       t_tile_1d               = tile_temperature(tile_1:tile_last),            &

@@ -22,7 +22,7 @@ module mirth_config_mod
   public :: read_mirth_namelist, postprocess_mirth_namelist, &
             mirth_is_loadable, mirth_is_loaded, mirth_final
 
-  integer(i_native), parameter, public :: max_array_size = 100
+  integer(i_native), parameter, public :: max_array_size = 500
 
   character(str_def), public, protected, allocatable :: chortle(:)
   character(str_def), public, protected :: chuckle = cmdi

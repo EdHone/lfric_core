@@ -93,17 +93,18 @@ module gungho_model_mod
 #endif
 
 #ifdef UM_PHYSICS
-  use jules_control_init_mod,     only : jules_control_init
-  use jules_physics_init_mod,     only : jules_physics_init
-  use planet_constants_mod,       only : set_planet_constants
-  use socrates_init_mod,          only : socrates_init
-  use illuminate_alg_mod,         only : illuminate_alg
-  use um_clock_init_mod,          only : um_clock_init
-  use um_control_init_mod,        only : um_control_init
-  use um_sizes_init_mod,          only : um_sizes_init
-  use um_physics_init_mod,        only : um_physics_init
-  use um_radaer_lut_init_mod,     only : um_radaer_lut_init
-  use um_ukca_init_mod,           only : um_ukca_init
+  use gas_calc_all_mod,            only : gas_calc_all
+  use jules_control_init_mod,      only : jules_control_init
+  use jules_physics_init_mod,      only : jules_physics_init
+  use planet_constants_mod,        only : set_planet_constants
+  use socrates_init_mod,           only : socrates_init
+  use illuminate_alg_mod,          only : illuminate_alg
+  use um_clock_init_mod,           only : um_clock_init
+  use um_control_init_mod,         only : um_control_init
+  use um_sizes_init_mod,           only : um_sizes_init
+  use um_physics_init_mod,         only : um_physics_init
+  use um_radaer_lut_init_mod,      only : um_radaer_lut_init
+  use um_ukca_init_mod,            only : um_ukca_init
 #endif
 
   implicit none
@@ -320,6 +321,11 @@ contains
     ncells = 1_i_def
 
     if ( use_physics ) then
+
+      ! Initialise time-varying trace gases
+      ! This must be done before jules_control_init
+      call gas_calc_all()
+
       if (radiation == radiation_socrates) then
         ! Initialisation for the Socrates radiation scheme
         call socrates_init()

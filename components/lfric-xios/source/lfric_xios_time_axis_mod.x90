@@ -114,7 +114,7 @@ module lfric_xios_time_axis_mod
 
 end interface
 
-public :: update_interface
+public :: update_interface, seconds_from_date
 
 contains
 

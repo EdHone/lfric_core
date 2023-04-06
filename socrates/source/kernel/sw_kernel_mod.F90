@@ -295,8 +295,7 @@ subroutine sw_code(nlayers,                                                    &
                    ndf_mode, undf_mode, map_mode,                              &
                    ndf_rmode, undf_rmode, map_rmode)
 
-  use well_mixed_gases_config_mod, only: &
-    co2_mix_ratio, n2o_mix_ratio, ch4_mix_ratio, o2_mix_ratio
+  use well_mixed_gases_config_mod, only: o2_mix_ratio
   use radiation_config_mod, only: n_radstep, &
     l_rayleigh_sw, l_trans_zen_correction, &
     i_cloud_ice_type_sw, i_cloud_liq_type_sw, &
@@ -312,6 +311,9 @@ subroutine sw_code(nlayers,                                                    &
     ip_source_illuminate, ip_inhom_scaling, ip_inhom_mcica
   use socrates_bones, only: bones
   use empty_data_mod, only: empty_real_data
+  use gas_calc_all_mod, only: co2_mix_ratio_now,    &
+                              n2o_mix_ratio_now,    &
+                              ch4_mix_ratio_now
 
   implicit none
 
@@ -411,7 +413,6 @@ subroutine sw_code(nlayers,                                                    &
   real(r_def), parameter :: weight_min = tiny(1.0_r_def)
   type(StrDiag) :: sw_diag, swinc_diag
 
-
   ! Set indexing
   wth_0 = map_wth(1)
   wth_1 = map_wth(1)+1
@@ -501,9 +502,9 @@ subroutine sw_code(nlayers,                                                    &
       density_1d             = rho_in_wth(wth_1:wth_nlayers),                  &
       h2o_1d                 = mv(wth_1:wth_nlayers),                          &
       o3_1d                  = ozone(wth_1:wth_nlayers),                       &
-      co2_mix_ratio          = co2_mix_ratio,                                  &
-      n2o_mix_ratio          = n2o_mix_ratio,                                  &
-      ch4_mix_ratio          = ch4_mix_ratio,                                  &
+      co2_mix_ratio          = co2_mix_ratio_now,                              &
+      n2o_mix_ratio          = n2o_mix_ratio_now,                              &
+      ch4_mix_ratio          = ch4_mix_ratio_now,                              &
       o2_mix_ratio           = o2_mix_ratio,                                   &
       cos_zenith_angle       = cos_zenith_angle_rts(twod_1:twod_last),         &
       solar_irrad            = stellar_irradiance_rts(twod_1:twod_last),       &
@@ -627,9 +628,9 @@ subroutine sw_code(nlayers,                                                    &
       density_1d             = rho_in_wth(wth_1:wth_nlayers),                  &
       h2o_1d                 = mv(wth_1:wth_nlayers),                          &
       o3_1d                  = ozone(wth_1:wth_nlayers),                       &
-      co2_mix_ratio          = co2_mix_ratio,                                  &
-      n2o_mix_ratio          = n2o_mix_ratio,                                  &
-      ch4_mix_ratio          = ch4_mix_ratio,                                  &
+      co2_mix_ratio          = co2_mix_ratio_now,                              &
+      n2o_mix_ratio          = n2o_mix_ratio_now,                              &
+      ch4_mix_ratio          = ch4_mix_ratio_now,                              &
       o2_mix_ratio           = o2_mix_ratio,                                   &
       cos_zenith_angle       = cos_zenith_angle_rts(twod_1:twod_last),         &
       solar_irrad            = stellar_irradiance_rts(twod_1:twod_last),       &

@@ -9,7 +9,7 @@
 module jules_control_init_mod
 
   ! LFRic namelists which have been read
-  use well_mixed_gases_config_mod, only : co2_mix_ratio
+  use gas_calc_all_mod,            only : co2_mix_ratio_now
   use surface_config_mod,          only : n_sea_ice_tile_in => n_sea_ice_tile
 
   ! Other LFRic modules used
@@ -185,8 +185,9 @@ contains
     co2_dim_len = 1
     co2_dim_row = 1
 
-    ! CO2 value needed by JULES - contained in rad_input_mod
-    co2_mmr = real(co2_mix_ratio, r_um)
+    ! CO2 value needed by JULES - contained stored in rad_input, but
+    !                             retrieved from gas_calc_all
+    co2_mmr = real(co2_mix_ratio_now, r_um)
 
     ! Initialise LSM to be JULES (other options do exist; CABLE, Rivers-only)
     lsm_id = jules

@@ -45,6 +45,7 @@ module gungho_driver_mod
 #ifdef UM_PHYSICS
   use variable_fields_mod,        only : update_variable_fields
   use update_ancils_alg_mod,      only : update_ancils_alg
+  use gas_calc_all_mod,           only : gas_calc_all
 #endif
 #ifdef COUPLED
   use esm_couple_config_mod,      only : l_esm_couple_test
@@ -161,6 +162,7 @@ contains
       endif
 #endif
 
+
       if ( lbc_option == lbc_option_gungho_file .or. &
            lbc_option == lbc_option_um2lfric_file) then
 
@@ -199,6 +201,9 @@ contains
                                 model_clock, model_data%ancil_fields, &
                                 model_data%surface_fields)
       end if
+
+      ! Update the time varying trace gases
+      call gas_calc_all()
 #endif
 
     end do ! end ts loop

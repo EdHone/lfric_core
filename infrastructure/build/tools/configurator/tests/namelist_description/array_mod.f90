@@ -24,7 +24,7 @@ module aerial_config_mod
   public :: read_aerial_namelist, postprocess_aerial_namelist, &
             aerial_is_loadable, aerial_is_loaded, aerial_final
 
-  integer(i_native), parameter, public :: max_array_size = 100
+  integer(i_native), parameter, public :: max_array_size = 500
 
   character(str_def), public, protected :: absolute(5) = cmdi
   integer(i_def), public, protected, allocatable :: inlist(:)
