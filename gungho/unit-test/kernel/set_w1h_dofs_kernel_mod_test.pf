@@ -1,0 +1,141 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2023 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> Test setting of a given dof to a real value.
+!> This only works for the lowest-order W1 fields
+!>
+module set_w1h_dofs_kernel_mod_test
+
+  use constants_mod,                 only: i_def, r_def
+
+  use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w1_m3x3_q3x3x3_size
+  use get_unit_test_m3x3_dofmap_mod,       only : get_w1_m3x3_dofmap
+
+  use pFUnit_Mod
+
+  implicit none
+
+  private
+  public :: test_all
+
+  @TestCase
+  type, extends(TestCase), public :: set_w1h_dofs_test_type
+    private
+  contains
+    procedure setup
+    procedure tearDown
+    procedure test_all
+  end type set_w1h_dofs_test_type
+
+  real(r_def), parameter    :: VALUE = 123.234_r_def ! An arbitrary value
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine setUp( this )
+
+    implicit none
+
+    class(set_w1h_dofs_test_type), intent(inout) :: this
+
+  end subroutine setUp
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tearDown( this )
+
+    use configuration_mod, only: final_configuration
+
+    implicit none
+
+    class(set_w1h_dofs_test_type), intent(inout) :: this
+
+    call final_configuration()
+
+  end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test
+  subroutine test_all( this )
+
+    use set_w1h_dofs_kernel_mod, only: set_w1h_dofs_code
+    implicit none
+
+    class(set_w1h_dofs_test_type), intent(inout) :: this
+
+    real(r_def) :: answer
+
+    ! Fields
+    real(r_def), allocatable :: w1_field(:)
+
+    integer(i_def) :: cell, df
+
+    ! Sizes
+    integer(i_def)          :: nlayers, ncells, nqp_h, nqp_v
+    integer(i_def)          :: ndf_w1, undf_w1
+    integer(i_def)          :: dim_space, dim_space_diff
+
+    ! Dofmaps
+    integer(i_def), allocatable :: map_w1(:,:)
+
+    nlayers = 3
+    call get_w1_m3x3_q3x3x3_size( ndf_w1, undf_w1, ncells,     &
+                                  dim_space, dim_space_diff,   &
+                                  nqp_h, nqp_v,                &
+                                  nlayers )
+    call get_w1_m3x3_dofmap(map_w1)
+    ! Create the data
+    allocate( w1_field( undf_w1 ) )
+
+    ! Set 2nd dof of w1 field
+    cell = 5
+    w1_field(:) = VALUE**2 ! Another arbitrary value that is not = VALUE
+
+    call set_w1h_dofs_code( nlayers,         &
+                           w1_field,        &
+                           VALUE,           &
+                           ndf_w1, undf_w1, &
+                           map_w1(:,cell)   &
+                           )
+
+    ! Check a bottom dofs
+    answer = w1_field( map_w1( 1, cell ) )
+    @assertEqual( answer, VALUE )
+    answer = w1_field( map_w1( 2, cell ) )
+    @assertEqual( answer, VALUE )
+    answer = w1_field( map_w1( 3, cell ) )
+    @assertEqual( answer, VALUE )
+    answer = w1_field( map_w1( 4, cell ) )
+    @assertEqual( answer, VALUE )
+
+    ! Check a top dofs
+    answer = w1_field( map_w1( 9, cell ) )
+    @assertEqual( answer, VALUE )
+    answer = w1_field( map_w1( 10, cell ) )
+    @assertEqual( answer, VALUE )
+    answer = w1_field( map_w1( 11, cell ) )
+    @assertEqual( answer, VALUE )
+    answer = w1_field( map_w1( 12, cell ) )
+    @assertEqual( answer, VALUE )
+
+    ! Check another level
+    answer = w1_field( map_w1( 1, cell ) + 1 )
+    @assertEqual( answer, VALUE )
+
+    ! Check vertical dofs haven't been modified
+    answer = w1_field( map_w1( 5, cell ) )
+    @assertEqual( answer, VALUE**2 )
+    answer = w1_field( map_w1( 6, cell ) )
+    @assertEqual( answer, VALUE**2 )
+    answer = w1_field( map_w1( 7, cell ) )
+    @assertEqual( answer, VALUE**2 )
+    answer = w1_field( map_w1( 8, cell ) )
+    @assertEqual( answer, VALUE**2 )
+
+    deallocate(w1_field)
+    deallocate(map_w1)
+
+  end subroutine test_all
+
+end module set_w1h_dofs_kernel_mod_test

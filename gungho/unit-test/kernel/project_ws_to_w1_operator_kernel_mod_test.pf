@@ -1,0 +1,224 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2023 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!> Test the projection from a scalar space to W1
+module project_ws_to_w1_operator_kernel_mod_test
+
+  use constants_mod, only : i_def, r_def
+  use pFUnit_Mod
+  use get_unit_test_q3x3x3_quadrature_mod, only : get_gaussian_q3x3x3_quadrature_weights_xy, &
+                                                  get_gaussian_q3x3x3_quadrature_weights_z
+  use get_unit_test_q3x3x3_basis_mod, only: get_w1_q3x3x3_basis,      &
+                                            get_w3_q3x3x3_basis,      &
+                                            get_w0_q3x3x3_diff_basis, &
+                                            get_w0_q3x3x3_basis
+  use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w0_m3x3_q3x3x3_size, &
+                                                  get_w1_m3x3_q3x3x3_size, &
+                                                  get_w3_m3x3_q3x3x3_size
+  use get_unit_test_m3x3_dofmap_mod,       only : get_w0_m3x3_dofmap, &
+                                                  get_w1_m3x3_dofmap, &
+                                                  get_w3_m3x3_dofmap
+  use get_unit_test_3x3x3_chi_mod,         only : get_w0_3x3x3_field
+
+  implicit none
+
+  private
+  public :: test_all
+
+  @TestCase
+  type, extends(TestCase), public :: project_ws_to_w1_operator_test_type
+    private
+  contains
+    procedure setUp
+    procedure tearDown
+    procedure test_all
+  end type project_ws_to_w1_operator_test_type
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine setUp( this )
+
+    use finite_element_config_mod, only : cellshape_quadrilateral, &
+                                          coord_system_xyz
+    use feign_config_mod,          only : feign_finite_element_config
+    use base_mesh_config_mod,      only : geometry_planar, &
+                                          topology_fully_periodic
+    use feign_config_mod,          only : feign_base_mesh_config
+
+    implicit none
+
+    class(project_ws_to_w1_operator_test_type), intent(inout) :: this
+
+    call feign_base_mesh_config( file_prefix='foo',                &
+                                 prime_mesh_name='unit_test',      &
+                                 geometry=geometry_planar,         &
+                                 offline_partitioning=.false.,     &
+                                 topology=topology_fully_periodic, &
+                                 fplane=.false., f_lat_deg=0.0_r_def )
+
+    call feign_finite_element_config( cellshape=cellshape_quadrilateral, &
+                                      coord_order=0_i_def,               &
+                                      element_order=0_i_def,             &
+                                      rehabilitate=.true.,               &
+                                      coord_system=coord_system_xyz,     &
+                                      vorticity_in_w1=.false. )
+
+  end subroutine setUp
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tearDown( this )
+
+    use configuration_mod, only: final_configuration
+
+    implicit none
+
+    class(project_ws_to_w1_operator_test_type), intent(inout) :: this
+
+    call final_configuration()
+
+  end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  @Test
+  subroutine test_all( this )
+
+    use project_ws_to_w1_operator_kernel_mod, only : project_ws_to_w1_operator_code
+
+    implicit none
+
+    class(project_ws_to_w1_operator_test_type), intent(inout) :: this
+
+    real(kind=r_def), parameter :: tol = 1.0e-6_r_def
+
+    ! Mesh
+    integer(i_def) :: nlayers, ncells, ncell_3d, cell, icell
+    integer(i_def) :: ndf_w0, undf_w0, ndf_w1, undf_w1
+    integer(i_def) :: ndf_w3, undf_w3, ndf_pid, undf_pid
+    integer(i_def) :: dim_space, dim_space_diff
+    integer(i_def) :: nqp_h, nqp_v
+
+    integer(i_def) :: i, j, k
+
+    ! Operators to test
+    real(kind=r_def), allocatable:: projection_operator(:,:,:)
+    ! Maps
+    integer(i_def), allocatable :: map_w0(:,:)
+    integer(i_def), allocatable :: map_w1(:,:)
+    integer(i_def), allocatable :: map_w3(:,:)
+    integer(i_def), allocatable :: map_pid(:,:)
+    ! Basis
+    real(r_def), allocatable :: basis_w0(:,:,:,:)
+    real(r_def), allocatable :: diff_basis_w0(:,:,:,:)
+    real(r_def), allocatable :: basis_w1(:,:,:,:)
+    real(r_def), allocatable :: basis_w3(:,:,:,:)
+    ! Quadrature
+    real(r_def), allocatable :: wh(:), wv(:)
+    ! Fields
+    real(r_def), allocatable :: chi1(:), chi2(:), chi3(:), panel_id(:)
+    real(kind=r_def)                    :: dx, dy, dz
+    ! Scalars
+    integer(kind=i_def)                 :: direction
+
+
+
+    real(kind=r_def), allocatable :: answer(:,:,:)
+
+    ! Set cell coordinates
+    dx = 2.0_r_def
+    dy = 3.0_r_def
+    dz = 4.0_r_def
+
+    nlayers=3
+    call get_w0_m3x3_q3x3x3_size( ndf_w0, undf_w0, ncells, &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v, &
+                                  nlayers )
+    call get_w1_m3x3_q3x3x3_size( ndf_w1, undf_w1, ncells, &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v, &
+                                  nlayers )
+    call get_w3_m3x3_q3x3x3_size( ndf_w3, undf_w3, ncells, &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v, &
+                                  nlayers )
+    call get_w3_m3x3_q3x3x3_size( ndf_pid, undf_pid, ncells, &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v, 1 )
+    call get_w0_m3x3_dofmap(map_w0)
+    call get_w1_m3x3_dofmap(map_w1)
+    call get_w3_m3x3_dofmap(map_w3)
+    call get_w3_m3x3_dofmap(map_pid, 1)
+    call get_w0_q3x3x3_diff_basis(diff_basis_w0)
+    call get_w0_q3x3x3_diff_basis(basis_w0)
+    call get_w1_q3x3x3_basis(basis_w1)
+    call get_w3_q3x3x3_basis(basis_w3)
+    call get_gaussian_q3x3x3_quadrature_weights_xy(wh)
+    call get_gaussian_q3x3x3_quadrature_weights_z(wv)
+
+     ! Compute coordinates
+    allocate(chi1(undf_w0))
+    allocate(chi2(undf_w0))
+    allocate(chi3(undf_w0))
+    allocate(panel_id(ncells))
+
+    panel_id(:) = 1.0_r_def
+
+    call get_w0_3x3x3_field(chi1, chi2, chi3, dx, dy, dz, &
+                            map_w0, nlayers)
+
+    allocate(projection_operator(ndf_w1, ndf_w3,ncells))
+    allocate(answer(ndf_w1, ndf_w3,3))
+
+    ! Compute answer for each direction
+    answer(:,:,:) = 0.0_r_def
+
+    ! Horizontal x direction - w1_basis*detj*J^(-T)[1,1]=0.25*(dx*dy*dz)/dx
+    answer(2,1,1)  = 0.25_r_def*(dy*dz)
+    answer(4,1,1)  = 0.25_r_def*(dy*dz)
+    answer(10,1,1) = 0.25_r_def*(dy*dz)
+    answer(12,1,1) = 0.25_r_def*(dy*dz)
+
+    ! Horizontal y direction - w1_basis*detj*J^(-T)[2,2]=0.25*(dx*dy*dz)/dy
+    answer(1,1,2) = 0.25_r_def*(dx*dz)
+    answer(3,1,2) = 0.25_r_def*(dx*dz)
+    answer(9,1,2) = 0.25_r_def*(dx*dz)
+    answer(11,1,2) = 0.25_r_def*(dx*dz)
+
+    ! Vertical z direction - w1_basis*detj*J^(-T)[3,3]=0.25*(dx*dy*dz)/dz
+    answer(5,1,3) = 0.25_r_def*(dx*dy)
+    answer(6,1,3) = 0.25_r_def*(dx*dy)
+    answer(7,1,3) = 0.25_r_def*(dx*dy)
+    answer(8,1,3) = 0.25_r_def*(dx*dy)
+
+    cell = 1
+    do direction = 1, 3
+      projection_operator = 0.0_r_def
+      call project_ws_to_w1_operator_code(cell,                       &
+                                          nlayers,                    &
+                                          ncells,                     &
+                                          projection_operator,        &
+                                          chi1, chi2, chi3,           &
+                                          panel_id,                   &
+                                          direction,                  &
+                                          ndf_w1,                     &
+                                          basis_w1,                   &
+                                          ndf_w3,                     &
+                                          basis_w3,                   &
+                                          ndf_w0, undf_w0, map_w0,    &
+                                          basis_w0, diff_basis_w0,    &
+                                          ndf_pid, undf_pid, map_pid, &
+                                          nqp_h, nqp_v,               &
+                                          wh, wv)
+      ! P = J^{-T}*basis_w1 * basis_w3 * unit_vector(direction)*detJ
+      ! where unit_vector is 1 for component direction and zero otherwise
+      @assertEqual(answer(:,:,direction), projection_operator(:,:,1), tol)
+    end do
+
+  end subroutine test_all
+
+end module project_ws_to_w1_operator_kernel_mod_test

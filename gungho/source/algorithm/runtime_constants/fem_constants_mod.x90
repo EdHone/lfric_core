@@ -79,6 +79,7 @@ module fem_constants_mod
                                                     operator_x_times_y_kernel_type, &
                                                     operator_setval_x_kernel_type
   use project_ws_to_w2_operator_kernel_mod,   only: project_ws_to_w2_operator_kernel_type
+  use project_ws_to_w1_operator_kernel_mod,   only: project_ws_to_w1_operator_kernel_type
   use project_w3_to_w2b_operator_kernel_mod,  only: project_w3_to_w2b_operator_kernel_type
   use w2_normalisation_kernel_mod,            only: w2_normalisation_kernel_type
   use psykal_lite_mod,                        only: invoke_copy_to_rsolver, &
@@ -123,6 +124,8 @@ module fem_constants_mod
   type(field_type),    allocatable, dimension(:), target :: mm0_diag
   type(field_type),    allocatable, dimension(:), target :: mm1_diag
   type(field_type),    allocatable, dimension(:), target :: mm2_diag
+  type(field_type),    allocatable, dimension(:), target :: mm2v_diag
+  type(field_type),    allocatable, dimension(:), target :: mm2h_diag
   type(field_type),    allocatable, dimension(:), target :: mm3_diag
   type(field_type),    allocatable, dimension(:), target :: mmtheta_diag
 
@@ -142,6 +145,11 @@ module fem_constants_mod
   type(field_type),    allocatable, dimension(:), target :: detj_at_w2
   type(field_type),    allocatable, dimension(:), target :: detj_at_w2_above
   type(field_type),    allocatable, dimension(:), target :: detj_at_w2_below
+
+  ! Projections from W3 to W1
+  type(operator_type), allocatable, dimension(:), target :: project_lon_dot_to_w1
+  type(operator_type), allocatable, dimension(:), target :: project_lat_dot_to_w1
+  type(operator_type), allocatable, dimension(:), target :: project_r_dot_to_w1
 
   ! Projections from W3 to W2
   type(operator_type), allocatable, dimension(:), target :: project_xdot_to_w2
@@ -201,6 +209,9 @@ module fem_constants_mod
   public :: get_detj_at_w2
   public :: get_detj_at_w2_above
   public :: get_detj_at_w2_below
+  public :: get_project_lon_dot_to_w1
+  public :: get_project_lat_dot_to_w1
+  public :: get_project_r_dot_to_w1
   public :: get_project_xdot_to_w2
   public :: get_project_ydot_to_w2
   public :: get_project_zdot_to_w2
@@ -318,6 +329,8 @@ contains
              mm0_diag(num_meshes),                  &
              mm1_diag(num_meshes),                  &
              mm2_diag(num_meshes),                  &
+             mm2v_diag(num_meshes),                 &
+             mm2h_diag(num_meshes),                 &
              mm3_diag(num_meshes),                  &
              mmtheta_diag(num_meshes),              &
              mm0_lumped_inv(num_meshes),            &
@@ -348,7 +361,10 @@ contains
              project_zdot_to_w2(num_meshes),        &
              project_xdot_to_w2b(num_meshes),       &
              project_ydot_to_w2b(num_meshes),       &
-             project_zdot_to_w2b(num_meshes)        )
+             project_zdot_to_w2b(num_meshes),       &
+             project_lon_dot_to_w1(num_meshes),     &
+             project_lat_dot_to_w1(num_meshes),     &
+             project_r_dot_to_w1(num_meshes)        )
 
     !======================== Create quadrature object ========================!
 
@@ -592,13 +608,19 @@ contains
            label_list(i) == multigrid_mesh_label ) then
         ! Initialise fields
         call mm2_diag(i)%initialise( vector_space = w2_fs )
+        call mm2h_diag(i)%initialise( vector_space = w2h_fs )
+        call mm2v_diag(i)%initialise( vector_space = w2v_fs )
         call mm3_diag(i)%initialise( vector_space = w3_fs )
 
-        call invoke ( name = "create_mass_matrix_diagonal_fields",    &
-                      setval_c(mm2_diag(i),       0.0_r_def),         &
-                      setval_c(mm3_diag(i),       0.0_r_def),         &
-                      mm_diagonal_kernel_type(mm2_diag(i), mm_w2(i)), &
-                      mm_diagonal_kernel_type(mm3_diag(i), mm_w3(i))  )
+        call invoke ( name = "create_mass_matrix_diagonal_fields",      &
+                      setval_c(mm2_diag(i),       0.0_r_def),           &
+                      setval_c(mm2v_diag(i),       0.0_r_def),          &
+                      setval_c(mm2h_diag(i),       0.0_r_def),          &
+                      setval_c(mm3_diag(i),       0.0_r_def),           &
+                      mm_diagonal_kernel_type(mm2v_diag(i), mm_w2v(i)), &
+                      mm_diagonal_kernel_type(mm2h_diag(i), mm_w2h(i)), &
+                      mm_diagonal_kernel_type(mm2_diag(i), mm_w2(i)),   &
+                      mm_diagonal_kernel_type(mm3_diag(i), mm_w3(i))    )
 
         if ( label_list(i) == primary_mesh_label ) then
           ! Initialise fields
@@ -788,6 +810,22 @@ contains
                                                              detj_direction)  )
       end if
 
+       !================== Projection operators from W3 to W1 ==================!
+
+      if ( label_list(i) == primary_mesh_label ) then
+        call project_lon_dot_to_w1(i)%initialise( w1_fs, w3_fs )
+        call project_lat_dot_to_w1(i)%initialise( w1_fs, w3_fs )
+        call project_r_dot_to_w1(i)%initialise( w1_fs, w3_fs )
+        call invoke( project_ws_to_w1_operator_kernel_type(                      &
+                                        project_lon_dot_to_w1(i), chi_list(:,i), &
+                                        panel_id_list(i), xdirection, qr),       &
+                     project_ws_to_w1_operator_kernel_type(                      &
+                                        project_lat_dot_to_w1(i), chi_list(:,i), &
+                                        panel_id_list(i), ydirection, qr),       &
+                     project_ws_to_w1_operator_kernel_type(                      &
+                                        project_r_dot_to_w1(i), chi_list(:,i),   &
+                                        panel_id_list(i), zdirection, qr) )
+      end if
       !================== Projection operators from W3 to W2 ==================!
 
       if ( label_list(i) == primary_mesh_label ) then
@@ -1002,6 +1040,10 @@ contains
         mmd => mm1_diag(mesh_index)
       case (W2)
         mmd => mm2_diag(mesh_index)
+      case (W2V)
+        mmd => mm2v_diag(mesh_index)
+      case (W2H)
+        mmd => mm2h_diag(mesh_index)
       case (Wtheta)
         mmd => mmtheta_diag(mesh_index)
       case (W3)
@@ -1594,6 +1636,57 @@ contains
 
   end function get_detj_at_w2_below
 
+  !> @brief Returns a pointer to the operator projection from lon dot to W1
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The projection operator
+  function get_project_lon_dot_to_w1(mesh_id) result(proj_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: proj_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'project_lon_dot_to_w1'
+    proj_op => project_lon_dot_to_w1(mesh_index)
+    call check_initialised_operator(proj_op, op_name, mesh_id)
+
+  end function get_project_lon_dot_to_w1
+
+  !> @brief Returns a pointer to the operator projection from lat dot to W1
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The projection operator
+  function get_project_lat_dot_to_w1(mesh_id) result(proj_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: proj_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'project_lat_dot_to_w1'
+    proj_op => project_lat_dot_to_w1(mesh_index)
+    call check_initialised_operator(proj_op, op_name, mesh_id)
+
+  end function get_project_lat_dot_to_w1
+
+  !> @brief Returns a pointer to the operator projection from r dot to W1
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The projection operator
+  function get_project_r_dot_to_w1(mesh_id) result(proj_op)
+    implicit none
+    integer(kind=i_def),   intent(in) :: mesh_id
+    integer(kind=i_def)               :: mesh_index
+    type(operator_type),      pointer :: proj_op
+    character(str_def)                :: op_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    op_name = 'project_r_dot_to_w1'
+    proj_op => project_r_dot_to_w1(mesh_index)
+    call check_initialised_operator(proj_op, op_name, mesh_id)
+
+  end function get_project_r_dot_to_w1
+
   !> @brief Returns a pointer to the operator projection from xdot to W2
   !> @param[in] mesh_id The ID of the mesh to get the object for
   !> @return The projection operator
@@ -1727,6 +1820,8 @@ contains
     deallocate(mmtheta_diag)
     deallocate(mm3_diag)
     deallocate(mm2_diag)
+    deallocate(mm2v_diag)
+    deallocate(mm2h_diag)
     deallocate(mm1_diag)
     deallocate(mm0_diag)
     deallocate(mm_w2_si)
