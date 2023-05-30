@@ -15,7 +15,6 @@ module transport_driver_mod
   use driver_fem_mod,                   only: init_fem
   use driver_io_mod,                    only: init_io, final_io
   use driver_mesh_mod,                  only: init_mesh
-  use driver_log_mod,                   only: init_logger, final_logger
   use driver_time_mod,                  only: init_time, get_calendar
   use derived_config_mod,               only: set_derived_config
   use diagnostics_io_mod,               only: write_scalar_diagnostic, &
@@ -45,7 +44,6 @@ module transport_driver_mod
   use step_calendar_mod,                only: step_calendar_type
   use timer_mod,                        only: init_timer, timer, output_timer
   use timestepping_config_mod,          only: dt
-  use transport_mod,                    only: program_name
   use transport_init_fields_alg_mod,    only: transport_init_fields_alg
   use transport_control_alg_mod,        only: transport_prerun_setup, &
                                               transport_init, &
@@ -95,11 +93,12 @@ contains
   !> @brief Sets up required state in preparation for run.
   !! @param[out] model_clock Time within the model.
   !!
-  subroutine initialise_transport( mpi )
+  subroutine initialise_transport( mpi, program_name )
 
     implicit none
 
     class(mpi_type), intent(inout) :: mpi
+    character(*),    intent(in)    :: program_name
 
     character(len=*), parameter :: xios_ctx  = "transport"
 
@@ -108,20 +107,17 @@ contains
     integer(kind=i_def), allocatable :: local_mesh_ids(:)
     type(local_mesh_type),   pointer :: local_mesh => null()
 
-    call init_logger( mpi%get_comm(), program_name )
-
-    call log_event( program_name//': Runtime default precision set as:', LOG_LEVEL_ALWAYS )
+    call log_event( 'Runtime default precision set as:', LOG_LEVEL_ALWAYS )
     write(log_scratch_space, '(I1)') kind(1.0_r_def)
-    call log_event( program_name//':     r_def kind = '//log_scratch_space , LOG_LEVEL_ALWAYS )
+    call log_event( '     r_def kind = '//log_scratch_space , LOG_LEVEL_ALWAYS )
     write(log_scratch_space, '(I1)') kind(1_i_def)
-    call log_event( program_name//':     i_def kind = '//log_scratch_space , LOG_LEVEL_ALWAYS )
+    call log_event( '     i_def kind = '//log_scratch_space , LOG_LEVEL_ALWAYS )
 
     call set_derived_config( .true. )
 
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
-    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
     if ( subroutine_timers ) then
       call init_timer(timer_output_path)
       call timer( program_name )
@@ -214,13 +210,11 @@ contains
 
     implicit none
 
-    call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
-    call log_event( program_name//': Miniapp will run with default precision set as:', LOG_LEVEL_INFO )
+    call log_event( 'Miniapp will run with default precision set as:', LOG_LEVEL_INFO )
     write(log_scratch_space, '(I1)') kind(1.0_r_def)
-    call log_event( program_name//':        r_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
+    call log_event( '        r_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
     write(log_scratch_space, '(I1)') kind(1_i_def)
-    call log_event( program_name//':        i_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
-
+    call log_event( '        i_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
 
     call mass_conservation( model_clock%get_step(), density, mr )
     call density%log_minmax( LOG_LEVEL_INFO, 'rho' )
@@ -302,14 +296,15 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Tidies up after a run.
   !>
-  subroutine finalise_transport()
+  subroutine finalise_transport( program_name )
 
     implicit none
 
-    !----------------------------------------------------------------------------
+    character(*), intent(in) :: program_name
+
+    !--------------------------------------------------------------------------
     ! Model finalise
-    !----------------------------------------------------------------------------
-    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+    !--------------------------------------------------------------------------
 
     ! Write checksums to file
     call checksum_alg( program_name, density, 'rho',  wind, 'u',  &
@@ -324,14 +319,6 @@ contains
     call final_io()
 
     call transport_runtime_collection_final()
-
-    !--------------------------------------------------------------------------
-    ! Driver layer finalise
-    !--------------------------------------------------------------------------
-    ! Finalise the logging system. This has to be done before finalising MPI as
-    ! logging is an MPI process.
-    !
-    call final_logger(program_name)
 
   end subroutine finalise_transport
 

@@ -12,8 +12,6 @@ module io_dev_mod
 
   private
 
-  character(*), public, parameter :: program_name = "io_dev"
-
   character(*), public, parameter :: &
     io_dev_required_namelists(6) = ['finite_element      ', &
                                     'base_mesh           ', &

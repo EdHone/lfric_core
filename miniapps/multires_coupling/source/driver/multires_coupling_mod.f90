@@ -11,8 +11,6 @@ module multires_coupling_mod
 
   private
 
-  character(*), public, parameter :: program_name = "multires_coupling"
-
   character(*), public, parameter ::                         &
     multires_required_namelists(7) =  [ 'base_mesh        ', &
                                         'multires_coupling', &

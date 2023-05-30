@@ -11,8 +11,6 @@ module diagnostics_configuration_mod
 
   private
 
-  character(*), public, parameter :: program_name = "diagnostics"
-
   character(*), public, parameter ::                  &
     required_namelists(9) =  [ 'base_mesh          ', & ! global space setup
                                'extrusion          ', & ! ""

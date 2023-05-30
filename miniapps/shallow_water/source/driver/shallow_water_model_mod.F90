@@ -16,7 +16,6 @@ module shallow_water_model_mod
   use convert_to_upper_mod,           only: convert_to_upper
   use count_mod,                      only: count_type, halo_calls
   use derived_config_mod,             only: set_derived_config
-  use driver_log_mod,                 only: init_logger, final_logger
   use driver_fem_mod,                 only: init_fem, final_fem
   use driver_io_mod,                  only: init_io, final_io, &
                                             filelist_populator
@@ -96,8 +95,6 @@ module shallow_water_model_mod
     !-------------------------------------------------------------------------
     ! Initialise aspects of the infrastructure
     !-------------------------------------------------------------------------
-
-    call init_logger( mpi%get_comm(), program_name )
 
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
@@ -221,11 +218,6 @@ module shallow_water_model_mod
 
     call final_mesh()
     call final_fem()
-
-    !-------------------------------------------------------------------------
-    ! Final logging before infrastructure is destroyed
-    !-------------------------------------------------------------------------
-    call final_logger( program_name )
 
   end subroutine finalise_infrastructure
 

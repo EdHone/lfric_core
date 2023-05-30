@@ -11,8 +11,6 @@ module shallow_water_mod
 
   private
 
-  character(*), public, parameter :: program_name = "shallow_water"
-
   character(*), public, parameter :: &
     shallow_water_required_namelists(8) &
       = ['base_mesh             ', &

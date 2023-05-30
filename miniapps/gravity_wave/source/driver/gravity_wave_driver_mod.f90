@@ -15,7 +15,6 @@ module gravity_wave_driver_mod
                                       only: create_gravity_wave_prognostics
   use field_mod,                      only: field_type
   use function_space_chain_mod,       only: function_space_chain_type
-  use gravity_wave_mod,               only: program_name
   use gravity_wave_constants_config_mod, &
                                       only: b_space,       &
                                             b_space_w0,    &
@@ -74,15 +73,15 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets up required state in preparation for run.
   !>
-  subroutine initialise( mpi )
+  subroutine initialise( mpi, program_name )
 
   implicit none
 
   class(mpi_type), intent(inout) :: mpi
+  character(*),    intent(in)    :: program_name
 
   ! Initialise aspects of the infrastructure
-  call initialise_infrastructure( program_name, &
-                                  mesh,         &
+  call initialise_infrastructure( mesh,         &
                                   twod_mesh,    &
                                   model_clock,  &
                                   mpi )
@@ -156,9 +155,11 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Performs time steps.
   !>
-  subroutine run()
+  subroutine run( program_name )
 
   implicit none
+
+  character(*), intent(in) :: program_name
 
   write(log_scratch_space,'(A,I0,A)') 'Running '//program_name//' ...'
   call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
@@ -210,9 +211,11 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Tidies up after a run.
   !>
-  subroutine finalise()
+  subroutine finalise( program_name )
 
   implicit none
+
+  character(*), intent(in) :: program_name
 
   !--------------------------------------------------------------------------
   ! Model finalise
@@ -250,7 +253,7 @@ contains
 
   call log_event( program_name//' completed.', LOG_LEVEL_ALWAYS )
 
-  call finalise_infrastructure( program_name )
+  call finalise_infrastructure()
 
   end subroutine finalise
 

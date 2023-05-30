@@ -17,6 +17,7 @@ program jedi_forecast_pseudo
 
   use constants_mod,     only : i_def, i_native
   use da_dev_driver_mod, only : finalise_model
+  use log_mod,           only : log_event, log_level_trace
 
   ! Data types and methods to get/store configurations
   use jedi_state_config_mod,        only : jedi_state_config_type
@@ -82,6 +83,7 @@ program jedi_forecast_pseudo
   ! Run app via model class
   call jedi_model%forecast( jedi_state, date_time_duration )
 
+  call log_event( 'Finalising ' // program_name // ' ...', log_level_trace )
   ! To provide KGO
   call finalise_model( program_name, jedi_state%io_collection )
 

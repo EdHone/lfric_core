@@ -13,7 +13,6 @@ module gungho_mod
   implicit none
 
   private
-  public :: gungho_required_namelists
 
   !> Lists namelists which must be present.
   !>
@@ -21,7 +20,7 @@ module gungho_mod
   !>       within the configuration. i.e. If a certain feature is switched on
   !>       then require the list which configures that feature.
   !>
-  character(*), parameter :: &
+  character(*), public, parameter ::                       &
       gungho_required_namelists(12) = ['finite_element  ', &
                                        'formulation     ', &
                                        'base_mesh       ', &

@@ -11,8 +11,6 @@ module gravity_wave_mod
 
   private
 
-  character(*), public, parameter :: program_name = "gravity_wave"
-
   character(*), public, parameter :: &
     gravity_wave_required_namelists(8) = ['base_mesh             ', &
                                           'planet                ', &

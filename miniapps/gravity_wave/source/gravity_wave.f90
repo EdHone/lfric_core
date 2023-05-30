@@ -14,12 +14,14 @@ program gravity_wave
   use cli_mod,                 only : get_initial_filename
   use driver_comm_mod,         only : init_comm, final_comm
   use driver_config_mod,       only : init_config, final_config
-  use gravity_wave_mod,        only : program_name, &
-                                      gravity_wave_required_namelists
+  use driver_log_mod,          only : init_logger, final_logger
+  use gravity_wave_mod,        only : gravity_wave_required_namelists
   use gravity_wave_driver_mod, only : initialise, run, finalise
   use mpi_mod,                 only : global_mpi
 
   implicit none
+
+  character(*), parameter :: program_name = "gravity_wave"
 
   character(:), allocatable :: filename
 
@@ -27,11 +29,13 @@ program gravity_wave
   call get_initial_filename( filename )
   call init_config( filename, gravity_wave_required_namelists )
   deallocate( filename )
-  call initialise( global_mpi )
+  call init_logger( global_mpi%get_comm(), program_name )
 
-  call run()
+  call initialise( global_mpi, program_name )
+  call run( program_name )
+  call finalise( program_name )
 
-  call finalise()
+  call final_logger( program_name )
   call final_config()
   call final_comm()
 

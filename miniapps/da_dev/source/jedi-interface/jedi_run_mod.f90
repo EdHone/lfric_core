@@ -10,7 +10,7 @@
 !
 module jedi_run_mod
 
-  use constants_mod,                 only : i_native, str_def
+  use constants_mod, only : i_native, str_def
 
   implicit none
 
@@ -112,7 +112,7 @@ subroutine jedi_run_destructor(self)
   type(jedi_run_type), intent(inout) :: self
 
   ! Finalise infrastructure
-  call finalise_lfric( self%jedi_run_name )
+  call finalise_lfric()
 
   ! Finalise the config
   call final_config()

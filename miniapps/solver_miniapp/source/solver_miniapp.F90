@@ -14,6 +14,7 @@ program solver_miniapp
   use constants_mod,                    only : i_def, PRECISION_REAL
   use convert_to_upper_mod,             only : convert_to_upper
   use cli_mod,                          only : get_initial_filename
+  use driver_config_mod,                only : init_config, final_config
   use driver_mesh_mod,                  only : init_mesh
   use driver_fem_mod,                   only : init_fem
   use driver_log_mod,                   only : init_logger, final_logger
@@ -26,7 +27,7 @@ program solver_miniapp
   use field_vector_mod,                 only : field_vector_type
   use solver_miniapp_alg_mod,           only : solver_miniapp_alg
   use configuration_mod,                only : final_configuration
-  use solver_miniapp_mod,               only : load_configuration, program_name
+  use solver_miniapp_mod,               only : solver_required_namelists
   use log_mod,                          only : log_event,            &
                                                log_scratch_space,    &
                                                LOG_LEVEL_ALWAYS,     &
@@ -35,6 +36,8 @@ program solver_miniapp
   use checksum_alg_mod,                 only : checksum_alg
 
   implicit none
+
+  character(*), parameter :: program_name = 'solver_miniapp'
 
   character(:), allocatable :: filename
 
@@ -67,7 +70,7 @@ program solver_miniapp
   local_rank  = global_mpi%get_comm_rank()
 
   call get_initial_filename( filename )
-  call load_configuration( filename )
+  call init_config( filename, solver_required_namelists )
   deallocate( filename )
 
   call init_logger( comm, program_name )
@@ -119,11 +122,11 @@ program solver_miniapp
   ! Finalise halo functionality
   call finalise_halo_comms()
 
+  call final_logger( program_name )
+  call final_config()
+
   ! Finalise MPI communications
   call global_mpi%finalise()
   call destroy_comm()
-
-  ! Finalise the logging system
-  call final_logger(program_name)
 
 end program solver_miniapp

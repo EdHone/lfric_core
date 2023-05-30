@@ -12,15 +12,17 @@
 
 program da_dev
 
-  use cli_mod,                   only : get_initial_filename
-  use da_dev_mod,                only : da_dev_required_namelists
-  use da_dev_driver_mod,         only : initialise_lfric, run, finalise_lfric, &
-                                        initialise_model, finalise_model
-  use driver_comm_mod,           only : init_comm, final_comm
-  use driver_config_mod,         only : init_config, final_config
-  use driver_model_data_mod,     only : model_data_type
-  use constants_mod,             only : i_native
-  use mpi_mod,                   only : global_mpi
+  use cli_mod,               only : get_initial_filename
+  use da_dev_mod,            only : da_dev_required_namelists
+  use da_dev_driver_mod,     only : initialise_lfric, run, finalise_lfric, &
+                                    initialise_model, finalise_model
+  use driver_comm_mod,       only : init_comm, final_comm
+  use driver_config_mod,     only : init_config, final_config
+  use driver_log_mod,        only : init_logger, final_logger
+  use driver_model_data_mod, only : model_data_type
+  use constants_mod,         only : i_native
+  use log_mod,               only : log_event, log_level_trace
+  use mpi_mod,               only : global_mpi
 
   implicit none
 
@@ -34,15 +36,17 @@ program da_dev
   call get_initial_filename( filename )
   call init_config( filename, da_dev_required_namelists )
   deallocate( filename )
+  call init_logger( global_mpi%get_comm(), program_name )
+
+  call log_event( 'Initialising ' // program_name // ' ...', log_level_trace )
   call initialise_lfric( program_name, global_mpi )
-
   call initialise_model(global_mpi, model_data)
-
   call run(program_name, model_data)
-
+  call log_event( 'Finalising ' // program_name // ' ...', log_level_trace )
   call finalise_model(program_name, model_data%depository)
+  call finalise_lfric()
 
-  call finalise_lfric(program_name)
+  call final_logger( program_name )
   call final_config()
   call final_comm()
 

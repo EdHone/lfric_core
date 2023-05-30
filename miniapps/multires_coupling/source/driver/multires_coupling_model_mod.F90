@@ -12,7 +12,6 @@ module multires_coupling_model_mod
   use checksum_alg_mod,           only : checksum_alg
   use driver_fem_mod,             only : init_fem, final_fem
   use driver_mesh_mod,            only : init_mesh, final_mesh
-  use driver_log_mod,             only : init_logger, final_logger
   use driver_io_mod,              only : init_io, final_io, &
                                          filelist_populator
   use driver_time_mod,            only : init_time, get_calendar
@@ -171,8 +170,6 @@ contains
     !-------------------------------------------------------------------------
     ! Initialise aspects of the infrastructure
     !-------------------------------------------------------------------------
-
-    call init_logger( mpi%get_comm(), program_name )
 
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
@@ -474,12 +471,6 @@ contains
 
     call final_mesh()
     call final_fem()
-
-    !-------------------------------------------------------------------------
-    ! Finalise infrastructure
-    !-------------------------------------------------------------------------
-
-    call final_logger( program_name )
 
   end subroutine finalise_infrastructure
 

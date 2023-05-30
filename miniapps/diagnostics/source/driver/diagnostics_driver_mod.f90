@@ -11,7 +11,6 @@ module diagnostics_driver_mod
 
   use clock_mod,                     only : clock_type
   use constants_mod,                 only : i_def, i_native, str_def, r_def
-  use diagnostics_configuration_mod, only : program_name
   use driver_fem_mod,                only : init_fem
   use driver_io_mod,                 only : init_io, final_io
   use driver_mesh_mod,               only : init_mesh
@@ -47,7 +46,6 @@ module diagnostics_driver_mod
   type(mesh_type), pointer :: mesh      => null()
   type(mesh_type), pointer :: twod_mesh => null()
 
-  character(len = *), public, parameter :: xios_ctx = program_name
   character(len = *), public, parameter :: xios_id = "lfric_client"
 
 contains
@@ -60,12 +58,11 @@ contains
   !> @param [in,out] model_data The structure that holds model state
   !> @param [in,out] mpi        The structure that holds comms details
   !>
-  subroutine initialise( model_data, mpi )
+  subroutine initialise( model_data, mpi, xios_ctx )
 
     use convert_to_upper_mod,       only : convert_to_upper
     use driver_fem_mod,             only : init_fem
     use driver_mesh_mod,            only : init_mesh
-    use driver_log_mod,             only : init_logger
     use fieldspec_xml_parser_mod,   only : populate_fieldspec_collection
     use init_diagnostics_mod,       only : init_diagnostics
     use mod_wait,                   only : init_wait
@@ -76,14 +73,11 @@ contains
 
     type(model_data_type), intent(inout) :: model_data
     class(mpi_type),       intent(inout) :: mpi
-
-    call init_logger( mpi%get_comm(), program_name )
+    character(*),          intent(in)    :: xios_ctx
 
     !----------------------------------------------------------------------
     ! Model init
     !----------------------------------------------------------------------
-    call log_event( 'Initialising ' // program_name // ' ...', &
-                    LOG_LEVEL_ALWAYS )
 
     ! Initialise model clock and calendar
     call init_time( model_clock )
@@ -144,8 +138,6 @@ contains
                '(A,I0)' ) 'Start of timestep ', model_clock%get_step()
         call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
-        call log_event( 'Running ' // program_name // ' ...', &
-                        LOG_LEVEL_ALWAYS )
         call diagnostics_step( mesh,       &
                                twod_mesh,  &
                                model_data )
@@ -163,7 +155,6 @@ contains
     use checksum_alg_mod,  only : checksum_alg
     use configuration_mod, only : final_configuration
     use fieldspec_mod,     only : fieldspec_type
-    use driver_log_mod,    only : final_logger
 
     implicit none
 
@@ -178,8 +169,6 @@ contains
     !----------------------------------------------------------------------
     ! Model finalise
     !----------------------------------------------------------------------
-    call log_event( 'Finalising ' // program_name // ' ...', &
-                    LOG_LEVEL_ALWAYS )
 
     depository => model_data%depository
     ! as with the run step this could use a specific checksum collection to
@@ -199,13 +188,6 @@ contains
     !----------------------------------------------------------------------
 
     call final_io()
-
-    call log_event(program_name // ' completed.', LOG_LEVEL_ALWAYS)
-
-    ! Finalise the logging system. This must be done before finalising MPI as
-    ! Logging is an MPI process.
-    !
-    call final_logger(program_name)
 
   end subroutine finalise
 

@@ -15,11 +15,15 @@ program skeleton
   use cli_mod,             only : get_initial_filename
   use driver_comm_mod,     only : init_comm, final_comm
   use driver_config_mod,   only : init_config, final_config
+  use driver_log_mod,      only : init_logger, final_logger
+  use log_mod,             only : log_event, log_level_trace
   use mpi_mod,             only : global_mpi
   use skeleton_mod,        only : skeleton_required_namelists
   use skeleton_driver_mod, only : initialise, run, finalise
 
   implicit none
+
+  character(*), parameter :: program_name = "skeleton"
 
   character(:), allocatable :: filename
 
@@ -27,12 +31,15 @@ program skeleton
   call get_initial_filename( filename )
   call init_config( filename, skeleton_required_namelists )
   deallocate( filename )
+  call init_logger( global_mpi%get_comm(), program_name )
 
-  call initialise( global_mpi )
+  call log_event( 'Initialising ' // program_name // ' ...', log_level_trace )
+  call initialise( global_mpi, program_name )
+  call run( program_name )
+  call log_event( 'Finalising ' // program_name // ' ...', log_level_trace )
 
-  call run()
-
-  call finalise()
+  call finalise( program_name )
+  call final_logger( program_name )
   call final_config()
   call final_comm()
 

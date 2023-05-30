@@ -16,13 +16,14 @@
 
 program lfric_coupled
 
-  use cli_mod,               only: get_initial_filename
-  use driver_comm_mod,       only: init_comm, final_comm
-  use driver_config_mod,     only: init_config, final_config
-  use gungho_driver_mod,     only: initialise, run, finalise
-  use gungho_mod,            only: gungho_required_namelists
-  use gungho_model_data_mod, only: model_data_type
-  use mpi_mod,               only: global_mpi
+  use cli_mod,               only : get_initial_filename
+  use driver_comm_mod,       only : init_comm, final_comm
+  use driver_config_mod,     only : init_config, final_config
+  use driver_log_mod,        only : init_logger, final_logger
+  use gungho_mod,            only : gungho_required_namelists
+  use gungho_driver_mod,     only : initialise, run, finalise
+  use gungho_model_data_mod, only : model_data_type
+  use mpi_mod,               only : global_mpi
 
   implicit none
 
@@ -37,12 +38,13 @@ program lfric_coupled
   call get_initial_filename( filename )
   call init_config( filename, gungho_required_namelists )
   deallocate( filename )
+  call init_logger( global_mpi%get_comm(), application_name )
 
   call initialise( application_name, model_data, global_mpi )
-
   call run( application_name, model_data )
-
   call finalise( application_name, model_data )
+
+  call final_logger( application_name )
   call final_config()
   call final_comm()
 

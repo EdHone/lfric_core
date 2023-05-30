@@ -13,7 +13,6 @@ module skeleton_driver_mod
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL, r_def, r_second
   use convert_to_upper_mod,       only : convert_to_upper
-  use driver_log_mod,             only : init_logger, final_logger
   use driver_time_mod,            only : init_time, get_calendar
   use driver_mesh_mod,            only : init_mesh, final_mesh
   use driver_fem_mod,             only : init_fem, final_fem
@@ -33,8 +32,6 @@ module skeleton_driver_mod
   private
   public initialise, run, finalise
 
-  character(*), parameter :: program_name = "skeleton"
-
   type(model_clock_type), allocatable :: model_clock
 
   ! Prognostic fields
@@ -51,15 +48,14 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets up required state in preparation for run.
   !>
-  subroutine initialise( mpi )
+  subroutine initialise( mpi, program_name )
 
     implicit none
 
     class(mpi_type), intent(inout) :: mpi
+    character(*),    intent(in)    :: program_name
 
     real(r_def) :: dt_model
-
-    call init_logger( mpi%get_comm(), program_name )
 
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
@@ -69,7 +65,6 @@ contains
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
-    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Initialise clock
     call init_time( model_clock )
@@ -94,9 +89,11 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Performs time steps.
   !>
-  subroutine run()
+  subroutine run( program_name )
 
     implicit none
+
+    character(*), intent(in) :: program_name
 
     logical :: running
 
@@ -118,14 +115,15 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Tidies up after a run.
   !>
-  subroutine finalise()
+  subroutine finalise( program_name )
 
     implicit none
 
-!-----------------------------------------------------------------------------
+    character(*), intent(in) :: program_name
+
+    !--------------------------------------------------------------------------
     ! Model finalise
-    !-----------------------------------------------------------------------------
-    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
+    !--------------------------------------------------------------------------
 
     ! Write checksums to file
     call checksum_alg(program_name, field_1, 'skeleton_field_1')
@@ -142,8 +140,6 @@ contains
     call final_fem()
 
     call final_mesh()
-
-    call final_logger( program_name )
 
   end subroutine finalise
 

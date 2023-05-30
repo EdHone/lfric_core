@@ -16,7 +16,6 @@ module gungho_model_mod
   use driver_io_mod,              only : init_io, final_io,  &
                                          filelist_populator
   use driver_mesh_mod,            only : init_mesh, final_mesh
-  use driver_log_mod,             only : init_logger, final_logger
   use driver_time_mod,            only : init_time, get_calendar
   use check_configuration_mod,    only : get_required_stencil_depth
   use conservation_algorithm_mod, only : conservation_algorithm
@@ -207,8 +206,6 @@ contains
     !-------------------------------------------------------------------------
     ! Initialise aspects of the infrastructure
     !-------------------------------------------------------------------------
-
-    call init_logger( mpi%get_comm(), program_name )
 
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
@@ -538,12 +535,6 @@ contains
 
     call final_mesh()
     call final_fem()
-
-    !-------------------------------------------------------------------------
-    ! Final logging before infrastructure is destroyed
-    !-------------------------------------------------------------------------
-
-    call final_logger( program_name )
 
   end subroutine finalise_infrastructure
 

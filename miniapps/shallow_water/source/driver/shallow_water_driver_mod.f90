@@ -25,7 +25,6 @@ module shallow_water_driver_mod
   use mpi_mod,                       only: mpi_type
   use runtime_constants_mod,         only: create_runtime_constants, &
                                            final_runtime_constants
-  use shallow_water_mod,             only: program_name
   use shallow_water_diagnostics_mod, only: shallow_water_diagnostics
   use shallow_water_model_mod,       only: initialise_infrastructure, &
                                            initialise_model,          &
@@ -62,17 +61,17 @@ contains
   !!          model_data, then sets the initial conditions for the run.
   !> @param [in,out] model_data The structure that holds model state
   !> @param [in,out] mpi        The structure that holds comms details
-  subroutine initialise(  model_data, mpi )
+  subroutine initialise(  model_data, mpi, program_name )
 
     implicit none
 
     type(model_data_type), intent(inout) :: model_data
     class(mpi_type),       intent(inout) :: mpi
+    character(*),    intent(in)    :: program_name
 
     type(mesh_type),   pointer :: twod_mesh => null()
     type(field_type)           :: panel_id
 
-    call log_event( 'Initialising Infrastructure ...', LOG_LEVEL_INFO )
     ! Initialise infrastructure (from shallow_water_model_mod.F90) and setup constants
     call initialise_infrastructure( program_name, &
                                     mesh,         &
@@ -126,10 +125,6 @@ contains
     implicit none
 
     type(model_data_type), intent(inout) :: model_data
-
-    write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
-
     !--------------------------------------------------------------------------
     ! Model step
     !--------------------------------------------------------------------------
@@ -161,13 +156,12 @@ contains
   !> @brief Tidies up after a run.
   !> @param [in,out] model_data The structure that holds model state
   !!
-  subroutine finalise( model_data )
+  subroutine finalise( model_data, program_name )
 
     implicit none
 
     type(model_data_type), intent(inout) :: model_data
-
-    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_INFO )
+    character(*), intent(in) :: program_name
 
     ! Output the fields stored in the model_data (checkpoint and dump)
     call output_model_data( model_data, model_clock )

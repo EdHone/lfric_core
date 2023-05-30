@@ -15,7 +15,6 @@ module io_dev_driver_mod
   use constants_mod,              only: i_def, i_native, str_def, &
                                         PRECISION_REAL, r_def, r_second
   use convert_to_upper_mod,       only: convert_to_upper
-  use driver_log_mod,             only: init_logger, final_logger
   use driver_time_mod,            only: init_time, get_calendar
   use driver_mesh_mod,            only: init_mesh, final_mesh
   use driver_fem_mod,             only: init_fem, final_fem
@@ -55,7 +54,6 @@ module io_dev_driver_mod
 
   public initialise, run, finalise
 
-  character(*), parameter             :: program_name = "io_dev"
   type(model_clock_type), allocatable :: model_clock
 
   type(field_type), target, dimension(3) :: chi
@@ -66,14 +64,13 @@ module io_dev_driver_mod
   contains
 
   !> @brief Sets up required state in preparation for run.
-  !> @param [in,out] model_data The structure that holds model state
-  !> @param [in,out] mpi        The structure that holds comms details
-  subroutine initialise( model_data, mpi )
+  subroutine initialise( model_data, mpi, program_name )
 
     implicit none
 
-    type(io_dev_data_type), intent(inout) :: model_data
-    class(mpi_type),        intent(inout) :: mpi
+    class(io_dev_data_type), intent(inout) :: model_data
+    class(mpi_type),         intent(inout) :: mpi
+    character(*),            intent(in)    :: program_name
 
     character(str_def), allocatable :: multires_mesh_tags(:)
     integer(i_def),     allocatable :: multires_mesh_ids(:), multires_twod_mesh_ids(:)
@@ -88,8 +85,6 @@ module io_dev_driver_mod
     class(io_context_type), pointer :: io_context
 
     procedure(filelist_populator), pointer :: files_init_ptr => null()
-
-    call init_logger( mpi%get_comm(), program_name )
 
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
@@ -169,11 +164,12 @@ module io_dev_driver_mod
   !> @brief Timesteps the model, calling the desired timestepping algorithm
   !>        based upon the configuration
   !> @param [in,out] model_data The structure that holds model state
-  subroutine run( model_data )
+  subroutine run( model_data, program_name )
 
     implicit none
 
-    type(io_dev_data_type), intent(inout) :: model_data
+    class(io_dev_data_type), intent(inout) :: model_data
+    character(*),             intent(in) :: program_name
 
     write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
@@ -198,11 +194,12 @@ module io_dev_driver_mod
 
   !> @brief Tidies up after a model run.
   !> @param [in,out] model_data The structure that holds model state
-  subroutine finalise( model_data )
+  subroutine finalise( model_data, program_name )
 
     implicit none
 
-    type(io_dev_data_type), intent(inout) :: model_data
+    class(io_dev_data_type), intent(inout) :: model_data
+    character(*),            intent(in) :: program_name
 
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
@@ -221,9 +218,6 @@ module io_dev_driver_mod
     ! Finalise aspects of the grid
     call final_mesh()
     call final_fem()
-
-    ! Final logging before infrastructure is destroyed
-    call final_logger( program_name )
 
   end subroutine finalise
 

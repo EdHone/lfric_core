@@ -33,7 +33,6 @@ module multires_coupling_driver_mod
   use mesh_mod,                                 only : mesh_type
   use model_clock_mod,                          only : model_clock_type
   use mpi_mod,                                  only : mpi_type
-  use multires_coupling_mod,                    only : program_name
   use coupling_test_alg_mod,                    only : coupling_test_alg
   use xios,                                     only : xios_context_finalize
   use multires_coupling_model_mod,              only : initialise_model,          &
@@ -88,19 +87,19 @@ contains
   !> @param [in,out] mpi        The structure that holds comms details
   subroutine initialise( dynamics_mesh_model_data, &
                          physics_mesh_model_data,  &
-                         mpi )
+                         mpi,                      &
+                         program_name )
 
     implicit none
 
     type(model_data_type), intent(inout) :: dynamics_mesh_model_data
     type(model_data_type), intent(inout) :: physics_mesh_model_data
     class(mpi_type),       intent(inout) :: mpi
+    character(*),    intent(in)    :: program_name
 
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
-
-    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     !-------------------------------------------------------------------------
     ! Initialise Infrastructure such as meshes, FEM and runtime constants
@@ -206,7 +205,7 @@ contains
                           dynamics_mesh_model_data, &
                           model_clock )
         ! Write out output file
-        call log_event(program_name//": Writing depository output", LOG_LEVEL_INFO)
+        call log_event( "Writing depository output", LOG_LEVEL_INFO )
 
         if ( (mod(model_clock%get_step(), diagnostic_frequency) == 0) &
               .and. (write_diag) ) then
@@ -229,17 +228,20 @@ contains
   !> @param [in,out] physics_mesh_model_data  The structure that holds model
   !>                                          state for the physics mesh
   !>
-  subroutine finalise( dynamics_mesh_model_data, physics_mesh_model_data )
+  subroutine finalise( dynamics_mesh_model_data, &
+                       physics_mesh_model_data,  &
+                       program_name )
 
     implicit none
 
     type(model_data_type), intent(inout) :: dynamics_mesh_model_data
     type(model_data_type), intent(inout) :: physics_mesh_model_data
 
+    character(*), intent(in) :: program_name
+
     !--------------------------------------------------------------------------
     ! Model finalise
     !--------------------------------------------------------------------------
-    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     !-------------------------------------------------------------------------
     ! Driver layer finalise
@@ -262,7 +264,7 @@ contains
 
     call finalise_infrastructure( program_name )
 
-    call log_event( program_name//': Miniapp completed', LOG_LEVEL_INFO )
+    call log_event( 'Miniapp completed', LOG_LEVEL_INFO )
 
   end subroutine finalise
 

@@ -25,7 +25,6 @@ module gravity_wave_infrastructure_mod
   use driver_fem_mod,             only : init_fem
   use driver_io_mod,              only : init_io, final_io
   use driver_mesh_mod,            only : init_mesh
-  use driver_log_mod,             only : init_logger, final_logger
   use driver_time_mod,            only : init_time, get_calendar
   use runtime_constants_mod,      only : create_runtime_constants
   use formulation_config_mod,     only : l_multigrid
@@ -43,8 +42,7 @@ contains
   !> @param [in]     program_name  An identifier given to the model begin run
   !> @param [in,out] mesh          The model prime mesh
   !> @param [in,out] twod_mesh     The model prime 2D mesh
-  subroutine initialise_infrastructure( program_name, &
-                                        mesh,         &
+  subroutine initialise_infrastructure( mesh,         &
                                         twod_mesh,    &
                                         model_clock,  &
                                         mpi )
@@ -54,7 +52,6 @@ contains
 
     implicit none
 
-    character(*),           intent(in) :: program_name
     type(mesh_type),        intent(inout), pointer :: mesh
     type(mesh_type),        intent(inout), pointer :: twod_mesh
     type(model_clock_type), intent(out), allocatable :: model_clock
@@ -67,8 +64,6 @@ contains
     integer(i_def),   allocatable :: multigrid_2d_mesh_ids(:)
     type(field_type), allocatable :: chi_mg(:,:)
     type(field_type), allocatable :: panel_id_mg(:)
-
-    call init_logger( mpi%get_comm(), program_name )
 
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
@@ -125,17 +120,12 @@ contains
 
 
   !> @brief Finalises infrastructure used by the model
-  subroutine finalise_infrastructure( program_name )
+  subroutine finalise_infrastructure()
 
     implicit none
 
-    character(*), intent(in) :: program_name
-
     ! Finalise I/O
     call final_io()
-
-    ! Finalise the logging system
-    call final_logger( program_name )
 
   end subroutine finalise_infrastructure
 

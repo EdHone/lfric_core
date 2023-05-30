@@ -14,7 +14,6 @@ module da_dev_driver_mod
                                       PRECISION_REAL, r_def
   use clock_mod,                only: clock_type
   use driver_model_data_mod,    only: model_data_type
-  use driver_log_mod,           only: init_logger, final_logger
   use driver_time_mod,          only: init_time, get_calendar
   use driver_mesh_mod,          only: init_mesh, final_mesh
   use driver_fem_mod,           only: init_fem, final_fem
@@ -75,8 +74,6 @@ contains
     class(io_context_type),        pointer :: model_io_context => null()
     class(extrusion_type),     allocatable :: extrusion
 
-    call init_logger( mpi%get_comm(), program_name )
-
     write(log_scratch_space,'(A)')                        &
         'Application built with '//trim(PRECISION_REAL)// &
         '-bit real numbers'
@@ -85,8 +82,6 @@ contains
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
-    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
-
     ! Create model clock and calendar
     call init_time( model_clock )
 
@@ -195,8 +190,6 @@ contains
     !---------------------------------------------------------------------------
     ! Model finalise
     !---------------------------------------------------------------------------
-    call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
-
     ! Write checksums to file
     call checksum_alg( program_name, working_field, test_field )
 
@@ -205,10 +198,9 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Tidies up after a run.
   !>
-  subroutine finalise_lfric( program_name )
+  subroutine finalise_lfric()
 
     implicit none
-    character(len=*), intent(in) :: program_name
 
     !-------------------------------------------------------------------------
     ! Driver layer finalise
@@ -221,8 +213,6 @@ contains
     call final_fem()
 
     call final_mesh()
-
-    call final_logger( program_name )
 
   end subroutine finalise_lfric
 
