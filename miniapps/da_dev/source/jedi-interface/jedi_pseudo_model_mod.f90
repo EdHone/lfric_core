@@ -14,6 +14,7 @@ module jedi_pseudo_model_mod
 
   use constants_mod,                 only : i_def, str_def
   use jedi_datetime_mod,             only : jedi_datetime_type
+  use jedi_duration_mod,             only : jedi_duration_type
   use jedi_state_mod,                only : jedi_state_type
   use log_mod,                       only : log_event,          &
                                             log_scratch_space,  &
@@ -148,21 +149,20 @@ end subroutine jedi_pseudo_model_destructor
 !> @brief    Run a forecast using the model init, step and final
 !>
 !> @param [inout] state           The state object to propagate
-!> @param [in] date_time_duration The duration of the forecast
-subroutine forecast( self, state, date_time_duration )
+!> @param [in] datetime_duration  The duration of the forecast
+subroutine forecast( self, state, datetime_duration )
 
   implicit none
 
   class( jedi_pseudo_model_type ), intent(inout) :: self
   type( jedi_state_type ),         intent(inout) :: state
-  integer( kind=i_def ),           intent(in)    :: date_time_duration
+  type( jedi_duration_type ),      intent(in)    :: datetime_duration
 
   ! Local
   type( jedi_datetime_type ) :: datetime_end
 
   ! End time
-  call datetime_end%init( state%datetime )
-  call datetime_end%add_seconds( date_time_duration )
+  datetime_end = state%datetime + datetime_duration
 
   call self%model_init( state )
 

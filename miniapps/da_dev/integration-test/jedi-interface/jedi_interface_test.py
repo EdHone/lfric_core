@@ -22,13 +22,15 @@ class InterfaceTest(LFRicLoggingTest):
     Run the jedi-interface integration tests
     '''
 
-    def __init__(self, flag: str) -> None:
+    def __init__(self, flag: str, optional_arg='None') -> None:
         self._flag = flag
+        self._optional_arg = optional_arg
         if 'MPIEXEC_BROKEN' in os.environ:
             InterfaceTest.set_mpiexec_broken()
         super().__init__([sys.argv[1],
                           'jedi_interface_test_configuration.nml',
-                          'test_' + self._flag],
+                          'test_' + self._flag,
+                          self._optional_arg],
                          processes=1,
                          name='InterfaceTest.Log')
 
@@ -37,15 +39,17 @@ class InterfaceTest(LFRicLoggingTest):
         Error messages if the test failed to run
         '''
         if return_code != 0:
-            message = 'Test program failed with exit code: {code}'
-            raise TestFailed(message.format(code=return_code),
+            message = (
+                '[optional arg: {}] Test program failed with exit code: {}'
+            )
+            raise TestFailed(message.format(self._optional_arg, return_code),
                              stdout=out, stderr=err,
                              log=self.getLFRicLoggingLog())
 
         # "out" becomes self.getLFRicLoggingLog() when PE>1
         if not self.test_passed(out):
-            message = 'Test {} failed'
-            raise TestFailed(message.format(self._flag),
+            message = '[optional arg: {}] Test {} failed'
+            raise TestFailed(message.format(self._optional_arg, self._flag),
                              stdout=out, stderr=err,
                              log=self.getLFRicLoggingLog())
 
@@ -70,11 +74,14 @@ class ErrorSerialTest(MpiTest):  # pylint: disable=too-few-public-methods
     """
     Tests logging in serial scenarios.
     """
-    def __init__(self, flag: str) -> None:
+    def __init__(self, flag: str, optional_arg='None') -> None:
         self._flag = flag
+        self._optional_arg = optional_arg
+
         super().__init__([sys.argv[1],
                           'jedi_interface_test_configuration.nml',
-                          'test_' + self._flag],
+                          'test_' + self._flag,
+                          self._optional_arg],
                          processes=1)
 
         self._minimum_timestamp = datetime.datetime.utcnow()
@@ -85,16 +92,26 @@ class ErrorSerialTest(MpiTest):  # pylint: disable=too-few-public-methods
         """
 
         if returncode == 0:  # pylint: disable=no-else-raise
-            message = "Logging an error did not cause termination to end"
-            raise TestFailed(message)
+            message = (
+                "[optional arg: {}] Logging an error did not cause "
+                "termination to end"
+            )
+            raise TestFailed(message.format(self._optional_arg))
         elif returncode == 127:
             raise TestFailed('Test executable not found')
         elif returncode > 128:
-            raise TestFailed('Execution fault such as segmentation fault')
+            message = (
+                "[optional arg: {}] Execution fault such as segmentation fault"
+            )
+            raise TestFailed(message.format(self._optional_arg))
 
         if not self.test_passed(err):
-            message = 'Test {} failed with output: {} and err: {}'
-            raise TestFailed(message.format(self._flag, out, err))
+            message = (
+                '[optional arg: {}] Test {} failed with output: {} and err: {}'
+            )
+            raise TestFailed(
+                message.format(self._optional_arg, self._flag, out, err)
+            )
 
         message = 'Logging an error caused exit as expected with code {code}'
         return message.format(code=returncode)
@@ -146,14 +163,36 @@ class init_string_err(ErrorSerialTest):
         super().__init__(flag)
 
 
-class init_from_jedi_datetime_err(ErrorSerialTest):
+class copy_from_jedi_datetime_err(ErrorSerialTest):
     '''
     Tests logging an error when attempting to initialise
     a datetime with another uninitialised datetime
     '''
 
     def __init__(self):
-        flag = "init_from_jedi_datetime_err"
+        flag = "copy_from_jedi_datetime_err"
+        super().__init__(flag)
+
+
+class add_duration_to_datetime(InterfaceTest):
+    '''
+    Test adding a jedi duration instance to a
+    jedi datetime instance
+    '''
+
+    def __init__(self):
+        flag = "add_duration_to_datetime"
+        super().__init__(flag)
+
+
+class duration_from_datetimes(InterfaceTest):
+    '''
+    Test getting a jedi duration by subtracting
+    one datetime from another
+    '''
+
+    def __init__(self):
+        flag = "duration_from_datetimes"
         super().__init__(flag)
 
 
@@ -215,13 +254,79 @@ class seconds_to_hhmmss_neg(ErrorSerialTest):
         super().__init__(flag)
 
 
+class duration_init_bad_string_err(ErrorSerialTest):
+    '''
+    Test logging an error initialising a jedi
+    duration instance with a bad iso string
+    '''
+
+    def __init__(self, bad_string: str) -> None:
+        flag = "duration_init_bad_string_err"
+        super().__init__(flag, bad_string)
+
+
+class duration_divide_zero_err(ErrorSerialTest):
+    '''
+    Test logging an error when dividing
+    a duration instance by zero
+    '''
+
+    def __init__(self):
+        flag = "duration_divide_zero_err"
+        super().__init__(flag)
+
+
+class duration_divide_remainder_err(ErrorSerialTest):
+    '''
+    Test logging an error when two durations are
+    not evenly divisible
+    '''
+
+    def __init__(self):
+        flag = "duration_divide_remainder_err"
+        super().__init__(flag)
+
+
+class duration_divide_int_zero_err(ErrorSerialTest):
+    '''
+    Test logging an error when dividing
+    a duration instance by an integer zero
+    '''
+
+    def __init__(self):
+        flag = "duration_divide_int_zero_err"
+        super().__init__(flag)
+
+
+class duration_divide_int_remainder_err(ErrorSerialTest):
+    '''
+    Test logging an error when a durations and an
+    integer are not evenly divisible
+    '''
+
+    def __init__(self):
+        flag = "duration_divide_int_remainder_err"
+        super().__init__(flag)
+
+
 if __name__ == '__main__':
     TestEngine.run(init_lfric_calendar_start())
     TestEngine.run(init_lfric_calendar_start_err())
     TestEngine.run(init_string_err())
-    TestEngine.run(init_from_jedi_datetime_err())
+    TestEngine.run(copy_from_jedi_datetime_err())
+    TestEngine.run(add_duration_to_datetime())
+    TestEngine.run(duration_from_datetimes())
     TestEngine.run(YYYYMMDD_to_JDN())
     TestEngine.run(JDN_to_YYYYMMDD_invalid())
     TestEngine.run(hhmmss_to_seconds())
     TestEngine.run(seconds_to_hhmmss_large())
     TestEngine.run(seconds_to_hhmmss_neg())
+    TestEngine.run(duration_init_bad_string_err("P@D"))
+    TestEngine.run(duration_init_bad_string_err("PT300"))
+    TestEngine.run(duration_init_bad_string_err("T0S"))
+    TestEngine.run(duration_init_bad_string_err("P"))
+    TestEngine.run(duration_init_bad_string_err("-P"))
+    TestEngine.run(duration_divide_zero_err())
+    TestEngine.run(duration_divide_remainder_err())
+    TestEngine.run(duration_divide_int_zero_err())
+    TestEngine.run(duration_divide_int_remainder_err())

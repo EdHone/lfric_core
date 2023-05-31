@@ -15,22 +15,36 @@ module test_jedi_interface_driver_mod
   use test_jedi_datetime_mod,           only : test_init_lfric_calendar_start,     &
                                                test_init_lfric_calendar_start_err, &
                                                test_init_string_err,               &
-                                               test_init_from_jedi_datetime_err
+                                               test_copy_from_jedi_datetime_err,   &
+                                               test_add_duration_to_datetime,      &
+                                               test_duration_from_datetimes
+  use test_jedi_duration_mod,           only : test_duration_init_bad_string_err,     &
+                                               test_duration_divide_zero_err,         &
+                                               test_duration_divide_remainder_err,    &
+                                               test_duration_divide_int_zero_err,     &
+                                               test_duration_divide_int_remainder_err
 
   implicit none
 
   private
-  public test_jedi_interface_init,          &
-         test_jedi_interface_final,         &
-         run_init_lfric_calendar_start,     &
-         run_init_lfric_calendar_start_err, &
-         run_init_string_err,               &
-         run_init_from_jedi_datetime_err,   &
-         run_YYYYMMDD_to_JDN,               &
-         run_JDN_to_YYYYMMDD_invalid,       &
-         run_hhmmss_to_seconds,             &
-         run_seconds_to_hhmmss_large,       &
-         run_seconds_to_hhmmss_neg
+  public test_jedi_interface_init,             &
+         test_jedi_interface_final,            &
+         run_init_lfric_calendar_start,        &
+         run_init_lfric_calendar_start_err,    &
+         run_init_string_err,                  &
+         run_copy_from_jedi_datetime_err,      &
+         run_add_duration_to_datetime,         &
+         run_duration_from_datetimes,          &
+         run_YYYYMMDD_to_JDN,                  &
+         run_JDN_to_YYYYMMDD_invalid,          &
+         run_hhmmss_to_seconds,                &
+         run_seconds_to_hhmmss_large,          &
+         run_seconds_to_hhmmss_neg,            &
+         run_duration_init_bad_string_err,     &
+         run_duration_divide_zero_err,         &
+         run_duration_divide_remainder_err,    &
+         run_duration_divide_int_zero_err,     &
+         run_duration_divide_int_remainder_err
 
 contains
 
@@ -79,13 +93,33 @@ contains
 
   !> @brief Tests logging an error when attempting to initialise
   !!        a datetime with another uninitialised datetime
-  subroutine run_init_from_jedi_datetime_err()
+  subroutine run_copy_from_jedi_datetime_err()
 
     implicit none
 
-    call test_init_from_jedi_datetime_err()
+    call test_copy_from_jedi_datetime_err()
 
-  end subroutine run_init_from_jedi_datetime_err
+  end subroutine run_copy_from_jedi_datetime_err
+
+  !> @brief Tests adding a jedi_duration instance to a
+  !!        jedi_datetime instance
+  subroutine run_add_duration_to_datetime()
+
+    implicit none
+
+    call test_add_duration_to_datetime()
+
+  end subroutine run_add_duration_to_datetime
+
+  !> @brief Test getting a duration instance by subtracting
+  !!        one jedi datetime from another
+  subroutine run_duration_from_datetimes()
+
+    implicit none
+
+    call test_duration_from_datetimes()
+
+  end subroutine run_duration_from_datetimes
 
   !> @brief Runs the YYYYMMDD_to_JDN test
   subroutine run_YYYYMMDD_to_JDN()
@@ -131,5 +165,56 @@ contains
     call test_seconds_to_hhmmss_neg()
 
   end subroutine run_seconds_to_hhmmss_neg
+
+  !> @brief Runs the hhmmss_to_seconds test with a negative time
+  subroutine run_duration_init_bad_string_err( bad_string )
+
+    implicit none
+
+    character(*), intent(inout) :: bad_string
+
+    call test_duration_init_bad_string_err( bad_string )
+
+  end subroutine run_duration_init_bad_string_err
+
+  !> @brief Test logging an error when trying to divide
+  !!        a jedi duration by zero
+  subroutine run_duration_divide_zero_err()
+
+    implicit none
+
+    call test_duration_divide_zero_err()
+
+  end subroutine run_duration_divide_zero_err
+
+  !> @brief Test logging an error when two durations don't
+  !!        divide evenly into each other
+  subroutine run_duration_divide_remainder_err()
+
+    implicit none
+
+    call test_duration_divide_remainder_err()
+
+  end subroutine run_duration_divide_remainder_err
+
+  !> @brief Test logging an error when trying to divide
+  !!        a jedi duration by an integer zero
+  subroutine run_duration_divide_int_zero_err()
+
+    implicit none
+
+    call test_duration_divide_int_zero_err()
+
+  end subroutine run_duration_divide_int_zero_err
+
+  !> @brief Test logging an error when a durations does
+  !!        not divide evenly by an integer
+  subroutine run_duration_divide_int_remainder_err()
+
+    implicit none
+
+    call test_duration_divide_int_remainder_err()
+
+  end subroutine run_duration_divide_int_remainder_err
 
 end module test_jedi_interface_driver_mod

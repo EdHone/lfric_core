@@ -25,6 +25,7 @@ program jedi_forecast_pseudo
   use cli_mod,                      only : get_initial_filename
 
   ! Jedi emulator objects
+  use jedi_duration_mod,     only : jedi_duration_type
   use jedi_run_mod,          only : jedi_run_type
   use jedi_geometry_mod,     only : jedi_geometry_type
   use jedi_state_mod,        only : jedi_state_type
@@ -42,7 +43,7 @@ program jedi_forecast_pseudo
   ! Emulator configs
   type(jedi_state_config_type)        :: jedi_state_config
   type(jedi_pseudo_model_config_type) :: jedi_pseudo_model_config
-  integer( kind=i_def )               :: date_time_duration
+  type(jedi_duration_type)            :: datetime_duration
 
   ! Local
   character(:), allocatable :: filename
@@ -69,7 +70,7 @@ program jedi_forecast_pseudo
   call jedi_pseudo_model_config%initialise()
 
   ! Forecast config - duration of forecast / seconds
-  date_time_duration = 5_i_def
+  call datetime_duration%init( 5_i_def )
 
   ! Geometry
   call jedi_geometry%initialise()
@@ -81,7 +82,7 @@ program jedi_forecast_pseudo
   call jedi_model%initialise( jedi_pseudo_model_config )
 
   ! Run app via model class
-  call jedi_model%forecast( jedi_state, date_time_duration )
+  call jedi_model%forecast( jedi_state, datetime_duration )
 
   call log_event( 'Finalising ' // program_name // ' ...', log_level_trace )
   ! To provide KGO

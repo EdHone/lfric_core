@@ -14,6 +14,7 @@ module jedi_model_mod
 
   use constants_mod,                 only : i_def
   use jedi_datetime_mod,             only : jedi_datetime_type
+  use jedi_duration_mod,             only : jedi_duration_type
   use jedi_state_mod,                only : jedi_state_type
   use log_mod,                       only : log_event,          &
                                             log_scratch_space,  &
@@ -27,7 +28,7 @@ type, public :: jedi_model_type
   private
 
   !> The data map between external field data and LFRic fields
-  integer( kind = i_def ) :: date_time_duration_dt
+  integer( kind = i_def ) :: datetime_duration_dt
 
 contains
 
@@ -54,15 +55,15 @@ contains
 
 !> @brief    Initialiser for jedi_model_type
 !>
-!> @param [in] date_time_duration_dt The time step duration
-subroutine initialise( self, date_time_duration_dt )
+!> @param [in] datetime_duration_dt The time step duration
+subroutine initialise( self, datetime_duration_dt )
 
   implicit none
 
   class( jedi_model_type ), intent(inout)   :: self
-  integer( kind=i_def ), intent(in)         :: date_time_duration_dt
+  integer( kind=i_def ), intent(in)         :: datetime_duration_dt
 
-  self%date_time_duration_dt = date_time_duration_dt
+  self%datetime_duration_dt = datetime_duration_dt
 
 end subroutine initialise
 
@@ -111,7 +112,7 @@ subroutine model_step(self, state)
   call state%from_model_data()
 
   ! update the state time
-  call state%update_time( self%date_time_duration_dt )
+  call state%update_time( self%datetime_duration_dt )
 
 end subroutine model_step
 
@@ -145,21 +146,20 @@ end subroutine jedi_model_destructor
 !> @brief    Run a forecast using the model init, step and final
 !>
 !> @param [inout] state           The state object to propagate
-!> @param [in] date_time_duration The duration of the forecast
-subroutine forecast(self, state, date_time_duration)
+!> @param [in] datetime_duration  The duration of the forecast
+subroutine forecast(self, state, datetime_duration)
 
   implicit none
 
-  class( jedi_model_type ), target, intent(in) :: self
-  type( jedi_state_type ),  intent(inout)      :: state
-  integer, intent(in)                          :: date_time_duration
+  class( jedi_model_type ),   target, intent(in) :: self
+  type( jedi_state_type ),    intent(inout)      :: state
+  type( jedi_duration_type ), intent(in)         :: datetime_duration
 
   ! Local
   type( jedi_datetime_type ) :: datetime_end
 
   ! End time
-  call datetime_end%init( state%datetime )
-  call datetime_end%add_seconds( date_time_duration )
+  datetime_end = state%datetime + datetime_duration
 
   call self%model_init( state )
   ! initialize the post processor

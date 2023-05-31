@@ -87,7 +87,7 @@ contains
     integer(i_def)           :: YYYYMMDD, hhmmss
     integer(i_def)           :: year, month, day
     integer(i_def)           :: hour, minute, second
-    integer(i_def)           :: difference_seconds
+
     character(str_def)       :: iso_datetime, returned_iso_datetime
 
     integer(i_def) :: date, returned_date
@@ -103,9 +103,9 @@ contains
 
     call jedi_datetime%init( YYYYMMDD, hhmmss )
     call jedi_datetime%get_date( returned_date )
-    @assertEqual( returned_date, date )
+    @assertEqual( date, returned_date )
     call jedi_datetime%get_time( returned_time )
-    @assertEqual( returned_time, time )
+    @assertEqual( time, returned_time )
 
     ! Test init with year, month, day, hour, minute, second
     year   = 2023_i_def
@@ -117,62 +117,62 @@ contains
 
     call jedi_datetime%init( year, month, day, hour, minute, second )
     call jedi_datetime%get_date( returned_date )
-    @assertEqual( returned_date, date )
+    @assertEqual( date, returned_date )
     call jedi_datetime%get_time( returned_time )
-    @assertEqual( returned_time, time )
+    @assertEqual( time, returned_time )
 
     ! Test init with iso datetime string
     iso_datetime = '2023-04-05T16:19:30Z'
     call jedi_datetime_2%init( iso_datetime )
     call jedi_datetime_2%get_date( returned_date )
-    @assertEqual( returned_date, date )
+    @assertEqual( date, returned_date )
     call jedi_datetime_2%get_time( returned_time )
-    @assertEqual( returned_time, time )
+    @assertEqual( time, returned_time )
 
     ! Test init from another jedi_datetime instance
-    call jedi_datetime_3%init( jedi_datetime_2 )
+    jedi_datetime_3 = jedi_datetime_2
     call jedi_datetime_3%get_date( returned_date )
-    @assertEqual( returned_date, date )
+    @assertEqual( date, returned_date )
     call jedi_datetime_3%get_time( returned_time )
-    @assertEqual( returned_time, time )
+    @assertEqual( time, returned_time )
 
     ! Test adding negative amount of seconds
     call jedi_datetime_2%add_seconds( -1_i_def )
     call jedi_datetime_2%get_time( returned_time )
-    @assertEqual( returned_time, time - 1_i_def )
+    @assertEqual( time - 1_i_def, returned_time )
 
     ! Test adding seconds
     call jedi_datetime_2%add_seconds( 2_i_def )
     call jedi_datetime_2%get_time( returned_time )
-    @assertEqual( returned_time, time + 1_i_def )
+    @assertEqual( time + 1_i_def, returned_time )
 
-    ! Test getting difference between 2 datetimes
-    call jedi_datetime%seconds_between( jedi_datetime_2, difference_seconds )
-    @assertEqual( difference_seconds, 1_i_def )
+    ! Test adding seconds (over a day)
+    call jedi_datetime_3%add_seconds( 86401_i_def )
+    call jedi_datetime_3%get_date( returned_date )
+    @assertEqual( date + 1_i_def, returned_date )
+    call jedi_datetime_3%get_time( returned_time )
+    @assertEqual( time + 1_i_def, returned_time )
 
-    ! Test getting difference between 2 datetimes
-    call jedi_datetime_2%seconds_between( jedi_datetime, difference_seconds )
-    @assertEqual( difference_seconds, -1_i_def )
-
-    ! Test case if over a days difference
-    iso_datetime = '2023-04-06T16:19:32Z'
-    call jedi_datetime_2%init( iso_datetime )
-    call jedi_datetime%seconds_between( jedi_datetime_2, difference_seconds )
-    @assertEqual( difference_seconds, 86402_i_def )
+    ! Test removing seconds (over a day)
+    call jedi_datetime_3%add_seconds( -172801_i_def )
+    call jedi_datetime_3%get_date( returned_date )
+    @assertEqual( date - 1_i_def, returned_date )
+    call jedi_datetime_3%get_time( returned_time )
+    @assertEqual( time, returned_time )
 
     ! Test is ahead (datetime_2 is ahead of datetime)
     ahead = jedi_datetime_2%is_ahead( jedi_datetime )
-    @assertEqual( ahead, .true. )
+    @assertEqual( .true., ahead )
     ahead = jedi_datetime%is_ahead( jedi_datetime_2 )
-    @assertEqual( ahead, .false. )
+    @assertEqual( .false., ahead )
     ! update datetime_3 so both have the same datetime
-    call jedi_datetime_3%init( jedi_datetime_2 )
+    jedi_datetime_3 = jedi_datetime_2
     ahead = jedi_datetime_3%is_ahead( jedi_datetime_2 )
-    @assertEqual( ahead, .false. )
+    @assertEqual( .false., ahead )
 
     ! Test getting iso string back
     call jedi_datetime_2%to_string( returned_iso_datetime )
-    @assertEqual( returned_iso_datetime, '2023-04-06 16:19:32' )
+    @assertEqual( '2023-04-05 16:19:31', returned_iso_datetime )
 
   end subroutine jedi_datetime_test
 

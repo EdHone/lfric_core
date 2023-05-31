@@ -18,6 +18,7 @@ module jedi_state_mod
   use atlas_field_emulator_mod,      only : atlas_field_emulator_type
   use atlas_field_interface_mod,     only : atlas_field_interface_type
   use jedi_datetime_mod,             only : jedi_datetime_type
+  use jedi_duration_mod,             only : jedi_duration_type
   use jedi_geometry_mod,             only : jedi_geometry_type
   use driver_model_data_mod,         only : model_data_type
   use jedi_state_config_mod,         only : jedi_state_config_type
@@ -174,7 +175,7 @@ subroutine state_initialiser( self, geometry, config )
 
   ! Setup
   self%field_meta_data = config%field_meta_data
-  call self%datetime%init( config%datetime )
+  self%datetime = config%datetime
   self%geometry => geometry
   n_variables = self%field_meta_data%get_n_variables()
 
@@ -418,16 +419,16 @@ end subroutine from_lfric_io_collection
 
 !> @brief    Update the datetime by a single time-step
 !>
-!> @param [in] date_time_duration_dt  Update the datetime by the specified
-!>                                    duration in seconds
-subroutine update_time( self, date_time_duration_dt )
+!> @param [in] seconds  Update the datetime by the specified
+!>                      timestep in seconds
+subroutine update_time( self, seconds )
 
   implicit none
 
   class( jedi_state_type ), intent(inout) :: self
-  integer(i_def),           intent(in)    :: date_time_duration_dt
+  integer(i_def),           intent(in)    :: seconds
 
-  call self%datetime%add_seconds( date_time_duration_dt )
+  call self%datetime%add_seconds( seconds )
 
 end subroutine update_time
 
@@ -436,24 +437,28 @@ end subroutine update_time
 !> @param [in] new_datetime  The datetime to be used to update the LFRic clock
 subroutine set_clock( self, new_datetime )
 
-  use da_dev_driver_mod, only : model_clock
+  use da_dev_driver_mod,       only : model_clock
+  use timestepping_config_mod, only : dt
 
   implicit none
 
   class( jedi_state_type ),   intent(inout) :: self
   type( jedi_datetime_type ), intent(in)    :: new_datetime
 
-  integer(i_def) :: seconds_between
-  integer(i_def) :: iclock
+  type( jedi_duration_type ) :: duration
+  integer(i_def)             :: timestep
+
   logical(l_def) :: clock_stopped
 
-  call self%datetime%seconds_between( new_datetime, seconds_between )
+  timestep = int( dt, kind=i_def )
 
-  if ( seconds_between == 0_i_def ) then
+  duration = new_datetime - self%datetime
+
+  if ( duration == 0_i_def ) then
     write ( log_scratch_space, '(A)' ) &
       "New datetime is the same as the current datetime"
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
-  else if ( seconds_between < 0_i_def ) then
+  else if ( duration < 0_i_def ) then
     write ( log_scratch_space, '(A)' ) &
       "The xios clock can not go backwards."
     call log_event( log_scratch_space, LOG_LEVEL_ERROR )
@@ -463,9 +468,12 @@ subroutine set_clock( self, new_datetime )
   ! running in the case its not being ticked (i.e. datetime==self%datetime).
   ! clock_stopped=.not.clock%is_running() didnt work when I tried it - set to
   ! false initially for now.
+
   clock_stopped = .false.
-  do iclock = 1, seconds_between
+
+  do while ( new_datetime%is_ahead( self%datetime ) )
     clock_stopped = .not. model_clock%tick()
+    call self%datetime%add_seconds( timestep )
   end do
 
   ! Check the clock is still running
@@ -474,8 +482,6 @@ subroutine set_clock( self, new_datetime )
       "State::set_clock::The LFRic clock has stopped."
     call log_event( log_scratch_space, LOG_LEVEL_ERROR )
   end if
-
-  call self%datetime%add_seconds( seconds_between )
 
 end subroutine set_clock
 

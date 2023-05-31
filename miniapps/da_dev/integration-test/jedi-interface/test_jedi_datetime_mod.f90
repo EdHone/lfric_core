@@ -7,7 +7,8 @@
 !>@brief Tests the jedi_datetime type init_lfric_calendar_start routine
 module test_jedi_datetime_mod
 
-  use constants_mod,                 only : i_def
+  use constants_mod,                 only : i_def, l_def
+  use jedi_datetime_mod,             only : jedi_datetime_type
   use log_mod,                       only : log_event, &
                                             LOG_LEVEL_INFO
 
@@ -17,7 +18,9 @@ module test_jedi_datetime_mod
   public test_init_lfric_calendar_start,     &
          test_init_lfric_calendar_start_err, &
          test_init_string_err,               &
-         test_init_from_jedi_datetime_err
+         test_copy_from_jedi_datetime_err,   &
+         test_add_duration_to_datetime,      &
+         test_duration_from_datetimes
 
   character(len=128) :: output
 
@@ -26,8 +29,6 @@ contains
   !> @brief Test initialising a datetime from
   !!        the lfric calendar_start namelist variable
   subroutine test_init_lfric_calendar_start()
-
-    use jedi_datetime_mod, only : jedi_datetime_type
 
     implicit none
 
@@ -59,8 +60,6 @@ contains
   !!        if it hasn't been read yet
   subroutine test_init_lfric_calendar_start_err()
 
-    use jedi_datetime_mod, only : jedi_datetime_type
-
     implicit none
 
     type(jedi_datetime_type) :: jedi_datetime
@@ -73,8 +72,6 @@ contains
   !!        with a bad string
   subroutine test_init_string_err()
 
-    use jedi_datetime_mod, only : jedi_datetime_type
-
     implicit none
 
     type(jedi_datetime_type) :: jedi_datetime
@@ -85,17 +82,91 @@ contains
 
   !> @brief Tests logging an error when attempting to initialise
   !!        a datetime with another uninitialised datetime
-  subroutine test_init_from_jedi_datetime_err()
+  subroutine test_copy_from_jedi_datetime_err()
 
-    use jedi_datetime_mod, only : jedi_datetime_type
+    use jedi_duration_mod, only : jedi_duration_type
 
     implicit none
 
     type(jedi_datetime_type) :: jedi_datetime
     type(jedi_datetime_type) :: jedi_datetime_2
 
-    call jedi_datetime_2%init( jedi_datetime )
+    jedi_datetime_2 = jedi_datetime
 
-  end subroutine test_init_from_jedi_datetime_err
+  end subroutine test_copy_from_jedi_datetime_err
+
+  !> @brief Tests adding a jedi_duration instance to a
+  !!        jedi_datetime instance
+  subroutine test_add_duration_to_datetime()
+
+    use jedi_duration_mod, only : jedi_duration_type
+
+    implicit none
+
+    type(jedi_datetime_type) :: jedi_datetime
+    type(jedi_duration_type) :: jedi_duration
+
+    integer(i_def) :: time, returned_time
+
+    call jedi_datetime%init( 20230405_i_def, 161930_i_def )
+    time = 58772_i_def
+
+    call jedi_duration%init( 2_i_def )
+
+    jedi_datetime = jedi_datetime + jedi_duration
+    call jedi_datetime%get_time( returned_time )
+    if ( time == returned_time ) then
+      call log_event( 'test PASS', LOG_LEVEL_INFO )
+    else
+      write ( output, '(2(A, I10))' ) 'test FAIL with values: time = ', &
+                                      returned_time, ' expected time = ', time
+      call log_event( output, LOG_LEVEL_INFO )
+    end if
+
+  end subroutine test_add_duration_to_datetime
+
+  !> @brief Test getting a duration instance by subtracting
+  !!        one jedi datetime from another
+  subroutine test_duration_from_datetimes()
+
+    use jedi_duration_mod, only : jedi_duration_type
+
+    implicit none
+
+    type(jedi_datetime_type) :: jedi_datetime
+    type(jedi_datetime_type) :: jedi_datetime_2
+    type(jedi_duration_type) :: jedi_duration
+
+    integer(i_def) :: seconds
+
+    logical(l_def) :: pass
+    pass = .true.
+
+    call jedi_datetime%init(   20230405_i_def, 161930_i_def )
+    call jedi_datetime_2%init( 20230405_i_def, 161931_i_def )
+
+    ! Test getting difference between 2 datetimes
+    jedi_duration = jedi_datetime_2 - jedi_datetime
+    call jedi_duration%get_duration( seconds )
+    if ( 1_i_def /= seconds ) pass = .false.
+
+    ! Test getting difference between 2 datetimes
+    jedi_duration = jedi_datetime - jedi_datetime_2
+    call jedi_duration%get_duration( seconds )
+    if ( -1_i_def /= seconds ) pass = .false.
+
+    ! Test case if over a days difference
+    call jedi_datetime_2%init( 20230406_i_def, 161931_i_def )
+    jedi_duration = jedi_datetime_2 - jedi_datetime
+    call jedi_duration%get_duration( seconds )
+    if ( 86401_i_def /= seconds ) pass = .false.
+
+    if ( pass ) then
+      call log_event( 'test PASS', LOG_LEVEL_INFO )
+    else
+      call log_event( 'test FAIL', LOG_LEVEL_INFO )
+    end if
+
+  end subroutine test_duration_from_datetimes
 
 end module test_jedi_datetime_mod

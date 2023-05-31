@@ -16,6 +16,7 @@ module jedi_datetime_mod
                                           hhmmss_to_seconds, &
                                           seconds_to_hhmmss, &
                                           is_valid_datetime
+  use jedi_duration_mod,           only : jedi_duration_type
   use log_mod,                     only : log_event,         &
                                           log_scratch_space, &
                                           LOG_LEVEL_INFO,    &
@@ -24,6 +25,8 @@ module jedi_datetime_mod
 
   implicit none
   private
+
+  integer(i_def), parameter  :: seconds_in_day = 86400
 
   !> @brief This type stores the JEDI date and time
   type, public :: jedi_datetime_type
@@ -39,18 +42,31 @@ module jedi_datetime_mod
     procedure, private :: init_string
     procedure, private :: init_YYMMDD_hhmmss
     procedure, private :: init_YYYYMMDDhhmmss
-    procedure, private :: init_from_jedi_datetime
     generic,   public  :: init => init_iso_string,     &
                                   init_YYMMDD_hhmmss,  &
-                                  init_YYYYMMDDhhmmss, &
-                                  init_from_jedi_datetime
+                                  init_YYYYMMDDhhmmss
 
     procedure, public  :: get_date
+    procedure, private :: set_date
     procedure, public  :: get_time
+    procedure, private :: set_time
+
     procedure, public  :: add_seconds
-    procedure, public  :: seconds_between
     procedure, public  :: is_ahead
+
     procedure, public  :: to_string
+
+    ! new_datetime = datetime
+    procedure, private, pass(self) :: copy
+    generic,   public              :: assignment(=) => copy
+
+    ! new_datetime = datetime + duration
+    procedure, private, pass(self) :: add_duration
+    generic,   public              :: operator(+) => add_duration
+
+    ! duration = datetime1 - datetime2
+    procedure, private, pass(self) :: seconds_between
+    generic,   public              :: operator(-) => seconds_between
 
   end type jedi_datetime_type
 
@@ -125,7 +141,7 @@ contains
     read ( iso_datetime(15:16), '(I2)', iostat=err  ) minute
     read ( iso_datetime(18:19), '(I2)', iostat=err  ) second
 
-    if ( err /= 0_i_def) then
+    if ( err /= 0 ) then
       write ( log_scratch_space, '(A)' ) &
               'Creating JEDI datetime FAIL: Failed to read iso_datetime string'
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
@@ -162,15 +178,15 @@ contains
 
     integer(i_def) :: temp_int
 
-    year     = YYYYMMDD / 10000_i_def       ! remove lower 4 digits, yields YYYY
-    temp_int = mod( YYYYMMDD, 10000_i_def)  ! keep lower 4 digits, yields MMDD
-    month    = temp_int / 100_i_def         ! remove lower 2 digits, yields MM
-    day      = mod(temp_int, 100_i_def)     ! keep lower 2 digits, yields DD
+    year     = YYYYMMDD / 10000        ! remove lower 4 digits, yields YYYY
+    temp_int = mod( YYYYMMDD, 10000 )  ! keep lower 4 digits, yields MMDD
+    month    = temp_int / 100          ! remove lower 2 digits, yields MM
+    day      = mod( temp_int, 100 )    ! keep lower 2 digits, yields DD
 
-    hour     = int(hhmmss, i_def) / 10000_i_def       ! remove lower 4 digits, yields hh
-    temp_int = mod( int(hhmmss, i_def), 10000_i_def)  ! keep lower 4 digits, yields mmss
-    minute   = temp_int / 100_i_def                   ! remove lower 2 digits, yields mm
-    second   = mod( temp_int, 100_i_def )             ! keep lower 2 digits, yeilds ss
+    hour     = int(hhmmss, i_def) / 10000        ! remove lower 4 digits, yields hh
+    temp_int = mod( int(hhmmss, i_def), 10000 )  ! keep lower 4 digits, yields mmss
+    minute   = temp_int / 100                    ! remove lower 2 digits, yields mm
+    second   = mod( temp_int, 100 )              ! keep lower 2 digits, yeilds ss
 
     call self%init_YYYYMMDDhhmmss( year, month, day, hour, minute, second )
 
@@ -210,62 +226,61 @@ contains
 
   end subroutine init_YYYYMMDDhhmmss
 
-  !> @brief Initialise a datetime from another datetime instance
-  !!
-  !> @param [inout] datetime A jedi_datetime instance to copy from
-  subroutine init_from_jedi_datetime( self, datetime )
-
-    implicit none
-
-    class( jedi_datetime_type ), intent(inout) :: self
-    type( jedi_datetime_type ),  intent(inout) :: datetime
-
-    integer(i_def) :: date_to_copy, time_to_copy
-    logical(l_def) :: valid
-
-    call datetime%get_date( date_to_copy )
-    call datetime%get_time( time_to_copy )
-
-    valid = is_valid_datetime( date_to_copy, time_to_copy )
-
-    if ( .not. valid ) then
-      write ( log_scratch_space, '(A)' ) &
-        'Cannot initialise this datetime from an invalid / unitiliased datetime'
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    self%date = date_to_copy
-    self%time = time_to_copy
-
-  end subroutine init_from_jedi_datetime
-
   !> @brief Gets the date from the datetime instance
   !!
-  !> @param [inout] date The Julian Day Number
+  !> @param [out] date The Julian Day Number
   subroutine get_date( self, date )
 
     implicit none
 
-    class( jedi_datetime_type ), intent(inout) :: self
-    integer(i_def),              intent(inout) :: date
+    class( jedi_datetime_type ), intent(in)  :: self
+    integer(i_def),              intent(out) :: date
 
     date = self%date
 
   end subroutine get_date
 
-  !> @brief Gets the time from the datetime instance
+  !> @brief Sets the date from the datetime instance
   !!
-  !> @param [inout] time Seconds since the start of the day
-  subroutine get_time( self, time )
+  !> @param [in] date The Julian Day Number
+  subroutine set_date( self, date )
 
     implicit none
 
     class( jedi_datetime_type ), intent(inout) :: self
-    integer(i_def),              intent(inout) :: time
+    integer(i_def),              intent(in)    :: date
+
+    self%date = date
+
+  end subroutine set_date
+
+  !> @brief Gets the time from the datetime instance
+  !!
+  !> @param [out] time Seconds since the start of the day
+  subroutine get_time( self, time )
+
+    implicit none
+
+    class( jedi_datetime_type ), intent(in)  :: self
+    integer(i_def),              intent(out) :: time
 
     time = self%time
 
   end subroutine get_time
+
+  !> @brief Sets the time from the datetime instance
+  !!
+  !> @param [in] time Seconds since the start of the day
+  subroutine set_time( self, time )
+
+    implicit none
+
+    class( jedi_datetime_type ), intent(inout) :: self
+    integer(i_def),              intent(in)    :: time
+
+    self%time = time
+
+  end subroutine set_time
 
   !> @brief Adds a time in seconds to the datetime instance
   !!
@@ -279,48 +294,24 @@ contains
 
     integer(i_def) :: days
     integer(i_def) :: new_time
-    integer(i_def), parameter  :: seconds_per_day = 86400_i_def
 
     new_time = seconds
-    days = new_time / seconds_per_day
+    days = new_time / seconds_in_day
 
     self%date = self%date + days
-    new_time = mod( new_time, seconds_per_day )
+    new_time = mod( new_time, seconds_in_day )
 
     self%time = self%time + new_time
 
-    if ( self%time < 0_i_def ) then
-      self%date = self%date - 1_i_def
-      self%time = self%time + seconds_per_day
-    else if ( self%time >= seconds_per_day ) then
-      self%date = self%date + 1_i_def
-      self%time = self%time - seconds_per_day
+    if ( self%time < 0 ) then
+      self%date = self%date - 1
+      self%time = self%time + seconds_in_day
+    else if ( self%time >= seconds_in_day ) then
+      self%date = self%date + 1
+      self%time = self%time - seconds_in_day
     end if
 
   end subroutine
-
-  !> @brief Calculates the number of seconds between two datetimes
-  !!
-  !> @param [in]    datetime     The jedi_datetime instance to compare with
-  !> @param [inout] diff_seconds The difference between the two datetimes
-  subroutine seconds_between( self, datetime, diff_seconds )
-
-    implicit none
-
-    class( jedi_datetime_type ), intent(in)    :: self
-    class( jedi_datetime_type ), intent(in)    :: datetime
-    integer(i_def),              intent(inout) :: diff_seconds
-
-    integer(i_def), parameter :: seconds_per_day = 86400_i_def
-    integer(i_def)            :: diff_date
-    integer(i_def)            :: diff_time
-
-    diff_date = datetime%date - self%date
-    diff_time = datetime%time - self%time
-
-    diff_seconds = diff_date * seconds_per_day + diff_time
-
-  end subroutine seconds_between
 
   !> @brief Returns true if the datetime is ahead in time of the passed datetime
   !!
@@ -334,12 +325,13 @@ contains
 
     logical(l_def) :: is_ahead
 
-    integer(i_def) :: seconds_ahead
+    type( jedi_duration_type ) :: duration
 
     is_ahead = .false.
 
-    call self%seconds_between( datetime, seconds_ahead )
-    if ( seconds_ahead < 0 ) is_ahead = .true.
+    duration = datetime - self
+
+    if ( duration < 0 ) is_ahead = .true.
 
   end function is_ahead
 
@@ -387,5 +379,87 @@ contains
     iso_datetime = trim(iso_datetime) // temp_str_2
 
   end subroutine to_string
+
+  !> @brief Overload assignment
+  !!
+  !> @param [in] from datetime instance to copy from
+  subroutine copy( self, from )
+
+    implicit none
+
+    class( jedi_datetime_type ), intent(inout) :: self
+    class( jedi_datetime_type ), intent(in)    :: from
+
+    integer(i_def) :: date_to_copy, time_to_copy
+    logical(l_def) :: valid
+
+    date_to_copy = from%date
+    time_to_copy = from%time
+
+    valid = is_valid_datetime( date_to_copy, time_to_copy )
+
+    if ( .not. valid ) then
+      write ( log_scratch_space, '(A)' ) &
+        'Cannot initialise this datetime from an invalid / unitiliased datetime'
+      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+    end if
+
+    self%date = date_to_copy
+    self%time = time_to_copy
+
+  end subroutine copy
+
+  !> @brief Overload + operator for datetime + duration
+  !!
+  !> @param [in] duration     duration instance to add to datetime
+  !> @result     new_datetime New datetime instance
+  function add_duration( self, duration ) result(new_datetime)
+
+    implicit none
+
+    class( jedi_datetime_type ), intent(in) :: self
+    type( jedi_duration_type ),  intent(in) :: duration
+
+    type( jedi_datetime_type ) :: new_datetime
+
+    integer(i_def) :: date
+    integer(i_def) :: time
+    integer(i_def) :: seconds
+
+    date = self%date
+    time = self%time
+
+    call new_datetime%set_date( date )
+    call new_datetime%set_time( time )
+
+    call duration%get_duration( seconds )
+    call new_datetime%add_seconds( seconds )
+
+  end function add_duration
+
+  !> @brief Calculates the number of seconds between two datetimes
+  !!
+  !> @param [in] datetime  The jedi_datetime instance to subtract
+  !> @result     duration  Seconds between the two datetimes
+  function seconds_between( self, datetime ) result(duration)
+
+    implicit none
+
+    class( jedi_datetime_type ), intent(in)    :: self
+    type( jedi_datetime_type ),  intent(in)    :: datetime
+
+    type( jedi_duration_type ) :: duration
+
+    integer(i_def)            :: diff_date
+    integer(i_def)            :: diff_time
+    integer(i_def)            :: diff_seconds
+
+    diff_date = self%date - datetime%date
+    diff_time = self%time - datetime%time
+
+    diff_seconds = diff_date * seconds_in_day + diff_time
+    call duration%init( diff_seconds )
+
+  end function seconds_between
 
 end module jedi_datetime_mod

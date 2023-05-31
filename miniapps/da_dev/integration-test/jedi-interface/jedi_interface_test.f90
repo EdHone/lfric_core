@@ -15,17 +15,25 @@ program jedi_interface_test
   use constants_mod,                  only : i_def, r_def, l_def
   use halo_comms_mod,                 only : initialise_halo_comms, &
                                              finalise_halo_comms
-  use test_jedi_interface_driver_mod, only : test_jedi_interface_init,          &
-                                             test_jedi_interface_final,         &
-                                             run_init_lfric_calendar_start,     &
-                                             run_init_lfric_calendar_start_err, &
-                                             run_init_string_err,               &
-                                             run_init_from_jedi_datetime_err,   &
-                                             run_YYYYMMDD_to_JDN,               &
-                                             run_JDN_to_YYYYMMDD_invalid,       &
-                                             run_hhmmss_to_seconds,             &
-                                             run_seconds_to_hhmmss_large,       &
-                                             run_seconds_to_hhmmss_neg
+  use test_jedi_interface_driver_mod, only : test_jedi_interface_init,             &
+                                             test_jedi_interface_final,            &
+                                             run_init_lfric_calendar_start,        &
+                                             run_init_lfric_calendar_start_err,    &
+                                             run_init_string_err,                  &
+                                             run_copy_from_jedi_datetime_err,      &
+                                             run_add_duration_to_datetime,         &
+                                             run_duration_from_datetimes,          &
+                                             run_YYYYMMDD_to_JDN,                  &
+                                             run_JDN_to_YYYYMMDD_invalid,          &
+                                             run_hhmmss_to_seconds,                &
+                                             run_seconds_to_hhmmss_large,          &
+                                             run_seconds_to_hhmmss_neg,            &
+                                             run_duration_init_bad_string_err,     &
+                                             run_duration_divide_zero_err,         &
+                                             run_duration_divide_remainder_err,    &
+                                             run_duration_divide_int_zero_err,     &
+                                             run_duration_divide_int_remainder_err
+
   use log_mod,                        only : log_event,          &
                                              initialise_logging, &
                                              finalise_logging,   &
@@ -48,20 +56,28 @@ program jedi_interface_test
   integer(i_def)   :: length, status, nargs
   character(len=0) :: dummy
   character(len=:), allocatable :: program_name, test_flag
+  character(len=:), allocatable :: optional_arg
 
   ! Flags which determine the tests that will be carried out
   logical(l_def) :: do_test_init_lfric_calendar_start = .false.
   logical(l_def) :: do_test_init_lfric_calendar_start_err = .false.
   logical(l_def) :: do_test_init_string_err = .false.
-  logical(l_def) :: do_test_init_from_jedi_datetime_err = .false.
+  logical(l_def) :: do_test_copy_from_jedi_datetime_err = .false.
+  logical(l_def) :: do_test_add_duration_to_datetime = .false.
+  logical(l_def) :: do_test_duration_from_datetimes = .false.
   logical(l_def) :: do_test_YYYYMMDD_to_JDN = .false.
   logical(l_def) :: do_test_JDN_to_YYYYMMDD_invalid = .false.
   logical(l_def) :: do_test_hhmmss_to_seconds = .false.
   logical(l_def) :: do_test_seconds_to_hhmmss_large = .false.
   logical(l_def) :: do_test_seconds_to_hhmmss_neg = .false.
+  logical(l_def) :: do_test_duration_init_bad_string_err = .false.
+  logical(l_def) :: do_test_duration_divide_zero_err = .false.
+  logical(l_def) :: do_test_duration_divide_remainder_err = .false.
+  logical(l_def) :: do_test_duration_divide_int_zero_err = .false.
+  logical(l_def) :: do_test_duration_divide_int_remainder_err = .false.
 
   ! Usage message to print
-  character(len=256) :: usage_message
+  character(len=512) :: usage_message
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Communicators and Logging Setup
@@ -88,19 +104,28 @@ program jedi_interface_test
   nargs = command_argument_count()
 
   ! Print out usage message if wrong number of arguments is specified
-  if (nargs /= 2) then
+  if (nargs /= 3) then
     write(usage_message,*) "Usage: ",trim(program_name), &
-      " <namelist filename> "            // &
-      " test_XXX with XXX in { "         // &
-      " init_lfric_calendar_start, "     // &
-      " init_lfric_calendar_start_err, " // &
-      " init_string_err, "               // &
-      " init_from_jedi_datetime_err, "   // &
-      " YYYYMMDD_to_JDN, "               // &
-      " JDN_to_YYYYMMDD_invalid, "       // &
-      " hhmmss_to_seconds, "             // &
-      " seconds_to_hhmmss_large, "       // &
-      " seconds_to_hhmmss_neg, "         // &
+      " <namelist filename> "                // &
+      " test_XXX "                           // &
+      " optional_test__arg "                 // &
+      " with XXX in { "                      // &
+      " init_lfric_calendar_start, "         // &
+      " init_lfric_calendar_start_err, "     // &
+      " init_string_err, "                   // &
+      " copy_from_jedi_datetime_err, "       // &
+      " add_duration_to_datetime, "          // &
+      " duration_from_datetimes, "           // &
+      " YYYYMMDD_to_JDN, "                   // &
+      " JDN_to_YYYYMMDD_invalid, "           // &
+      " hhmmss_to_seconds, "                 // &
+      " seconds_to_hhmmss_large, "           // &
+      " seconds_to_hhmmss_neg, "             // &
+      " duration_init_bad_string_err, "      // &
+      " duration_divide_zero_err, "          // &
+      " duration_divide_remainder_err, "     // &
+      " duration_divide_int_zero_err, "      // &
+      " duration_divide_int_remainder_err "  // &
       " } "
     call log_event( trim(usage_message), LOG_LEVEL_ERROR )
   end if
@@ -122,8 +147,12 @@ program jedi_interface_test
     do_test_init_lfric_calendar_start_err = .true.
   case ("test_init_string_err")
     do_test_init_string_err = .true.
-  case ("test_init_from_jedi_datetime_err")
-    do_test_init_from_jedi_datetime_err = .true.
+  case ("test_copy_from_jedi_datetime_err")
+    do_test_copy_from_jedi_datetime_err = .true.
+  case ("test_add_duration_to_datetime")
+    do_test_add_duration_to_datetime = .true.
+  case ("test_duration_from_datetimes")
+    do_test_duration_from_datetimes = .true.
   case ("test_YYYYMMDD_to_JDN")
     do_test_YYYYMMDD_to_JDN = .true.
   case ("test_JDN_to_YYYYMMDD_invalid")
@@ -134,6 +163,16 @@ program jedi_interface_test
     do_test_seconds_to_hhmmss_large = .true.
   case ("test_seconds_to_hhmmss_neg")
     do_test_seconds_to_hhmmss_neg = .true.
+  case ("test_duration_init_bad_string_err")
+    do_test_duration_init_bad_string_err = .true.
+  case ("test_duration_divide_zero_err")
+    do_test_duration_divide_zero_err = .true.
+  case ("test_duration_divide_remainder_err")
+    do_test_duration_divide_remainder_err = .true.
+  case ("test_duration_divide_int_zero_err")
+    do_test_duration_divide_int_zero_err = .true.
+  case ("test_duration_divide_int_remainder_err")
+    do_test_duration_divide_int_remainder_err = .true.
   case default
     call log_event( "Unknown test", LOG_LEVEL_ERROR )
   end select
@@ -153,8 +192,14 @@ program jedi_interface_test
   if ( do_test_init_string_err ) then
     call run_init_string_err()
   end if
-  if ( do_test_init_from_jedi_datetime_err ) then
-    call run_init_from_jedi_datetime_err()
+  if ( do_test_copy_from_jedi_datetime_err ) then
+    call run_copy_from_jedi_datetime_err()
+  end if
+  if ( do_test_add_duration_to_datetime ) then
+    call run_add_duration_to_datetime()
+  end if
+  if ( do_test_duration_from_datetimes ) then
+    call run_duration_from_datetimes()
   end if
   if ( do_test_YYYYMMDD_to_JDN ) then
     call run_YYYYMMDD_to_JDN()
@@ -170,6 +215,33 @@ program jedi_interface_test
   end if
   if ( do_test_seconds_to_hhmmss_neg ) then
     call run_seconds_to_hhmmss_neg()
+  end if
+  if ( do_test_duration_init_bad_string_err ) then
+
+    call get_command_argument( 3, dummy, length, status )
+    allocate(character(length)::optional_arg)
+    call get_command_argument( 3, optional_arg, length, status )
+
+    write(usage_message,*) "test_duration_init_bad_string_err " // &
+                           "with bad string: ", trim(optional_arg)
+    call log_event( trim(usage_message), LOG_LEVEL_INFO )
+
+    call run_duration_init_bad_string_err( optional_arg )
+
+    deallocate(optional_arg)
+
+  end if
+  if ( do_test_duration_divide_zero_err ) then
+    call run_duration_divide_zero_err()
+  end if
+  if ( do_test_duration_divide_remainder_err ) then
+    call run_duration_divide_remainder_err()
+  end if
+  if ( do_test_duration_divide_int_zero_err ) then
+    call run_duration_divide_int_zero_err()
+  end if
+  if ( do_test_duration_divide_int_remainder_err ) then
+    call run_duration_divide_int_remainder_err()
   end if
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

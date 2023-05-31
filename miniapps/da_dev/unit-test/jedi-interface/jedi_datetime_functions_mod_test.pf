@@ -110,14 +110,14 @@ contains
     julian_day_number = 2460040_i_def
 
     call YYYYMMDD_to_JDN( year, month, day, returned_julian_day_number )
-    @assertEqual( returned_julian_day_number, julian_day_number )
+    @assertEqual( julian_day_number, returned_julian_day_number )
 
     ! Test JDN_to_YYYYMMDD conversion to year, month, day
     call JDN_to_YYYYMMDD( julian_day_number, returned_year, &
                           returned_month, returned_day )
-    @assertEqual( returned_year, year )
-    @assertEqual( returned_month, month )
-    @assertEqual( returned_day, day )
+    @assertEqual( year, returned_year )
+    @assertEqual( month, returned_month )
+    @assertEqual( day, returned_day )
 
     ! Test hhmmss_to_seconds
     hour   = 16_i_def
@@ -127,70 +127,70 @@ contains
     time_seconds = 58770_i_def
 
     call hhmmss_to_seconds( hour, minute, second, returned_time_seconds )
-    @assertEqual( returned_time_seconds, time_seconds )
+    @assertEqual( time_seconds, returned_time_seconds )
 
     ! Test seconds_to_hhmmss
     call seconds_to_hhmmss( time_seconds, returned_hour, &
                             returned_minute, returned_second )
-    @assertEqual( returned_hour, hour )
-    @assertEqual( returned_minute, minute )
-    @assertEqual( returned_second, second )
+    @assertEqual( hour, returned_hour )
+    @assertEqual( minute, returned_minute )
+    @assertEqual( second, returned_second )
 
     ! Logic tests
     ! year, month, day tests
     valid = is_valid_YYYYMMDD( year, month, day )        ! good date
-    @assertEqual( valid, .true. )
+    @assertEqual( .true., valid )
 
     valid = is_valid_YYYYMMDD( -5000_i_def, month, day ) ! bad year
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     valid = is_valid_YYYYMMDD( year, 13_i_def, day )     ! bad month
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
     valid = is_valid_YYYYMMDD( year, 00_i_def, day )     ! bad month
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     valid = is_valid_YYYYMMDD( year, month, 32_i_def )   ! bad day
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
     valid = is_valid_YYYYMMDD( year, month, 00_i_def )   ! bad day
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     valid = is_valid_YYYYMMDD( 2023_i_def, 02_i_def, 29_i_def ) ! Feb non leap
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
     valid = is_valid_YYYYMMDD( 2024_i_def, 02_i_def, 29_i_def ) ! Feb leap
-    @assertEqual( valid, .true. )
+    @assertEqual( .true., valid )
 
     ! leap year tests
     valid = is_leap_year( 2021_i_def )
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     valid = is_leap_year( 2000_i_def )
-    @assertEqual( valid, .true. )
+    @assertEqual( .true., valid )
 
     valid = is_leap_year( 2024_i_def )
-    @assertEqual( valid, .true. )
+    @assertEqual( .true., valid )
 
     ! hour, minute, day tests
     valid = is_valid_hhmmss( hour, minute, second )      ! good time
-    @assertEqual( valid, .true. )
+    @assertEqual( .true., valid )
 
     valid = is_valid_hhmmss( -01_i_def, minute, second ) ! bad hour
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
     valid = is_valid_hhmmss( 24_i_def, minute, second )  ! bad hour
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     valid = is_valid_hhmmss( hour, -01_i_def, second ) ! bad minute
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
     valid = is_valid_hhmmss( hour, 60_i_def, second )  ! bad minute
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     valid = is_valid_hhmmss( hour, minute, -01_i_def ) ! bad second
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
     valid = is_valid_hhmmss( hour, minute, 60_i_def )  ! bad second
-    @assertEqual( valid, .false. )
+    @assertEqual( .false., valid )
 
     ! date time test
     valid = is_valid_datetime( 2460040_i_def, 58770_i_def )
-    @assertEqual( valid, .true. )
+    @assertEqual( .true., valid )
 
   end subroutine jedi_datetime_functions_test
 
