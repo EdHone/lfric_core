@@ -124,11 +124,11 @@ contains
     call log_event( 'shallow_water: Initialising prognostic fields', LOG_LEVEL_INFO )
 
     ! Initialise total geopotential and subtract surface geopotential
-    call invoke( initial_geopot_kernel_type(geopot, domain_size_x, chi), &
+    call invoke( initial_geopot_kernel_type(geopot, chi, panel_id, domain_size_x), &
                  inc_X_minus_Y(geopot, s_geopot) )
 
     if ( thermal_swe ) then
-      call invoke( initial_swe_buoyancy_kernel_type(buoyancy, domain_size_x, chi) )
+      call invoke( initial_swe_buoyancy_kernel_type(buoyancy, chi, panel_id, domain_size_x) )
     else
       call invoke( setval_c( buoyancy, 1.0_r_def ) )
     end if
@@ -245,14 +245,16 @@ contains
 
     ! Coordinate field
     type( field_type ), pointer :: chi(:) => null()
+    type( field_type ), pointer :: panel_id => null()
 
     ! Get coordinates
     chi => get_coordinates(s_geopot%get_mesh_id())
+    panel_id => get_panel_id(s_geopot%get_mesh_id())
 
     ! Set surface geopotential
-    call invoke( initial_surface_geopot_kernel_type(s_geopot, chi) )
+    call invoke( initial_surface_geopot_kernel_type(s_geopot, chi, panel_id) )
 
-    nullify( chi )
+    nullify( chi, panel_id )
 
   end subroutine swe_init_surface_alg
 

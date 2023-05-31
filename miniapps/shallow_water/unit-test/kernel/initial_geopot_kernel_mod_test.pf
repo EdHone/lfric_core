@@ -51,6 +51,7 @@ contains
 
     use base_mesh_config_mod,      only : geometry_planar,    &
                                           topology_fully_periodic
+    use chi_transform_mod,         only : init_chi_transforms
     use feign_config_mod,          only : feign_base_mesh_config,      &
                                           feign_finite_element_config, &
                                           feign_planet_config,         &
@@ -94,16 +95,23 @@ contains
                                               swe_test = swe_test_swe_geostr_balance,   &
                                               thermal_swe = .false. )
 
+    call init_chi_transforms()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
+    use chi_transform_mod,        only: final_chi_transforms
     use configuration_mod,        only: final_configuration
 
     implicit none
 
     class(initial_geopot_test_type), intent(inout) :: this
+
+    ! Finalise namelists
+    call final_chi_transforms()
+    call final_configuration()
 
   end subroutine tearDown
 
@@ -134,14 +142,15 @@ contains
     integer :: i, j, k, cell
 
     integer(i_def)              :: nlayers, ncells, nqp_h, nqp_v
-    integer(i_def)              :: ndf_w0, ndf_w2, ndf_w3
+    integer(i_def)              :: ndf_w0, ndf_w2, ndf_w3, ndf_pid
     integer(i_def)              :: dim_space, dim_space_diff
-    integer(i_def)              :: undf_w0, undf_w2, undf_w3
+    integer(i_def)              :: undf_w0, undf_w2, undf_w3, undf_pid
 
     ! Dofmaps
     integer(i_def), allocatable :: map_w0(:,:)
     integer(i_def), allocatable :: map_w2(:,:)
     integer(i_def), allocatable :: map_w3(:,:)
+    integer(i_def), allocatable :: map_pid(:,:)
 
     ! Basis functions
     real(r_def),    allocatable :: basis_w0(:,:,:,:)
@@ -153,6 +162,10 @@ contains
     real(r_def),    allocatable :: wv(:)
 
     nlayers = 3
+    call get_w3_m3x3_q3x3x3_size( ndf_pid, undf_pid, ncells, &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v,              &
+                                  1 )
     call get_w0_m3x3_q3x3x3_size( ndf_w0, undf_w0, ncells,   &
                                   dim_space, dim_space_diff, &
                                   nqp_h, nqp_v,              &
@@ -169,6 +182,7 @@ contains
     call get_w0_m3x3_dofmap(map_w0)
     call get_w2_m3x3_dofmap(map_w2)
     call get_w3_m3x3_dofmap(map_w3)
+    call get_w3_m3x3_dofmap(map_pid, 1)
 
     call get_gaussian_q3x3x3_quadrature_weights_xy( wh )
     call get_gaussian_q3x3x3_quadrature_weights_z( wv )
@@ -182,7 +196,7 @@ contains
     allocate(chi1(undf_w0))
     allocate(chi2(undf_w0))
     allocate(chi3(undf_w0))
-    allocate(panel_id(undf_w3))
+    allocate(panel_id(undf_pid))
 
     panel_id(:) = 1.0_r_def
     call get_w0_3x3x3_field(chi1, chi2, chi3, dx, dy, dz, &
@@ -195,10 +209,11 @@ contains
     geopot(:) = 0.0_r_def
 
     ! Use geostrophic balance test
-    call initial_geopot_code( nlayers, geopot, domain_x, &
-                              chi1, chi2, chi3,          &
-                              ndf_w3, undf_w3, map_w3,   &
-                              ndf_w0, undf_w0, map_w0, basis_w0 )
+    call initial_geopot_code(nlayers, geopot,                      &
+                             chi1, chi2, chi3, panel_id, domain_x, &
+                             ndf_w3, undf_w3, map_w3,              &
+                             ndf_w0, undf_w0, map_w0, basis_w0,    &
+                             ndf_pid, undf_pid, map_pid)
 
     answer = 0.998483873274083_r_def
     @assertEqual(answer, geopot(cell), tol)
@@ -208,6 +223,7 @@ contains
     deallocate( chi2 )
     deallocate( chi3 )
     deallocate( panel_id )
+    deallocate( map_pid )
     deallocate( map_w0 )
     deallocate( map_w2 )
     deallocate( map_w3 )

@@ -72,9 +72,10 @@ contains
 !> @param[in,out] r_q            Potential vorticity right hand side
 !> @param[in]     curl_u         Strong curl of wind field projected into W1 space
 !> @param[in]     geopot         Geopotential field
-!> @param[in]     chi_1          Physical x coordinate in chi
-!> @param[in]     chi_2          Physical y coordinate in chi
-!> @param[in]     chi_3          Physical z coordinate in chi
+!> @param[in]     chi_1          1st coordinate field
+!> @param[in]     chi_2          2nd coordinate field
+!> @param[in]     chi_3          3rd coordinate field
+!> @param[in]     panel_id       Field containing the ID of the mesh panel
 !> @param[in]     ndf_w2         Number of degrees of freedom per cell for w2
 !> @param[in]     undf_w2        Number unique of degrees of freedom  for w2
 !> @param[in]     map_w2         Dofmap for the cell at the base of the column for w2
@@ -84,6 +85,9 @@ contains
 !> @param[in]     map_chi        Dofmap for the cell at the base of the column for chi
 !> @param[in]     chi_basis      Basis functions evaluated at quadrature points.
 !> @param[in]     chi_diff_basis Differential of the basis functions evaluated at gaussian quadrature point
+!> @param[in]     ndf_pid        The number of DoFs per cell for the panel ID
+!> @param[in]     undf_pid       The number of DoFs for this partition for the panel ID
+!> @param[in]     map_pid        DoF-map for the panel ID
 !> @param[in]     nqp_h          Number of quadrature points in the horizontal
 !> @param[in]     nqp_v          Number of quadrature points in the vertical
 !> @param[in]     wqp_h          Horizontal quadrature weights
@@ -94,7 +98,7 @@ subroutine initial_vorticity_v2_code(nlayers, r_q, curl_u, geopot,      &
                                      ndf_w2, undf_w2, map_w2, w2_basis, &
                                      ndf_chi, undf_chi, map_chi,        &
                                      chi_basis, chi_diff_basis,         &
-                                     ndf_pid, undf_pid, map_pid, &
+                                     ndf_pid, undf_pid, map_pid,        &
                                      nqp_h, nqp_v, wqp_h, wqp_v )
 
   implicit none
@@ -161,17 +165,17 @@ subroutine initial_vorticity_v2_code(nlayers, r_q, curl_u, geopot,      &
                                 rotation_vector)
   end if
 
-  call coordinate_jacobian(ndf_chi,       &
-                          nqp_h,          &
-                          nqp_v,          &
-                          chi_1_e,        &
-                          chi_2_e,        &
-                          chi_3_e,        &
-                          ipanel,         &
-                          chi_basis,      &
-                          chi_diff_basis, &
-                          jac,            &
-                          dj)
+  call coordinate_jacobian(ndf_chi,        &
+                           nqp_h,          &
+                           nqp_v,          &
+                           chi_1_e,        &
+                           chi_2_e,        &
+                           chi_3_e,        &
+                           ipanel,         &
+                           chi_basis,      &
+                           chi_diff_basis, &
+                           jac,            &
+                           dj)
 
   call coordinate_jacobian_inverse(nqp_h, nqp_v, jac, dj, jac_inv)
 

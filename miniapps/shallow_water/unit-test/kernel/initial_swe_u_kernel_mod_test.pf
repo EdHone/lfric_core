@@ -51,6 +51,7 @@ contains
 
     use base_mesh_config_mod,              only: geometry_planar,    &
                                                  topology_fully_periodic
+    use chi_transform_mod,                 only: init_chi_transforms
     use feign_config_mod,                  only: feign_base_mesh_config,                &
                                                  feign_finite_element_config,           &
                                                  feign_shallow_water_test_coeff_config, &
@@ -94,16 +95,23 @@ contains
                   swe_test = swe_test_swe_gaussian_hill,   &
                   ref_gp = 10000.0_r_def )
 
+    call init_chi_transforms()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
+    use chi_transform_mod,        only: final_chi_transforms
     use configuration_mod,        only: final_configuration
 
     implicit none
 
     class(initial_swe_u_test_type), intent(inout) :: this
+
+    ! Finalise namelists
+    call final_chi_transforms()
+    call final_configuration()
 
   end subroutine tearDown
 
@@ -194,13 +202,14 @@ contains
     allocate( r_u( undf_w2 ) )
     r_u(:) = 0.0_r_def
 
-    call initial_swe_u_code( nlayers, r_u,                         &
-                             chi1, chi2, chi3, panel_id, domain_x, &
-                             ndf_w2, undf_w2, map_w2, basis_w2,    &
-                             ndf_w0, undf_w0,                      &
-                             map_w0, basis_w0, diff_basis_w0,      &
-                             ndf_w3, undf_w3, map_w3,              &
-                             nqp_h, nqp_v, wh, wv )
+    call initial_swe_u_code(nlayers, r_u,                      &
+                            chi1, chi2, chi3, panel_id,        &
+                            domain_x,                          &
+                            ndf_w2, undf_w2, map_w2, basis_w2, &
+                            ndf_w0, undf_w0,                   &
+                            map_w0, basis_w0, diff_basis_w0,   &
+                            ndf_w3, undf_w3, map_w3,           &
+                            nqp_h, nqp_v, wh, wv)
 
     ! Test kernel gives the values (u1,-u2,0) for r_u
 

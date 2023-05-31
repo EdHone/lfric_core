@@ -12,9 +12,8 @@
 module initial_swe_u_kernel_mod
 
   use argument_mod,            only : arg_type, func_type,             &
-                                      GH_FIELD, GH_SCALAR, GH_INC,     &
-                                      GH_READ,                         &
-                                      ANY_SPACE_9, GH_REAL,            &
+                                      GH_FIELD, GH_INC, GH_READ,       &
+                                      ANY_SPACE_9, GH_REAL, GH_SCALAR, &
                                       GH_BASIS, GH_DIFF_BASIS,         &
                                       CELL_COLUMN, GH_QUADRATURE_XYoZ, &
                                       ANY_DISCONTINUOUS_SPACE_3
@@ -64,11 +63,11 @@ contains
 !> @brief Compute the right hand side to initialise the wind field.
 !> @param[in]     nlayers        Number of layers
 !> @param[in,out] rhs            Right hand side field to compute
-!> @param[in]     chi_1          X component of the coordinate field
-!> @param[in]     chi_2          Y component of the coordinate field
-!> @param[in]     chi_3          Z component of the coordinate field
-!> @param[in]     panel_id
-!> @param[in]     domain_x       domain_size in x direction.
+!> @param[in]     chi_1          1st component of the coordinate field
+!> @param[in]     chi_2          2nd component of the coordinate field
+!> @param[in]     chi_3          3rd component of the coordinate field
+!> @param[in]     panel_id       Field containing the ID of the mesh panel
+!> @param[in]     domain_x       domain_size in x direction
 !> @param[in]     ndf            Number of degrees of freedom per cell
 !> @param[in]     undf           Total number of degrees of freedom
 !> @param[in]     map            Dofmap for the cell at the base of the column
@@ -78,13 +77,16 @@ contains
 !> @param[in]     map_chi        Dofmap for the coordinate field
 !> @param[in]     chi_basis      Basis functions evaluated at gaussian quadrature points
 !> @param[in]     chi_diff_basis Basis functions evaluated at gaussian quadrature points
+!> @param[in]     ndf_pid        The number of DoFs per cell for the panel ID
+!> @param[in]     undf_pid       The number of DoFs for this partition for the panel ID
+!> @param[in]     map_pid        DoF-map for the panel ID
 !> @param[in]     nqp_h          Number of quadrature points in the horizontal
 !> @param[in]     nqp_v          Number of quadrature points in the vertical
 !> @param[in]     wqp_h          Horizontal quadrature weights
 !> @param[in]     wqp_v          Vertical quadrature weights
 subroutine initial_swe_u_code( nlayers, rhs,                       &
-                               chi_1, chi_2, chi_3,                &
-                               panel_id, domain_x,                 &
+                               chi_1, chi_2, chi_3, panel_id,      &
+                               domain_x,                           &
                                ndf, undf, map, basis,              &
                                ndf_chi, undf_chi,                  &
                                map_chi, chi_basis, chi_diff_basis, &
@@ -95,8 +97,8 @@ subroutine initial_swe_u_code( nlayers, rhs,                       &
   use base_mesh_config_mod,           only : geometry, &
                                              geometry_spherical
   use coordinate_jacobian_mod,        only : coordinate_jacobian
-  use coord_transform_mod,            only : sphere2cart_vector, &
-                                             xyz2llr
+  use coord_transform_mod,            only : sphere2cart_vector
+  use chi_transform_mod,              only : chi2llr, chi2xyz
 
   implicit none
 
@@ -126,7 +128,8 @@ subroutine initial_swe_u_code( nlayers, rhs,                       &
   real(kind=r_def), dimension(nqp_h,nqp_v)     :: dj
   real(kind=r_def), dimension(3,3,nqp_h,nqp_v) :: jacobian
   real(kind=r_def), dimension(ndf_chi)         :: chi_1_cell, chi_2_cell, chi_3_cell
-  real(kind=r_def), dimension(3)               :: u_physical, u_spherical, xyz, llr
+  real(kind=r_def), dimension(3)               :: u_physical, u_spherical
+  real(kind=r_def), dimension(3)               :: coord, xyz, llr
   real(kind=r_def)                             :: integrand
 
   integer(kind=i_def) :: ipanel
@@ -153,17 +156,18 @@ subroutine initial_swe_u_code( nlayers, rhs,                       &
   do qp2 = 1, nqp_v
     do qp1 = 1, nqp_h
       ! Compute analytical vector wind in physical space
-      xyz(:) = 0.0_r_def
+      coord(:) = 0.0_r_def
       do df = 1, ndf_chi
-        xyz(1) = xyz(1) + chi_1_cell(df)*chi_basis(1,df,qp1,qp2)
-        xyz(2) = xyz(2) + chi_2_cell(df)*chi_basis(1,df,qp1,qp2)
-        xyz(3) = xyz(3) + chi_3_cell(df)*chi_basis(1,df,qp1,qp2)
+        coord(1) = coord(1) + chi_1_cell(df)*chi_basis(1,df,qp1,qp2)
+        coord(2) = coord(2) + chi_2_cell(df)*chi_basis(1,df,qp1,qp2)
+        coord(3) = coord(3) + chi_3_cell(df)*chi_basis(1,df,qp1,qp2)
       end do
       if ( geometry == geometry_spherical ) then
-        call xyz2llr(xyz(1), xyz(2), xyz(3), llr(1), llr(2), llr(3))
+        call chi2llr(coord(1), coord(2), coord(3), ipanel, llr(1), llr(2), llr(3))
         u_spherical = analytic_swe_wind(llr, swe_test, domain_x)
         u_physical = sphere2cart_vector(u_spherical,llr)
       else
+        call chi2xyz(coord(1), coord(2), coord(3), ipanel, xyz(1), xyz(2), xyz(3))
         u_physical = analytic_swe_wind(xyz, swe_test, domain_x)
       end if
       do df = 1, ndf

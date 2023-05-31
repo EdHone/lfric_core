@@ -58,9 +58,9 @@ contains
   !!          chosen analytic expression.
   !> @param[in]     nlayers        Number of layers
   !> @param[in,out] rhs            Right hand side field to compute
-  !> @param[in]     chi_1          X component of the coordinate field
-  !> @param[in]     chi_2          Y component of the coordinate field
-  !> @param[in]     chi_3          Z component of the coordinate field
+  !> @param[in]     chi_1          1st component of the coordinate field
+  !> @param[in]     chi_2          2nd component of the coordinate field
+  !> @param[in]     chi_3          3rd component of the coordinate field
   !> @param[in]     panel_id       Id of the cubed sphere panel for each column
   !> @param[in]     ndf            Number of degrees of freedom per cell
   !> @param[in]     undf           Total number of degrees of freedom
@@ -71,11 +71,14 @@ contains
   !> @param[in]     map_chi        Dofmap for the coordinate field
   !> @param[in]     chi_basis      Basis functions evaluated at gaussian quadrature points
   !> @param[in]     chi_diff_basis Differential of basis functions evaluated at gaussian quadrature points
+  !> @param[in]     ndf_pid        The number of DoFs per cell for the panel ID
+  !> @param[in]     undf_pid       The number of DoFs for this partition for the panel ID
+  !> @param[in]     map_pid        DoF-map for the panel ID
   !> @param[in]     nqp_h          Number of quadrature points in the horizontal
   !> @param[in]     nqp_v          Number of quadrature points in the vertical
   !> @param[in]     wqp_h          Horizontal quadrature weights
   !> @param[in]     wqp_v          Vertical quadrature weights
-  subroutine initial_swe_streamfunc_code(nlayers, rhs, chi_1, chi_2, chi_3,panel_id,  &
+  subroutine initial_swe_streamfunc_code(nlayers, rhs, chi_1, chi_2, chi_3, panel_id, &
                                          ndf, undf, map, basis, ndf_chi, undf_chi,    &
                                          map_chi, chi_basis, chi_diff_basis,          &
                                          ndf_pid, undf_pid, map_pid,                  &
@@ -87,7 +90,8 @@ contains
                                                     geometry_spherical
     use coordinate_jacobian_mod,              only: coordinate_jacobian, &
                                                     coordinate_jacobian_inverse
-    use coord_transform_mod,                  only: sphere2cart_vector, xyz2llr
+    use coord_transform_mod,                  only: sphere2cart_vector
+    use chi_transform_mod,                    only: chi2llr, chi2xyz
 
     implicit none
 
@@ -106,7 +110,7 @@ contains
 
     real(kind=r_def), dimension(undf),     intent(inout) :: rhs
     real(kind=r_def), dimension(undf_chi), intent(in)    :: chi_1, chi_2, chi_3
-    real(kind=r_def), dimension(undf_pid),  intent(in) :: panel_id
+    real(kind=r_def), dimension(undf_pid), intent(in)    :: panel_id
 
     real(kind=r_def), dimension(nqp_h), intent(in) ::  wqp_h
     real(kind=r_def), dimension(nqp_v), intent(in) ::  wqp_v
@@ -116,7 +120,8 @@ contains
     real(kind=r_def), dimension(nqp_h,nqp_v)     :: dj
     real(kind=r_def), dimension(3,3,nqp_h,nqp_v) :: jacobian, jac_inv
     real(kind=r_def), dimension(ndf_chi)         :: chi_1_cell, chi_2_cell, chi_3_cell
-    real(kind=r_def), dimension(3)               :: psi_physical, psi_spherical, xyz, llr
+    real(kind=r_def), dimension(3)               :: psi_physical, psi_spherical
+    real(kind=r_def), dimension(3)               :: coord, xyz, llr
     real(kind=r_def)                             :: integrand
 
     ipanel = int(panel_id(map_pid(1)), i_def)
@@ -147,17 +152,18 @@ contains
     do qp2 = 1, nqp_v
       do qp1 = 1, nqp_h
         ! Compute analytical vector streamfunctiontion in physical space
-        xyz(:) = 0.0_r_def
+        coord(:) = 0.0_r_def
         do df = 1, ndf_chi
-          xyz(1) = xyz(1) + chi_1_cell(df)*chi_basis(1,df,qp1,qp2)
-          xyz(2) = xyz(2) + chi_2_cell(df)*chi_basis(1,df,qp1,qp2)
-          xyz(3) = xyz(3) + chi_3_cell(df)*chi_basis(1,df,qp1,qp2)
+          coord(1) = coord(1) + chi_1_cell(df)*chi_basis(1,df,qp1,qp2)
+          coord(2) = coord(2) + chi_2_cell(df)*chi_basis(1,df,qp1,qp2)
+          coord(3) = coord(3) + chi_3_cell(df)*chi_basis(1,df,qp1,qp2)
         end do
         if ( geometry == geometry_spherical ) then
-          call xyz2llr(xyz(1), xyz(2), xyz(3), llr(1), llr(2), llr(3))
+          call chi2llr(coord(1), coord(2), coord(3), ipanel, llr(1), llr(2), llr(3))
           psi_spherical = analytic_swe_streamfunction(llr, swe_test)
           psi_physical = sphere2cart_vector(psi_spherical,llr)
         else
+          call chi2xyz(coord(1), coord(2), coord(3), ipanel, xyz(1), xyz(2), xyz(3))
           psi_physical = analytic_swe_streamfunction(xyz, swe_test)
         end if
         do df = 1, ndf
