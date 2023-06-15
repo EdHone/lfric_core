@@ -289,6 +289,10 @@ contains
     use jules_irrig_mod,          only: irr_crop, irr_crop_doell
     use atm_fields_bounds_mod,    only: pdims_s, pdims
     use jules_radiation_mod,      only: l_albedo_obs
+    use jules_water_resources_mod,only: l_water_domestic,                      &
+                                        l_water_industry, l_water_irrigation,  &
+                                        l_water_livestock, l_water_resources,  &
+                                        l_water_transfers, nwater_use
     use veg3_parm_mod,            only: l_veg3
 
     use crop_vars_mod,            only: crop_vars_type, crop_vars_data_type,   &
@@ -344,6 +348,12 @@ contains
     use jules_chemvars_mod,       only: chemvars_type, chemvars_data_type,     &
                                         chemvars_alloc, chemvars_assoc,        &
                                         chemvars_nullify, chemvars_dealloc
+    use water_resources_vars_mod, only: water_resources_type,                  &
+                                        water_resources_data_type,             &
+                                        water_resources_alloc,                 &
+                                        water_resources_assoc,                 &
+                                        water_resources_nullify,               &
+                                        water_resources_dealloc
     use coastal,                  only: coastal_type
 
     use nlsizes_namelist_mod, only: land_pts => land_field,  &
@@ -535,6 +545,8 @@ contains
     ! Variables for dry deposition
     type(chemvars_type) :: chemvars
     type(chemvars_data_type) :: chemvars_data
+    type(water_resources_type) :: water_resources
+    type(water_resources_data_type) :: water_resources_data
     type( coastal_type ) :: coast
     integer(i_um) :: ndry_dep_species  ! Dummy variable for now
 
@@ -647,6 +659,12 @@ contains
     call chemvars_alloc(land_pts, t_i_length, t_j_length, npft, ntype,        &
                         l_deposition, ndry_dep_species, chemvars_data)
     call chemvars_assoc(chemvars, chemvars_data)
+
+    call water_resources_alloc(land_pts, nwater_use, l_water_domestic,        &
+                               l_water_industry, l_water_irrigation,          &
+                               l_water_livestock, l_water_resources,          &
+                               l_water_transfers, water_resources_data)
+    call water_resources_assoc(water_resources,water_resources_data)
 
     !-------------------------------------------------------------------
     l = 0
@@ -936,7 +954,7 @@ contains
     lake_vars,                                                                &
     forcing,                                                                  &
     rivers,                                                                   &
-    chemvars,                                                                 &
+    chemvars, water_resources,                                                &
     work_vars_cbl                                                             &
     )
 
