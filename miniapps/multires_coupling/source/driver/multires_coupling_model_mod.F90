@@ -48,11 +48,9 @@ module multires_coupling_model_mod
   use gungho_model_data_mod,      only : model_data_type
   use gungho_setup_io_mod,        only : init_gungho_files
   use init_altitude_mod,          only : init_altitude
-  use io_config_mod,              only : subroutine_timers,       &
-                                         subroutine_counters,     &
+  use io_config_mod,              only : subroutine_counters,     &
                                          write_conservation_diag, &
                                          write_minmax_tseries,    &
-                                         timer_output_path,       &
                                          counter_output_suffix
   use linked_list_mod,            only : linked_list_type
   use log_mod,                    only : log_event,          &
@@ -79,7 +77,6 @@ module multires_coupling_model_mod
   use section_choice_config_mod,  only : radiation,         &
                                          radiation_socrates,&
                                          surface, surface_jules
-  use timer_mod,                  only : timer, output_timer, init_timer
   use timestepping_config_mod,    only : method,               &
                                          method_semi_implicit, &
                                          method_rk,            &
@@ -165,11 +162,6 @@ contains
     !-------------------------------------------------------------------------
     ! Initialise timers and counters
     !-------------------------------------------------------------------------
-    if ( subroutine_timers ) then
-      call init_timer(timer_output_path)
-      call timer(program_name)
-    end if
-
     call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     if ( subroutine_counters ) then
@@ -532,12 +524,6 @@ contains
     !-------------------------------------------------------------------------
     ! Finalise timers and counters
     !-------------------------------------------------------------------------
-
-    if ( subroutine_timers ) then
-      call timer(program_name)
-      call output_timer()
-    end if
-
     if ( subroutine_counters ) then
       call halo_calls%counter(program_name)
       call halo_calls%output_counters(counter_output_suffix)

@@ -26,8 +26,7 @@ module io_dev_driver_mod
   use field_mod,                  only: field_type
   use inventory_by_mesh_mod,      only: inventory_by_mesh_type
   use io_dev_config_mod,          only: multi_mesh, alt_mesh_name
-  use io_config_mod,              only: write_diag, diagnostic_frequency, &
-                                        subroutine_timers, timer_output_path
+  use io_config_mod,              only: write_diag, diagnostic_frequency
   use local_mesh_collection_mod,  only: local_mesh_collection, &
                                         local_mesh_collection_type
   use log_mod,                    only: log_event,          &
@@ -39,7 +38,6 @@ module io_dev_driver_mod
   use mesh_mod,                   only: mesh_type
   use model_clock_mod,            only: model_clock_type
   use mpi_mod,                    only: mpi_type
-  use timer_mod,                  only: timer, output_timer, init_timer
   use io_dev_init_files_mod,      only: init_io_dev_files
   use io_dev_data_mod,            only: io_dev_data_type,          &
                                         create_model_data,         &
@@ -91,11 +89,6 @@ module io_dev_driver_mod
         'Application built with '//trim(PRECISION_REAL)// &
         '-bit real numbers'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
-
-    if ( subroutine_timers ) then
-      call init_timer(timer_output_path)
-      call timer(program_name)
-    end if
 
     !-------------------------------------------------------------------------
     ! Model init
@@ -217,12 +210,6 @@ module io_dev_driver_mod
 
     ! Destroy the fields stored in model_data
     call finalise_model_data( model_data )
-
-    ! Finalise timer
-    if ( subroutine_timers ) then
-      call timer( program_name )
-      call output_timer()
-    end if
 
     ! Finalise aspects of the grid
     call final_mesh()

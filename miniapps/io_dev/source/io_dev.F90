@@ -15,6 +15,7 @@ program io_dev
   use driver_comm_mod,   only: init_comm, final_comm
   use driver_config_mod, only: init_config, final_config
   use driver_log_mod,    only: init_logger, final_logger
+  use driver_timer_mod,  only: init_timers, final_timers
   use io_dev_mod,        only: io_dev_required_namelists
   use io_dev_driver_mod, only: initialise, run, finalise
   use io_dev_data_mod,   only: io_dev_data_type
@@ -33,11 +34,13 @@ program io_dev
   call init_config( filename, io_dev_required_namelists )
   deallocate( filename )
   call init_logger( global_mpi%get_comm(), program_name )
+  call init_timers( program_name )
 
   call initialise( model_data, global_mpi, program_name )
   call run( model_data, program_name )
   call finalise( model_data, program_name )
 
+  call final_timers( program_name )
   call final_logger( program_name )
   call final_config()
   call final_comm()

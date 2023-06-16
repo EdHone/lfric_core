@@ -32,9 +32,7 @@ module gravity_wave_driver_mod
                                             checkpoint_write,      &
                                             diagnostic_frequency,  &
                                             use_xios_io,           &
-                                            nodal_output_on_w3,    &
-                                            subroutine_timers,     &
-                                            timer_output_path
+                                            nodal_output_on_w3
   use io_context_mod,                 only: io_context_type
   use runtime_constants_mod,          only: create_runtime_constants
   use checksum_alg_mod,               only : checksum_alg
@@ -52,7 +50,6 @@ module gravity_wave_driver_mod
   use mpi_mod,                        only: mpi_type
   use io_mod,                         only: ts_fname
   use files_config_mod,               only: checkpoint_stem_name
-  use timer_mod,                      only: init_timer, timer, output_timer
 
   implicit none
 
@@ -102,11 +99,6 @@ contains
         call log_event( 'Invalid buoyancy space', LOG_LEVEL_ERROR )
     end select
   endif
-
-  if ( subroutine_timers ) then
-    call init_timer(timer_output_path)
-    call timer(program_name)
-  end if
 
   ! Create the prognostic fields
   mesh => mesh_collection%get_mesh(prime_mesh_name)
@@ -239,11 +231,6 @@ contains
           trim(ts_fname(checkpoint_stem_name,"",                              &
           "buoyancy",model_clock%get_step(),"")) )
 
-  end if
-
-  if ( subroutine_timers ) then
-    call timer(program_name)
-    call output_timer()
   end if
 
   !--------------------------------------------------------------------------

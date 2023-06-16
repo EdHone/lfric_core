@@ -27,12 +27,11 @@ module transport_driver_mod
   use geometric_constants_mod,          only: get_chi_inventory, &
                                               get_panel_id_inventory
   use io_context_mod,                   only: io_context_type
-  use io_config_mod,                    only: diagnostic_frequency,            &
-                                              nodal_output_on_w3,              &
-                                              write_diag,                      &
-                                              use_xios_io,                     &
-                                              subroutine_timers,               &
-                                              timer_output_path
+  use io_config_mod,                    only: diagnostic_frequency, &
+                                              nodal_output_on_w3,   &
+                                              subroutine_timers,    &
+                                              write_diag,           &
+                                              use_xios_io
   use inventory_by_mesh_mod,            only: inventory_by_mesh_type
   use local_mesh_mod,                   only: local_mesh_type
   use log_mod,                          only: log_event,         &
@@ -48,7 +47,7 @@ module transport_driver_mod
   use mr_indices_mod,                   only: nummr
   use runtime_constants_mod,            only: create_runtime_constants
   use step_calendar_mod,                only: step_calendar_type
-  use timer_mod,                        only: init_timer, timer, output_timer
+  use timer_mod,                        only: timer
   use timestepping_config_mod,          only: dt
   use transport_init_fields_alg_mod,    only: transport_init_fields_alg
   use transport_control_alg_mod,        only: transport_prerun_setup, &
@@ -120,11 +119,6 @@ contains
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
-    if ( subroutine_timers ) then
-      call init_timer(timer_output_path)
-      call timer( program_name )
-    end if
-
     call init_time( model_clock )
 
     !-------------------------------------------------------------------------
@@ -333,11 +327,6 @@ contains
     call checksum_alg( program_name, density, 'rho',  wind, 'u',  &
                        theta, 'theta', tracer_adv, 'tracer',      &
                        field_bundle=mr, bundle_name='mr' )
-
-    if ( subroutine_timers ) then
-      call timer( program_name )
-      call output_timer()
-    end if
 
     call final_io()
 

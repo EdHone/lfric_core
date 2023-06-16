@@ -28,8 +28,7 @@ module shallow_water_model_mod
   use geometric_constants_mod,        only: get_chi_inventory, &
                                             get_panel_id_inventory
   use inventory_by_mesh_mod,          only: inventory_by_mesh_type
-  use io_config_mod,                  only: subroutine_timers,       &
-                                            subroutine_counters,     &
+  use io_config_mod,                  only: subroutine_counters,     &
                                             use_xios_io,             &
                                             write_conservation_diag, &
                                             write_dump,              &
@@ -50,7 +49,6 @@ module shallow_water_model_mod
   use runtime_constants_mod,          only: create_runtime_constants
   use shallow_water_model_data_mod,   only: model_data_type
   use shallow_water_setup_io_mod,     only: init_shallow_water_files
-  use timer_mod,                      only: timer, output_timer, init_timer
   use timestepping_config_mod,        only: dt, &
                                             spinup_period
   use xios,                           only: xios_update_calendar
@@ -101,11 +99,6 @@ module shallow_water_model_mod
     !-------------------------------------------------------------------------
     ! Initialise timers and counters
     !-------------------------------------------------------------------------
-    if ( subroutine_timers ) then
-      call init_timer()
-      call timer(program_name)
-    end if
-
     call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_INFO )
 
     if ( subroutine_counters ) then
@@ -219,11 +212,6 @@ module shallow_water_model_mod
     !-------------------------------------------------------------------------
     ! Finalise timers and counters
     !-------------------------------------------------------------------------
-
-    if ( subroutine_timers ) then
-      call timer(program_name)
-      call output_timer()
-    end if
 
     if ( subroutine_counters ) then
       call halo_calls%counter(program_name)

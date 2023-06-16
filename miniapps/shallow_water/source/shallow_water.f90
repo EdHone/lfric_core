@@ -18,6 +18,7 @@ program shallow_water
   use driver_comm_mod,              only: init_comm, final_comm
   use driver_config_mod,            only: init_config, final_config
   use driver_log_mod,               only: init_logger, final_logger
+  use driver_timer_mod,             only: init_timers, final_timers
   use log_mod,                      only: log_event,       &
                                           log_level_trace, &
                                           log_scratch_space
@@ -42,6 +43,7 @@ program shallow_water
   call init_config( filename, shallow_water_required_namelists )
   deallocate( filename )
   call init_logger( global_mpi%get_comm(), program_name )
+  call init_timers( program_name )
 
   ! Create the depository and prognostics field collections
   call model_data%depository%initialise(name='depository', table_len=100)
@@ -55,6 +57,7 @@ program shallow_water
   call log_event( 'Finalising ' // program_name // ' ...', log_level_trace )
   call finalise( model_data, program_name )
 
+  call final_timers( program_name )
   call final_logger( program_name )
   call final_config()
   call final_comm()

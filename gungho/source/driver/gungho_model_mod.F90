@@ -47,13 +47,11 @@ module gungho_model_mod
                                   only : gungho_transport_control_alg_final
   use init_altitude_mod,          only : init_altitude
   use inventory_by_mesh_mod,      only : inventory_by_mesh_type
-  use io_config_mod,              only : subroutine_timers,       &
-                                         subroutine_counters,     &
+  use io_config_mod,              only : subroutine_counters,     &
                                          use_xios_io,             &
                                          write_conservation_diag, &
                                          write_dump,              &
                                          write_minmax_tseries,    &
-                                         timer_output_path,       &
                                          counter_output_suffix
   use lfric_xios_context_mod,     only : lfric_xios_context_type
   use linked_list_mod,            only : linked_list_type
@@ -85,7 +83,6 @@ module gungho_model_mod
                                          radiation_socrates,&
                                          surface, surface_jules
   use time_config_mod,            only : timestep_end, timestep_start
-  use timer_mod,                  only : timer, output_timer, init_timer
   use timestepping_config_mod,    only : dt,                     &
                                          method,                 &
                                          method_semi_implicit,   &
@@ -201,12 +198,6 @@ contains
     !-------------------------------------------------------------------------
     ! Initialise timers and counters
     !-------------------------------------------------------------------------
-    if ( subroutine_timers ) then
-      call init_timer(timer_output_path)
-      call timer(program_name)
-    end if
-
-    call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     if ( subroutine_counters ) then
       allocate(halo_calls, source=count_type('halo_calls'))
@@ -606,11 +597,6 @@ contains
     !-------------------------------------------------------------------------
     ! Finalise timers and counters
     !-------------------------------------------------------------------------
-
-    if ( subroutine_timers ) then
-      call timer(program_name)
-      call output_timer()
-    end if
 
     if ( subroutine_counters ) then
       call halo_calls%counter(program_name)
