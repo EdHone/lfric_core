@@ -144,6 +144,8 @@ module gungho_model_data_mod
     type( field_collection_type ), public   :: chemistry_fields
     !> Fields owned by the aerosol schemes
     type( field_collection_type ), public   :: aerosol_fields
+    !> Fields owned by the stochastic physics schemes
+    type( field_collection_type ), public   :: stph_fields
     !> Array of fields containing the moisture mixing ratios
     !>  (auxiliary prognostic)
     type( field_type ), allocatable, public :: mr(:)
@@ -282,7 +284,8 @@ subroutine create_model_data( model_data,         &
                                        model_data%soil_fields,           &
                                        model_data%snow_fields,           &
                                        model_data%chemistry_fields,      &
-                                       model_data%aerosol_fields )
+                                       model_data%aerosol_fields,        &
+                                       model_data%stph_fields  )
 
 #ifdef UM_PHYSICS
       ! Create FD prognostic fields
@@ -341,7 +344,8 @@ subroutine create_model_data( model_data,         &
                                              model_data%soil_fields,         &
                                              model_data%snow_fields,         &
                                              model_data%chemistry_fields,    &
-                                             model_data%aerosol_fields )
+                                             model_data%aerosol_fields,      &
+                                             model_data%stph_fields)
 
     end if
 
@@ -591,6 +595,7 @@ subroutine create_model_data( model_data,         &
       call model_data%snow_fields%clear()
       call model_data%chemistry_fields%clear()
       call model_data%aerosol_fields%clear()
+      call model_data%stph_fields%clear()
       call model_data%fd_fields%clear()
 #ifdef COUPLED
       if(l_esm_couple) then

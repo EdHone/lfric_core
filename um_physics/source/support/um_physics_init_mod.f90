@@ -165,10 +165,11 @@ module um_physics_init_mod
   integer(i_def), protected :: mode_dimen
   integer(i_def), protected :: sw_band_mode
   integer(i_def), protected :: lw_band_mode
+  integer(i_def), protected :: level2km
 
   private
   public :: um_physics_init,                                                   &
-            n_aer_mode, mode_dimen, sw_band_mode, lw_band_mode
+            n_aer_mode, mode_dimen, sw_band_mode, lw_band_mode, level2km
 
 contains
 
@@ -1184,6 +1185,21 @@ contains
     ! Leonard terms on or off
     !-----------------------------------------------------------------------
     l_leonard_term = leonard_term
+
+    !-----------------------------------------------------------------------
+    ! Stochastic physics (SKEB) - identify 1st model level above 2km
+    !-----------------------------------------------------------------------
+
+    k = 1
+    do while ( domain_top * eta_theta_levels(k) < 2000.0_r_def)
+      k = k+1
+      if ( k > size( eta_theta_levels ) )then
+        write( log_scratch_space, '(A)' )                                   &
+           'Top level must be above 2km for SKEB scheme.'
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      end if
+    end do
+    level2km = k
 
   end subroutine um_physics_init
 

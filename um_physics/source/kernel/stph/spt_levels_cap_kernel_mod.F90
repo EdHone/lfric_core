@@ -42,8 +42,8 @@ contains
 
   !> @brief Apply vertical ramp up/down on SPT buffer verfical levels
   !> @details Apply the vertical ramp up (down) over SPT increments in the
-  !>          SPT vertical levels from spt_level_bottom to spt_level_begin_tappering_bottom
-  !>          (from spt_level_begin_tappering_top to spt_level_top)
+  !>          SPT vertical levels from spt_level_bottom to spt_level_begin_tapering_bottom
+  !>          (from spt_level_begin_tapering_top to spt_level_top)
   !> @param[in]     nlayers        The number of layers
   !> @param[in,out] dX             Field with SPT perturbations
   !> @param[in]     ndf_wth        Number of degrees of freedom per cell for wtheta
@@ -59,8 +59,8 @@ contains
 
     use stochastic_physics_config_mod, only: spt_level_bottom, &
                                              spt_level_top, &
-                                             spt_level_begin_tappering_bottom, &
-                                             spt_level_begin_tappering_top
+                                             spt_level_begin_tapering_bottom, &
+                                             spt_level_begin_tapering_top
 
     implicit none
 
@@ -81,18 +81,18 @@ contains
       dX(map_wth(1) + k) = 0.0_r_def
     end do
 
-    ! Ramp up from spt_level_bottom to spt_level_begin_tappering_bottom
-    do k= spt_level_bottom, spt_level_begin_tappering_bottom
+    ! Ramp up from spt_level_bottom to spt_level_begin_tapering_bottom
+    do k= spt_level_bottom, spt_level_begin_tapering_bottom
       lev_amp_factor=  REAL(k - spt_level_bottom, r_def)/ &
-                       REAL(spt_level_begin_tappering_bottom - spt_level_bottom, r_def)
+                       REAL(spt_level_begin_tapering_bottom - spt_level_bottom, r_def)
 
       dX(map_wth(1) + k) = lev_amp_factor*dX(map_wth(1) + k)
     end do
 
-    ! Ramp up from spt_level_begin_tappering_top to spt_level_top
-    do k= spt_level_begin_tappering_top, spt_level_top
-      lev_amp_factor=REAL(k - spt_level_begin_tappering_top, r_def)/ &
-                     REAL(spt_level_top - spt_level_begin_tappering_top, r_def)
+    ! Ramp up from spt_level_begin_tapering_top to spt_level_top
+    do k= spt_level_begin_tapering_top, spt_level_top
+      lev_amp_factor=REAL(k - spt_level_begin_tapering_top, r_def)/ &
+                     REAL(spt_level_top - spt_level_begin_tapering_top, r_def)
 
       dX(map_wth(1) + k) = lev_amp_factor*dX(map_wth(1) + k)
     end do

@@ -78,6 +78,8 @@ module geometric_constants_mod
   type(field_type), allocatable, target :: height_wth_list(:)
   type(field_type), allocatable, target :: dz_w3_list(:)
   type(field_type), allocatable, target :: lat_w3_list(:)
+  type(field_type), allocatable, target :: lat_w2_list(:)
+  type(field_type), allocatable, target :: long_w2_list(:)
   type(field_type), allocatable, target :: long_w3_list(:)
 
   ! Public functions to create and access the module contents
@@ -91,6 +93,7 @@ module geometric_constants_mod
   public :: get_height
   public :: get_dz_w3
   public :: get_latitude
+  public :: get_latitude_w2
   public :: get_longitude
   public :: get_chi_inventory
   public :: get_panel_id_inventory
@@ -140,6 +143,8 @@ contains
     allocate(dA_at_w2_list(num_meshes))
     allocate(long_w3_list(num_meshes))
     allocate(lat_w3_list(num_meshes))
+    allocate(long_w2_list(num_meshes))
+    allocate(lat_w2_list(num_meshes))
 
     if ( extended_mesh ) allocate(extended_chi_list(3,num_meshes))
 
@@ -154,11 +159,11 @@ contains
       mesh => mesh_collection%get_mesh( mesh_id_list(i) )
 
       w3_k0_fs => function_space_collection%get_fs( mesh, 0, W3 )
+      w2_k0_fs  => function_space_collection%get_fs( mesh, 0, W2 )
 
       ! Don't need most function spaces for 2D meshes
       if ( mesh%get_id() /= twod_mesh_label) then
         w1_k0_fs  => function_space_collection%get_fs( mesh,             0, W1 )
-        w2_k0_fs  => function_space_collection%get_fs( mesh,             0, W2 )
         wth_k0_fs => function_space_collection%get_fs( mesh,             0, Wtheta )
       end if
 
@@ -218,6 +223,7 @@ contains
       ! ================= Compute latitude and longitude maps =================!
 
       if ( label_list(i) == twod_mesh_label ) then
+        ! for w3_k0_fs
         call lat_w3_list(i)%initialise( vector_space = w3_k0_fs )
         call long_w3_list(i)%initialise( vector_space = w3_k0_fs )
         if ( geometry == geometry_spherical ) then
@@ -229,6 +235,20 @@ contains
           call invoke( setval_c(lat_w3_list(i), f_lat),  &
                        setval_c(long_w3_list(i), 0.0_r_def) )
         end if
+
+        ! for w2_k0_fs (only lat)
+        call lat_w2_list(i)%initialise( vector_space = w2_k0_fs )
+        call long_w2_list(i)%initialise( vector_space = w2_k0_fs )
+        if ( geometry == geometry_spherical ) then
+          call invoke( compute_latlon_kernel_type( lat_w2_list(i),   &
+                                                   long_w2_list(i),  &
+                                                   chi_in(:,i),      &
+                                                   panel_id_in(i) )  )
+        else
+          call invoke( setval_c(lat_w2_list(i), f_lat),  &
+                       setval_c(long_w2_list(i), 0.0_r_def) )
+        end if
+
       end if
 
       !================ Create dA values at W2 dof locations ==================!
@@ -379,6 +399,23 @@ contains
 
   end function get_latitude
 
+  !> @brief Returns a pointer to the latitude map on W2 space
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The latitude field array
+  function get_latitude_w2(mesh_id) result(lat_ptr)
+    implicit none
+    integer(kind=i_def), intent(in) :: mesh_id
+    integer(kind=i_def)             :: mesh_index
+    type(field_type),       pointer :: lat_ptr
+    character(str_def)              :: field_name
+
+    mesh_index = find_mesh_index(mesh_id)
+    field_name = 'latitude'
+    lat_ptr => lat_w2_list(mesh_index)
+    call check_initialised_field(lat_ptr, field_name, mesh_id)
+
+  end function get_latitude_w2
+
   !> @brief Returns a pointer to the longitude map
   !> @param[in] mesh_id The ID of the mesh to get the object for
   !> @return The longitude field array
@@ -422,6 +459,8 @@ contains
 
     if (allocated(lat_w3_list)) deallocate(lat_w3_list)
     if (allocated(long_w3_list)) deallocate(long_w3_list)
+    if (allocated(lat_w2_list)) deallocate(lat_w2_list)
+    if (allocated(long_w2_list)) deallocate(long_w2_list)
     if (allocated(dA_at_w2_list)) deallocate(dA_at_w2_list)
     if (allocated(height_wth_list)) deallocate(height_wth_list)
     if (allocated(height_w3_list)) deallocate(height_w3_list)

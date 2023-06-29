@@ -1,8 +1,8 @@
 <file_definition type="one_file" par_access="collective" time_counter="none">
 
   <!-- Main diagnostic output file for global runs -->
-  <file id="lfric_gal_diagnostics" name="lfric_gal_diagnostics" output_freq="18h" convention="UGRID" enabled=".TRUE.">
-    <field_group operation="instant" freq_op="18h">
+  <file id="lfric_gal_diagnostics" name="lfric_gal_diagnostics" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+    <field_group operation="instant" freq_op="1ts">
       <field field_ref="theta" />
       <field field_ref="m_v" />
       <field field_ref="m_cl" />
@@ -110,6 +110,11 @@
       <field field_ref="aerosol__cor_ins_du" />
       <field field_ref="aerosol__cloud_drop_no_conc" />
       <field field_ref="stochastic__fp_spt"/>
+      <field field_ref="stochastic__fp_skeb"/>
+      <field field_ref="stochastic__du_div_skeb"/>
+      <field field_ref="stochastic__dv_div_skeb"/>
+      <field field_ref="stochastic__du_rot_skeb"/>
+      <field field_ref="stochastic__dv_rot_skeb"/>
     </field_group>
   </file>
 

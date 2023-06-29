@@ -610,6 +610,14 @@
 	<field id="fp_spt" name="fp_spt" long_name="SPT forcing pattern" unit="1" grid_ref="full_level_face_grid" />
 	<field id="dtheta_spt" name="dtheta_spt" long_name="SPT potential temperature forcing" unit="K" grid_ref="full_level_face_grid" />
 	<field id="dmv_spt" name="dmv_spt" long_name="SPT water vapour increment" unit="kg/kg" grid_ref="full_level_face_grid" />
+	<field id="fp_skeb" name="fp_skeb" long_name="SKEB forcing pattern" unit="1" grid_ref="half_level_face_grid" />
+	<field id="ndisp" name="ndisp" long_name="SKEB numerical dissipation" unit="m2 s-3" grid_ref="half_level_face_grid" />
+	<field id="cdisp" name="cdisp" long_name="SKEB convective dissipation" unit="m2 s-3" grid_ref="half_level_face_grid" />
+	<field id="psif_hat" name="psif_hat" long_name="SKEB streamfunction forcing" unit="m2 s" grid_ref="half_level_face_grid" />
+	<field id="du_rot_skeb" name="du_rot_skeb" long_name="eastward wind increment from rotational skeb" unit="m s-1" grid_ref="half_level_face_grid" />
+    <field id="dv_rot_skeb" name="dv_rot_skeb" long_name="northward wind increment from rotational skeb" unit="m s-1" grid_ref="half_level_face_grid" />
+    <field id="du_div_skeb" name="du_div_skeb" long_name="eastward wind increment from divergent skeb" unit="m s-1" grid_ref="half_level_face_grid" />
+    <field id="dv_div_skeb" name="dv_div_skeb" long_name="northward wind increment from divergent skeb" unit="m s-1" grid_ref="half_level_face_grid" />
         <!-- Aerosol and Radiation (RADAER) fields -->
         <field id="wetdp_ait_sol" name="wetdp_ait_sol" long_name="aitken_mode_soluble_wet_diameter" unit="m" grid_ref="full_level_face_grid" />
         <field id="wetdp_acc_sol" name="wetdp_acc_sol" long_name="accumulation_mode_soluble_wet_diameter" unit="m" grid_ref="full_level_face_grid" />

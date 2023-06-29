@@ -88,6 +88,7 @@ module tl_test_semi_imp_alg_mod
     type( field_collection_type ), pointer :: snow_fields => null()
     type( field_collection_type ), pointer :: chemistry_fields => null()
     type( field_collection_type ), pointer :: aerosol_fields => null()
+    type( field_collection_type ), pointer :: stph_fields
     type( field_collection_type ), pointer :: lbc_fields => null()
 
 
@@ -153,6 +154,7 @@ module tl_test_semi_imp_alg_mod
     snow_fields => model_data%snow_fields
     chemistry_fields => model_data%chemistry_fields
     aerosol_fields => model_data%aerosol_fields
+    stph_fields => model_data%stph_fields
     lbc_fields => model_data%lbc_fields
 
     ! Input
@@ -215,7 +217,7 @@ module tl_test_semi_imp_alg_mod
                  assign_field_random_kernel_type( r_theta, 1.0_r_def ) , &
                  assign_field_random_kernel_type( r_exner, 1.0_r_def ) )
 
-   do i = 1, nummr
+    do i = 1, nummr
       call invoke( assign_field_random_kernel_type( r_mr(i), 1.0_r_def ) )
     end do
 
@@ -244,7 +246,7 @@ module tl_test_semi_imp_alg_mod
                                 cloud_fields, surface_fields,                &
                                 soil_fields, snow_fields,                    &
                                 chemistry_fields,                            &
-                                aerosol_fields, lbc_fields,                  &
+                                aerosol_fields, stph_fields, lbc_fields,     &
                                 model_clock, dtemp_encorr, mesh, twod_mesh)
 
     call semi_implicit_alg_final()
@@ -304,7 +306,7 @@ module tl_test_semi_imp_alg_mod
                                   cloud_fields, surface_fields,               &
                                   soil_fields, snow_fields,                   &
                                   chemistry_fields,                           &
-                                  aerosol_fields, lbc_fields,                 &
+                                  aerosol_fields, stph_fields, lbc_fields,    &
                                   model_clock, dtemp_encorr, mesh, twod_mesh)
 
       call semi_implicit_alg_final()

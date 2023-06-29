@@ -319,6 +319,7 @@ contains
   !> @param[in,out] snow_fields            Fields for snow scheme
   !> @param[in,out] chemistry_fields       Fields for chemistry scheme
   !> @param[in,out] aerosol_fields         Fields for aerosol scheme
+  !> @param[in,out] stph_fields            Fields for stohcastic physics schemes
   !> @param[in,out] lbc_fields             Fields for lateral boundaries
   !> @param[in]     model_clock            Time in the model.
   !> @param[in]     dtemp_encorr           Temperature increment for energy
@@ -333,7 +334,7 @@ contains
                                     turbulence_fields, convection_fields,      &
                                     cloud_fields, surface_fields, soil_fields, &
                                     snow_fields, chemistry_fields,             &
-                                    aerosol_fields, lbc_fields,                &
+                                    aerosol_fields, stph_fields, lbc_fields,   &
                                     model_clock, dtemp_encorr, mesh, twod_mesh)
 
     implicit none
@@ -358,6 +359,7 @@ contains
     type( field_collection_type ), intent( inout ) :: snow_fields
     type( field_collection_type ), intent( inout ) :: chemistry_fields
     type( field_collection_type ), intent( inout ) :: aerosol_fields
+    type( field_collection_type ), intent( inout ) :: stph_fields
     type( field_collection_type ), intent( inout ) :: lbc_fields
 
     class(model_clock_type), intent(in) :: model_clock
@@ -539,13 +541,14 @@ contains
         !--------------------------------------------------------------------
         ! Call the fast physics terms
         !--------------------------------------------------------------------
-        call fast_physics(du, dtheta, mr, state_n(igh_t), state_n(igh_d),      &
+        call fast_physics(du, dtheta, mr,                                      &
+                          state_n(igh_t), state_n(igh_d), state_n(igh_u),      &
                           state_n(igh_p), mr_n, visc_m, visc_h, derived_fields,&
                           radiation_fields, microphysics_fields,               &
                           orography_fields, turbulence_fields,                 &
                           convection_fields, cloud_fields,                     &
                           surface_fields, soil_fields, snow_fields,            &
-                          chemistry_fields, aerosol_fields,                    &
+                          chemistry_fields, aerosol_fields, stph_fields,       &
                           outer, model_clock, cast_dt)
 
         if (smagorinsky .and. smagorinsky_placement == smagorinsky_placement_outer) then

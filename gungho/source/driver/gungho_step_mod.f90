@@ -97,6 +97,7 @@ module gungho_step_mod
     type( field_collection_type ), pointer :: snow_fields => null()
     type( field_collection_type ), pointer :: chemistry_fields => null()
     type( field_collection_type ), pointer :: aerosol_fields => null()
+    type( field_collection_type ), pointer :: stph_fields => null()
     type( field_collection_type ), pointer :: lbc_fields => null()
 
     type( field_type), pointer :: theta => null()
@@ -139,6 +140,7 @@ module gungho_step_mod
     snow_fields => model_data%snow_fields
     chemistry_fields => model_data%chemistry_fields
     aerosol_fields => model_data%aerosol_fields
+    stph_fields => model_data%stph_fields
     lbc_fields => model_data%lbc_fields
 
     ! Get pointers to fields in the prognostic/diagnostic field collections
@@ -166,6 +168,7 @@ module gungho_step_mod
                                     cloud_fields, surface_fields,              &
                                     soil_fields, snow_fields,                  &
                                     chemistry_fields, aerosol_fields,          &
+                                    stph_fields,                               &
                                     lbc_fields, model_clock, dtemp_encorr,     &
                                     mesh, twod_mesh)
       case( method_rk )             ! RK

@@ -124,7 +124,8 @@ contains
                                          soil_fields,           &
                                          snow_fields,           &
                                          chemistry_fields,      &
-                                         aerosol_fields )
+                                         aerosol_fields,        &
+                                         stph_fields )
 
     implicit none
 
@@ -151,6 +152,7 @@ contains
     type(field_collection_type), intent(out) :: snow_fields
     type(field_collection_type), intent(out) :: chemistry_fields
     type(field_collection_type), intent(out) :: aerosol_fields
+    type(field_collection_type), intent(out) :: stph_fields
 
     ! pointers to vector spaces
 #ifdef UM_PHYSICS
@@ -1999,7 +2001,25 @@ contains
     call add_physics_field( aerosol_fields, depository, prognostic_fields,     &
       adv_fields_last_outer,                                                   &
       'sulphuric', wtheta_space )
+
+    !========================================================================
+    ! Fields owned by the stochastic physics scheme
+    !========================================================================
+    call stph_fields%initialise(name='stph_fields', table_len=100)
+
+    ! 3D fields, don't need checkpointing
+    call add_physics_field( stph_fields, depository, prognostic_fields, &
+      adv_fields_last_outer, 'dtheta_stph', wtheta_space,               &
+      checkpoint_flag=.false., advection_flag=.false.)
+    call add_physics_field( stph_fields, depository, prognostic_fields, &
+      adv_fields_last_outer, 'dmv_stph', wtheta_space,                  &
+      checkpoint_flag=.false., advection_flag=.false.)
+    call add_physics_field( stph_fields, depository, prognostic_fields, &
+      adv_fields_last_outer, 'du_stph', w2_space,                       &
+      checkpoint_flag=.false., advection_flag=.false.)
+
 #endif
+
 
   end subroutine create_physics_prognostics
 

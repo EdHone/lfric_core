@@ -30,9 +30,10 @@ module w3_to_w1_average_kernel_mod
   !>
   type, public, extends(kernel_type) :: w3_to_w1_average_kernel_type
     private
-    type(arg_type) :: meta_args(2) = (/            &
+    type(arg_type) :: meta_args(3) = (/            &
          arg_type(GH_FIELD, GH_REAL, GH_INC,  W1), &
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W3)  &
+         arg_type(GH_FIELD, GH_REAL, GH_READ, W3), &
+         arg_type(GH_FIELD, GH_REAL, GH_READ, W1)  &
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -49,6 +50,7 @@ module w3_to_w1_average_kernel_mod
   !> @brief Computes a 1-2-1 Filter from W3 to W1 space.
   !> @param[in]     nlayers   Number of layers
   !> @param[in,out] field_w1  Output field from filter on W0 space
+  !> @param[in]     rmultiplicity Reciprocal of how many times the dof has been visited in total
   !> @param[in]     field_w3  Input field for filter on W3 space
   !> @param[in]     ndf_w1    Number of degrees of freedom per cell for W1
   !> @param[in]     undf_w1   Number of unique degrees of freedom for W1
@@ -58,6 +60,7 @@ module w3_to_w1_average_kernel_mod
   !> @param[in]     map_w3  ss  Dofmap for the cell at the base of the column for W3
   subroutine w3_to_w1_average_code(nlayers,                 &
                                    field_w1, field_w3,      &
+                                   rmultiplicity_w1,                      &
                                    ndf_w1, undf_w1, map_w1, &
                                    ndf_w3, undf_w3, map_w3)
 
@@ -71,7 +74,7 @@ module w3_to_w1_average_kernel_mod
     integer(kind=i_def), intent(in), dimension(ndf_w1) :: map_w1
     integer(kind=i_def), intent(in), dimension(ndf_w3) :: map_w3
 
-    real(kind=r_def), intent(inout), dimension(undf_w1) :: field_w1
+    real(kind=r_def), intent(inout), dimension(undf_w1) :: field_w1, rmultiplicity_w1
     real(kind=r_def), intent(in),    dimension(undf_w3) :: field_w3
 
     ! Internal variables
@@ -79,7 +82,7 @@ module w3_to_w1_average_kernel_mod
 
     do k = 0, nlayers-1
       do df = 5,8 ! Loop at the top
-        field_w1(map_w1(df) + k) = field_w1(map_w1(df) + k) + field_w3(map_w3(1) + k)/4.0_r_def
+        field_w1(map_w1(df) + k) = field_w1(map_w1(df) + k) + field_w3(map_w3(1) + k)*rmultiplicity_w1(map_w1(df) + k)
       end do
     end do
 
