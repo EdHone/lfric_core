@@ -26,7 +26,7 @@
     <file_definition src="./file_def_ancil_gal.xml"/>
     <file_definition src="./file_def_ancil_reynolds.xml"/>
     <file_definition src="./file_def_diags_empty.xml"/>
-    <file_definition src="./file_def_diags_gal.xml"/>
+    <file_definition src="./file_def_diags_gal_clim.xml"/>
     <file_definition src="./file_def_diags_ave.xml"/>
 
     <!-- Local file definitions -->

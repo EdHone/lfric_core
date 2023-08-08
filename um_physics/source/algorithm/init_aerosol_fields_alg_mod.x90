@@ -165,41 +165,44 @@ contains
     call aerosol_fields%get_field('dust_flux', dust_flux)
 
     call aerosol_fields%get_field('cloud_drop_no_conc', cloud_drop_no_conc)
-    call aerosol_fields%get_field('drydp_ait_sol', drydp_ait_sol)
-    call aerosol_fields%get_field('drydp_acc_sol', drydp_acc_sol)
-    call aerosol_fields%get_field('drydp_cor_sol', drydp_cor_sol)
-    call aerosol_fields%get_field('drydp_ait_ins', drydp_ait_ins)
-    call aerosol_fields%get_field('drydp_acc_ins', drydp_acc_ins)
-    call aerosol_fields%get_field('drydp_cor_ins', drydp_cor_ins)
-    call aerosol_fields%get_field('wetdp_ait_sol', wetdp_ait_sol)
-    call aerosol_fields%get_field('wetdp_acc_sol', wetdp_acc_sol)
-    call aerosol_fields%get_field('wetdp_cor_sol', wetdp_cor_sol)
-    call aerosol_fields%get_field('rhopar_ait_sol', rhopar_ait_sol)
-    call aerosol_fields%get_field('rhopar_acc_sol', rhopar_acc_sol)
-    call aerosol_fields%get_field('rhopar_cor_sol', rhopar_cor_sol)
-    call aerosol_fields%get_field('rhopar_ait_ins', rhopar_ait_ins)
-    call aerosol_fields%get_field('rhopar_acc_ins', rhopar_acc_ins)
-    call aerosol_fields%get_field('rhopar_cor_ins', rhopar_cor_ins)
-    call aerosol_fields%get_field('pvol_wat_ait_sol', pvol_wat_ait_sol)
-    call aerosol_fields%get_field('pvol_wat_acc_sol', pvol_wat_acc_sol)
-    call aerosol_fields%get_field('pvol_wat_cor_sol', pvol_wat_cor_sol)
-    call aerosol_fields%get_field('pvol_su_ait_sol', pvol_su_ait_sol)
-    call aerosol_fields%get_field('pvol_bc_ait_sol', pvol_bc_ait_sol)
-    call aerosol_fields%get_field('pvol_om_ait_sol', pvol_om_ait_sol)
-    call aerosol_fields%get_field('pvol_su_acc_sol', pvol_su_acc_sol)
-    call aerosol_fields%get_field('pvol_bc_acc_sol', pvol_bc_acc_sol)
-    call aerosol_fields%get_field('pvol_om_acc_sol', pvol_om_acc_sol)
-    call aerosol_fields%get_field('pvol_ss_acc_sol', pvol_ss_acc_sol)
-    call aerosol_fields%get_field('pvol_du_acc_sol', pvol_du_acc_sol)
-    call aerosol_fields%get_field('pvol_su_cor_sol', pvol_su_cor_sol)
-    call aerosol_fields%get_field('pvol_bc_cor_sol', pvol_bc_cor_sol)
-    call aerosol_fields%get_field('pvol_om_cor_sol', pvol_om_cor_sol)
-    call aerosol_fields%get_field('pvol_ss_cor_sol', pvol_ss_cor_sol)
-    call aerosol_fields%get_field('pvol_du_cor_sol', pvol_du_cor_sol)
-    call aerosol_fields%get_field('pvol_bc_ait_ins', pvol_bc_ait_ins)
-    call aerosol_fields%get_field('pvol_om_ait_ins', pvol_om_ait_ins)
-    call aerosol_fields%get_field('pvol_du_acc_ins', pvol_du_acc_ins)
-    call aerosol_fields%get_field('pvol_du_cor_ins', pvol_du_cor_ins)
+
+    if (aerosol == aerosol_um) then
+      call aerosol_fields%get_field('drydp_ait_sol', drydp_ait_sol)
+      call aerosol_fields%get_field('drydp_acc_sol', drydp_acc_sol)
+      call aerosol_fields%get_field('drydp_cor_sol', drydp_cor_sol)
+      call aerosol_fields%get_field('drydp_ait_ins', drydp_ait_ins)
+      call aerosol_fields%get_field('drydp_acc_ins', drydp_acc_ins)
+      call aerosol_fields%get_field('drydp_cor_ins', drydp_cor_ins)
+      call aerosol_fields%get_field('wetdp_ait_sol', wetdp_ait_sol)
+      call aerosol_fields%get_field('wetdp_acc_sol', wetdp_acc_sol)
+      call aerosol_fields%get_field('wetdp_cor_sol', wetdp_cor_sol)
+      call aerosol_fields%get_field('rhopar_ait_sol', rhopar_ait_sol)
+      call aerosol_fields%get_field('rhopar_acc_sol', rhopar_acc_sol)
+      call aerosol_fields%get_field('rhopar_cor_sol', rhopar_cor_sol)
+      call aerosol_fields%get_field('rhopar_ait_ins', rhopar_ait_ins)
+      call aerosol_fields%get_field('rhopar_acc_ins', rhopar_acc_ins)
+      call aerosol_fields%get_field('rhopar_cor_ins', rhopar_cor_ins)
+      call aerosol_fields%get_field('pvol_wat_ait_sol', pvol_wat_ait_sol)
+      call aerosol_fields%get_field('pvol_wat_acc_sol', pvol_wat_acc_sol)
+      call aerosol_fields%get_field('pvol_wat_cor_sol', pvol_wat_cor_sol)
+      call aerosol_fields%get_field('pvol_su_ait_sol', pvol_su_ait_sol)
+      call aerosol_fields%get_field('pvol_bc_ait_sol', pvol_bc_ait_sol)
+      call aerosol_fields%get_field('pvol_om_ait_sol', pvol_om_ait_sol)
+      call aerosol_fields%get_field('pvol_su_acc_sol', pvol_su_acc_sol)
+      call aerosol_fields%get_field('pvol_bc_acc_sol', pvol_bc_acc_sol)
+      call aerosol_fields%get_field('pvol_om_acc_sol', pvol_om_acc_sol)
+      call aerosol_fields%get_field('pvol_ss_acc_sol', pvol_ss_acc_sol)
+      call aerosol_fields%get_field('pvol_du_acc_sol', pvol_du_acc_sol)
+      call aerosol_fields%get_field('pvol_su_cor_sol', pvol_su_cor_sol)
+      call aerosol_fields%get_field('pvol_bc_cor_sol', pvol_bc_cor_sol)
+      call aerosol_fields%get_field('pvol_om_cor_sol', pvol_om_cor_sol)
+      call aerosol_fields%get_field('pvol_ss_cor_sol', pvol_ss_cor_sol)
+      call aerosol_fields%get_field('pvol_du_cor_sol', pvol_du_cor_sol)
+      call aerosol_fields%get_field('pvol_bc_ait_ins', pvol_bc_ait_ins)
+      call aerosol_fields%get_field('pvol_om_ait_ins', pvol_om_ait_ins)
+      call aerosol_fields%get_field('pvol_du_acc_ins', pvol_du_acc_ins)
+      call aerosol_fields%get_field('pvol_du_cor_ins', pvol_du_cor_ins)
+    end if
 
     if ( aerosol == aerosol_um .and.            &
          ( glomap_mode == glomap_mode_ukca .or. &
@@ -525,42 +528,44 @@ contains
                    setval_c(dust_mrel,             0.0_r_def), &
                    setval_c(dust_flux,             0.0_r_def), &
                    ! CDNC and particle properties
-                   setval_c(cloud_drop_no_conc,  1.0e8_r_def), &
-                   setval_c(drydp_ait_sol,         0.0_r_def), &
-                   setval_c(drydp_acc_sol,         0.0_r_def), &
-                   setval_c(drydp_cor_sol,         0.0_r_def), &
-                   setval_c(drydp_ait_ins,         0.0_r_def), &
-                   setval_c(drydp_acc_ins,         0.0_r_def), &
-                   setval_c(drydp_cor_ins,         0.0_r_def), &
-                   setval_c(wetdp_ait_sol,         0.0_r_def), &
-                   setval_c(wetdp_acc_sol,         0.0_r_def), &
-                   setval_c(wetdp_cor_sol,         0.0_r_def), &
-                   setval_c(rhopar_ait_sol,        0.0_r_def), &
-                   setval_c(rhopar_acc_sol,        0.0_r_def), &
-                   setval_c(rhopar_cor_sol,        0.0_r_def), &
-                   setval_c(rhopar_ait_ins,        0.0_r_def), &
-                   setval_c(rhopar_acc_ins,        0.0_r_def), &
-                   setval_c(rhopar_cor_ins,        0.0_r_def), &
-                   setval_c(pvol_wat_ait_sol,      0.0_r_def), &
-                   setval_c(pvol_wat_acc_sol,      0.0_r_def), &
-                   setval_c(pvol_wat_cor_sol,      0.0_r_def), &
-                   setval_c(pvol_su_ait_sol,       0.0_r_def), &
-                   setval_c(pvol_bc_ait_sol,       0.0_r_def), &
-                   setval_c(pvol_om_ait_sol,       0.0_r_def), &
-                   setval_c(pvol_su_acc_sol,       0.0_r_def), &
-                   setval_c(pvol_bc_acc_sol,       0.0_r_def), &
-                   setval_c(pvol_om_acc_sol,       0.0_r_def), &
-                   setval_c(pvol_ss_acc_sol,       0.0_r_def), &
-                   setval_c(pvol_du_acc_sol,       0.0_r_def), &
-                   setval_c(pvol_su_cor_sol,       0.0_r_def), &
-                   setval_c(pvol_bc_cor_sol,       0.0_r_def), &
-                   setval_c(pvol_om_cor_sol,       0.0_r_def), &
-                   setval_c(pvol_ss_cor_sol,       0.0_r_def), &
-                   setval_c(pvol_du_cor_sol,       0.0_r_def), &
-                   setval_c(pvol_bc_ait_ins,       0.0_r_def), &
-                   setval_c(pvol_om_ait_ins,       0.0_r_def), &
-                   setval_c(pvol_du_acc_ins,       0.0_r_def), &
-                   setval_c(pvol_du_cor_ins,       0.0_r_def) )
+                   setval_c(cloud_drop_no_conc,  1.0e8_r_def))
+      if (aerosol == aerosol_um) then
+        call invoke(setval_c(drydp_ait_sol,         0.0_r_def), &
+                    setval_c(drydp_acc_sol,         0.0_r_def), &
+                    setval_c(drydp_cor_sol,         0.0_r_def), &
+                    setval_c(drydp_ait_ins,         0.0_r_def), &
+                    setval_c(drydp_acc_ins,         0.0_r_def), &
+                    setval_c(drydp_cor_ins,         0.0_r_def), &
+                    setval_c(wetdp_ait_sol,         0.0_r_def), &
+                    setval_c(wetdp_acc_sol,         0.0_r_def), &
+                    setval_c(wetdp_cor_sol,         0.0_r_def), &
+                    setval_c(rhopar_ait_sol,        0.0_r_def), &
+                    setval_c(rhopar_acc_sol,        0.0_r_def), &
+                    setval_c(rhopar_cor_sol,        0.0_r_def), &
+                    setval_c(rhopar_ait_ins,        0.0_r_def), &
+                    setval_c(rhopar_acc_ins,        0.0_r_def), &
+                    setval_c(rhopar_cor_ins,        0.0_r_def), &
+                    setval_c(pvol_wat_ait_sol,      0.0_r_def), &
+                    setval_c(pvol_wat_acc_sol,      0.0_r_def), &
+                    setval_c(pvol_wat_cor_sol,      0.0_r_def), &
+                    setval_c(pvol_su_ait_sol,       0.0_r_def), &
+                    setval_c(pvol_bc_ait_sol,       0.0_r_def), &
+                    setval_c(pvol_om_ait_sol,       0.0_r_def), &
+                    setval_c(pvol_su_acc_sol,       0.0_r_def), &
+                    setval_c(pvol_bc_acc_sol,       0.0_r_def), &
+                    setval_c(pvol_om_acc_sol,       0.0_r_def), &
+                    setval_c(pvol_ss_acc_sol,       0.0_r_def), &
+                    setval_c(pvol_du_acc_sol,       0.0_r_def), &
+                    setval_c(pvol_su_cor_sol,       0.0_r_def), &
+                    setval_c(pvol_bc_cor_sol,       0.0_r_def), &
+                    setval_c(pvol_om_cor_sol,       0.0_r_def), &
+                    setval_c(pvol_ss_cor_sol,       0.0_r_def), &
+                    setval_c(pvol_du_cor_sol,       0.0_r_def), &
+                    setval_c(pvol_bc_ait_ins,       0.0_r_def), &
+                    setval_c(pvol_om_ait_ins,       0.0_r_def), &
+                    setval_c(pvol_du_acc_ins,       0.0_r_def), &
+                    setval_c(pvol_du_cor_ins,       0.0_r_def) )
+      end if
 
     end if
 

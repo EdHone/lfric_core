@@ -69,23 +69,14 @@
 
 {%- set canned_configurations = ['lfric_atm'] %}
 
+{# The developer and nightly groups run on both Spice and the HPCs #}
+{# All other groups only run on the HPCs due to their size         #}
+{# The c224-test and c768-test groups currently do not work,       #}
+{# failing around timesteps 192 and 89 repectively.                #}
+{# The c768-test is best run in the high priority queue due to its #}
+{# size, which can be done using the meto-xcs-high optional config #}
+{# (if you have access to the high priority queue)                 #}
 {%- set groups = {
-  'rce': [
-    'run_application("lfric_atm", "basic_rce", checkkgo=False,
-                     resolutions=[("BiP64x64-100x100_MG",5.0)],
-                     env={"crun":12, "nrun":720,
-                          "directives":{"default":{"mpi_parts":64,
-                                                   "threads":1,
-                                                   "wallclock":"00:20:00"} } },
-                     plotstr="plot_rce.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR")'],
-  'cbl': [
-    'run_application("lfric_atm", "cbl", checkkgo=False,
-                     resolutions=[("BiP64x64-100x100_MG",5.0),("BiP64x64-250x250_MG",5.0),("BiP64x64-500x500_MG",5.0)],
-                     env={"crun":6, "nrun":720,
-                          "directives":{"default":{"mpi_parts":64,
-                                                   "threads":1,
-                                                   "wallclock":"00:20:00"}, } },)'],
-
   'developer': [
     'validate_rose_meta_graph("lfric_atm",appName="lfric_atm")',
     'check_style_graph()',
@@ -369,6 +360,21 @@
    'publish_commit'
   ],
 
+  'rce': [
+    'run_application("lfric_atm", "basic_rce", checkkgo=False,
+                     resolutions=[("BiP64x64-100x100_MG",5.0)],
+                     env={"crun":12, "nrun":720,
+                          "directives":{"default":{"mpi_parts":64,
+                                                   "threads":1,
+                                                   "wallclock":"00:20:00"} } },
+                     plotstr="plot_rce.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR")'],
+  'cbl': [
+    'run_application("lfric_atm", "cbl", checkkgo=False,
+                     resolutions=[("BiP64x64-100x100_MG",5.0),("BiP64x64-250x250_MG",5.0),("BiP64x64-500x500_MG",5.0)],
+                     env={"crun":6, "nrun":720,
+                          "directives":{"default":{"mpi_parts":64,
+                                                   "threads":1,
+                                                   "wallclock":"00:20:00"}, } },)'],
   'performance': [
     'run_application("lfric_atm", "nwp_gal9_hres_perf",
                      configuration_suffix="24nodes",
@@ -397,8 +403,8 @@
  		    env={"crun":6, "nrun":60,
  		    "directives":{"default":{"mpi_parts":729,
  		                             "threads":1,
-                                             "xios_nodes":9,
-                                             "mpi_parts_xios":162,
+                                             "xios_nodes":4,
+                                             "mpi_parts_xios":72,
  		                             "wallclock":"00:25:00"} } },
  		    plotstr="plot_map.py -ral $NODAL_DATA_DIR/lfric_ral_diagnostics.nc  $PLOT_DIR")',
     'run_application("lfric_atm", "proto_ral_uk", checkkgo=False,
@@ -406,7 +412,7 @@
  		     env={"crun":2, "nrun":180,
  		    "directives":{"default":{"mpi_parts":729,
  		                             "threads":1,
-                                             "xios_nodes":9,
+                                             "xios_nodes":5,
                                              "mpi_parts_xios":162,
  		                             "wallclock":"00:45:00"} } },
 		     plotstr="plot_map.py -ral $NODAL_DATA_DIR/lfric_ral_diagnostics.nc  $PLOT_DIR")',
@@ -415,7 +421,7 @@
  		     env={"crun":2, "nrun":180,
  		    "directives":{"default":{"mpi_parts":729,
  		                             "threads":1,
-                                             "xios_nodes":9,
+                                             "xios_nodes":5,
                                              "mpi_parts_xios":162,
  		                             "wallclock":"00:40:00"} } },
 		     plotstr="plot_map.py -ral $NODAL_DATA_DIR/lfric_ral_diagnostics.nc  $PLOT_DIR")',
@@ -437,8 +443,8 @@
                                         "C192_MG":{"mpi_parts":864,
                                                "threads":1,
                                                "xios_nodes":4,
-                                               "mpi_parts_xios":144,
-                                               "wallclock":"1:20:00"},
+                                               "mpi_parts_xios":72,
+                                               "wallclock":"1:00:00"},
 					       },
                          },
                      plotstr="plot_map.py $NODAL_DATA_DIR/lfric_gal_diagnostics.nc  $PLOT_DIR"
@@ -455,7 +461,36 @@
                      )',
 
   ],
-
+  'c224-test': [
+    'run_application("lfric_atm", "nwp_gal9_c224", checkkgo=False,
+                     resolutions=[("C224_MG", 720.0)],
+                     env={"crun":1, "nrun":720,
+                          "directives":{
+                                        "C224_MG":{"mpi_parts":1176,
+                                               "threads":1,
+                                               "xios_nodes":4,
+                                               "mpi_parts_xios":98,
+                                               "wallclock":"2:00:00"},
+                                               },
+                         },
+                     plotstr="plot_map.py $NODAL_DATA_DIR/lfric_gal_diagnostics.nc  $PLOT_DIR"
+                     )',
+  ],
+  'c768-test': [
+    'run_application("lfric_atm", "nwp_gal9_c768", checkkgo=False,
+                     resolutions=[("C768_MG", 300.0)],
+                     env={"crun":1, "nrun":576,
+                          "directives":{
+                                        "C768_MG":{"mpi_parts":3456,
+                                               "threads":1,
+                                               "xios_nodes":16,
+                                               "mpi_parts_xios":288,
+                                               "wallclock":"2:30:00"},
+					       },
+                         },
+                     plotstr="plot_map.py $NODAL_DATA_DIR/lfric_gal_diagnostics.nc  $PLOT_DIR"
+                     )',
+  ],
 } %}
 {# Include exoplanet groups #}
 %include inc/exoplanets.rc

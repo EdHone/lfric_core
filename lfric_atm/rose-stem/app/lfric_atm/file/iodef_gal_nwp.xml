@@ -25,7 +25,7 @@
     <file_definition src="./file_def_ancil_gal.xml"/>
     <file_definition src="./file_def_ancil_hadisst.xml"/>
     <file_definition src="./file_def_diags_empty.xml"/>
-    <file_definition src="./file_def_diags_gal.xml"/>
+    <file_definition src="./file_def_diags_gal_nwp.xml"/>
     <file_definition src="./file_def_diags_ave.xml"/>
     <file_definition src="./file_def_diags_var_ops_ver.xml"/>
     <file_definition src="./file_def_diags_jedi.xml"/>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <simulation>
 
-  <!-- file suitable for global NWP runs with aerosol climatology on a coarse mesh -->
+  <!-- file suitable for global NWP runs -->
 
   <!-- In this version we have ONE context  -->
   <context id = "gungho_atm">
@@ -13,7 +13,7 @@
     <!-- Include grid definitions -->
     <grid_definition src="./grid_def_main.xml"/>
     <grid_definition src="./grid_def_gal.xml"/>
-    <grid_definition src="./grid_def_aero_coarse.xml"/>
+    <grid_definition src="./grid_def_aero_ctl.xml"/>
 
     <!-- Include field definitions -->
     <field_definition src="./field_def_diags.xml"/>
@@ -26,14 +26,14 @@
     <file_definition src="./file_def_ancil_hadisst.xml"/>
     <file_definition src="./file_def_diags_empty.xml"/>
     <file_definition src="./file_def_diags_gal_nwp.xml"/>
-    <file_definition src="./file_def_diags_ave.xml"/>
 
     <!-- Local file definitions -->
     <file_definition type="one_file" par_access="collective" time_counter="none">
 
       <!-- Initial conditions diagnostic file -->
       <file id="lfric_initial" name="lfric_initial" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
-        <field_group group_ref="initial_fields" />
+	<field field_ref="init_height_w3" />
+	<field field_ref="init_height_wth" />
       </file>
 
       <!-- File definition for writing an FD dump -->
