@@ -118,7 +118,7 @@ subroutine init_mesh( local_rank, total_ranks,        &
   logical(kind=l_def) :: create_shifted_meshes      = .false.
   logical(kind=l_def) :: create_double_level_meshes = .false.
 
-  integer(kind=i_def) :: i, j, stencil_depth
+  integer(kind=i_def) :: i, j, k, stencil_depth
 
   character(len=str_def) :: mesh_name_A
   character(len=str_def) :: mesh_name_B
@@ -305,7 +305,11 @@ subroutine init_mesh( local_rank, total_ranks,        &
         if (allocated(target_mesh_names)) then
           do j = 1, SIZE(target_mesh_names)
             mesh_name_B = trim(target_mesh_names(j))//'_shifted'
-            call add_mesh_maps( mesh_name_A, mesh_name_B )
+            do k = 1, SIZE(shifted_mesh_names)
+              if ( mesh_name_B == trim(shifted_mesh_names(k))//'_shifted' ) then
+                call add_mesh_maps( mesh_name_A, mesh_name_B )
+              end if
+            end do
           end do
           deallocate(target_mesh_names)
         end if
@@ -325,7 +329,11 @@ subroutine init_mesh( local_rank, total_ranks,        &
         if (allocated(target_mesh_names)) then
           do j = 1, SIZE(target_mesh_names)
             mesh_name_B = trim(target_mesh_names(j))//'_double'
-            call add_mesh_maps( mesh_name_A, mesh_name_B )
+            do k = 1, SIZE(double_level_mesh_names)
+              if ( mesh_name_B == trim(double_level_mesh_names(k))//'_double' ) then
+                call add_mesh_maps( mesh_name_A, mesh_name_B )
+              end if
+            end do
           end do
           deallocate(target_mesh_names)
         end if

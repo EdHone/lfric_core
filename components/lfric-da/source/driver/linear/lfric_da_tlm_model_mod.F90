@@ -33,7 +33,8 @@ module lfric_da_tlm_model_mod
   use field_collection_mod,       only : field_collection_type
   use multigrid_config_mod,       only : chain_mesh_tags
   use multires_coupling_config_mod, &
-                                  only : multires_coupling_mesh_tags
+                                  only : multires_coupling_mesh_tags, &
+                                         orography_mesh_name
   use formulation_config_mod,     only : l_multigrid,              &
                                          moisture_formulation,     &
                                          moisture_formulation_dry, &
@@ -61,7 +62,6 @@ module lfric_da_tlm_model_mod
                                          LOG_LEVEL_ERROR,    &
                                          LOG_LEVEL_DEBUG,    &
                                          LOG_LEVEL_ALWAYS
-  use mg_orography_alg_mod,       only : mg_orography_alg
   use minmax_tseries_mod,         only : minmax_tseries,      &
                                          minmax_tseries_init, &
                                          minmax_tseries_final
@@ -82,6 +82,7 @@ module lfric_da_tlm_model_mod
   use section_choice_config_mod,  only : radiation,         &
                                          radiation_socrates,&
                                          surface, surface_jules
+  use setup_orography_alg_mod,    only : setup_orography_alg
   use time_config_mod,            only : timestep_end, timestep_start
   use timestepping_config_mod,    only : dt,                     &
                                          method,                 &
@@ -160,6 +161,8 @@ contains
     type(mesh_type), pointer :: shifted_mesh => null()
     type(mesh_type), pointer :: double_level_mesh => null()
     type(mesh_type), pointer :: twod_mesh => null()
+    type(mesh_type), pointer :: orography_twod_mesh => null()
+    type(mesh_type), pointer :: orography_mesh => null()
 
     procedure(filelist_populator), pointer :: files_init_ptr => null()
 
@@ -406,28 +409,23 @@ contains
     end if
 
 
+    if ( use_multires_coupling ) then
+      orography_mesh => mesh_collection%get_mesh(trim(orography_mesh_name))
+      orography_twod_mesh => mesh_collection%get_mesh(orography_mesh, TWOD)
+    else
+      orography_mesh => mesh_collection%get_mesh(prime_mesh_name)
+      orography_twod_mesh => mesh_collection%get_mesh(orography_mesh, TWOD)
+    end if
+
     ! Set up surface altitude field - this will be used to generate orography
     ! for models with global land mass included (i.e GAL)
-    call init_altitude( twod_mesh, surface_altitude )
+    call init_altitude( orography_twod_mesh, surface_altitude )
 
-    ! Assignment of orography from surface_altitude
-    call assign_orography_field(chi_inventory, panel_id_inventory, &
-                                mesh, surface_altitude)
-
-    if ( check_any_shifted() ) then
-      shifted_mesh => mesh_collection%get_mesh(mesh, SHIFTED)
-      call assign_orography_field(chi_inventory, panel_id_inventory, &
-                                  shifted_mesh, surface_altitude)
-      double_level_mesh => mesh_collection%get_mesh(mesh, DOUBLE_LEVEL)
-      call assign_orography_field(chi_inventory, panel_id_inventory, &
-                                  double_level_mesh, surface_altitude)
-    end if
-
-    ! Set up orography fields for multgrid meshes
-    if ( l_multigrid ) then
-      call mg_orography_alg(chain_mesh_tags, chi_inventory, &
-                            panel_id_inventory, surface_altitude)
-    end if
+    call setup_orography_alg( base_mesh_names,                &
+                              orography_mesh%get_mesh_name(), &
+                              chi_inventory,                  &
+                              panel_id_inventory,             &
+                              surface_altitude        )
 
     !-------------------------------------------------------------------------
     ! Setup constants

@@ -45,8 +45,10 @@ module mesh_collection_mod
     generic,   public :: get_mesh => get_mesh_by_id,   &
                                      get_mesh_by_name, &
                                      get_mesh_variant
-
-    procedure, public :: check_for
+    procedure, public :: check_for_by_name
+    procedure, public :: check_for_by_extrusion
+    generic,   public :: check_for => check_for_by_name,   &
+                                      check_for_by_extrusion
     procedure, public :: clear
 
     final             :: mesh_collection_destructor
@@ -226,7 +228,7 @@ end function get_mesh_by_id
 !> @return    logical    .true. if global mesh object present
 !>                       in collection.
 !>
-function check_for(self, mesh_name) result(answer)
+function check_for_by_name(self, mesh_name) result(answer)
 
   implicit none
 
@@ -243,7 +245,38 @@ function check_for(self, mesh_name) result(answer)
   nullify(mesh)
 
   return
-end function check_for
+end function check_for_by_name
+
+!===========================================================================
+!> @brief Queries the collection as to the presence of an
+!>        extruded mesh given a mesh and extrusion type
+!>
+!> @param[in] mesh       Mesh with prime extrusion.
+!>
+!> @param[in] extrusion_id  ID of extrusion type looking for
+!>
+!> @return    logical    .true. if extruded mesh object present
+!>                       in collection.
+!>
+function check_for_by_extrusion(self, mesh, extrusion_id) result(answer)
+
+  implicit none
+
+  class(mesh_collection_type), intent(in) :: self
+  type(mesh_type),             intent(in) :: mesh
+  integer(i_def),              intent(in) :: extrusion_id
+
+  type(mesh_type), pointer :: extruded_mesh => null()
+
+  logical :: answer
+
+  answer = .false.
+  extruded_mesh => self%get_mesh_variant(mesh, extrusion_id)
+  if ( associated(extruded_mesh) ) answer = .true.
+  nullify(extruded_mesh)
+
+  return
+end function check_for_by_extrusion
 
 
 !===========================================================================

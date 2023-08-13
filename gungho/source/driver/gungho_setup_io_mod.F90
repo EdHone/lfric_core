@@ -89,7 +89,8 @@ module gungho_setup_io_mod
                                        ls_option_file,            &
                                        sst_source,                &
                                        sst_source_start_dump,     &
-                                       coarse_aerosol_ancil
+                                       coarse_aerosol_ancil,      &
+                                       coarse_orography_ancil
   use io_config_mod,             only: use_xios_io,               &
                                        diagnostic_frequency,      &
                                        checkpoint_write,          &
@@ -142,6 +143,7 @@ module gungho_setup_io_mod
                                        ls_fname
 #ifdef UM_PHYSICS
     character(len=str_max_filename) :: aerosol_ancil_directory
+    character(len=str_max_filename) :: orography_ancil_directory
 #endif
     integer(i_def)                  :: ts_start, ts_end
     integer(i_native)               :: rc
@@ -566,7 +568,14 @@ module gungho_setup_io_mod
 
     ! Setup orography ancillary file
     if ( orog_init_option == orog_init_option_ancil ) then
-
+        if ( coarse_orography_ancil ) then
+          ! Set orography ancil filename from namelist
+          write(ancil_fname,'(A)') trim(coarse_ancil_directory)//'/'// &
+          trim(orography_mean_ancil_path)
+          call files_list%insert_item( lfric_xios_file_type( ancil_fname,   &
+                                          xios_id="coarse_orography_ancil", &
+                                          io_mode=FILE_MODE_READ ) )
+        end if
       ! Set orography ancil filename from namelist
       write(ancil_fname,'(A)') trim(ancil_directory)//'/'// &
                                trim(orography_mean_ancil_path)

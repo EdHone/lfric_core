@@ -184,6 +184,12 @@ contains
     ! Check it's the same mesh as the one extracted by id
     @assertTrue(associated( mesh_variant, mesh_ptr ))
 
+    ! Check mesh exists in collection by name
+    @assertTrue(mesh_collection % check_for_by_name(mesh_name))
+
+    ! Check mesh exists in collection by extrusion
+    @assertTrue(mesh_collection % check_for_by_extrusion(mesh_ptr, PRIME_EXTRUSION))
+
     call mesh_collection%clear()
 
   end subroutine test_all

@@ -289,7 +289,12 @@ contains
         call surface_altitude_w0%initialise( vector_space =  &
            function_space_collection%get_fs(sf_mesh, surface_order, W0) )
 
-        call surface_altitude_alg( surface_altitude_w0, surface_altitude )
+        if (surface_altitude%which_function_space()==W0) then
+          call surface_altitude%copy_field_serial(surface_altitude_w0)
+        else
+          call surface_altitude_alg( surface_altitude_w0, surface_altitude )
+        end if
+
         call surface_altitude%log_minmax(LOG_LEVEL_INFO, 'srf_alt')
         call surface_altitude_w0%log_minmax(LOG_LEVEL_INFO, 'srf_alt_w0')
         nullify ( sf_mesh )
