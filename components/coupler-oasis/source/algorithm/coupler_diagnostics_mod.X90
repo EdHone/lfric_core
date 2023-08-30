@@ -77,7 +77,7 @@ module coupler_diagnostics_mod
 #endif
 
   public cpl_diagnostics, cpl_reset_field, initialise_extra_coupling_fields
-  public save_sea_ice_frac_previous, acc_step, ldump_prep
+  public save_sea_ice_frac_previous, acc_step, ldump_prep, ice_sheet_mass
   contains
 
   !> @brief assignes data to coupling fields
@@ -87,6 +87,9 @@ module coupler_diagnostics_mod
   subroutine cpl_diagnostics(fld, depository, clock)
 
    use multi_extract_kernel_mod,    only: multi_extract_kernel_type
+   use value_based_mask_kernel_mod, only: value_based_mask_kernel_type
+   use mesh_mod,                    only: mesh_type
+   use geometric_constants_mod,     only: get_latitude
 
    implicit none
    type( field_type ), intent(inout)            :: fld
@@ -99,6 +102,8 @@ module coupler_diagnostics_mod
    type( field_type ), pointer                  :: fld_ptr2 => null()
    type( field_type ), pointer                  :: fld_ptr3 => null()
    type( field_type ), pointer                  :: fld_ptr4 => null()
+   type( field_type ), pointer                  :: latitude => null()
+   type(mesh_type), pointer                     :: mesh => null()
 
    ! Reciprocal of number of accumulated time steps
    real(r_def)                                  :: r_acc_step
@@ -125,6 +130,24 @@ module coupler_diagnostics_mod
          call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
       endif
 
+      if (fld%get_name() == "lf_greenland") then
+          !Make a mask of the Northern Hemisphere
+          ! Get the mesh
+          mesh => fld%get_mesh()
+          ! Get the latitude field
+          latitude => get_latitude(mesh%get_id())
+          call invoke(value_based_mask_kernel_type(fld, latitude, &
+                                                0.0_r_def, 2.0_r_def))
+      endif
+      if (fld%get_name() == "lf_antarctic") then
+          !Make a mask of the Southern Hemisphere
+          ! Get the mesh
+          mesh => fld%get_mesh()
+          ! Get the latitude field
+          latitude => get_latitude(mesh%get_id())
+          call invoke(value_based_mask_kernel_type(fld, latitude, &
+                                                -2.0_r_def, 0.0_r_def))
+      endif
    else
       ! We just accumulate coupling field contributions.
 
@@ -361,6 +384,10 @@ module coupler_diagnostics_mod
             call depository%get_field("sub_surface_runoff", fld_ptr1)
             call invoke(inc_X_plus_Y( fld, fld_ptr1 ))
             fld_ptr1 => null()
+         case ("lf_greenland")
+            !Special case as this is an instantaneous field (not incremented)
+         case ("lf_antarctic")
+            !Special case as this is an instantaneous field (not incremented)
          case default
             lfail = .true.
             write(log_scratch_space, '(3A)' )                                  &
@@ -464,5 +491,57 @@ module coupler_diagnostics_mod
                                            first_sea_tile))
 
   end subroutine save_sea_ice_frac_previous
+
+  !> @brief Calculate the volume of snow on ice tile in region defined by mask
+  !> @param[in] mask_field - the coupling field (contains the region mask)
+  !> @param[in] snow_mass_on_tiles Pointer to the snow mass on tiles field
+  !> @param[in] tile_fraction Pointer to the tile fraction field
+  !> @param[out] imass Total snow mass as scalar
+  subroutine ice_sheet_mass(mask_field, snow_mass_on_tiles, tile_fraction, imass)
+
+    use geometric_constants_mod,    only: get_da_at_w2
+    use jules_surface_types_mod,    only: ice
+    use mesh_mod,                   only: mesh_type
+    use multi_extract_kernel_mod,   only: multi_extract_kernel_type
+    use physical_op_constants_mod,  only: get_da_msl_proj
+
+    implicit none
+
+    type( field_type ),          intent(in) :: mask_field
+    type( field_type ), pointer, intent(in) :: snow_mass_on_tiles
+    type( field_type ), pointer, intent(in) :: tile_fraction
+    real(r_def),                 intent(out):: imass
+
+    !local variables
+    type( field_type ), pointer        :: dA => null()
+    type(mesh_type), pointer           :: mesh => null()
+
+
+    ! Get the mesh
+    mesh => snow_mass_on_tiles%get_mesh()
+
+    ! Calculate the grid cell areas (dA)
+    dA => get_dA_msl_proj( mesh%get_id() )
+
+    call invoke(                                                             &
+                ! Extract snow mass on ice tile into cpl_field1
+                multi_extract_kernel_type(cpl_field1,                        &
+                                          snow_mass_on_tiles, ice, 1),       &
+
+                !Extract tile_fraction on ice tile only
+                multi_extract_kernel_type(cpl_field2, tile_fraction,         &
+                                          ice, 1),                           &
+
+                !Multiply fld (latitude mask) by tile fraction
+                X_times_Y(cpl_field5, mask_field, cpl_field2),               &
+
+                ! Multiply by cell area
+                inc_X_times_Y(cpl_field5, dA),                               &
+
+                !Multiply snow mass by masked area and sum
+                X_innerproduct_Y(imass, cpl_field1, cpl_field5)              &
+                )
+
+  end subroutine ice_sheet_mass
 
 end module coupler_diagnostics_mod

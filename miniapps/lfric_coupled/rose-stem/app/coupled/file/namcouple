@@ -22,7 +22,7 @@
 # NFIELDS : total number of fields being exchanged.
 #
  $NFIELDS
-         69
+         71
  $END
 #
 ###############################################################################
@@ -311,6 +311,24 @@ T
  MAPPING
 ##
  rmp_lfric_to_tor1_nomask_CONSERVE_DSTAREA.nc
+#
+#############################################################################
+ lf_greenland OGrnmass 466 3600 1 atmos_restart.nc   EXPORTED
+ 1 1 1 1  lfric tor1 SEQ=+2
+ R  0  R  0
+#
+ BLASOLD
+#   
+ 1.0 0
+#    
+#############################################################################
+  lf_antarctic OAntmass 466 3600 1 atmos_restart.nc   EXPORTED
+  1 1 1 1  lfric tor1 SEQ=+2
+  R  0  R  0
+#
+  BLASOLD
+#
+  1.0 0
 #
 ######################################################
 ############### OCEAN TO ATMOS #######################

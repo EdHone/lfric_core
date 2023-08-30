@@ -7,15 +7,11 @@
 
 module coupler_mod
 #ifdef MCT
-  use mod_oasis,                      only: oasis_put_inquire, oasis_get_ncpl, &
-                                            oasis_get_freqs, oasis_put,        &
-                                            oasis_get, oasis_init_comp,        &
+  use mod_oasis,                      only: oasis_init_comp,        &
                                             oasis_get_localcomm, oasis_abort,  &
                                             oasis_terminate, oasis_enddef,     &
                                             oasis_def_var, oasis_def_partition,&
-                                            oasis_sent, oasis_sentout,         &
                                             oasis_out, prism_ok, nnamcpl,      &
-                                            oasis_recvd, oasis_recvout,        &
                                             namsrcfld, namdstfld, oasis_in,    &
                                             prism_real
 #endif
@@ -43,6 +39,7 @@ module coupler_mod
                                             log_scratch_space
   use mesh_mod,                       only: mesh_type
   use model_clock_mod,                only: model_clock_type
+  use mpi_mod,                        only: global_mpi
   use field_parent_mod,               only: write_interface, read_interface,  &
                                             checkpoint_write_interface,       &
                                             checkpoint_read_interface
@@ -50,7 +47,8 @@ module coupler_mod
                                             initialise_extra_coupling_fields, &
                                             acc_step, ldump_prep
   use coupler_external_field_mod,     only: coupler_external_field_type, &
-                                            initialise_send_fields
+                                            initialise_send_fields,      &
+                                            set_snow_mass_fields
   use coupler_update_prognostics_mod, only: coupler_update_prognostics,       &
                                             initialise_snow_mass
   use process_o2a_algorithm_mod,      only: process_o2a_algorithm
@@ -97,6 +95,8 @@ module coupler_mod
 #ifdef MCT
   !OASIS component id
   integer(i_def)                        :: il_comp_id
+  !OASIS partition id for icesheets
+  integer(i_def)                        :: il_part_id
   !keeps info about level
   character(len=2)                      :: cpl_lev
 #endif
@@ -222,10 +222,14 @@ module coupler_mod
    integer(i_def), allocatable                 :: sglobal_index(:)
    !partition for OASIS
    integer(i_def), allocatable                 :: ig_paral(:)
+   !partition for OASIS for icesheets
+   integer(i_def)                              :: ig_paral_isheets(3)
    !rank/bundles of coupling fields
    integer(i_def)                              :: il_var_nodims(2)
    !dimension of coupled fields
    integer(i_def)                              :: var_shape(2)
+   !dimension of icesheet mass fields
+   integer(i_def)                              :: imass_shape(1)
    !error return by oasis routine
    integer(i_def)                              :: ierror
    !temporary index
@@ -270,6 +274,8 @@ module coupler_mod
    integer(i_def)                              :: islgth
    !iterator
    type( field_collection_iterator_type)       :: iter
+   !rank number of current PE
+   integer(i_def) :: local_rank
 
    num_levels = twod_mesh%get_nlayers()
 
@@ -331,8 +337,20 @@ module coupler_mod
 
    var_shape(1) = 1
    var_shape(2) = icpl_size
+   imass_shape(1) = 1
 
    call oasis_def_partition (il_comp_id, ig_paral, ierror)
+
+   !Set up a special partition for 0D icesheet coupling
+   local_rank  = global_mpi%get_comm_rank()
+   ig_paral_isheets(1)=0
+   ig_paral_isheets(2)=0
+   if (local_rank == 0 ) then
+     ig_paral_isheets(3)=1
+   else
+     ig_paral_isheets(3)=0
+   endif
+   call oasis_def_partition (il_part_id, ig_paral_isheets, ierror)
 
    !add fields to cpl_snd and cpl_rcv collection
    do nv = 1, nnamcpl
@@ -449,6 +467,16 @@ module coupler_mod
             call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
 
          enddo
+      else if ((svar_name == 'lf_greenland') .OR. &
+               (svar_name == 'lf_antarctic')) then
+         call oasis_def_var( oasis_svar_id, svar_name, il_part_id, &
+               il_var_nodims, oasis_out, imass_shape, prism_real, ierror)
+         call field_ptr%set_cpl_id(oasis_svar_id, 1)
+
+         write(log_scratch_space, '(A)' ) &
+                          "cpl_define: field "//trim(svar_name)//" send"
+         call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
+
       else
          call oasis_def_var( oasis_svar_id, svar_name, il_comp_id, &
                il_var_nodims, oasis_out, var_shape, prism_real, ierror)
@@ -565,6 +593,14 @@ module coupler_mod
    call add_cpl_field(depository, prognostic_fields, &
         'lf_iceskint',sice_space, checkpoint_restart_flag, twod=.true.)
 
+   ! The following fields don't need to be in checkpoint files as they are
+   ! calculated instantaneously from snow depth just before coupling
+   call add_cpl_field(depository, prognostic_fields, &
+        'lf_antarctic', vector_space, .false., twod=.true.)
+
+   call add_cpl_field(depository, prognostic_fields, &
+        'lf_greenland', vector_space, .false., twod=.true.)
+
    !receiving - depository
    vector_space => function_space_collection%get_fs( twod_mesh, 0, W3, ndata=1 )
 
@@ -671,11 +707,15 @@ module coupler_mod
     type( field_type ),         pointer          :: ice_frac_ptr   => null()
     ! External field used for sending data to Oasis
     type(coupler_external_field_type)            :: coupler_external_field
+    !name of the field
+    character(len=slength)                       :: sname
 
     ldump_prep = .false.
 
     ! increment accumulation step
     acc_step = acc_step + 1.0
+
+    call set_snow_mass_fields(depository)
 
     call iter%initialise(dcpl_snd)
     do
@@ -693,7 +733,9 @@ module coupler_mod
           call coupler_external_field%set_coupling_time(model_clock)
           ! Call through to cpl_field_send in coupler_external_field_mod
           call coupler_external_field%copy_from_lfric()
-          call field_ptr%write_field(trim(field%get_name()))
+          sname = trim(adjustl(field%get_name()))
+          if((sname /= 'lf_greenland') .AND. (sname /= 'lf_antarctic')) &
+             call field_ptr%write_field(trim(field%get_name()))
         class default
           write(log_scratch_space, '(2A)' ) "PROBLEM cpl_snd: field ", &
                 trim(field%get_name())//" is NOT field_type"
@@ -730,6 +772,8 @@ module coupler_mod
    type( field_collection_iterator_type)        :: iter
    !pointer to sea ice fractions
    type( field_type ),         pointer          :: ice_frac_ptr        => null()
+   !name of the field
+   character(len=slength)          :: sname
 
    ldump_prep = .true.
    acc_step = acc_step + 1.0
@@ -744,7 +788,9 @@ module coupler_mod
           field_ptr => field
           call cpl_diagnostics(field_ptr, depository, model_clock)
 
-          call field_ptr%write_field(trim(field%get_name()))
+          sname = trim(adjustl(field%get_name()))
+          if((sname /= 'lf_greenland') .AND. (sname /= 'lf_antarctic')) &
+             call field_ptr%write_field(trim(field%get_name()))
         class default
           write(log_scratch_space, '(2A)' ) "PROBLEM cpl_fld_update: field ", &
                          trim(field%get_name())//" is NOT field_type"

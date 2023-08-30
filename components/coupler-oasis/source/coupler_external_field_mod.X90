@@ -23,16 +23,19 @@ module coupler_external_field_mod
 #endif
   use abstract_external_field_mod, only: abstract_external_field_type
   use constants_mod,            only: i_def, r_def, l_def, imdi, i_native
-  use coupler_diagnostics_mod,  only: acc_step
+  use coupler_diagnostics_mod,  only: acc_step, ice_sheet_mass
   use field_mod,                only: field_type, field_proxy_type
+  use field_collection_mod,     only: field_collection_type
   use function_space_mod,       only: function_space_type
   use log_mod,                  only: log_event,       &
                                       LOG_LEVEL_DEBUG, &
                                       LOG_LEVEL_ERROR, &
                                       log_scratch_space
   use model_clock_mod,          only: model_clock_type
+  use mpi_mod,                  only: global_mpi
   use multi_extract_kernel_mod, only: multi_extract_kernel_type
   use set_reciprocal_mod,       only: set_reciprocal_type
+
 
   implicit none
 
@@ -49,7 +52,13 @@ module coupler_external_field_mod
   ! The sending field restricted to one sea ice category at a time
   type(field_type) :: sfield_onecat
 
-  public initialise_send_fields, set_r_sea_ice_frac_raw
+  ! Snow mass on tiles
+  type(field_type), pointer :: snow_mass_on_tiles_ptr
+
+  ! Tile fraction
+  type(field_type), pointer :: tile_fraction_ptr
+
+  public initialise_send_fields, set_r_sea_ice_frac_raw, set_snow_mass_fields
 
 type, extends(abstract_external_field_type), public :: coupler_external_field_type
   ! Flag for whether this coupling is on the first step after a restart
@@ -151,6 +160,10 @@ end type  coupler_external_field_type
   real(r_def)                                  :: cpl_step
   ! Min,max used for printing to screen
   real(r_def)                                  :: min_value, max_value
+  !Ice sheet mass scalar
+  real(r_def)                                  :: imass
+  !rank number of current PE
+  integer(i_def)                               :: local_rank
 
 
   sfield       => self%get_lfric_field_ptr()
@@ -206,22 +219,45 @@ end type  coupler_external_field_type
                         inc_X_times_Y(sfield_onecat, r_sea_ice_frac_onecat))
           endif
 
-          ! We need the proxy data to proceed beyond this point
-          sfield_proxy = sfield_onecat%get_proxy()
+          ! Greenland and Antarctic icesheet mass fields need to be
+          ! calculated specially and sent as single value array
+          if(( trim(sname) == 'lf_greenland') .OR. &
+               trim(sname) == 'lf_antarctic') then
+             call ice_sheet_mass(sfield, snow_mass_on_tiles_ptr, &
+                                 tile_fraction_ptr, imass)
+             !oasis_put expects an array
+             sdata(1:1)=imass
+             !0D coupling so only pass from pe0
+             local_rank  = global_mpi%get_comm_rank()
+             if(local_rank == 0) then
+                call oasis_put(svar_id, self%mtime, sdata(1:1), ierror)
 
-          ! Reorder the LFRic data into the outgoing Oasis send buffer
-          ! and convert accumulations to means
-          do i = 1, self%icpl_size
-            sdata(i) = sfield_proxy%data(self%slocal_index(i))/cpl_step
-          enddo
+                write(log_scratch_space, '(3A, 2E12.3)' ) &
+                                   "cpl_field_send: field ", &
+                                   trim(sname), &
+                                   " sent with value = ", imass
+                call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
+             endif
+          else
 
-          min_value = minval(sdata)
-          max_value = maxval(sdata)
 
-          call oasis_put(svar_id, self%mtime, sdata(:), ierror)
-          write(log_scratch_space, '(3A, 2E12.3)' ) "cpl_field_send: field ", &
-                      trim(sname)," sent with min,max = ",min_value, max_value
-          call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
+             ! We need the proxy data to proceed beyond this point
+             sfield_proxy = sfield_onecat%get_proxy()
+
+             ! Reorder the LFRic data into the outgoing Oasis send buffer
+             ! and convert accumulations to means
+             do i = 1, self%icpl_size
+               sdata(i) = sfield_proxy%data(self%slocal_index(i))/cpl_step
+             enddo
+
+             min_value = minval(sdata)
+             max_value = maxval(sdata)
+
+             call oasis_put(svar_id, self%mtime, sdata(:), ierror)
+             write(log_scratch_space, '(3A, 2E12.3)' ) "cpl_field_send: field ", &
+                         trim(sname)," sent with min,max = ",min_value, max_value
+             call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
+          endif
 
         else
           write(log_scratch_space, '(3A)' ) "PROBLEM cpl_field_send: field ", &
@@ -243,7 +279,8 @@ end type  coupler_external_field_type
   ! If coupling was successful then reset field to 0 ready to start
   ! accumulation for the next exchange
   if (ierror == oasis_sent .or. ierror == oasis_sentout) then
-    call invoke(setval_c(sfield, 0.0_r_def))
+    if((sname /= 'lf_greenland') .AND. (sname /= 'lf_antarctic')) &
+       call invoke(setval_c(sfield, 0.0_r_def))
     acc_step = 0.0_r_def
   endif
 
@@ -389,5 +426,21 @@ end type  coupler_external_field_type
   nullify(multidata_fs)
 
   end subroutine set_r_sea_ice_frac_raw
+
+  !> @brief Sets up pointers to snow_mass_on_tiles and tile_frac
+  !> @param[in] depository Field collection type containing the fields
+  subroutine set_snow_mass_fields(depository)
+
+  implicit none
+
+  type( field_collection_type ), intent(in)    :: depository
+
+  ! Get snow_depth field into fld_ptr1
+  call depository%get_field("tile_snow_mass", snow_mass_on_tiles_ptr)
+
+  ! Get tile fractions
+  call depository%get_field('tile_fraction', tile_fraction_ptr)
+
+  end subroutine set_snow_mass_fields
 
 end module coupler_external_field_mod
