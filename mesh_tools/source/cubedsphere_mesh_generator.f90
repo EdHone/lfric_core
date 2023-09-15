@@ -29,6 +29,7 @@ program cubedsphere_mesh_generator
   use halo_comms_mod,                 only: initialise_halo_comms, &
                                             finalise_halo_comms
   use io_utility_mod,                 only: open_file, close_file
+  use namelist_collection_mod,        only: namelist_collection_type
   use local_mesh_collection_mod,      only: local_mesh_collection, &
                                             local_mesh_collection_type
 
@@ -135,6 +136,8 @@ program cubedsphere_mesh_generator
   ! Counters.
   integer(i_def) :: i, j, k, l, n_voids
 
+  type(namelist_collection_type), save :: nml_bank
+
   !===================================================================
   ! 1.0 Set the logging level for the run, should really be able
   !     to set it from the command line as an option.
@@ -152,13 +155,14 @@ program cubedsphere_mesh_generator
 
   total_ranks = global_mpi%get_comm_size()
   local_rank  = global_mpi%get_comm_rank()
-  call initialise_logging( communicator, "cubedsphere" )
+  call initialise_logging( communicator, 'CubeGen' )
+  call nml_bank%initialise( 'CubeGen', table_len=10 )
 
   !===================================================================
   ! 3.0 Read in the control namelists from file.
   !===================================================================
   call get_initial_filename( filename )
-  call read_configuration( filename )
+  call read_configuration( filename, nml_bank )
   deallocate( filename )
 
   max_res = maxval(edge_cells(:n_meshes))

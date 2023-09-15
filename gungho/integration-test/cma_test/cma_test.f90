@@ -53,10 +53,8 @@ program cma_test
                                              LOG_LEVEL_INFO
   use mesh_mod,                       only : mesh_type
   use mesh_collection_mod,            only : mesh_collection
+  use namelist_collection_mod,        only : namelist_collection_type
   use planet_config_mod,              only : radius
-
-
-
 
   implicit none
 
@@ -110,6 +108,9 @@ program cma_test
   logical :: do_test_add = .false.
   logical :: do_test_apply_inv = .false.
   logical :: do_test_diag_dhmdht = .false.
+
+  ! Namelist and configuration variables
+  type(namelist_collection_type), save :: nml_bank
 
   ! Error tolerance for tests
   ! Note: tolerance is for r_solver = real64
@@ -212,7 +213,8 @@ program cma_test
 
   allocate( success_map(size(required_configuration)) )
 
-  call read_configuration( filename )
+  call nml_bank%initialise( program_name, table_len=10 )
+  call read_configuration( filename, nml_bank )
 
   okay = ensure_configuration( required_configuration, success_map )
   if (.not. okay) then

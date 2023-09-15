@@ -62,7 +62,7 @@ contains
     write( temporary_unit, '("/")' )
 
     rewind(temporary_unit)
-    call read_first_namelist( temporary_unit, local_rank )
+    call read_first_namelist( temporary_unit, local_rank, scan=.false. )
     call postprocess_first_namelist()
     close(temporary_unit, iostat=condition )
     if (condition /= 0) stop temp_close_message
@@ -109,7 +109,7 @@ contains
     write( temporary_unit, '("/")' )
 
     rewind(temporary_unit)
-    call read_second_namelist( temporary_unit, local_rank )
+    call read_second_namelist( temporary_unit, local_rank, scan=.false. )
     call postprocess_second_namelist()
     close(temporary_unit, iostat=condition )
     if (condition /= 0) stop temp_close_message

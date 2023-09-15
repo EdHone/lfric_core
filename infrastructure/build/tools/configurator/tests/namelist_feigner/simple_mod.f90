@@ -62,7 +62,7 @@ contains
     write( temporary_unit, '("/")' )
 
     rewind(temporary_unit)
-    call read_simple_namelist( temporary_unit, local_rank )
+    call read_simple_namelist( temporary_unit, local_rank, scan=.false. )
     call postprocess_simple_namelist()
     close(temporary_unit, iostat=condition )
     if (condition /= 0) stop temp_close_message

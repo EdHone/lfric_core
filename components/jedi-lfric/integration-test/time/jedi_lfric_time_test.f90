@@ -41,6 +41,7 @@ program jedi_lfric_time_test
                                               LOG_LEVEL_INFO
   use mpi_mod,                         only : global_mpi, &
                                               create_comm, destroy_comm
+  use namelist_collection_mod,         only : namelist_collection_type
 
   implicit none
 
@@ -78,6 +79,8 @@ program jedi_lfric_time_test
 
   ! Usage message to print
   character(len=512) :: usage_message
+
+  type(namelist_collection_type), save :: nml_bank
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Communicators and Logging Setup
@@ -183,7 +186,8 @@ program jedi_lfric_time_test
   end if
 
   ! Setup configuration, and initialise tests
-  call read_configuration( filename )
+  call nml_bank%initialise( program_name, table_len=10 )
+  call read_configuration( filename, nml_bank )
   call test_jedi_interface_init()
 
   if ( do_test_init_lfric_calendar_start ) then

@@ -347,11 +347,15 @@ class NamelistDescription:
     """
     Describes a namelist and its contained fields.
     """
-    def __init__(self, listname: str):
+    def __init__(self, listname: str,
+                 multiple_instances_allowed: bool = False,
+                 instance_key_member: Optional[str] = None):
         """
         :param listname: Identifying name.
         """
         self._listname = listname
+        self._multiple_instances_allowed = multiple_instances_allowed
+        self._instance_key_member = instance_key_member
 
         self._engine = jinja2.Environment(
             loader=jinja2.PackageLoader('configurator', 'templates'),
@@ -361,7 +365,7 @@ class NamelistDescription:
         self._parameters: Dict[str, _Property] = collections.OrderedDict()
         self._module_usage = collections.defaultdict(set)
         self._module_usage['constants_mod'] = set(['cmdi', 'emdi', 'unset_key',
-                                                   'imdi', 'rmdi'])
+                                                   'imdi', 'rmdi', 'str_def'])
 
     def get_namelist_name(self) -> str:
         """
@@ -515,23 +519,26 @@ class NamelistDescription:
             if not isinstance(parameter, _Computed):
                 namelist.append(parameter.name)
 
-        inserts = {'all_kinds':     all_kinds,
-                   'arrays':        [parameter.name
-                                     for parameter in self._parameters.values()
-                                     if isinstance(parameter, _Array)],
-                   'allocatables':  [parameter.name
-                                     for parameter in self._parameters.values()
-                                     if (isinstance(parameter, _Array) and
-                                         not parameter.is_immediate_size())],
-                   'enumerations':  [parameter.name
-                                     for parameter in self._parameters.values()
-                                     if isinstance(parameter, _Enumeration)],
-                   'listname':      self._listname,
+        inserts = {'all_kinds': all_kinds,
+                   'arrays': [parameter.name
+                              for parameter in self._parameters.values()
+                              if isinstance(parameter, _Array)],
+                   'allocatables': [parameter.name
+                                    for parameter in self._parameters.values()
+                                    if (isinstance(parameter, _Array) and
+                                        not parameter.is_immediate_size())],
+                   'enumerations': [parameter.name
+                                    for parameter in self._parameters.values()
+                                    if isinstance(parameter, _Enumeration)],
+                   'listname': self._listname,
+                   'multiple_instances_allowed':
+                       self._multiple_instances_allowed,
+                   'instance_key_member': self._instance_key_member,
                    'lonekindindex': lone_kind_index,
                    'lonekindtally': lone_kind_tally,
-                   'namelist':      namelist,
-                   'parameters':    self._parameters,
-                   'use_from':      self._module_usage}
+                   'namelist': namelist,
+                   'parameters': self._parameters,
+                   'use_from': self._module_usage}
 
         template = self._engine.get_template('namelist.f90.jinja')
         file_object.write_text(template.render(inserts))
@@ -681,12 +688,23 @@ class NamelistConfigDescription:  # pylint: disable=too-few-public-methods
         result = []
 
         for listname in namelist_config.keys():
-            description = NamelistDescription(listname)
-            list_dict = namelist_config[listname]
 
-            for member in sorted(list_dict.keys()):
+            multiple_instances_allowed = False
+            instance_key_member = None
+            if 'multiple_instances_allowed' in \
+                    namelist_config[listname].keys():
+                multiple_instances_allowed = \
+                    namelist_config[listname]['multiple_instances_allowed']
+                instance_key_member = \
+                    namelist_config[listname]['instance_key_member']
 
-                meta_dict = list_dict[member]
+            description = NamelistDescription(listname,
+                                              multiple_instances_allowed,
+                                              instance_key_member)
+            members_dict = namelist_config[listname]['members']
+
+            for member in sorted(members_dict.keys()):
+                meta_dict = members_dict[member]
                 description.add_member(member, meta_dict)
 
             result.append(description)

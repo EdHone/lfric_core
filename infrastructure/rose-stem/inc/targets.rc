@@ -75,15 +75,15 @@
             'compiler' : {
                 'intel' : [
                     'module unload ifort/17.0_64',
-                    'module load environment/lfric/ifort/19.0_64/3'
+                    'module load environment/lfric/ifort/19.0_64/4'
                 ],
                 'gnu' : [
-                    'module load environment/lfric/gcc/11.2.0/3'
+                    'module load environment/lfric/gcc/11.2.0/4'
                 ]
             },
             'plot' : ['module load scitools/production-os45-1'],
             'reveal' : ['module list 2>&1', 'export'],
-            'tech' : ['module load environment/lfric/common/11'],
+            'tech' : ['module load environment/lfric/common/12'],
             'run'  : ['ulimit -s unlimited'],
         },
         'teardown' : {
@@ -133,20 +133,20 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/5'
+                    'module load meto-environment/lfric/intel/17.0.0.098/6'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cce/8.7.0/4'
+                    'module load meto-environment/lfric/cce/8.7.0/5'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
             'run' : [],
-            'tech' : ['module load meto-common/lfric/15',
+            'tech' : ['module load meto-common/lfric/16',
                       'module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
             'base' : [
-                'module unload meto-environment/lfric',
+                'module unload meto-environment/lfric'
             ],
         },
         'queue' : {
@@ -193,20 +193,20 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/5'
+                    'module load meto-environment/lfric/intel/17.0.0.098/6'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cray/8.7.0/5'
+                    'module load meto-environment/lfric/cray/8.7.0/6'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
             'run' : [],
-            'tech' : ['module load meto-common-environment/lfric/15',
+            'tech' : ['module load meto-common-environment/lfric/16',
                       'module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
             'base' : [
-                'module unload meto-environment/lfric',
+                'module unload meto-environment/lfric'
             ],
         },
         'queue' : {
@@ -253,10 +253,10 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/5'
+                    'module load meto-environment/lfric/intel/17.0.0.098/6'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cray/8.7.0/5'
+                    'module load meto-environment/lfric/cray/8.7.0/6'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],

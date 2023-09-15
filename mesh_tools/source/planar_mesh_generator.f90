@@ -31,6 +31,7 @@ program planar_mesh_generator
   use halo_comms_mod,                 only: initialise_halo_comms, &
                                             finalise_halo_comms
   use io_utility_mod,                 only: open_file, close_file
+  use namelist_collection_mod,        only: namelist_collection_type
   use local_mesh_collection_mod,      only: local_mesh_collection, &
                                             local_mesh_collection_type
 
@@ -91,6 +92,7 @@ program planar_mesh_generator
 
   type(reference_cube_type) :: cube_element
 
+
   class(ugrid_file_type), allocatable :: ugrid_file
   type(gen_planar_type),  allocatable :: mesh_gen(:)
   type(ugrid_2d_type),    allocatable :: ugrid_2d(:)
@@ -139,6 +141,8 @@ program planar_mesh_generator
 
   character(str_def) :: name
 
+  type(namelist_collection_type) :: nml_bank
+
   ! Counters.
   integer(i_def) :: i, j, k, l, n_voids
 
@@ -161,14 +165,14 @@ program planar_mesh_generator
 
   total_ranks = global_mpi%get_comm_size()
   local_rank  = global_mpi%get_comm_rank()
-  call initialise_logging( communicator, "planar" )
-
+  call initialise_logging( communicator, 'PlanarGen' )
+  call nml_bank%initialise( 'PlanarGen', table_len=10 )
 
   !===================================================================
   ! 3.0 Read in the control namelists from file.
   !===================================================================
   call get_initial_filename( filename )
-  call read_configuration( filename )
+  call read_configuration( filename, nml_bank )
   deallocate( filename )
 
   ! The number of mesh maps in the namelist array is unbounded

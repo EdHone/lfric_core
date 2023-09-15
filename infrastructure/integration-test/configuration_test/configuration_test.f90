@@ -54,9 +54,9 @@ program configuration_test
     stop 3
   end if
 
-  call read_another_list_namelist( file_unit ,rank )
+  call read_another_list_namelist( file_unit ,rank, scan=.false. )
   REWIND(file_unit)
-  call read_one_of_each_test_namelist( file_unit ,rank )
+  call read_one_of_each_test_namelist( file_unit ,rank, scan=.false. )
 
   close( file_unit, iostat=condition )
   if (condition /= 0) then

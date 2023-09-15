@@ -13,17 +13,28 @@ module test_config_mod
                          , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: global_mpi
 
-  use constants_mod, only: cmdi, emdi, imdi, rmdi, unset_key
+  use namelist_mod,      only: namelist_type
+  use namelist_item_mod, only: namelist_item_type
+
+  use constants_mod, only: cmdi, emdi, imdi, rmdi, str_def, unset_key
 
   implicit none
 
   private
   public :: read_test_namelist, postprocess_test_namelist, &
-            test_is_loadable, test_is_loaded, test_final
+            test_is_loadable, test_is_loaded, &
+            test_reset_load_status, &
+            test_multiples_allowed, test_final, &
+            get_test_nml
 
   integer(i_def), public, protected :: foo = imdi
 
-  logical :: namelist_loaded = .false.
+  character(*), parameter :: listname = 'test'
+  character(str_def) :: profile_name = cmdi
+
+  logical, parameter :: multiples_allowed = .false.
+
+  logical :: nml_loaded = .false.
 
 contains
 
@@ -33,21 +44,25 @@ contains
   !>
   !> @param [in] file_unit Unit number of the file to read from.
   !> @param [in] local_rank Rank of current process.
+  !> @param [in] scan .true. if reading namelist to acquire scalar
+  !>                  values which may possbly be required for
+  !>                  array sizing during postprocessing.
   !>
-  subroutine read_test_namelist( file_unit, local_rank )
+  subroutine read_test_namelist( file_unit, local_rank, scan )
 
     implicit none
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
+    logical,           intent(in) :: scan
 
-    call read_namelist( file_unit, local_rank )
+    call read_namelist( file_unit, local_rank, scan )
 
   end subroutine read_test_namelist
 
   ! Reads the namelist file.
   !
-  subroutine read_namelist( file_unit, local_rank )
+  subroutine read_namelist( file_unit, local_rank, scan )
 
     use constants_mod, only: i_def
 
@@ -55,7 +70,9 @@ contains
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
-    integer(i_def)                :: missing_data
+    logical,           intent(in) :: scan
+
+    integer(i_def) :: missing_data
 
     integer(i_def) :: buffer_integer_i_def(1)
 
@@ -83,9 +100,39 @@ contains
     foo = buffer_integer_i_def(1)
 
 
-    namelist_loaded = .true.
+    if (scan) then
+      nml_loaded = .false.
+    else
+      nml_loaded = .true.
+    end if
 
   end subroutine read_namelist
+
+
+  !> @brief Returns a <<namelist_type>> object populated with the
+  !>        current contents of this configuration module.
+  !> @return namelist_obj <<namelist_type>> with current namelist contents.
+  function get_test_nml() result(namelist_obj)
+
+    implicit none
+
+    type(namelist_type)      :: namelist_obj
+    type(namelist_item_type) :: members(1)
+
+      call members(1)%initialise( &
+                  'foo', foo )
+
+    if (trim(profile_name) /= trim(cmdi) ) then
+      call namelist_obj%initialise( trim(listname), &
+                                    members, &
+                                    profile_name = profile_name )
+    else
+      call namelist_obj%initialise( trim(listname), &
+                                    members )
+    end if
+
+  end function get_test_nml
+
 
   !> Performs any processing to be done once all namelists are loaded
   !>
@@ -106,7 +153,11 @@ contains
 
     logical :: test_is_loadable
 
-    test_is_loadable = .not. namelist_loaded
+    if ( multiples_allowed .or. .not. nml_loaded ) then
+      test_is_loadable = .true.
+    else
+      test_is_loadable = .false.
+    end if
 
   end function test_is_loadable
 
@@ -120,9 +171,35 @@ contains
 
     logical :: test_is_loaded
 
-    test_is_loaded = namelist_loaded
+    test_is_loaded = nml_loaded
 
   end function test_is_loaded
+
+  !> Are multiple test namelists allowed to be read?
+  !>
+  !> @return True If multiple test namelists are
+  !>              permitted.
+  !>
+  function test_multiples_allowed()
+
+    implicit none
+
+    logical :: test_multiples_allowed
+
+    test_multiples_allowed = multiples_allowed
+
+  end function test_multiples_allowed
+
+  !> Resets the load status to allow
+  !> test namelist to be read.
+  !>
+  subroutine test_reset_load_status()
+
+    implicit none
+
+    nml_loaded = .false.
+
+  end subroutine test_reset_load_status
 
   !> Clear out any allocated memory
   !>

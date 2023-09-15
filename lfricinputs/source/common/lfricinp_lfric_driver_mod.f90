@@ -42,6 +42,8 @@ USE mpi_mod,                    ONLY: global_mpi, create_comm, destroy_comm
 ! lfricinp modules
 USE lfricinp_um_parameters_mod, ONLY: fnamelen
 
+USE namelist_collection_mod,    ONLY: namelist_collection_type
+
 IMPLICIT NONE
 
 PRIVATE
@@ -197,12 +199,15 @@ LOGICAL              :: okay
 LOGICAL, ALLOCATABLE :: success_map(:)
 INTEGER              :: i
 
+TYPE(namelist_collection_type) :: nml_bank
+
 ALLOCATE(success_map(SIZE(required_lfric_namelists)))
 
 CALL log_event('Loading '//TRIM(program_name)//' configuration ...',           &
                LOG_LEVEL_ALWAYS)
 
-CALL read_configuration( lfric_nl )
+CALL nml_bank%initialise( program_name, table_len=10 )
+CALL read_configuration( lfric_nl, nml_bank )
 
 okay = ensure_configuration(required_lfric_namelists, success_map)
 IF (.NOT. okay) THEN

@@ -20,7 +20,9 @@ module telly_config_mod
   private
   public :: tubbies_from_key, key_from_tubbies, &
             read_telly_namelist, postprocess_telly_namelist, &
-            telly_is_loadable, telly_is_loaded, telly_final
+            telly_reset_load_status, &
+            telly_multiples_allowed, telly_final, &
+            get_telly_nml
 
   integer(i_native), public, parameter :: tubbies_inky = 3
   integer(i_native), public, parameter :: tubbies_lala = 1
@@ -28,7 +30,7 @@ module telly_config_mod
 
   integer(i_native), public, protected :: tubbies = emdi
 
-  logical :: namelist_loaded = .false.
+  logical :: nml_loaded = .false.
 
   character(str_def), parameter :: tubbies_key(3) &
           = [character(len=str_def) :: 'inky', &
@@ -179,7 +181,7 @@ contains
     dummy_tubbies = buffer_integer_i_native(1)
 
 
-    namelist_loaded = .true.
+    nml_loaded = .true.
 
   end subroutine read_namelist
 
@@ -202,7 +204,7 @@ contains
 
     logical :: telly_is_loadable
 
-    telly_is_loadable = .not. namelist_loaded
+    telly_is_loadable = .not. nml_loaded
 
   end function telly_is_loadable
 
@@ -216,9 +218,35 @@ contains
 
     logical :: telly_is_loaded
 
-    telly_is_loaded = namelist_loaded
+    telly_is_loaded = nml_loaded
 
   end function telly_is_loaded
+
+  !> Are multiple telly namelists allowed to be read?
+  !>
+  !> @return True If multiple telly namelists are
+  !>              permitted.
+  !>
+  function telly_multiples_allowed()
+
+    implicit none
+
+    logical :: telly_multiples_allowed
+
+    telly_multiples_allowed = multiples_allowed
+
+  end function telly_multiples_allowed
+
+  !> Resets the load status to allow
+  !> telly namelist to be read.
+  !>
+  subroutine telly_reset_load_status()
+
+    implicit none
+
+    nml_loaded = .false.
+
+  end subroutine telly_reset_load_status
 
   !> Clear out any allocated memory
   !>

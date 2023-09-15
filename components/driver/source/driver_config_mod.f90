@@ -5,13 +5,14 @@
 !-----------------------------------------------------------------------------
 module driver_config_mod
 
-  use configuration_mod, only : ensure_configuration, &
-                                final_configuration,  &
-                                read_configuration
-  use log_mod,           only : log_event,       &
-                                log_level_debug, &
-                                log_level_error, &
-                                log_scratch_space
+  use configuration_mod,       only: ensure_configuration, &
+                                     final_configuration,  &
+                                     read_configuration
+  use namelist_collection_mod, only: namelist_collection_type
+  use log_mod,                 only: log_event,       &
+                                     log_level_debug, &
+                                     log_level_error, &
+                                     log_scratch_space
 
   implicit none
 
@@ -31,12 +32,15 @@ contains
     logical              :: success
     integer              :: i
 
+    type(namelist_collection_type) :: nml_bank
+
     allocate( success_map(size(required_namelists)) )
 
     call log_event( 'Loading configuration ...', &
                     log_level_debug )
 
-    call read_configuration( filename )
+    call nml_bank%initialise( 'dummy', table_len=10 )
+    call read_configuration( filename, nml_bank )
 
     success = ensure_configuration( required_namelists, success_map )
     if (.not. success) then

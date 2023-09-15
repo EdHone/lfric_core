@@ -13,14 +13,20 @@ module enum_config_mod
                          , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: global_mpi
 
-  use constants_mod, only: cmdi, emdi, imdi, rmdi, unset_key
+  use namelist_mod,      only: namelist_type
+  use namelist_item_mod, only: namelist_item_type
+
+  use constants_mod, only: cmdi, emdi, imdi, rmdi, str_def, unset_key
 
   implicit none
 
   private
   public :: value_from_key, key_from_value, &
             read_enum_namelist, postprocess_enum_namelist, &
-            enum_is_loadable, enum_is_loaded, enum_final
+            enum_is_loadable, enum_is_loaded, &
+            enum_reset_load_status, &
+            enum_multiples_allowed, enum_final, &
+            get_enum_nml
 
   integer(i_native), public, parameter :: value_one = 1695414371
   integer(i_native), public, parameter :: value_three = 839906103
@@ -28,7 +34,12 @@ module enum_config_mod
 
   integer(i_native), public, protected :: value = emdi
 
-  logical :: namelist_loaded = .false.
+  character(*), parameter :: listname = 'enum'
+  character(str_def) :: profile_name = cmdi
+
+  logical, parameter :: multiples_allowed = .false.
+
+  logical :: nml_loaded = .false.
 
   character(str_def), parameter :: value_key(3) &
           = [character(len=str_def) :: 'one', &
@@ -122,22 +133,26 @@ contains
   !>
   !> @param [in] file_unit Unit number of the file to read from.
   !> @param [in] local_rank Rank of current process.
+  !> @param [in] scan .true. if reading namelist to acquire scalar
+  !>                  values which may possbly be required for
+  !>                  array sizing during postprocessing.
   !>
-  subroutine read_enum_namelist( file_unit, local_rank )
+  subroutine read_enum_namelist( file_unit, local_rank, scan )
 
     implicit none
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
+    logical,           intent(in) :: scan
 
-    call read_namelist( file_unit, local_rank, &
+    call read_namelist( file_unit, local_rank, scan, &
                         value )
 
   end subroutine read_enum_namelist
 
   ! Reads the namelist file.
   !
-  subroutine read_namelist( file_unit, local_rank, &
+  subroutine read_namelist( file_unit, local_rank, scan, &
                             dummy_value )
 
     use constants_mod, only: i_def
@@ -146,8 +161,10 @@ contains
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
-    integer(i_def)                :: missing_data
+    logical,           intent(in) :: scan
     integer(i_native), intent(out) :: dummy_value
+
+    integer(i_def) :: missing_data
 
     integer(i_native) :: buffer_integer_i_native(1)
 
@@ -179,9 +196,39 @@ contains
     dummy_value = buffer_integer_i_native(1)
 
 
-    namelist_loaded = .true.
+    if (scan) then
+      nml_loaded = .false.
+    else
+      nml_loaded = .true.
+    end if
 
   end subroutine read_namelist
+
+
+  !> @brief Returns a <<namelist_type>> object populated with the
+  !>        current contents of this configuration module.
+  !> @return namelist_obj <<namelist_type>> with current namelist contents.
+  function get_enum_nml() result(namelist_obj)
+
+    implicit none
+
+    type(namelist_type)      :: namelist_obj
+    type(namelist_item_type) :: members(1)
+
+      call members(1)%initialise( &
+                  'value', value )
+
+    if (trim(profile_name) /= trim(cmdi) ) then
+      call namelist_obj%initialise( trim(listname), &
+                                    members, &
+                                    profile_name = profile_name )
+    else
+      call namelist_obj%initialise( trim(listname), &
+                                    members )
+    end if
+
+  end function get_enum_nml
+
 
   !> Performs any processing to be done once all namelists are loaded
   !>
@@ -202,7 +249,11 @@ contains
 
     logical :: enum_is_loadable
 
-    enum_is_loadable = .not. namelist_loaded
+    if ( multiples_allowed .or. .not. nml_loaded ) then
+      enum_is_loadable = .true.
+    else
+      enum_is_loadable = .false.
+    end if
 
   end function enum_is_loadable
 
@@ -216,9 +267,35 @@ contains
 
     logical :: enum_is_loaded
 
-    enum_is_loaded = namelist_loaded
+    enum_is_loaded = nml_loaded
 
   end function enum_is_loaded
+
+  !> Are multiple enum namelists allowed to be read?
+  !>
+  !> @return True If multiple enum namelists are
+  !>              permitted.
+  !>
+  function enum_multiples_allowed()
+
+    implicit none
+
+    logical :: enum_multiples_allowed
+
+    enum_multiples_allowed = multiples_allowed
+
+  end function enum_multiples_allowed
+
+  !> Resets the load status to allow
+  !> enum namelist to be read.
+  !>
+  subroutine enum_reset_load_status()
+
+    implicit none
+
+    nml_loaded = .false.
+
+  end subroutine enum_reset_load_status
 
   !> Clear out any allocated memory
   !>

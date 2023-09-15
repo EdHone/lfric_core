@@ -14,6 +14,10 @@ module {{listname}}_config_mod
   use log_mod,       only: log_event, log_scratch_space &
                          , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: global_mpi
+
+  use namelist_mod,      only: namelist_type
+  use namelist_item_mod, only: namelist_item_type
+
 {%- for module, symbols in use_from | dictsort %}
 {%-   if loop.first %}{{'\n'}}{% endif %}
   use {{module}}, only: {{symbols | sort | join(', ')}}
@@ -27,7 +31,10 @@ module {{listname}}_config_mod
 {{- ' '}}{{name}}_from_key, key_from_{{name}}, &{{'\n'}}{{' ' * 11}}
 {%- endfor %}
 {{- ' '}}read_{{listname}}_namelist, postprocess_{{listname}}_namelist, &
-{{' '*12}}{{listname}}_is_loadable, {{listname}}_is_loaded, {{listname}}_final
+{{' '*12}}{{listname}}_is_loadable, {{listname}}_is_loaded, &
+{{' '*12}}{{listname}}_reset_load_status, &
+{{' '*12}}{{listname}}_multiples_allowed, {{listname}}_final, &
+{{' '*12}}get_{{listname}}_nml
 
 {%- for name in enumerations | sort %}
 {%-   if loop.first %}{{'\n'}}{%- endif %}
@@ -55,7 +62,16 @@ module {{listname}}_config_mod
 {%-   endif %}
 {%- endfor %}
 
-  logical :: namelist_loaded = .false.
+  character(*), parameter :: listname = '{{listname}}'
+  character(str_def) :: profile_name = cmdi
+
+{%- if multiple_instances_allowed %}{{ '\n' }}
+  logical, parameter :: multiples_allowed = .true.
+{%- else %}{{ '\n' }}
+  logical, parameter :: multiples_allowed = .false.
+{%- endif %}
+
+  logical :: nml_loaded = .false.
 
 {%- for name in enumerations | sort %}
 {%-   if loop.first %}{{'\n'}}{%- endif %}
@@ -169,15 +185,19 @@ contains
   !>
   !> @param [in] file_unit Unit number of the file to read from.
   !> @param [in] local_rank Rank of current process.
+  !> @param [in] scan .true. if reading namelist to acquire scalar
+  !>                  values which may possbly be required for
+  !>                  array sizing during postprocessing.
   !>
-  subroutine read_{{listname}}_namelist( file_unit, local_rank )
+  subroutine read_{{listname}}_namelist( file_unit, local_rank, scan )
 
     implicit none
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
+    logical,           intent(in) :: scan
 
-    call read_namelist( file_unit, local_rank
+    call read_namelist( file_unit, local_rank, scan
 {%- if enumerations -%}
 {%-   for name in enumerations | sort %}
 {%-     if loop.first %}{{', &\n'}}{%- endif -%}
@@ -192,7 +212,7 @@ contains
 
   ! Reads the namelist file.
   !
-  subroutine read_namelist( file_unit, local_rank
+  subroutine read_namelist( file_unit, local_rank, scan
 {%- if enumerations -%}
 {%-   for name in enumerations | sort | decorate( 'dummy_' ) %}
 {%-     if loop.first %}{{', &\n'}}{%- endif -%}
@@ -219,10 +239,12 @@ contains
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
-    integer(i_def)                :: missing_data
+    logical,           intent(in) :: scan
 {%- for name in enumerations | sort %}
     integer(i_native), intent(out) :: dummy_{{name}}
 {%- endfor %}
+
+    integer(i_def) :: missing_data
 
 {%- for ftype, count in lonekindtally|dictsort %}
 {%-   if loop.first %}{{'\n'}}{% endif %}
@@ -247,6 +269,7 @@ contains
 {{-   '\n'}}
 {%-   for name in arrays %}
 {%-     if not parameters[name].is_immediate_size() %}
+    if (allocated({{name}})) deallocate({{name}})
     allocate( {{name}}(max_array_size), stat=condition )
     if (condition /= 0) then
       write( log_scratch_space, '(A)' ) &
@@ -325,7 +348,7 @@ contains
 {%-   if loop.first %}{{'\n'}}{% endif %}
 {%-   if parameter.get_configure_type() == 'computed' %}
 {%-     if parameter.dereferenced_list_vars %}
-   ! Parameter name {{name}}: dereferenced_list_vars are: {{parameter.dereferenced_list_vars}}
+    ! Parameter name {{name}}: dereferenced_list_vars are: {{parameter.dereferenced_list_vars}}
     missing_data = 0
 {%-       for var in parameter.dereferenced_list_vars %}
     if (kind({{var}}) == r_def) then
@@ -340,7 +363,7 @@ contains
        {{parameter.name}} = {{parameter.computation}}
     end if
 {%-     else %}
-   ! Parameter name {{name}}: derived by computation
+    ! Parameter name {{name}}: derived by computation
     {{parameter.name}} = {{parameter.computation}}
 {%-     endif %}
 {%-   endif %}
@@ -355,9 +378,46 @@ contains
 {{-   ', 0 )' }}
 {%- endfor %}
 
-    namelist_loaded = .true.
+{%- if multiple_instances_allowed %}{{ '\n' }}
+    profile_name = {{instance_key_member}}
+{%- endif %}
+
+    if (scan) then
+      nml_loaded = .false.
+    else
+      nml_loaded = .true.
+    end if
 
   end subroutine read_namelist
+
+
+  !> @brief Returns a <<namelist_type>> object populated with the
+  !>        current contents of this configuration module.
+  !> @return namelist_obj <<namelist_type>> with current namelist contents.
+  function get_{{listname}}_nml() result(namelist_obj)
+
+    implicit none
+
+    type(namelist_type)      :: namelist_obj
+    type(namelist_item_type) :: members({{parameters|length}})
+
+{%- for name, parameter in parameters | dictsort %}
+{%-   if loop.first %}{{'\n'}}{% endif %}
+      call members({{loop.index}})%initialise( &
+                  '{{parameter.name}}', {{parameter.name}} )
+{{- '\n'}}
+{%- endfor %}
+    if (trim(profile_name) /= trim(cmdi) ) then
+      call namelist_obj%initialise( trim(listname), &
+                                    members, &
+                                    profile_name = profile_name )
+    else
+      call namelist_obj%initialise( trim(listname), &
+                                    members )
+    end if
+
+  end function get_{{listname}}_nml
+
 
   !> Performs any processing to be done once all namelists are loaded
   !>
@@ -396,6 +456,16 @@ contains
     array_size = {{parameter.bounds}}
 {%-   endif %}
 {%-   if not parameter.is_immediate_size() %}
+{%-     if not parameter.is_arbitrary_size() %}
+    if (array_size == imdi) then
+      write(log_scratch_space, '(A)') &
+          '"{{listname}}:{{name}}" not allocated, '// &
+          'deferred size "{{parameter.bounds}}" '//   &
+          'has not been specified.'
+      call log_event( log_scratch_space, LOG_LEVEL_WARNING )
+      array_size = 0
+    end if
+{%-     endif %}
     allocate( new_{{name}}(array_size), stat=condition )
     if (condition /= 0) then
       write(log_scratch_space, '(A)') 'Unable to allocate "{{name}}"'
@@ -404,6 +474,7 @@ contains
     new_{{name}}(:array_size) = {{name}}(:array_size)
     call move_alloc( new_{{name}}, {{name}} )
     if (allocated(new_{{name}})) deallocate( new_{{name}})
+{{- '\n'}}
 {%-   endif %}
 {%- endfor %}
 
@@ -419,7 +490,11 @@ contains
 
     logical :: {{listname}}_is_loadable
 
-    {{listname}}_is_loadable = .not. namelist_loaded
+    if ( multiples_allowed .or. .not. nml_loaded ) then
+      {{listname}}_is_loadable = .true.
+    else
+      {{listname}}_is_loadable = .false.
+    end if
 
   end function {{listname}}_is_loadable
 
@@ -433,9 +508,35 @@ contains
 
     logical :: {{listname}}_is_loaded
 
-    {{listname}}_is_loaded = namelist_loaded
+    {{listname}}_is_loaded = nml_loaded
 
   end function {{listname}}_is_loaded
+
+  !> Are multiple {{listname}} namelists allowed to be read?
+  !>
+  !> @return True If multiple {{listname}} namelists are
+  !>              permitted.
+  !>
+  function {{listname}}_multiples_allowed()
+
+    implicit none
+
+    logical :: {{listname}}_multiples_allowed
+
+    {{listname}}_multiples_allowed = multiples_allowed
+
+  end function {{listname}}_multiples_allowed
+
+  !> Resets the load status to allow
+  !> {{listname}} namelist to be read.
+  !>
+  subroutine {{listname}}_reset_load_status()
+
+    implicit none
+
+    nml_loaded = .false.
+
+  end subroutine {{listname}}_reset_load_status
 
   !> Clear out any allocated memory
   !>

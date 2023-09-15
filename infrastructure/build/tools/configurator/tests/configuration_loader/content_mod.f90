@@ -11,11 +11,16 @@ module content_mod
   use log_mod,       only : log_scratch_space, log_event, LOG_LEVEL_ERROR
   use mpi_mod,       only : global_mpi
 
+  use namelist_collection_mod, only: namelist_collection_type
+  use namelist_mod,            only: namelist_type
+
   use foo_config_mod, only : read_foo_namelist, &
                              postprocess_foo_namelist, &
                              foo_is_loadable, &
                              foo_is_loaded, &
-                             foo_final
+                             foo_reset_load_status, &
+                             foo_final, &
+                             get_foo_nml
 
   implicit none
 
@@ -32,13 +37,14 @@ contains
   ! TODO: Support "namelist file" namelists which recursively call this
   !       procedure to load other namelist files.
   !
-  subroutine read_configuration( filename )
+  subroutine read_configuration( filename, nml_bank )
 
     use io_utility_mod, only : open_file, close_file
 
     implicit none
 
     character(*), intent(in) :: filename
+    type(namelist_collection_type), intent(inout) :: nml_bank
 
     integer(i_native) :: local_rank
 
@@ -51,8 +57,9 @@ contains
 
     call get_namelist_names( unit, local_rank, namelists )
 
-    call read_configuration_namelists( unit, local_rank, &
-                                       namelists, filename )
+    call read_configuration_namelists( unit, local_rank,    &
+                                       namelists, filename, &
+                                       nml_bank )
 
     if (local_rank == 0) call close_file( unit )
 
@@ -145,14 +152,13 @@ contains
 
     name_loop: do i = 1, size(names)
       select case(trim( names(i) ))
-        case ('foo')
-          configuration_found = foo_is_loaded()
-        case default
-          write( log_scratch_space, '(A, A, A)' )          &
-               "Tried to ensure unrecognised namelist """, &
-               trim(names(i)),                             &
-               """ was loaded"
-          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      case ('foo')
+        configuration_found = foo_is_loaded()
+      case default
+        write( log_scratch_space, '(A)' )               &
+            'Tried to ensure unrecognised namelist "'// &
+            trim(names(i))//'" was loaded.'
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end select
 
       ensure_configuration = ensure_configuration .and. configuration_found
@@ -163,8 +169,9 @@ contains
 
   end function ensure_configuration
 
-  subroutine read_configuration_namelists( unit, local_rank, &
-                                           namelists, filename )
+  subroutine read_configuration_namelists( unit, local_rank,    &
+                                           namelists, filename, &
+                                           nml_bank )
     implicit none
 
     integer(i_native),  intent(in) :: unit
@@ -172,45 +179,58 @@ contains
     character(str_def), intent(in) :: namelists(:)
     character(*),       intent(in) :: filename
 
-    integer(i_native) :: i
+    type(namelist_collection_type), intent(inout) :: nml_bank
+
+    type(namelist_type) :: nml_obj
+
+    integer(i_native) :: i, j
+
+    logical :: scan
+
+    ! Reset load status from any previous file reads
+    call foo_reset_load_status()
 
     ! Read the namelists
-    do i = 1, size(namelists)
-      select case (trim(namelists(i)))
+    do j=1, 2
+
+      select case(j)
+      case(1)
+        scan = .true.
+      case(2)
+        scan = .false.
+      end select
+
+      do i=1, size(namelists)
+
+        select case (trim(namelists(i)))
         case ('foo')
           if (foo_is_loadable()) then
-            call read_foo_namelist( unit, local_rank )
+            call read_foo_namelist( unit, local_rank, scan )
+            if (.not. scan) then
+              call postprocess_foo_namelist()
+              nml_obj = get_foo_nml()
+              call nml_bank%add_namelist(nml_obj)
+            end if
           else
             write( log_scratch_space, '(A)' )      &
-                  "Namelist """//                   &
-                  trim(namelists(i))//              &
-                  """ can not be read. Too many instances?"
+                'Namelist "'//trim(namelists(i))// &
+                '" can not be read. Too many instances?'
             call log_event( log_scratch_space, LOG_LEVEL_ERROR )
           end if
         case default
-          write( log_scratch_space, '(A)' )        &
-                "Unrecognised namelist """//        &
-                trim(namelists(i))//                &
-                """ found in file "//               &
-                trim(filename)
+          write( log_scratch_space, '(A)' )                   &
+              'Unrecognised namelist "'//trim(namelists(i))// &
+              '" found in file '//trim(filename)//'.'
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end select
-    end do
+        end select
 
-    ! Perform post load actions
-    do i = 1, size(namelists)
-      select case (trim(namelists(i)))
-        case ('foo')
-          call postprocess_foo_namelist()
-        case default
-          write( log_scratch_space, '(A)' )        &
-                "Unrecognised namelist """//        &
-                trim(namelists(i))//                &
-                """ found in file "//               &
-                trim(filename)
-          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-      end select
-    end do
+      end do ! Namelists
+
+      if ( local_rank == 0 ) then
+        rewind( unit )
+      end if
+
+    end do ! Reading passes
 
   end subroutine read_configuration_namelists
 

@@ -13,19 +13,30 @@ module teapot_config_mod
                          , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: global_mpi
 
-  use constants_mod, only: cmdi, emdi, imdi, rmdi, unset_key
+  use namelist_mod,      only: namelist_type
+  use namelist_item_mod, only: namelist_item_type
+
+  use constants_mod, only: cmdi, emdi, imdi, rmdi, str_def, unset_key
 
   implicit none
 
   private
   public :: read_teapot_namelist, postprocess_teapot_namelist, &
-            teapot_is_loadable, teapot_is_loaded, teapot_final
+            teapot_is_loadable, teapot_is_loaded, &
+            teapot_reset_load_status, &
+            teapot_multiples_allowed, teapot_final, &
+            get_teapot_nml
 
   real(r_def), public, protected :: bar = rmdi
   real(r_def), public, protected :: foo = rmdi
   real(r_def), public, protected :: fum = rmdi
 
-  logical :: namelist_loaded = .false.
+  character(*), parameter :: listname = 'teapot'
+  character(str_def) :: profile_name = cmdi
+
+  logical, parameter :: multiples_allowed = .false.
+
+  logical :: nml_loaded = .false.
 
 contains
 
@@ -35,21 +46,25 @@ contains
   !>
   !> @param [in] file_unit Unit number of the file to read from.
   !> @param [in] local_rank Rank of current process.
+  !> @param [in] scan .true. if reading namelist to acquire scalar
+  !>                  values which may possbly be required for
+  !>                  array sizing during postprocessing.
   !>
-  subroutine read_teapot_namelist( file_unit, local_rank )
+  subroutine read_teapot_namelist( file_unit, local_rank, scan )
 
     implicit none
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
+    logical,           intent(in) :: scan
 
-    call read_namelist( file_unit, local_rank )
+    call read_namelist( file_unit, local_rank, scan )
 
   end subroutine read_teapot_namelist
 
   ! Reads the namelist file.
   !
-  subroutine read_namelist( file_unit, local_rank )
+  subroutine read_namelist( file_unit, local_rank, scan )
 
     use constants_mod, only: i_def
 
@@ -57,7 +72,9 @@ contains
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
-    integer(i_def)                :: missing_data
+    logical,           intent(in) :: scan
+
+    integer(i_def) :: missing_data
 
     real(r_def) :: buffer_real_r_def(2)
 
@@ -89,12 +106,48 @@ contains
     foo = buffer_real_r_def(1)
     fum = buffer_real_r_def(2)
 
-   ! Parameter name bar: derived by computation
+    ! Parameter name bar: derived by computation
     bar = foo ** 2
 
-    namelist_loaded = .true.
+    if (scan) then
+      nml_loaded = .false.
+    else
+      nml_loaded = .true.
+    end if
 
   end subroutine read_namelist
+
+
+  !> @brief Returns a <<namelist_type>> object populated with the
+  !>        current contents of this configuration module.
+  !> @return namelist_obj <<namelist_type>> with current namelist contents.
+  function get_teapot_nml() result(namelist_obj)
+
+    implicit none
+
+    type(namelist_type)      :: namelist_obj
+    type(namelist_item_type) :: members(3)
+
+      call members(1)%initialise( &
+                  'bar', bar )
+
+      call members(2)%initialise( &
+                  'foo', foo )
+
+      call members(3)%initialise( &
+                  'fum', fum )
+
+    if (trim(profile_name) /= trim(cmdi) ) then
+      call namelist_obj%initialise( trim(listname), &
+                                    members, &
+                                    profile_name = profile_name )
+    else
+      call namelist_obj%initialise( trim(listname), &
+                                    members )
+    end if
+
+  end function get_teapot_nml
+
 
   !> Performs any processing to be done once all namelists are loaded
   !>
@@ -115,7 +168,11 @@ contains
 
     logical :: teapot_is_loadable
 
-    teapot_is_loadable = .not. namelist_loaded
+    if ( multiples_allowed .or. .not. nml_loaded ) then
+      teapot_is_loadable = .true.
+    else
+      teapot_is_loadable = .false.
+    end if
 
   end function teapot_is_loadable
 
@@ -129,9 +186,35 @@ contains
 
     logical :: teapot_is_loaded
 
-    teapot_is_loaded = namelist_loaded
+    teapot_is_loaded = nml_loaded
 
   end function teapot_is_loaded
+
+  !> Are multiple teapot namelists allowed to be read?
+  !>
+  !> @return True If multiple teapot namelists are
+  !>              permitted.
+  !>
+  function teapot_multiples_allowed()
+
+    implicit none
+
+    logical :: teapot_multiples_allowed
+
+    teapot_multiples_allowed = multiples_allowed
+
+  end function teapot_multiples_allowed
+
+  !> Resets the load status to allow
+  !> teapot namelist to be read.
+  !>
+  subroutine teapot_reset_load_status()
+
+    implicit none
+
+    nml_loaded = .false.
+
+  end subroutine teapot_reset_load_status
 
   !> Clear out any allocated memory
   !>

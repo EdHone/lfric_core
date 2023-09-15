@@ -22,14 +22,20 @@ module test_config_mod
                          , LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_INFO
   use mpi_mod,       only: global_mpi
 
-  use constants_mod, only: cmdi, emdi, imdi, rmdi, unset_key
+  use namelist_mod,      only: namelist_type
+  use namelist_item_mod, only: namelist_item_type
+
+  use constants_mod, only: cmdi, emdi, imdi, rmdi, str_def, unset_key
 
   implicit none
 
   private
   public :: enum_from_key, key_from_enum, &
             read_test_namelist, postprocess_test_namelist, &
-            test_is_loadable, test_is_loaded, test_final
+            test_is_loadable, test_is_loaded, &
+            test_reset_load_status, &
+            test_multiples_allowed, test_final, &
+            get_test_nml
 
   integer(i_native), public, parameter :: enum_one = 189779348
   integer(i_native), public, parameter :: enum_three = 1061269036
@@ -50,7 +56,12 @@ module test_config_mod
   real(r_def), public, protected :: vreal = rmdi
   character(str_def), public, protected :: vstr = cmdi
 
-  logical :: namelist_loaded = .false.
+  character(*), parameter :: listname = 'test'
+  character(str_def) :: profile_name = cmdi
+
+  logical, parameter :: multiples_allowed = .false.
+
+  logical :: nml_loaded = .false.
 
   character(str_def), parameter :: enum_key(3) &
           = [character(len=str_def) :: 'one', &
@@ -144,22 +155,26 @@ contains
   !>
   !> @param [in] file_unit Unit number of the file to read from.
   !> @param [in] local_rank Rank of current process.
+  !> @param [in] scan .true. if reading namelist to acquire scalar
+  !>                  values which may possbly be required for
+  !>                  array sizing during postprocessing.
   !>
-  subroutine read_test_namelist( file_unit, local_rank )
+  subroutine read_test_namelist( file_unit, local_rank, scan )
 
     implicit none
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
+    logical,           intent(in) :: scan
 
-    call read_namelist( file_unit, local_rank, &
+    call read_namelist( file_unit, local_rank, scan, &
                         enum )
 
   end subroutine read_test_namelist
 
   ! Reads the namelist file.
   !
-  subroutine read_namelist( file_unit, local_rank, &
+  subroutine read_namelist( file_unit, local_rank, scan, &
                             dummy_enum )
 
     use constants_mod, only: i_def
@@ -168,8 +183,10 @@ contains
 
     integer(i_native), intent(in) :: file_unit
     integer(i_native), intent(in) :: local_rank
-    integer(i_def)                :: missing_data
+    logical,           intent(in) :: scan
     integer(i_native), intent(out) :: dummy_enum
+
+    integer(i_def) :: missing_data
 
     character(str_def) :: buffer_character_str_def(2)
     character(str_max_filename) :: buffer_character_str_max_filename(1)
@@ -273,9 +290,78 @@ contains
     vstr = buffer_character_str_def(1)
 
 
-    namelist_loaded = .true.
+    if (scan) then
+      nml_loaded = .false.
+    else
+      nml_loaded = .true.
+    end if
 
   end subroutine read_namelist
+
+
+  !> @brief Returns a <<namelist_type>> object populated with the
+  !>        current contents of this configuration module.
+  !> @return namelist_obj <<namelist_type>> with current namelist contents.
+  function get_test_nml() result(namelist_obj)
+
+    implicit none
+
+    type(namelist_type)      :: namelist_obj
+    type(namelist_item_type) :: members(14)
+
+      call members(1)%initialise( &
+                  'dint', dint )
+
+      call members(2)%initialise( &
+                  'dlog', dlog )
+
+      call members(3)%initialise( &
+                  'dreal', dreal )
+
+      call members(4)%initialise( &
+                  'dstr', dstr )
+
+      call members(5)%initialise( &
+                  'enum', enum )
+
+      call members(6)%initialise( &
+                  'fstr', fstr )
+
+      call members(7)%initialise( &
+                  'lint', lint )
+
+      call members(8)%initialise( &
+                  'lreal', lreal )
+
+      call members(9)%initialise( &
+                  'sint', sint )
+
+      call members(10)%initialise( &
+                  'sreal', sreal )
+
+      call members(11)%initialise( &
+                  'treal', treal )
+
+      call members(12)%initialise( &
+                  'vint', vint )
+
+      call members(13)%initialise( &
+                  'vreal', vreal )
+
+      call members(14)%initialise( &
+                  'vstr', vstr )
+
+    if (trim(profile_name) /= trim(cmdi) ) then
+      call namelist_obj%initialise( trim(listname), &
+                                    members, &
+                                    profile_name = profile_name )
+    else
+      call namelist_obj%initialise( trim(listname), &
+                                    members )
+    end if
+
+  end function get_test_nml
+
 
   !> Performs any processing to be done once all namelists are loaded
   !>
@@ -296,7 +382,11 @@ contains
 
     logical :: test_is_loadable
 
-    test_is_loadable = .not. namelist_loaded
+    if ( multiples_allowed .or. .not. nml_loaded ) then
+      test_is_loadable = .true.
+    else
+      test_is_loadable = .false.
+    end if
 
   end function test_is_loadable
 
@@ -310,9 +400,35 @@ contains
 
     logical :: test_is_loaded
 
-    test_is_loaded = namelist_loaded
+    test_is_loaded = nml_loaded
 
   end function test_is_loaded
+
+  !> Are multiple test namelists allowed to be read?
+  !>
+  !> @return True If multiple test namelists are
+  !>              permitted.
+  !>
+  function test_multiples_allowed()
+
+    implicit none
+
+    logical :: test_multiples_allowed
+
+    test_multiples_allowed = multiples_allowed
+
+  end function test_multiples_allowed
+
+  !> Resets the load status to allow
+  !> test namelist to be read.
+  !>
+  subroutine test_reset_load_status()
+
+    implicit none
+
+    nml_loaded = .false.
+
+  end subroutine test_reset_load_status
 
   !> Clear out any allocated memory
   !>

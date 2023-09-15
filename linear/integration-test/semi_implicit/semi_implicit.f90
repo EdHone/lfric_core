@@ -10,24 +10,25 @@
 !!         corresponding nonlinear code.
 program semi_implicit
 
-  use configuration_mod,      only: read_configuration, final_configuration
-  use driver_collections_mod, only: init_collections, final_collections
-  use driver_time_mod,        only: init_time, get_calendar
-  use gungho_modeldb_mod,     only: modeldb_type
-  use halo_comms_mod,         only: initialise_halo_comms, finalise_halo_comms
-  use log_mod,                only: log_event,       &
-                                    LOG_LEVEL_ERROR, &
-                                    LOG_LEVEL_INFO
-  use mpi_mod,                only: mpi_type, global_mpi, &
-                                    create_comm, destroy_comm
-  use tl_test_driver_mod,     only: initialise,                  &
-                                    finalise,                    &
-                                    run_timesteps,               &
-                                    run_transport_control,       &
-                                    run_semi_imp_alg,            &
-                                    run_rhs_sample_eos,          &
-                                    run_rhs_project_eos,         &
-                                    run_rhs_alg
+  use configuration_mod,       only: read_configuration, final_configuration
+  use driver_collections_mod,  only: init_collections, final_collections
+  use driver_time_mod,         only: init_time, get_calendar
+  use gungho_modeldb_mod,      only: modeldb_type
+  use halo_comms_mod,          only: initialise_halo_comms, finalise_halo_comms
+  use log_mod,                 only: log_event,       &
+                                     LOG_LEVEL_ERROR, &
+                                     LOG_LEVEL_INFO
+  use mpi_mod,                 only: mpi_type, global_mpi, &
+                                     create_comm, destroy_comm
+  use namelist_collection_mod, only: namelist_collection_type
+  use tl_test_driver_mod,      only: initialise,                  &
+                                     finalise,                    &
+                                     run_timesteps,               &
+                                     run_transport_control,       &
+                                     run_semi_imp_alg,            &
+                                     run_rhs_sample_eos,          &
+                                     run_rhs_project_eos,         &
+                                     run_rhs_alg
 
   implicit none
 
@@ -55,6 +56,8 @@ program semi_implicit
 
   ! Usage message to print
   character(len=256) :: usage_message
+
+  type(namelist_collection_type) :: nml_bank
 
   modeldb%mpi => global_mpi
 
@@ -117,7 +120,8 @@ program semi_implicit
      call log_event( "Unknown test", LOG_LEVEL_ERROR )
   end select
 
-  call read_configuration( filename )
+  call nml_bank%initialise( program_name, table_len=10 )
+  call read_configuration( filename, nml_bank )
   deallocate( filename )
 
   call init_collections()
