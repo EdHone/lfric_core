@@ -135,17 +135,17 @@ contains
     if (grid_canopy_water_flag) then
       call invoke(weighted_ave_kernel_type(grid_canopy_water, canopy_water,    &
                                             tile_fraction, 1, n_land_tile) )
-      call grid_canopy_water%write_field(grid_canopy_water%get_name())
+      call grid_canopy_water%write_field()
     end if
     if (grid_throughfall_flag) then
       call invoke(weighted_ave_kernel_type(grid_throughfall, throughfall,      &
                                             tile_fraction, 1, n_land_tile) )
-      call grid_throughfall%write_field(grid_throughfall%get_name())
+      call grid_throughfall%write_field()
     end if
 
     ! Diagnostics computed within the kernel
-    if (throughfall_flag) call throughfall%write_field(throughfall%get_name())
-    if (soil_moisture_content_flag) call soil_moisture_content%write_field(soil_moisture_content%get_name())
+    if (throughfall_flag) call throughfall%write_field()
+    if (soil_moisture_content_flag) call soil_moisture_content%write_field()
 
     ! More prognostic fields
     call surface_runoff%write_field('soil__surface_runoff')

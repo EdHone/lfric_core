@@ -358,25 +358,25 @@ subroutine output_diags_for_radiation( dtheta_rad, &
 
 
   ! Diagnostic fields that are always required by the kernels
-  call lw_up_surf%write_field(lw_up_surf%get_name())
-  call sw_up_surf%write_field(sw_up_surf%get_name())
-  call lw_up_toa%write_field(lw_up_toa%get_name())
-  call sw_up_toa%write_field(sw_up_toa%get_name())
-  call sw_direct_toa%write_field(sw_direct_toa%get_name())
+  call lw_up_surf%write_field()
+  call sw_up_surf%write_field()
+  call lw_up_toa%write_field()
+  call sw_up_toa%write_field()
+  call sw_direct_toa%write_field()
 
 
   ! Diagnostics locally computed here from other fields
   if ( init_diag(sw_temperature_incr, 'radiation__sw_temperature_incr') ) then
     call invoke( a_times_X(sw_temperature_incr, dt, sw_heating_rate) )
-    call sw_temperature_incr%write_field(sw_temperature_incr%get_name())
+    call sw_temperature_incr%write_field()
   end if
   if ( init_diag(lw_temperature_incr, 'radiation__lw_temperature_incr') ) then
     call invoke( a_times_X(lw_temperature_incr, dt, lw_heating_rate) )
-    call lw_temperature_incr%write_field(lw_temperature_incr%get_name())
+    call lw_temperature_incr%write_field()
   end if
   if ( init_diag(sw_net_surf, 'radiation__sw_net_surf') ) then
     call invoke( X_minus_Y(sw_net_surf, sw_down_surf, sw_up_surf) )
-    call sw_net_surf%write_field(sw_net_surf%get_name())
+    call sw_net_surf%write_field()
   end if
 
   ! lw_net_skyview_incr requires lw_net_surf
@@ -389,129 +389,88 @@ subroutine output_diags_for_radiation( dtheta_rad, &
     end if
     call invoke( X_minus_Y(lw_net_surf, lw_down_surf, lw_up_surf) )
   end if
-  if ( lw_net_surf_flag ) call lw_net_surf%write_field(lw_net_surf%get_name())
+  if ( lw_net_surf_flag ) call lw_net_surf%write_field()
 
    if ( lw_net_skyview_incr_flag ) then
     call invoke( X_times_Y(lw_net_skyview_incr, lw_net_surf, skyview) )
     call invoke( inc_X_minus_Y(lw_net_skyview_incr, lw_net_surf) )
-    call lw_net_skyview_incr%write_field(lw_net_skyview_incr%get_name())
+    call lw_net_skyview_incr%write_field()
   end if
 
   if ( init_diag(sw_diffuse_surf, 'radiation__sw_diffuse_surf') ) then
     call invoke( X_minus_Y(sw_diffuse_surf, sw_down_surf, sw_direct_surf) )
-    call sw_diffuse_surf%write_field(sw_diffuse_surf%get_name())
+    call sw_diffuse_surf%write_field()
   end if
   if ( init_diag(sw_net_surf_rts, 'radiation__sw_net_surf_rts') ) then
     call invoke( X_minus_Y(sw_net_surf_rts, sw_down_surf_rts, sw_up_surf_rts) )
-    call sw_net_surf_rts%write_field(sw_net_surf_rts%get_name())
+    call sw_net_surf_rts%write_field()
   end if
   if ( init_diag(lw_net_surf_rts, 'radiation__lw_net_surf_rts') ) then
     call invoke( X_minus_Y(lw_net_surf_rts, lw_down_surf_rts, lw_up_surf_rts) )
-    call lw_net_surf_rts%write_field(lw_net_surf_rts%get_name())
+    call lw_net_surf_rts%write_field()
   end if
   if ( init_diag(sw_diffuse_surf_rts, 'radiation__sw_diffuse_surf_rts') ) then
     call invoke( X_minus_Y(sw_diffuse_surf_rts, &
                            sw_down_surf_rts, sw_direct_surf_rts) )
-    call sw_diffuse_surf_rts%write_field(sw_diffuse_surf_rts%get_name())
+    call sw_diffuse_surf_rts%write_field()
   end if
   if ( init_diag(sw_direct_orog_incr_rts, 'radiation__sw_direct_orog_incr_rts') ) then
     call invoke( X_divideby_Y(sw_direct_orog_incr_rts, &
                               sw_direct_surf_rts, orographic_correction_rts) )
     call invoke( inc_aX_plus_Y(-1.0_r_def, sw_direct_orog_incr_rts, &
                                sw_direct_surf_rts) )
-    call sw_direct_orog_incr_rts%write_field( sw_direct_orog_incr_rts%get_name() )
+    call sw_direct_orog_incr_rts%write_field()
   end if
 
 
   ! Diagnostics computed within the kernels
-  if ( cloud_cover_rts_flag ) &
-  call cloud_cover_rts%write_field(cloud_cover_rts%get_name())
-  if ( cloud_fraction_rts_flag ) &
-  call cloud_fraction_rts%write_field(cloud_fraction_rts%get_name())
-  if ( cloud_droplet_re_rts_flag ) &
-  call cloud_droplet_re_rts%write_field(cloud_droplet_re_rts%get_name())
+  if ( cloud_cover_rts_flag ) call cloud_cover_rts%write_field()
+  if ( cloud_fraction_rts_flag ) call cloud_fraction_rts%write_field()
+  if ( cloud_droplet_re_rts_flag ) call cloud_droplet_re_rts%write_field()
 
-  if ( cloud_top_re_rts_flag ) &
-  call cloud_top_re_rts%write_field(cloud_top_re_rts%get_name())
-  if ( cloud_top_weight_rts_flag ) &
-  call cloud_top_weight_rts%write_field(cloud_top_weight_rts%get_name())
-  if ( warm_cloud_top_re_rts_flag ) &
-  call warm_cloud_top_re_rts%write_field(warm_cloud_top_re_rts%get_name())
-  if ( warm_cloud_top_weight_rts_flag ) &
-  call warm_cloud_top_weight_rts%write_field(warm_cloud_top_weight_rts%get_name())
+  if ( cloud_top_re_rts_flag ) call cloud_top_re_rts%write_field()
+  if ( cloud_top_weight_rts_flag ) call cloud_top_weight_rts%write_field()
+  if ( warm_cloud_top_re_rts_flag ) call warm_cloud_top_re_rts%write_field()
+  if ( warm_cloud_top_weight_rts_flag ) call warm_cloud_top_weight_rts%write_field()
 
-  if ( liq_cloud_frac_rts_flag ) &
-  call liq_cloud_frac_rts%write_field(liq_cloud_frac_rts%get_name())
-  if ( liq_conv_frac_rts_flag ) &
-  call liq_conv_frac_rts%write_field(liq_conv_frac_rts%get_name())
-  if ( ice_cloud_frac_rts_flag ) &
-  call ice_cloud_frac_rts%write_field(ice_cloud_frac_rts%get_name())
-  if ( ice_conv_frac_rts_flag ) &
-  call ice_conv_frac_rts%write_field(ice_conv_frac_rts%get_name())
-  if ( liq_cloud_mmr_rts_flag ) &
-  call liq_cloud_mmr_rts%write_field(liq_cloud_mmr_rts%get_name())
-  if ( liq_conv_mmr_rts_flag ) &
-  call liq_conv_mmr_rts%write_field(liq_conv_mmr_rts%get_name())
-  if ( ice_cloud_mmr_rts_flag ) &
-  call ice_cloud_mmr_rts%write_field(ice_cloud_mmr_rts%get_name())
-  if ( ice_conv_mmr_rts_flag ) &
-  call ice_conv_mmr_rts%write_field(ice_conv_mmr_rts%get_name())
+  if ( liq_cloud_frac_rts_flag ) call liq_cloud_frac_rts%write_field()
+  if ( liq_conv_frac_rts_flag ) call liq_conv_frac_rts%write_field()
+  if ( ice_cloud_frac_rts_flag ) call ice_cloud_frac_rts%write_field()
+  if ( ice_conv_frac_rts_flag ) call ice_conv_frac_rts%write_field()
+  if ( liq_cloud_mmr_rts_flag ) call liq_cloud_mmr_rts%write_field()
+  if ( liq_conv_mmr_rts_flag )call liq_conv_mmr_rts%write_field()
+  if ( ice_cloud_mmr_rts_flag ) call ice_cloud_mmr_rts%write_field()
+  if ( ice_conv_mmr_rts_flag ) call ice_conv_mmr_rts%write_field()
 
-  if ( liq_cloud_path_rts_flag ) &
-  call liq_cloud_path_rts%write_field(liq_cloud_path_rts%get_name())
-  if ( ice_cloud_path_rts_flag ) &
-  call ice_cloud_path_rts%write_field(ice_cloud_path_rts%get_name())
+  if ( liq_cloud_path_rts_flag ) call liq_cloud_path_rts%write_field()
+  if ( ice_cloud_path_rts_flag ) call ice_cloud_path_rts%write_field()
 
-  if ( cloud_absorptivity_rts_flag ) &
-  call cloud_absorptivity_rts%write_field(cloud_absorptivity_rts%get_name())
-  if ( cloud_weight_absorptivity_rts_flag ) &
-  call cloud_weight_absorptivity_rts%write_field( &
-    cloud_weight_absorptivity_rts%get_name() )
-  if ( cloud_extinction_rts_flag ) &
-  call cloud_extinction_rts%write_field(cloud_extinction_rts%get_name())
-  if ( cloud_weight_extinction_rts_flag ) &
-  call cloud_weight_extinction_rts%write_field( &
-    cloud_weight_extinction_rts%get_name() )
+  if ( cloud_absorptivity_rts_flag ) call cloud_absorptivity_rts%write_field()
+  if ( cloud_weight_absorptivity_rts_flag ) call cloud_weight_absorptivity_rts%write_field()
+  if ( cloud_extinction_rts_flag ) call cloud_extinction_rts%write_field()
+  if ( cloud_weight_extinction_rts_flag ) call cloud_weight_extinction_rts%write_field()
 
-  if ( sw_aer_optical_depth_rts_flag ) &
-  call sw_aer_optical_depth_rts%write_field(sw_aer_optical_depth_rts%get_name())
-  if ( lw_aer_optical_depth_rts_flag ) &
-  call lw_aer_optical_depth_rts%write_field(lw_aer_optical_depth_rts%get_name())
+  if ( sw_aer_optical_depth_rts_flag ) call sw_aer_optical_depth_rts%write_field()
+  if ( lw_aer_optical_depth_rts_flag ) call lw_aer_optical_depth_rts%write_field()
 
-  if ( sw_direct_rts_flag ) &
-  call sw_direct_rts%write_field(sw_direct_rts%get_name())
-  if ( sw_down_rts_flag ) &
-  call sw_down_rts%write_field(sw_down_rts%get_name())
-  if ( sw_up_rts_flag ) &
-  call sw_up_rts%write_field(sw_up_rts%get_name())
-  if ( lw_down_rts_flag ) &
-  call lw_down_rts%write_field(lw_down_rts%get_name())
-  if ( lw_up_rts_flag ) &
-  call lw_up_rts%write_field(lw_up_rts%get_name())
+  if ( sw_direct_rts_flag ) call sw_direct_rts%write_field()
+  if ( sw_down_rts_flag ) call sw_down_rts%write_field()
+  if ( sw_up_rts_flag ) call sw_up_rts%write_field()
+  if ( lw_down_rts_flag ) call lw_down_rts%write_field()
+  if ( lw_up_rts_flag ) call lw_up_rts%write_field()
 
-  if ( sw_direct_clear_rts_flag ) &
-  call sw_direct_clear_rts%write_field(sw_direct_clear_rts%get_name())
-  if ( sw_down_clear_rts_flag ) &
-  call sw_down_clear_rts%write_field(sw_down_clear_rts%get_name())
-  if ( sw_up_clear_rts_flag ) &
-  call sw_up_clear_rts%write_field(sw_up_clear_rts%get_name())
-  if ( lw_down_clear_rts_flag ) &
-  call lw_down_clear_rts%write_field(lw_down_clear_rts%get_name())
-  if ( lw_up_clear_rts_flag ) &
-  call lw_up_clear_rts%write_field(lw_up_clear_rts%get_name())
+  if ( sw_direct_clear_rts_flag ) call sw_direct_clear_rts%write_field()
+  if ( sw_down_clear_rts_flag ) call sw_down_clear_rts%write_field()
+  if ( sw_up_clear_rts_flag ) call sw_up_clear_rts%write_field()
+  if ( lw_down_clear_rts_flag ) call lw_down_clear_rts%write_field()
+  if ( lw_up_clear_rts_flag ) call lw_up_clear_rts%write_field()
 
-  if ( sw_down_clear_surf_rts_flag ) &
-  call sw_down_clear_surf_rts%write_field(sw_down_clear_surf_rts%get_name())
-  if ( sw_up_clear_surf_rts_flag ) &
-  call sw_up_clear_surf_rts%write_field(sw_up_clear_surf_rts%get_name())
-  if ( sw_up_clear_toa_rts_flag ) &
-  call sw_up_clear_toa_rts%write_field(sw_up_clear_toa_rts%get_name())
-  if ( lw_down_clear_surf_rts_flag ) &
-  call lw_down_clear_surf_rts%write_field(lw_down_clear_surf_rts%get_name())
-  if ( lw_up_clear_surf_rts_flag ) &
-  call lw_up_clear_surf_rts%write_field(lw_up_clear_surf_rts%get_name())
-  if ( lw_up_clear_toa_rts_flag ) &
-  call lw_up_clear_toa_rts%write_field(lw_up_clear_toa_rts%get_name())
+  if ( sw_down_clear_surf_rts_flag ) call sw_down_clear_surf_rts%write_field()
+  if ( sw_up_clear_surf_rts_flag ) call sw_up_clear_surf_rts%write_field()
+  if ( sw_up_clear_toa_rts_flag ) call sw_up_clear_toa_rts%write_field()
+  if ( lw_down_clear_surf_rts_flag ) call lw_down_clear_surf_rts%write_field()
+  if ( lw_up_clear_surf_rts_flag ) call lw_up_clear_surf_rts%write_field()
+  if ( lw_up_clear_toa_rts_flag ) call lw_up_clear_toa_rts%write_field()
 
   if ( subroutine_timers ) call timer("radiation_diags")
 

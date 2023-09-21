@@ -13,7 +13,7 @@
 
 module field_parent_mod
 
-  use constants_mod,               only: i_def, l_def, str_def, imdi
+  use constants_mod,               only: i_def, l_def, str_def, imdi, cmdi
   use function_space_mod,          only: function_space_type
   use halo_routing_collection_mod, only: halo_routing_collection
   use halo_comms_mod,              only: halo_routing_type
@@ -24,6 +24,8 @@ module field_parent_mod
   implicit none
 
   private
+
+  character(10), parameter :: name_none = 'none'  ! reserved for undefined field names
 
   !> Abstract field type that is the parent of any field type in the field
   !> object hierarchy
@@ -37,7 +39,7 @@ module field_parent_mod
     integer(kind=i_def),allocatable :: halo_dirty(:)
     !> Name of the field. Note the name is immutable once defined via
     !! the initialiser.
-    character(str_def) :: name = 'unset'
+    character(str_def) :: name = cmdi
     !> Flag describes order of data. False=layer first, true=multi-data first
     logical :: ndata_first
     !> Coupling id for each multidata-level
@@ -131,7 +133,7 @@ module field_parent_mod
 
     subroutine write_interface(field_name, field_proxy)
       import field_parent_proxy_type
-      character(len=*),                intent(in) :: field_name
+      character(len=*), optional,      intent(in) :: field_name
       class(field_parent_proxy_type ), intent(in) :: field_proxy
     end subroutine write_interface
 
@@ -174,6 +176,7 @@ module field_parent_mod
  public :: read_interface
  public :: checkpoint_write_interface
  public :: checkpoint_read_interface
+ public :: name_none
 
 contains
 
@@ -233,7 +236,7 @@ contains
     if (present(name)) then
       self%name = name
     else
-      self%name = 'none'
+      self%name = name_none
     end if
 
     ! Create a flag for holding whether a halo depth is dirty or not

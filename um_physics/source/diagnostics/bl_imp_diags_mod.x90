@@ -480,9 +480,9 @@ contains
       if (.not. dw_bl_flag) ignore = init_diag(dw_bl, 'turbulence__dw_bl', activate=.true.)
       call map_physics_winds(du_bl,dv_bl,dw_bl,du_bl_w2)
     end if
-    if (du_bl_flag) call du_bl%write_field(du_bl%get_name())
-    if (dv_bl_flag) call dv_bl%write_field(dv_bl%get_name())
-    if (dw_bl_flag) call dw_bl%write_field(dw_bl%get_name())
+    if (du_bl_flag) call du_bl%write_field()
+    if (dv_bl_flag) call dv_bl%write_field()
+    if (dw_bl_flag) call dw_bl%write_field()
     call heat_flux_bl%write_field('turbulence__heat_flux_bl')
     call moist_flux_bl%write_field('turbulence__moist_flux_bl')
     call tile_heat_flux%write_field('surface__tile_heat_flux')
@@ -499,59 +499,59 @@ contains
     if (dt_bl_flag) then
       call invoke(    X_times_Y(dt_bl,dtheta_bl,exner_in_wth), &
                   inc_X_minus_Y(dt_bl,dt_conv) )
-      call dt_bl%write_field(dt_bl%get_name())
+      call dt_bl%write_field()
     end if
     if (dmv_bl_flag) then
       call invoke(inc_X_plus_Y(dmv_bl, mv))
-      call dmv_bl%write_field(dmv_bl%get_name())
+      call dmv_bl%write_field()
     end if
     if (dmcl_bl_flag) then
       call invoke(inc_X_plus_Y(dmcl_bl, mcl))
-      call dmcl_bl%write_field(dmcl_bl%get_name())
+      call dmcl_bl%write_field()
     end if
     if (dmci_bl_flag) then
       call invoke(inc_X_plus_Y(dmci_bl, mci))
-      call dmci_bl%write_field(dmci_bl%get_name())
+      call dmci_bl%write_field()
     end if
     if (dbcf_bl_flag) then
       call invoke(inc_X_plus_Y(dbcf_bl, cf_bulk))
-      call dbcf_bl%write_field(dbcf_bl%get_name())
+      call dbcf_bl%write_field()
     end if
     if (dacf_bl_flag) then
       call invoke(inc_X_plus_Y(dacf_bl, cf_area))
-      call dacf_bl%write_field(dacf_bl%get_name())
+      call dacf_bl%write_field()
     end if
     if (dcfl_bl_flag) then
       call invoke(inc_X_plus_Y(dcfl_bl, cf_liq))
-      call dcfl_bl%write_field(dcfl_bl%get_name())
+      call dcfl_bl%write_field()
     end if
     if (dcff_bl_flag) then
       call invoke(inc_X_plus_Y(dcff_bl, cf_fro))
-      call dcff_bl%write_field(dcff_bl%get_name())
+      call dcff_bl%write_field()
     end if
     if (grid_surface_temperature_flag) then
       call invoke(weighted_ave_kernel_type(grid_surface_temperature,           &
                                            tile_temperature, tile_fraction,    &
                                            1, n_surf_tile))
-      call grid_surface_temperature%write_field(grid_surface_temperature%get_name())
+      call grid_surface_temperature%write_field()
     end if
     if (grid_latent_heat_flag) then
       call invoke(weighted_ave_kernel_type(grid_latent_heat,                   &
                                            latent_heat, tile_fraction,         &
                                            1, n_surf_tile))
-      call grid_latent_heat%write_field(grid_latent_heat%get_name())
+      call grid_latent_heat%write_field()
     end if
     if (grid_canopy_evap_flag) then
       call invoke(weighted_ave_kernel_type(grid_canopy_evap,                   &
                                             canopy_evap, tile_fraction,        &
                                             1, n_surf_tile))
-      call grid_canopy_evap%write_field(grid_canopy_evap%get_name())
+      call grid_canopy_evap%write_field()
     end if
     if (grid_sublimation_flag) then
       call invoke(weighted_ave_kernel_type(grid_sublimation,                   &
                                            snowice_sublimation, tile_fraction, &
                                            1, n_surf_tile) )
-      call grid_sublimation%write_field(grid_sublimation%get_name())
+      call grid_sublimation%write_field()
     end if
     if (.true.) then                                 ! simplify dependency handling
       call taux%copy_field_properties(tauz)
@@ -563,30 +563,30 @@ contains
     end if
 
     ! Diagnostics computed within the kernel
-    if (taux_flag) call taux%write_field(taux%get_name())
-    if (tauy_flag) call tauy%write_field(tauy%get_name())
-    if (t1p5m_surft_flag) call t1p5m_surft%write_field(t1p5m_surft%get_name())
-    if (q1p5m_surft_flag) call q1p5m_surft%write_field(q1p5m_surft%get_name())
-    if (t1p5m_flag) call t1p5m%write_field(t1p5m%get_name())
-    if (q1p5m_flag) call q1p5m%write_field(q1p5m%get_name())
-    if (qcl1p5m_flag) call qcl1p5m%write_field(qcl1p5m%get_name())
-    if (rh1p5m_flag) call rh1p5m%write_field(rh1p5m%get_name())
-    if (u10m_flag) call u10m%write_field(u10m%get_name())
-    if (v10m_flag) call v10m%write_field(v10m%get_name())
-    if (wspd10m_neut_flag) call wspd10m_neut%write_field(wspd10m_neut%get_name())
-    if (u10m_neut_flag) call u10m_neut%write_field(u10m_neut%get_name())
-    if (v10m_neut_flag) call v10m_neut%write_field(v10m_neut%get_name())
-    if (pseudotaux_flag) call pseudotaux%write_field(pseudotaux%get_name())
-    if (pseudotauy_flag) call pseudotauy%write_field(pseudotauy%get_name())
-    if (latent_heat_flag) call latent_heat%write_field(latent_heat%get_name())
-    if (snomlt_surf_htf_flag) call snomlt_surf_htf%write_field(snomlt_surf_htf%get_name())
-    if (soil_evap_flag) call soil_evap%write_field(soil_evap%get_name())
+    if (taux_flag) call taux%write_field()
+    if (tauy_flag) call tauy%write_field()
+    if (t1p5m_surft_flag) call t1p5m_surft%write_field()
+    if (q1p5m_surft_flag) call q1p5m_surft%write_field()
+    if (t1p5m_flag) call t1p5m%write_field()
+    if (q1p5m_flag) call q1p5m%write_field()
+    if (qcl1p5m_flag) call qcl1p5m%write_field()
+    if (rh1p5m_flag) call rh1p5m%write_field()
+    if (u10m_flag) call u10m%write_field()
+    if (v10m_flag) call v10m%write_field()
+    if (wspd10m_neut_flag) call wspd10m_neut%write_field()
+    if (u10m_neut_flag) call u10m_neut%write_field()
+    if (v10m_neut_flag) call v10m_neut%write_field()
+    if (pseudotaux_flag) call pseudotaux%write_field()
+    if (pseudotauy_flag) call pseudotauy%write_field()
+    if (latent_heat_flag) call latent_heat%write_field()
+    if (snomlt_surf_htf_flag) call snomlt_surf_htf%write_field()
+    if (soil_evap_flag) call soil_evap%write_field()
     call surf_ht_flux%write_field('surface__surf_ht_flux')
-    if (soil_surf_ht_flux_flag) call soil_surf_ht_flux%write_field(soil_surf_ht_flux%get_name())
-    if (surf_sw_net_flag) call surf_sw_net%write_field(surf_sw_net%get_name())
-    if (surf_radnet_flag) call surf_radnet%write_field(surf_radnet%get_name())
-    if (surf_lw_up_flag) call surf_lw_up%write_field(surf_lw_up%get_name())
-    if (surf_lw_down_flag) call surf_lw_down%write_field(surf_lw_down%get_name())
+    if (soil_surf_ht_flux_flag) call soil_surf_ht_flux%write_field()
+    if (surf_sw_net_flag) call surf_sw_net%write_field()
+    if (surf_radnet_flag) call surf_radnet%write_field()
+    if (surf_lw_up_flag) call surf_lw_up%write_field()
+    if (surf_lw_down_flag) call surf_lw_down%write_field()
 
     if ( ustar_implicit_flag .or. wind_gust_flag .or. scale_dep_wind_gust_flag .or. vis_no_precip_flag .or. &
          vis_with_precip_flag .or. fog_fraction_flag .or. vis_prob_5km_flag .or. dew_point_flag) then
@@ -609,14 +609,14 @@ contains
                                                visibility_with_precip,         &
                                                visibility_no_precip ) )
 
-      if (ustar_implicit_flag) call ustar_implicit%write_field(ustar_implicit%get_name())
-      if (wind_gust_flag) call wind_gust%write_field(wind_gust%get_name())
-      if (scale_dep_wind_gust_flag) call scale_dep_wind_gust%write_field(scale_dep_wind_gust%get_name())
-      if (vis_no_precip_flag) call visibility_no_precip%write_field(visibility_no_precip%get_name())
-      if (vis_with_precip_flag) call visibility_with_precip%write_field(visibility_with_precip%get_name())
-      if (fog_fraction_flag) call fog_fraction%write_field(fog_fraction%get_name())
-      if (vis_prob_5km_flag) call vis_prob_5km%write_field(vis_prob_5km%get_name())
-      if (dew_point_flag) call dew_point%write_field(dew_point%get_name())
+      if (ustar_implicit_flag) call ustar_implicit%write_field()
+      if (wind_gust_flag) call wind_gust%write_field()
+      if (scale_dep_wind_gust_flag) call scale_dep_wind_gust%write_field()
+      if (vis_no_precip_flag) call visibility_no_precip%write_field()
+      if (vis_with_precip_flag) call visibility_with_precip%write_field()
+      if (fog_fraction_flag) call fog_fraction%write_field()
+      if (vis_prob_5km_flag) call vis_prob_5km%write_field()
+      if (dew_point_flag) call dew_point%write_field()
     end if
 
     if ( subroutine_timers ) call timer("bl_imp_diags")

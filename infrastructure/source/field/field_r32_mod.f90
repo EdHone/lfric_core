@@ -21,7 +21,8 @@ module field_r32_mod
                                 field_parent_proxy_type, &
                                 write_interface, read_interface, &
                                 checkpoint_write_interface, &
-                                checkpoint_read_interface
+                                checkpoint_read_interface, &
+                                name_none
   use function_space_mod, only: function_space_type
   use halo_routing_collection_mod, &
                           only: halo_routing_collection_type, &
@@ -256,7 +257,7 @@ contains
   !> Initialise a <code>field_r32_type</code> object.
   !>
   !> @param [in] vector_space the function space that the field lives on
-  !> @param [in] name The name of the field. 'none' is a reserved name
+  !> @param [in] name The field name. 'none' (constant name_none) is a reserved name
   !> @param [in] ndata_first Whether mutlidata fields have data ordered by
   !>                         the multidata dimension first
   !> @param [in] override_data Optional alternative data that can be attached to field
@@ -288,7 +289,7 @@ contains
     if ( present(name) ) then
       local_name = name
     else
-      local_name = 'none'
+      local_name = name_none
     end if
 
     ! In case the field is already initialised, destruct it ready for
@@ -805,11 +806,25 @@ contains
     implicit none
 
     class(field_r32_type), intent(in) :: this
-    character(len=*),      intent(in) :: field_name
+    character(len=*), optional, intent(in) :: field_name
+
+    character(str_def) :: name_used
+
+    if (present(field_name)) then
+
+      name_used = field_name
+
+    else
+
+      name_used = this%get_name()
+      if (name_used == name_none) &
+        call log_event( 'Attempt to write field with undefined name', LOG_LEVEL_ERROR )
+
+    end if
 
     if (associated(this%write_method)) then
 
-      call this%write_method(trim(field_name), this%get_proxy())
+      call this%write_method(trim(name_used), this%get_proxy())
 
     else
 

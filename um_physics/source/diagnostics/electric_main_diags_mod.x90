@@ -96,13 +96,13 @@ contains
 
     call flash_potential%write_field('electric__flash_potential')
 
-    if (gwp_flag) call gwp%write_field(gwp%get_name())
-    if (tiwp_flag) call tiwp%write_field(tiwp%get_name())
-    if (total_fr_flag) call total_fr%write_field(total_fr%get_name())
-    if (num_flashes_flag) call num_flashes%write_field(num_flashes%get_name())
-    if (fr1_mc_flag) call fr1_mc%write_field(fr1_mc%get_name())
-    if (fr2_mc_flag) call fr2_mc%write_field(fr2_mc%get_name())
-    if (storm_field_flag) call storm_field%write_field(storm_field%get_name())
+    if (gwp_flag) call gwp%write_field()
+    if (tiwp_flag) call tiwp%write_field()
+    if (total_fr_flag) call total_fr%write_field()
+    if (num_flashes_flag) call num_flashes%write_field()
+    if (fr1_mc_flag) call fr1_mc%write_field()
+    if (fr2_mc_flag) call fr2_mc%write_field()
+    if (storm_field_flag) call storm_field%write_field()
 
     if ( subroutine_timers ) call timer("electric_diags")
   end subroutine output_main_diags_for_electric

@@ -111,23 +111,23 @@ contains
       call invoke(X_minus_Y(du_w2_tot,state(igh_u),state_n(igh_u)))
       call map_physics_winds(du_tot,dv_tot,dw_tot,du_w2_tot)
     end if
-    if (du_tot_flag) call du_tot%write_field(du_tot%get_name())
-    if (dv_tot_flag) call dv_tot%write_field(dv_tot%get_name())
-    if (dw_tot_flag) call dw_tot%write_field(dw_tot%get_name())
+    if (du_tot_flag) call du_tot%write_field()
+    if (dv_tot_flag) call dv_tot%write_field()
+    if (dw_tot_flag) call dw_tot%write_field()
 
     if (init_diag(dmv_tot, 'processed__dmv_tot')) then
       call invoke(X_minus_Y(dmv_tot,mr(imr_v),mr_n(imr_v)))
-      call dmv_tot%write_field(dmv_tot%get_name())
+      call dmv_tot%write_field()
     end if
 
     if (init_diag(dmcl_tot, 'processed__dmcl_tot')) then
       call invoke(X_minus_Y(dmcl_tot,mr(imr_cl),mr_n(imr_cl)))
-      call dmcl_tot%write_field(dmcl_tot%get_name())
+      call dmcl_tot%write_field()
     end if
 
     if (init_diag(dmci_tot, 'processed__dmci_tot')) then
       call invoke(X_minus_Y(dmci_tot,mr(imr_ci),mr_n(imr_ci)))
-      call dmci_tot%write_field(dmci_tot%get_name())
+      call dmci_tot%write_field()
     end if
 
     ! These diagnostics use the predictor values, hence only make sense with
@@ -143,7 +143,7 @@ contains
       if (init_diag(dtheta_adv, 'advection__dtheta_adv')) then
         call derived_fields%get_field('theta_star', theta_star)
         call invoke(X_minus_Y(dtheta_adv,theta_star,state_after_slow(igh_t)))
-        call dtheta_adv%write_field(dtheta_adv%get_name())
+        call dtheta_adv%write_field()
       end if
 
       du_adv_flag = init_diag(du_adv, 'advection__du_adv')
@@ -159,24 +159,24 @@ contains
         call invoke(X_minus_Y(du_w2_adv,u_star,state_after_slow(igh_u)))
         call map_physics_winds(du_adv,dv_adv,dw_adv,du_w2_adv)
       end if
-      if (du_adv_flag) call du_adv%write_field(du_adv%get_name())
-      if (dv_adv_flag) call dv_adv%write_field(dv_adv%get_name())
-      if (dw_adv_flag) call dw_adv%write_field(dw_adv%get_name())
+      if (du_adv_flag) call du_adv%write_field()
+      if (dv_adv_flag) call dv_adv%write_field()
+      if (dw_adv_flag) call dw_adv%write_field()
 
       if (moisture_formulation /= moisture_formulation_dry) then
        if (init_diag(dmv_adv, 'advection__dmv_adv')) then
           call invoke(X_minus_Y(dmv_adv,mr_after_adv(imr_v),mr_after_slow(imr_v)))
-          call dmv_adv%write_field(dmv_adv%get_name())
+          call dmv_adv%write_field()
         end if
 
         if (init_diag(dmcl_adv, 'advection__dmcl_adv')) then
           call invoke(X_minus_Y(dmcl_adv,mr_after_adv(imr_cl),mr_after_slow(imr_cl)))
-          call dmcl_adv%write_field(dmcl_adv%get_name())
+          call dmcl_adv%write_field()
         end if
 
         if (init_diag(dmci_adv, 'advection__dmci_adv')) then
           call invoke(X_minus_Y(dmci_adv,mr_after_adv(imr_ci),mr_after_slow(imr_ci)))
-          call dmci_adv%write_field(dmci_adv%get_name())
+          call dmci_adv%write_field()
         end if
       end if
 
@@ -185,21 +185,21 @@ contains
           call cloud_fields_after_slow%get_field('bulk_fraction', bcf_after_slow)
           call cloud_fields_after_adv%get_field('bulk_fraction', bcf_after_adv)
           call invoke(X_minus_Y(dbcf_adv,bcf_after_adv,bcf_after_slow))
-          call dbcf_adv%write_field(dbcf_adv%get_name())
+          call dbcf_adv%write_field()
         end if
 
         if (init_diag(dcfl_adv, 'advection__dcfl_adv')) then
           call cloud_fields_after_slow%get_field('liquid_fraction', cfl_after_slow)
           call cloud_fields_after_adv%get_field('liquid_fraction', cfl_after_adv)
           call invoke(X_minus_Y(dcfl_adv,cfl_after_adv,cfl_after_slow))
-          call dcfl_adv%write_field(dcfl_adv%get_name())
+          call dcfl_adv%write_field()
         end if
 
         if (init_diag(dcff_adv, 'advection__dcff_adv')) then
           call cloud_fields_after_slow%get_field('frozen_fraction', cff_after_slow)
           call cloud_fields_after_adv%get_field('frozen_fraction', cff_after_adv )
           call invoke(X_minus_Y(dcff_adv,cff_after_adv,cff_after_slow))
-          call dcff_adv%write_field(dcff_adv%get_name())
+          call dcff_adv%write_field()
         end if
       end if
 
@@ -209,7 +209,7 @@ contains
         call derived_fields%get_field('theta_star', theta_star)
         call invoke(X_minus_Y(dtheta_solv,state(igh_t),theta_star), &
                 inc_X_minus_Y(dtheta_solv,dtheta_fast))
-        call dtheta_solv%write_field(dtheta_solv%get_name())
+        call dtheta_solv%write_field()
       end if
 
       du_solv_flag = init_diag(du_solv, 'solver__du_solv')
@@ -225,9 +225,9 @@ contains
                 inc_X_minus_Y(du_w2_solv,du_fast))
         call map_physics_winds(du_solv,dv_solv,dw_solv,du_w2_solv)
       end if
-      if (du_solv_flag) call du_solv%write_field(du_solv%get_name())
-      if (dv_solv_flag) call dv_solv%write_field(dv_solv%get_name())
-      if (dw_solv_flag) call dw_solv%write_field(dw_solv%get_name())
+      if (du_solv_flag) call du_solv%write_field()
+      if (dv_solv_flag) call dv_solv%write_field()
+      if (dw_solv_flag) call dw_solv%write_field()
     end if
 
     if ( subroutine_timers ) call timer ("si_diagnostics")

@@ -100,19 +100,19 @@ contains
         if (write_diag) then
             if(associated(red)) then
               call log_event("Writing " // red%get_name(), LOG_LEVEL_INFO)
-              call red%write_field(red%get_name())
+              call red%write_field()
             end if
             if(associated(green)) then
               call log_event("Writing " // green%get_name(), LOG_LEVEL_INFO)
-              call green%write_field(green%get_name())
+              call green%write_field()
             end if
             if(associated(blue)) then
               call log_event("Writing " // blue%get_name(), LOG_LEVEL_INFO)
-              call blue%write_field(blue%get_name())
+              call blue%write_field()
             end if
             if(associated(hex)) then
               call log_event("Writing " // hex%get_name(), LOG_LEVEL_INFO)
-              call hex%write_field(hex%get_name())
+              call hex%write_field()
             end if
         end if
 
@@ -137,11 +137,11 @@ contains
 
                 ! Write the fields
                 call log_event("Writing " // mutable_categories%get_name(), LOG_LEVEL_INFO)
-                call mutable_categories%write_field(mutable_categories%get_name())
+                call mutable_categories%write_field()
                 call log_event("Writing " // mutable_numbers%get_name(), LOG_LEVEL_INFO)
-                call mutable_numbers%write_field(mutable_numbers%get_name())
+                call mutable_numbers%write_field()
                 call log_event("Writing " // immutable_both%get_name(), LOG_LEVEL_INFO)
-                call immutable_both%write_field(immutable_both%get_name())
+                call immutable_both%write_field()
             end if
         end if
 

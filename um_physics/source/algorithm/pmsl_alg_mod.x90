@@ -89,7 +89,7 @@ contains
                   height_w3, height_wth, levelupper, pmsl))
 
       ! Output diagnostic
-      call pmsl%write_field(pmsl%get_name())
+      call pmsl%write_field()
 
     end if
 

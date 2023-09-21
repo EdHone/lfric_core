@@ -116,14 +116,14 @@ contains
 
     call ls_rain_3d%write_field('microphysics__ls_rain_3d')
     call ls_snow_3d%write_field('microphysics__ls_snow_3d')
-    if (ls_graup_3d_flag) call ls_graup_3d%write_field(ls_graup_3d%get_name())
+    if (ls_graup_3d_flag) call ls_graup_3d%write_field()
 
     !-----------------------------------------------------
     ! Output 2D radar reflectivity diagnostics
     !-----------------------------------------------------
 
-    if (refl_tot_flag) call refl_tot%write_field(refl_tot%get_name())
-    if (refl_1km_flag) call refl_1km%write_field(refl_1km%get_name())
+    if (refl_tot_flag) call refl_tot%write_field()
+    if (refl_1km_flag) call refl_1km%write_field()
 
     !-----------------------------------------------------
     ! Other 2D fields
@@ -139,7 +139,7 @@ contains
     if (dt_mphys_flag) then
       ! Convert from theta increment to temperature increment
       call invoke( X_times_Y(dt_mphys, theta_inc, exner_in_wth) )
-      call dt_mphys%write_field(dt_mphys%get_name())
+      call dt_mphys%write_field()
     end if
 
     !-----------------------------------------------------
@@ -158,8 +158,8 @@ contains
     !-----------------------------------------------------
     ! Supercooled liquid and rain
     !-----------------------------------------------------
-    if (superc_liq_flag) call superc_liq%write_field(superc_liq%get_name())
-    if (superc_rain_flag) call superc_rain%write_field(superc_rain%get_name())
+    if (superc_liq_flag) call superc_liq%write_field()
+    if (superc_rain_flag) call superc_rain%write_field()
 
     !-----------------------------------------------------
     ! CASIM specific 3D number diagnostics/prognostics

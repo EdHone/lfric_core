@@ -140,7 +140,7 @@ contains
     if (dt_mphys_flag) then
       ! Convert from theta increment to temperature increment
       call invoke( X_times_Y(dt_mphys, dtheta_mphys, exner_in_wth) )
-      call dt_mphys%write_field(dt_mphys%get_name())
+      call dt_mphys%write_field()
     end if
 
     !----------------------------------------
@@ -157,19 +157,19 @@ contains
     call dcfl_mphys%write_field('microphysics__dcfl_mphys')
     call dcff_mphys%write_field('microphysics__dcff_mphys')
 
-    if (superc_liq_flag) call superc_liq%write_field(superc_liq%get_name())
+    if (superc_liq_flag) call superc_liq%write_field()
 
-    if (superc_rain_flag) call superc_rain%write_field(superc_rain%get_name())
+    if (superc_rain_flag) call superc_rain%write_field()
 
-    if (sfwater_flag) call sfwater%write_field(sfwater%get_name())
+    if (sfwater_flag) call sfwater%write_field()
 
-    if (sfrain_flag) call sfrain%write_field(sfrain%get_name())
+    if (sfrain_flag) call sfrain%write_field()
 
-    if (sfsnow_flag) call sfsnow%write_field(sfsnow%get_name())
+    if (sfsnow_flag) call sfsnow%write_field()
 
-    if (refl_tot_flag) call refl_tot%write_field(refl_tot%get_name())
+    if (refl_tot_flag) call refl_tot%write_field()
 
-    if (refl_1km_flag) call refl_1km%write_field(refl_1km%get_name())
+    if (refl_1km_flag) call refl_1km%write_field()
 
     call ls_rain%write_field('microphysics__ls_rain')
 

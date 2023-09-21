@@ -366,36 +366,22 @@ contains
     field_ptr => null()
 
     ! Write out the required diagnostics
-    if (cld_amount_max_flag) call &
-        cld_amount_max%write_field(cld_amount_max%get_name())
-    if (cld_amount_rnd_flag) call &
-        cld_amount_rnd%write_field(cld_amount_rnd%get_name())
-    if (cld_amount_maxrnd_flag) call &
-        cld_amount_maxrnd%write_field(cld_amount_maxrnd%get_name())
-    if (ceil_cld_amount_maxrnd_flag) call &
-        ceil_cld_amount_maxrnd%write_field(ceil_cld_amount_maxrnd%get_name())
-    if (cld_base_altitude_flag) call &
-        cld_base_altitude%write_field(cld_base_altitude%get_name())
-    if (low_cld_base_altitude_flag) call &
-        low_cld_base_altitude%write_field(low_cld_base_altitude%get_name())
-    if (very_low_cld_amount_flag) call &
-        very_low_cld_amount%write_field(very_low_cld_amount%get_name())
-    if (low_cld_amount_flag) call &
-        low_cld_amount%write_field(low_cld_amount%get_name())
-    if (medium_cld_amount_flag) call &
-        medium_cld_amount%write_field(medium_cld_amount%get_name())
-    if (high_cld_amount_flag) call &
-        high_cld_amount%write_field(high_cld_amount%get_name())
-    if (very_high_cld_amount_flag) call &
-        very_high_cld_amount%write_field(very_high_cld_amount%get_name())
-    if (combined_cld_amount_flag) call &
-        combined_cld_amount%write_field(combined_cld_amount%get_name())
-    if (icing_sfip_li_bcf_flag) call &
-        icing_sfip_li_bcf%write_field(icing_sfip_li_bcf%get_name())
-    if (icing_sfip_lir_com_flag) call &
-        icing_sfip_lir_com%write_field(icing_sfip_lir_com%get_name())
+    if (cld_amount_max_flag) call cld_amount_max%write_field()
+    if (cld_amount_rnd_flag) call cld_amount_rnd%write_field()
+    if (cld_amount_maxrnd_flag) call cld_amount_maxrnd%write_field()
+    if (ceil_cld_amount_maxrnd_flag) call ceil_cld_amount_maxrnd%write_field()
+    if (cld_base_altitude_flag) call cld_base_altitude%write_field()
+    if (low_cld_base_altitude_flag) call low_cld_base_altitude%write_field()
+    if (very_low_cld_amount_flag) call very_low_cld_amount%write_field()
+    if (low_cld_amount_flag) call low_cld_amount%write_field()
+    if (medium_cld_amount_flag) call medium_cld_amount%write_field()
+    if (high_cld_amount_flag) call high_cld_amount%write_field()
+    if (very_high_cld_amount_flag) call very_high_cld_amount%write_field()
+    if (combined_cld_amount_flag) call combined_cld_amount%write_field()
+    if (icing_sfip_li_bcf_flag) call icing_sfip_li_bcf%write_field()
+    if (icing_sfip_lir_com_flag) call icing_sfip_lir_com%write_field()
     if (cloud_fraction_below_1000feet_asl_flag) call &
-       cloud_fraction_below_1000feet_asl%write_field(cloud_fraction_below_1000feet_asl%get_name())
+       cloud_fraction_below_1000feet_asl%write_field()
 
     if ( subroutine_timers ) call timer("cld_diags")
 

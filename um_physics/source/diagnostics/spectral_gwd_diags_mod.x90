@@ -84,18 +84,10 @@ contains
     call dtheta_spectral_gwd%write_field('spectral_gwd__dtheta_spectral_gwd')
 
     ! Diagnostics locally computed within the kernel
-    if (tau_east_spectral_gwd_flag) then
-      call tau_east_spectral_gwd%write_field(tau_east_spectral_gwd%get_name())
-    end if
-    if (tau_south_spectral_gwd_flag) then
-      call tau_south_spectral_gwd%write_field(tau_south_spectral_gwd%get_name())
-    end if
-    if (tau_west_spectral_gwd_flag) then
-      call tau_west_spectral_gwd%write_field(tau_west_spectral_gwd%get_name())
-    end if
-    if (tau_north_spectral_gwd_flag) then
-      call tau_north_spectral_gwd%write_field(tau_north_spectral_gwd%get_name())
-    end if
+    if (tau_east_spectral_gwd_flag) call tau_east_spectral_gwd%write_field()
+    if (tau_south_spectral_gwd_flag) call tau_south_spectral_gwd%write_field()
+    if (tau_west_spectral_gwd_flag) call tau_west_spectral_gwd%write_field()
+    if (tau_north_spectral_gwd_flag) call tau_north_spectral_gwd%write_field()
 
     if ( subroutine_timers ) call timer("spectral_gwd_diags")
 

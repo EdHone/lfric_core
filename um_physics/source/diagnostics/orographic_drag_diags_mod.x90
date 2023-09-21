@@ -95,10 +95,10 @@ contains
     call dtemp_orog_gwd%write_field('orographic_drag__dtemp_orog_gwd')
 
     ! Diagnostics computed within the kernel
-    if (taux_orog_blk_flag) call taux_orog_blk%write_field(taux_orog_blk%get_name())
-    if (tauy_orog_blk_flag) call tauy_orog_blk%write_field(tauy_orog_blk%get_name())
-    if (taux_orog_gwd_flag) call taux_orog_gwd%write_field(taux_orog_gwd%get_name())
-    if (tauy_orog_gwd_flag) call tauy_orog_gwd%write_field(tauy_orog_gwd%get_name())
+    if (taux_orog_blk_flag) call taux_orog_blk%write_field()
+    if (tauy_orog_blk_flag) call tauy_orog_blk%write_field()
+    if (taux_orog_gwd_flag) call taux_orog_gwd%write_field()
+    if (tauy_orog_gwd_flag) call tauy_orog_gwd%write_field()
 
     if ( subroutine_timers ) call timer("orographic_drag_diags")
 

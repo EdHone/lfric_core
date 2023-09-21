@@ -52,7 +52,7 @@ contains
                   inc_a_times_X(100.0_r_def, rh_water) )
 
       ! Output diagnostic
-      call rh_water%write_field(rh_water%get_name())
+      call rh_water%write_field()
 
     end if
 
@@ -67,7 +67,7 @@ contains
                   inc_a_times_X(100.0_r_def, rh_ice) )
 
       ! Output diagnostic
-      call rh_ice%write_field(rh_ice%get_name())
+      call rh_ice%write_field()
 
     end if
 

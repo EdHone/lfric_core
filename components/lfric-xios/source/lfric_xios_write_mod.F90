@@ -66,7 +66,7 @@ contains
 subroutine write_field_generic(field_name, field_proxy)
   implicit none
 
-  character(len=*),               intent(in) :: field_name
+  character(len=*), optional,     intent(in) :: field_name
   class(field_parent_proxy_type), intent(in) :: field_proxy
 
   integer(i_def) :: undf
@@ -154,7 +154,7 @@ subroutine write_field_node(xios_field_name, field_proxy)
 
   implicit none
 
-  character(len=*),               intent(in) :: xios_field_name
+  character(len=*), optional,     intent(in) :: xios_field_name
   class(field_parent_proxy_type), intent(in) :: field_proxy
 
   call write_field_generic(xios_field_name, field_proxy)
@@ -170,7 +170,7 @@ subroutine write_field_edge(xios_field_name, field_proxy)
 
   implicit none
 
-  character(len=*),               intent(in) :: xios_field_name
+  character(len=*), optional,     intent(in) :: xios_field_name
   class(field_parent_proxy_type), intent(in) :: field_proxy
 
   call write_field_generic(xios_field_name, field_proxy)
@@ -186,7 +186,7 @@ subroutine write_field_single_face(xios_field_name, field_proxy)
 
   implicit none
 
-  character(len=*),               intent(in) :: xios_field_name
+  character(len=*), optional,     intent(in) :: xios_field_name
   class(field_parent_proxy_type), intent(in) :: field_proxy
 
   call write_field_generic(xios_field_name, field_proxy)
@@ -203,7 +203,7 @@ subroutine write_field_face(xios_field_name, field_proxy)
 
   implicit none
 
-  character(len=*),               intent(in) :: xios_field_name
+  character(len=*), optional,     intent(in) :: xios_field_name
   class(field_parent_proxy_type), intent(in) :: field_proxy
 
   call write_field_generic(xios_field_name, field_proxy)

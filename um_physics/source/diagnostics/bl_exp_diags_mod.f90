@@ -157,15 +157,11 @@ contains
     call dust_flux%write_field('aerosol__dust_flux')
 
     ! Diagnostics computed in the kernel
-    if (zht_flag) &
-         call zht%write_field(zht%get_name())
-    if (oblen_flag) call oblen%write_field(oblen%get_name())
-    if (z0h_eff_flag) &
-         call z0h_eff%write_field(z0h_eff%get_name())
-    if (gross_prim_prod_flag) &
-         call gross_prim_prod%write_field(gross_prim_prod%get_name())
-    if (soil_respiration_flag) &
-         call soil_respiration%write_field(soil_respiration%get_name())
+    if (zht_flag) call zht%write_field()
+    if (oblen_flag) call oblen%write_field()
+    if (z0h_eff_flag) call z0h_eff%write_field()
+    if (gross_prim_prod_flag) call gross_prim_prod%write_field()
+    if (soil_respiration_flag) call soil_respiration%write_field()
 
     if ( subroutine_timers ) call timer("bl_exp_diags")
 

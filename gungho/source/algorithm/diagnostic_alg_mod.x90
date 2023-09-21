@@ -597,13 +597,13 @@ contains
     end if
 
     if (dry_mass_flag .and. use_xios_io) then
-      call tot_col_dry_air_mass%write_field(tot_col_dry_air_mass%get_name())
+      call tot_col_dry_air_mass%write_field()
     end if
 
     if (encorr_flag .and. use_xios_io) then
       cvTdot = cv * temperature_correction_rate
       call invoke(a_times_X(tot_col_encorr, cvTdot, tot_col_dry_air_mass))
-      call tot_col_encorr%write_field(tot_col_encorr%get_name())
+      call tot_col_encorr%write_field()
     end if
 
     if (wet_mass_flag) then
@@ -632,7 +632,7 @@ contains
       end if
 
       if (X_mass_flag .and. use_xios_io) then
-        call tot_col_moist_mass(i_mr)%write_field(tot_col_moist_mass(i_mr)%get_name())
+        call tot_col_moist_mass(i_mr)%write_field()
       end if
 
       if (wet_mass_flag) then
@@ -643,7 +643,7 @@ contains
     end do
 
     if (wet_mass_flag .and. use_xios_io) then
-      call tot_col_wetplusdry_mass%write_field(tot_col_wetplusdry_mass%get_name())
+      call tot_col_wetplusdry_mass%write_field()
     end if
 
     if (init_diag(tot_col_int_energy,'processed__tot_col_int_energy') .and. use_xios_io) then
@@ -658,7 +658,7 @@ contains
                    compute_column_integral_kernel_type(air_temperature, height_w3, &
                                                    height_wth, tot_col_int_energy, &
                                                    radius) )
-      call tot_col_int_energy%write_field(tot_col_int_energy%get_name())
+      call tot_col_int_energy%write_field()
 
       nullify( theta_in_w3 )
 
@@ -672,7 +672,7 @@ contains
                    compute_column_integral_kernel_type(energy_field, height_w3,  &
                                                  height_wth, tot_col_pot_energy, &
                                                  radius) )
-      call tot_col_pot_energy%write_field(tot_col_pot_energy%get_name())
+      call tot_col_pot_energy%write_field()
 
     end if
 
@@ -763,7 +763,7 @@ contains
     if (init_diag(wbig, 'processed__wbig') .and. use_xios_io) then
 
       call invoke( calc_wbig_kernel_type(w_in_wth, wbig) )
-      call wbig%write_field(wbig%get_name())
+      call wbig%write_field()
 
     end if
 
@@ -797,7 +797,7 @@ contains
                   inc_X_powreal_a(pressure, one_over_kappa), &
                   inc_a_times_X(p_zero, pressure))
 
-      call pressure%write_field(pressure%get_name())
+      call pressure%write_field()
 
     end if
 
