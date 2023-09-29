@@ -80,10 +80,10 @@ module initialise_diagnostics_mod
   character(str_def), parameter :: node_grid                                   &
     = 'node_grid'
 
-  public :: init_diagnostic_field, diagnostic_to_be_sampled
+  public :: init_diagnostic_field, diagnostic_to_be_sampled,                   &
+            diagnostic_ever_requested
 
 contains
-
   ! if string is of shape "<prefix>_<suffix>",
   ! split it into prefix and suffix, updating the string
   function try_split(string, suffix, prefix) result(ok)
@@ -215,7 +215,7 @@ contains
     tile_id = axis_ref
   end function get_field_tile_id
 
-  !> @brief Return true if and only if XIOS will sample the field.
+  !> @brief Return true if and only if XIOS will sample the field at the current timestep.
   !> @param[in]   unique_id   XIOS id of field
   !> @return                  Sampling on/off status of the field
   function diagnostic_to_be_sampled(unique_id) result(sampling_on)
@@ -224,12 +224,28 @@ contains
     logical(l_def) :: sampling_on
     if (diag_always_on_sampling .or. .not. use_xios_io) then
       sampling_on = .true. ! for testing
-      ! This is used when xios is off to ensure existing behvaiour of
+      ! This is used when xios is off to ensure existing behaviour of
       ! old nodal output is preserved
     else
       sampling_on = field_is_active(unique_id, .true.) ! derived from metadata
     end if
   end function diagnostic_to_be_sampled
+
+  !> @brief Return true if and only if the field is requested at any point during the run.
+  !> @param[in]   unique_id   XIOS id of field
+  !> @return                  Requested status of the field
+  function diagnostic_ever_requested(unique_id) result(requested)
+    implicit none
+    character(*), intent(in) :: unique_id
+    logical(l_def) :: requested
+    if (diag_always_on_sampling .or. .not. use_xios_io) then
+      requested = .true. ! for testing
+      ! This is used when xios is off to ensure existing behaviour of
+      ! old nodal output is preserved
+    else
+      requested = field_is_active(unique_id, .false.) ! derived from metadata
+    end if
+  end function diagnostic_ever_requested
 
   !> @brief Initialise a diagnostic field.
   !> @details If the field was requested, or if it is needed as a dependency,
