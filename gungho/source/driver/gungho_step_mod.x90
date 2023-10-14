@@ -50,7 +50,6 @@ module gungho_step_mod
                                              method_no_timestepping
   use update_energy_correction_alg_mod,                                   &
                                       only : update_energy_correction_alg
-  use scalar_to_field_alg_mod,        only : scalar_to_field_alg
   use compute_total_energy_alg_mod,   only : compute_total_energy_alg
   use compute_total_mass_alg_mod,     only : compute_total_mass_alg
 
@@ -227,8 +226,8 @@ module gungho_step_mod
                                total_energy,                &
                                total_energy_previous )
 
-        call scalar_to_field_alg( temperature_correction_rate, &
-                                  temp_correction_field )
+        call invoke( setval_c(temp_correction_field,        &
+                              temperature_correction_rate) )
       end if
 
     end if

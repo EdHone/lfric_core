@@ -22,7 +22,7 @@ source/diagnostics/empty_data_mod.f90
 source/diagnostics/initialise_diagnostics_mod.F90
 source/diagnostics/minmax_tseries_mod.F90
 source/driver/create_lbcs_mod.f90
-source/driver/gungho_init_fields_mod.F90
+source/driver/gungho_init_fields_mod.X90
 source/driver/gungho_model_mod.F90
 source/driver/init_ancils_mod.f90
 source/field/field_indices_mod.F90

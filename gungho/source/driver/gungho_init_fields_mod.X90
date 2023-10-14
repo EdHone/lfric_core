@@ -90,7 +90,6 @@ module gungho_init_fields_mod
                                           only : compute_column_integral_kernel_type
   use geometric_constants_mod,            only : get_height
   use planet_config_mod,                  only : radius
-  use scalar_to_field_alg_mod,            only : scalar_to_field_alg
   use field_to_scalar_alg_mod,            only : field_to_scalar_alg
 
   implicit none
@@ -470,7 +469,7 @@ subroutine create_model_data( modeldb,      &
                                        mesh, twod_mesh )
 
         ! Initialise flux sum to zero
-        call scalar_to_field_alg(0.0_r_def, accumulated_fluxes)
+        call invoke( setval_c(accumulated_fluxes, 0.0_r_def) )
 
         if ( checkpoint_read ) then
           ! Read scalar temperature_correction_rate from checkponted field
@@ -482,7 +481,7 @@ subroutine create_model_data( modeldb,      &
             temperature_correction_rate
           call log_event(log_scratch_space, LOG_LEVEL_DEBUG)
         else
-          call scalar_to_field_alg(0.0_r_def, temp_correction_field)
+          call invoke( setval_c(temp_correction_field, 0.0_r_def) )
         end if
 
       end if
