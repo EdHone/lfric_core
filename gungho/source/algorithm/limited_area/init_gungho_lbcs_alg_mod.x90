@@ -30,6 +30,8 @@ module init_gungho_lbcs_alg_mod
   use linked_list_mod,                 only: linked_list_type
   use mr_indices_mod,                  only: nummr,             &
                                              mr_names
+  use io_config_mod,                   only: subroutine_timers
+  use timer_mod,                       only: timer
 
   implicit none
 
@@ -137,6 +139,8 @@ module init_gungho_lbcs_alg_mod
     type(linked_list_type),        intent(in)    :: lbc_times_list
     class(model_clock_type),       intent(in)    :: clock
 
+    if ( subroutine_timers ) call timer('init_lbcs')
+
     call read_state( lbc_fields )
     call init_variable_fields( lbc_times_list, &
                                clock, lbc_fields )
@@ -163,6 +167,8 @@ module init_gungho_lbcs_alg_mod
 
     end if
 
+    if ( subroutine_timers ) call timer('init_lbcs')
+
   end subroutine init_lbcs_file_alg
 
   !> @brief   Update the time-varying LBCs from a file.
@@ -178,6 +184,8 @@ module init_gungho_lbcs_alg_mod
     type( field_collection_type ), intent(inout) :: lbc_fields
     type(linked_list_type),        intent(in)    :: lbc_times_list
     class(model_clock_type),       intent(in)    :: clock
+
+    if ( subroutine_timers ) call timer('update_lbcs')
 
     call update_variable_fields( lbc_times_list, &
                                  clock,lbc_fields )
@@ -197,6 +205,8 @@ module init_gungho_lbcs_alg_mod
 
     ! Define boundary_u_driving
     call define_boundary_u( lbc_fields )
+
+    if ( subroutine_timers ) call timer('update_lbcs')
 
   end subroutine update_lbcs_file_alg
 

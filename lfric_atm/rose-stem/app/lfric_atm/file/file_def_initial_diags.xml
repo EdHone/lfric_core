@@ -8,8 +8,6 @@
       <field field_ref="init_m_cl" />
       <field field_ref="init_m_ci" />
       <field field_ref="init_m_r" />
-      <field field_ref="init_u_in_w2h" />
-      <field field_ref="init_v_in_w2h" />
       <field field_ref="init_w_in_wth" />
       <field field_ref="init_rho" />
       <field field_ref="init_exner" />

@@ -61,7 +61,6 @@
     <field field_ref="processed__tot_col_m_ci" />
     <field field_ref="processed__pmsl" />
     <field field_ref="aerosol__cloud_drop_no_conc" />
-    <field_group group_ref="lbc_diags" />
   </file>
 
 </file_definition>
