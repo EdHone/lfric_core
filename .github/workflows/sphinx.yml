@@ -23,7 +23,7 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install sphinx
     - id: extract
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
     - id: sphinx
       run: |
         cd documentation
