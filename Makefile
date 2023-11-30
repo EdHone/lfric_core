@@ -37,7 +37,6 @@ OPERATE_ON ?= lfric_atm                  \
               miniapps/shallow_water     \
               miniapps/io_dev            \
               miniapps/transport         \
-              miniapps/multires_coupling \
               um_physics                 \
               socrates                   \
               lfricinputs

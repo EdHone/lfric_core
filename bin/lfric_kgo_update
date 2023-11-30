@@ -40,7 +40,6 @@ PROJECT_NAMES=( lfric_atm \
                 shallow_water \
                 io_dev \
                 transport \
-                multires_coupling \
                 mesh_tools )
 
 #============================================================================
