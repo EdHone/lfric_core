@@ -243,6 +243,7 @@ contains
     type(quadrature_rule_gaussian_type) :: gaussian_quadrature
 
     integer(kind=i_def)            :: st, stage, mesh_id
+    integer(kind=i_def), parameter :: exner_stencil_depth = 1
 
     if ( subroutine_timers ) call timer('tl_rk_alg')
 
@@ -406,14 +407,16 @@ contains
                      LOG_LEVEL_ERROR )
       end if
 
-      call invoke( name = "tl_compute_new_rhs",                                           &
-                   tl_pressure_gradient_bd_kernel_type( rhs_prediction(igh_u, stage),     &
-                                                        state(igh_p), 1, state(igh_t),    &
-                                                        moist_dyn,                        &
-                                                        ls_state_stage(igh_p,stage),      &
-                                                        ls_state_stage(igh_t,stage),      &
-                                                        ls_moist_dyn,                     &
-                                                        cp, qrf ),                            &
+      call invoke( name = "tl_compute_new_rhs",                                            &
+                   tl_pressure_gradient_bd_kernel_type( rhs_prediction(igh_u, stage),      &
+                                                        state(igh_p), exner_stencil_depth, &
+                                                        state(igh_t),                      &
+                                                        moist_dyn,                         &
+                                                        ls_state_stage(igh_p,stage),       &
+                                                        exner_stencil_depth,               &
+                                                        ls_state_stage(igh_t,stage),       &
+                                                        ls_moist_dyn,                      &
+                                                        cp, qrf ),                         &
                    tl_hydrostatic_kernel_type( rhs_prediction(igh_u,stage),            &
                                                state(igh_p), state(igh_t),             &
                                                moist_dyn,                              &

@@ -97,8 +97,9 @@ module tl_test_pressure_grad_bd_mod
     real(r_def) :: norm_diff, norm_diff_prev
     real(r_def) :: gamma
 
-    integer :: n, i
-    real(r_def), parameter :: tol = 1.e-3_r_def
+    integer(i_def) :: n, i
+    integer(i_def), parameter :: exner_stencil_depth = 1
+    real(r_def),    parameter :: tol = 1.e-3_r_def
 
     call log_event( "TL Test: " // trim(label), &
                      LOG_LEVEL_INFO )
@@ -149,8 +150,9 @@ module tl_test_pressure_grad_bd_mod
 
     ! Taylor Remainder Convergence Test
     call invoke( setval_C( n1_rhs_u, 0.0_r_def ) )
-    call invoke( pressure_gradient_bd_kernel_type( n1_rhs_u,  &
-                                                   ls_exner, 1, ls_theta, &
+    call invoke( pressure_gradient_bd_kernel_type( n1_rhs_u,                      &
+                                                   ls_exner, exner_stencil_depth, &
+                                                   ls_theta,                      &
                                                    ls_moist_dyn, cp, qrf ) )
 
     call invoke( assign_field_random_kernel_type( random_exner, 1.0_r_def ), &
@@ -179,17 +181,17 @@ module tl_test_pressure_grad_bd_mod
                      inc_X_plus_Y( n_moist_dyn(i), p_moist_dyn(i) ) )
       end do
 
-      call invoke( pressure_gradient_bd_kernel_type( n2_rhs_u,   &
-                                                     n_exner, 1, &
-                                                     n_theta,    &
+      call invoke( pressure_gradient_bd_kernel_type( n2_rhs_u,                     &
+                                                     n_exner, exner_stencil_depth, &
+                                                     n_theta,                      &
                                                      n_moist_dyn, cp, qrf ) )
-      call invoke( tl_pressure_gradient_bd_kernel_type( p_rhs_u,      &
-                                                        p_exner, 1,   &
-                                                        p_theta,      &
-                                                        p_moist_dyn,  &
-                                                        ls_exner,     &
-                                                        ls_theta,     &
-                                                        ls_moist_dyn, &
+      call invoke( tl_pressure_gradient_bd_kernel_type( p_rhs_u,                       &
+                                                        p_exner, exner_stencil_depth,  &
+                                                        p_theta,                       &
+                                                        p_moist_dyn,                   &
+                                                        ls_exner, exner_stencil_depth, &
+                                                        ls_theta,                      &
+                                                        ls_moist_dyn,                  &
                                                         cp, qrf ) )
 
       call invoke( X_minus_Y( diff, n2_rhs_u, n1_rhs_u ), &

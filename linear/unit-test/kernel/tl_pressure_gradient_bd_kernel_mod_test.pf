@@ -215,6 +215,8 @@ contains
                                        moist_dyn_data(:,2),                 &
                                        moist_dyn_data(:,3),                 &
                                        ls_exner_data,                       &
+                                       cross_stencil_w3_size,               &
+                                       cross_stencil_w3_map(:,:,cell),      &
                                        ls_theta_data,                       &
                                        ls_moist_dyn_data(:,1),              &
                                        ls_moist_dyn_data(:,2),              &

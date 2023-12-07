@@ -46,7 +46,7 @@ module tl_pressure_gradient_bd_kernel_mod
          arg_type(GH_FIELD,   GH_REAL, GH_READ, W3, STENCIL(CROSS)),        &
          arg_type(GH_FIELD,   GH_REAL, GH_READ, Wtheta),                    &
          arg_type(GH_FIELD*3, GH_REAL, GH_READ, Wtheta),                    &
-         arg_type(GH_FIELD,   GH_REAL, GH_READ, W3),                        &
+         arg_type(GH_FIELD,   GH_REAL, GH_READ, W3, STENCIL(CROSS)),        &
          arg_type(GH_FIELD,   GH_REAL, GH_READ, Wtheta),                    &
          arg_type(GH_FIELD*3, GH_REAL, GH_READ, Wtheta),                    &
          arg_type(GH_SCALAR,  GH_REAL, GH_READ)                             &
@@ -78,49 +78,51 @@ contains
   !> @brief Tangent linear for computing the boundary integral terms in
   !>        terms of the pressure gradient.
   !>
-  !> @param[in] nlayers Number of layers
-  !> @param[in,out] r_u_bd       ACTIVE Change in RHS of the momentum equation
-  !> @param[in] exner            ACTIVE Change in Exner pressure
-  !> @param[in] stencil_w3_size  Size of the W3 stencil (number of cells)
-  !> @param[in] stencil_w3_map   W3 dofmaps for the stencil
-  !> @param[in] theta            ACTIVE Change in Potential temperature
-  !> @param[in] moist_dyn_gas    ACTIVE Change in Gas factor
-  !> @param[in] moist_dyn_tot    ACTIVE Change in Total mass factor
-  !> @param[in] moist_dyn_fac    ACTIVE Change in Water factor
-  !> @param[in] ls_exner         Lin. state Exner pressure
-  !> @param[in] ls_theta         Lin. state Potential temperature
-  !> @param[in] ls_moist_dyn_gas Lin. state Gas factor (1 + m_v / epsilon)
-  !> @param[in] ls_moist_dyn_tot Lin. state Total mass factor (1 + sum m_x)
-  !> @param[in] ls_moist_dyn_fac Lin. state Water factor
-  !> @param[in] cp               Specific heat of dry air at constant pressure
-  !> @param[in] ndf_w2           Number of degrees of freedom per cell for W2
-  !> @param[in] undf_w2          Number of unique degrees of freedom for W2
-  !> @param[in] map_w2           Dofmap for the cell at the base of the
-  !!                             column for W2
-  !> @param[in] w2_basis_face    W2 basis functions evaluated at Gaussian
-  !!                             quadrature points on horizontal faces
-  !> @param[in] ndf_w3           Number of degrees of freedom per cell for W3
-  !> @param[in] undf_w3          Number of unique degrees freedom for W3
-  !> @param[in] map_w3           Dofmap for the cell at the base of the
-  !!                             column for W3
-  !> @param[in] w3_basis_face    W3 basis functions evaluated at Gaussian
-  !!                             quadrature points on horizontal faces
-  !> @param[in] ndf_wtheta       Number of degrees of freedom per cell for Wtheta
-  !> @param[in] undf_wtheta      Number of unique degrees of freedom for Wtheta
-  !> @param[in] map_wtheta       Dofmap for the cell at the base of the
-  !!                             column for Wtheta
-  !> @param[in] wtheta_basis_face Wtheta basis functions evaluated at Gaussian
-  !!                              quadrature points on horizontal faces
-  !> @param[in] nfaces_re_h      Number of reference element faces bisected by a
-  !!                             horizontal plane
+  !> @param[in] nlayers            Number of layers
+  !> @param[in,out] r_u_bd         ACTIVE Change in RHS of the momentum equation
+  !> @param[in] exner              ACTIVE Change in Exner pressure
+  !> @param[in] stencil_w3_size    Size of the W3 stencil (number of cells)
+  !> @param[in] stencil_w3_map     W3 dofmaps for the stencil
+  !> @param[in] theta              ACTIVE Change in Potential temperature
+  !> @param[in] moist_dyn_gas      ACTIVE Change in Gas factor
+  !> @param[in] moist_dyn_tot      ACTIVE Change in Total mass factor
+  !> @param[in] moist_dyn_fac      ACTIVE Change in Water factor
+  !> @param[in] ls_exner           Lin. state Exner pressure
+  !> @param[in] ls_stencil_w3_size Size of the W3 stencil (number of cells)
+  !> @param[in] ls_stencil_w3_map  W3 dofmaps for the stencil
+  !> @param[in] ls_theta           Lin. state Potential temperature
+  !> @param[in] ls_moist_dyn_gas   Lin. state Gas factor (1 + m_v / epsilon)
+  !> @param[in] ls_moist_dyn_tot   Lin. state Total mass factor (1 + sum m_x)
+  !> @param[in] ls_moist_dyn_fac   Lin. state Water factor
+  !> @param[in] cp                 Specific heat of dry air at constant pressure
+  !> @param[in] ndf_w2             Number of degrees of freedom per cell for W2
+  !> @param[in] undf_w2            Number of unique degrees of freedom for W2
+  !> @param[in] map_w2             Dofmap for the cell at the base of the
+  !!                               column for W2
+  !> @param[in] w2_basis_face      W2 basis functions evaluated at Gaussian
+  !!                               quadrature points on horizontal faces
+  !> @param[in] ndf_w3             Number of degrees of freedom per cell for W3
+  !> @param[in] undf_w3            Number of unique degrees freedom for W3
+  !> @param[in] map_w3             Dofmap for the cell at the base of the
+  !!                               column for W3
+  !> @param[in] w3_basis_face      W3 basis functions evaluated at Gaussian
+  !!                               quadrature points on horizontal faces
+  !> @param[in] ndf_wtheta         Number of degrees of freedom per cell for Wtheta
+  !> @param[in] undf_wtheta        Number of unique degrees of freedom for Wtheta
+  !> @param[in] map_wtheta         Dofmap for the cell at the base of the
+  !!                               column for Wtheta
+  !> @param[in] wtheta_basis_face  Wtheta basis functions evaluated at Gaussian
+  !!                               quadrature points on horizontal faces
+  !> @param[in] nfaces_re_h        Number of reference element faces bisected by a
+  !!                               horizontal plane
   !> @param[in] outward_normals_to_horizontal_faces Vector of normals to the
   !!                                                reference element horizontal
   !!                                                "outward faces"
-  !> @param[in] opposite_face    Vector containing information on neighbouring
-  !!                             face index for the current cell
-  !> @param[in] nfaces_qr        Number of faces in the quadrature rule
-  !> @param[in] nqp_f            Number of quadrature points on horizontal faces
-  !> @param[in] wqp_f            Quadrature weights on horizontal faces
+  !> @param[in] opposite_face      Vector containing information on neighbouring
+  !!                               face index for the current cell
+  !> @param[in] nfaces_qr          Number of faces in the quadrature rule
+  !> @param[in] nqp_f              Number of quadrature points on horizontal faces
+  !> @param[in] wqp_f              Quadrature weights on horizontal faces
   !>
   subroutine tl_pressure_gradient_bd_code( nlayers,         &
                                         r_u_bd,             &
@@ -132,6 +134,8 @@ contains
                                         moist_dyn_tot,      &
                                         moist_dyn_fac,      &
                                         ls_exner,           &
+                                        ls_stencil_w3_size, &
+                                        ls_stencil_w3_map,  &
                                         ls_theta,           &
                                         ls_moist_dyn_gas,   &
                                         ls_moist_dyn_tot,   &
@@ -168,6 +172,8 @@ contains
 
     integer(kind=i_def), intent(in) :: stencil_w3_size
     integer(kind=i_def), dimension(ndf_w3,stencil_w3_size), intent(in) :: stencil_w3_map
+    integer(kind=i_def), intent(in) :: ls_stencil_w3_size
+    integer(kind=i_def), dimension(ndf_w3,ls_stencil_w3_size), intent(in) :: ls_stencil_w3_map
 
     integer(kind=i_def), dimension(ndf_w2),     intent(in) :: map_w2
     integer(kind=i_def), dimension(ndf_w3),     intent(in) :: map_w3
@@ -224,8 +230,8 @@ contains
 
         ! Linearisation state
         do df = 1, ndf_w3
-          ls_exner_e(df)      = ls_exner( stencil_w3_map(df, 1) + k )
-          ls_exner_next_e(df) = ls_exner( stencil_w3_map(df, face+1) + k )
+          ls_exner_e(df)      = ls_exner( ls_stencil_w3_map(df, 1) + k )
+          ls_exner_next_e(df) = ls_exner( ls_stencil_w3_map(df, face+1) + k )
         end do
         do df = 1, ndf_wtheta
           ls_theta_v_e(df) = ls_theta( map_wtheta(df) + k )         &
