@@ -138,7 +138,11 @@ subroutine inverse_format_field(xios_data, field_name, fpxy, m, n)
       fpxy%data(i:mn:m) = real(xios_data(1+(i-1)*n:i*n), real64)
     end do
     ! Use our own mdi indicator
-    where (fpxy%data(1:mn) == LARGE_REAL_NEGATIVE) fpxy%data = rmdi
+    do i = 1, mn
+      if (fpxy%data(i) == LARGE_REAL_NEGATIVE) then
+        fpxy%data(i) = rmdi
+      end if
+    end do
 
   type is (integer_field_proxy_type)
     do i = 1, m

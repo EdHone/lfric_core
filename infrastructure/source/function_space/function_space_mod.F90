@@ -23,7 +23,8 @@ module function_space_mod
                                    LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR,           &
                                    LOG_LEVEL_INFO
   use fs_continuity_mod,    only : W0, W1, W2, W3, Wtheta, W2broken, W2trace,  &
-                                   W2Htrace, W2Vtrace, W2V, W2H, Wchi
+                                   W2Htrace, W2Vtrace, W2V, W2H, Wchi,         &
+                                   W2Hbroken
   use function_space_constructor_helper_functions_mod,                         &
                             only : ndof_setup, basis_setup, dofmap_setup,      &
                                    levels_setup, generate_fs_id
@@ -462,13 +463,18 @@ contains
       self%dim_space = 3  ! Vector field
       self%dim_space_diff = 3  ! Vector field
 
-    case (W2, W2broken, W2V, W2H)
+    case (W2, W2broken, W2V, W2H, W2Hbroken)
       self%dim_space = 3  ! Vector field
       self%dim_space_diff = 1  ! Scalar field
 
     case (W2trace, W2Vtrace, W2Htrace, W3)
       self%dim_space = 1  ! Scalar field
       self%dim_space_diff = 3  ! Vector field
+
+    case default
+      call log_event(&
+      'Attempt to initialise unknown function space', &
+      LOG_LEVEL_ERROR)
 
     end select
 
