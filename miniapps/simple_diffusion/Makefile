@@ -13,8 +13,9 @@ export PROJECT_NAME = simple_diffusion
 export PROJECT_DIR_NAME = simple_diffusion
 PROFILE ?= fast-debug
 
-# Select option for PSyclone transformation. Select "none" for no transformation
-export PSYCLONE_TRANSFORMATION ?= none
+# Select option for PSyclone transformation. Select "none" for no transformation.
+export PSYCLONE_TRANSFORMATION ?= minimum
+
 export PROJECT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 export ROOT_DIR    ?= ../..
 export INTERNAL_DEPENDENCIES = $(ROOT_DIR)/infrastructure \

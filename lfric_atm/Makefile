@@ -11,7 +11,7 @@ export PROFILE ?= fast-debug
 # Option defined in fcm_make/target-map.txt which in turn references options
 # from fcm:um.xm_tr/fcm-make
 export UM_FCM_TARGET_PLATFORM ?= generic-x86
-# Select option for PSyclone transformation. Select "none" for no transformation
+# Select option for PSyclone transformation. Select "none" for no transformation.
 export PSYCLONE_TRANSFORMATION ?= minimum
 
 # This top level makefile is very order sensitive. Source code extraction and
