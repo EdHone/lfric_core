@@ -69,7 +69,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'lfric_ncdf_field_constructor'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     self%name = trim(name)
     self%file => file
@@ -115,7 +115,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'read_data'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     ierr = nf90_get_var(self%file%get_id(), self%varid, field_data(:))
 
@@ -138,7 +138,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'write_data'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     if (self%is_scalar) then
       ierr = nf90_put_var(self%file%get_id(), self%varid, field_data(1))
@@ -169,7 +169,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'set_char_attribute'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     ierr = nf90_put_att(self%file%get_id(), self%varid, attr_name, &
                         trim(attr_value))
@@ -197,7 +197,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'get_char_attribute'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     ierr = nf90_get_att(self%file%get_id(), self%varid, attr_name, attr_value)
     attr_value = trim(attr_value)
@@ -226,7 +226,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'set_real_attribute'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     ierr = nf90_put_att(self%file%get_id(), self%varid, attr_name, attr_value)
 
@@ -253,7 +253,7 @@ function lfric_ncdf_field_constructor(name, file, dims) result(self)
 
     integer(kind=i_def)         :: ierr
     character(len=*), parameter :: routine = 'read_attribute'
-    character(len=str_long)     :: cmess = ''
+    character(len=str_long)     :: cmess
 
     ierr = nf90_get_att(self%file%get_id(), self%varid, attr_name, attr_value)
 

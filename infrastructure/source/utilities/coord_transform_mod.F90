@@ -220,7 +220,7 @@ subroutine xyz2llr( x, y, z, &
 
   ! Local variables
   real(r_def) :: tan_longitude, tan_latitude
-  real(r_def) :: tol = 10.0e-8_r_def
+  real(r_def), parameter :: tol = 10.0e-8_r_def
 
 
   ! Calculate longitude in range

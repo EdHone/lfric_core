@@ -1784,10 +1784,11 @@ subroutine check_err(ierr, routine, cmess, log_level)
 
   integer(i_def),      intent(in), optional :: log_level
 
-  integer(i_def) :: local_log_level = log_level_error
+  integer(i_def) :: local_log_level
 
   if (ierr /= NF90_NOERR) then
 
+    local_log_level = log_level_error
     if (present(log_level)) local_log_level = log_level
 
     write(log_scratch_space,*)                      &

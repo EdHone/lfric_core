@@ -174,8 +174,8 @@ contains
 
     integer(i_def) :: rotated_direction
     integer(i_def) :: direction
-    integer(i_def), dimension(4) :: direction_ref = (/ W, S, E, N /)
-    integer(i_def), dimension(4) :: rotated
+    integer(i_def), parameter :: direction_ref(4) = (/ W, S, E, N /)
+    integer(i_def) :: rotated(4)
 
     ! Rotate the array using cshift to change the order of the direction map
     select case (rotation)
