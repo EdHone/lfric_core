@@ -167,7 +167,8 @@ module horizontal_sl_advective_alg_mod
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field, field_n, monotone_remap,       &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value() )
+                          transport_metadata%get_min_value(),         &
+                          stencil_extent )
       field_ptr => remap_field
     else
       field_ptr => field_n
@@ -202,12 +203,14 @@ module horizontal_sl_advective_alg_mod
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field_x, field_x, monotone_remap,     &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value() )
+                          transport_metadata%get_min_value(),         &
+                          stencil_extent )
       field_x_ptr => remap_field_x
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field_y, field_y, monotone_remap,     &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value() )
+                          transport_metadata%get_min_value(),         &
+                          stencil_extent )
       field_y_ptr => remap_field_y
     else
       field_x_ptr => field_x

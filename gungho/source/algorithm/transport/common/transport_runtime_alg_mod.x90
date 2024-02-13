@@ -10,20 +10,22 @@
 
 module transport_runtime_alg_mod
 
-  use check_configuration_mod,        only: check_any_scheme_mol,       &
-                                            check_any_scheme_ffsl,      &
-                                            check_any_scheme_split,     &
-                                            check_any_scheme_slice,     &
-                                            check_any_hori_scheme_sl,   &
-                                            check_any_vert_scheme_sl,   &
-                                            check_any_reversible_sl,    &
-                                            check_any_shifted,          &
-                                            check_horz_dep_pts,         &
-                                            check_vert_dep_pts,         &
-                                            check_any_splitting_vhv,    &
-                                            check_any_eqn_consistent,   &
-                                            check_any_consistent_swift, &
-                                            check_any_consistent_cosmic
+  use check_configuration_mod,        only: check_any_scheme_mol,        &
+                                            check_any_scheme_ffsl,       &
+                                            check_any_scheme_split,      &
+                                            check_any_scheme_slice,      &
+                                            check_any_hori_scheme_sl,    &
+                                            check_any_vert_scheme_sl,    &
+                                            check_any_reversible_sl,     &
+                                            check_any_shifted,           &
+                                            check_horz_dep_pts,          &
+                                            check_vert_dep_pts,          &
+                                            check_any_splitting_vhv,     &
+                                            check_any_eqn_consistent,    &
+                                            check_any_consistent_swift,  &
+                                            check_any_consistent_cosmic, &
+                                            get_required_stencil_depth
+
   use constants_mod,                  only: r_def, r_second, i_def, l_def,  &
                                             str_def, tiny_eps, imdi, r_tran
   use cosmic_index_alg_mod,           only: cosmic_index_alg
@@ -46,7 +48,9 @@ module transport_runtime_alg_mod
   use mesh_collection_mod,            only: mesh_collection
   use model_clock_mod,                only: model_clock_type
   use runtime_tools_mod,              only: check_initialised_field
-  use subgrid_config_mod,             only: dep_pt_stencil_extent, outer_order
+  use subgrid_config_mod,             only: dep_pt_stencil_extent, &
+                                            outer_order,           &
+                                            inner_order
   use timer_mod,                      only: timer
   use transport_config_mod,           only: extended_mesh
   use transport_enumerated_types_mod, only: scheme_split,         &
@@ -1022,7 +1026,7 @@ contains
 
   end subroutine set_dry_flux
 
-  !> @brief Sets and shifts a dry density field to use in tracer transport
+  !> @brief Sets dry density field to use in tracer transport
   !> @pre Fields passed to this routine must be on the prime extrusion mesh
   !> @param[in,out] self        The transport_runtime object
   !> @param[in]     rho_d       Dry density field
@@ -1038,6 +1042,7 @@ contains
     logical(kind=l_def)              :: next_step_hori
     type(mesh_type),         pointer :: prime_extrusion_mesh => null()
     integer(kind=i_def)              :: w2_fs_idx
+    integer(kind=i_def)              :: remap_depth
 
     ! The dry flux is on the prime extrusion mesh
     prime_extrusion_mesh => rho_d%get_mesh()
@@ -1051,10 +1056,23 @@ contains
                       w2_fs_idx == W2H .or. w2_fs_idx == W2)
 
     if (extended_mesh .and. next_step_hori) then
+      if ( check_any_scheme_mol() ) then
+        remap_depth = get_required_stencil_depth()
+      end if
+
+      if ( check_any_scheme_ffsl() .or. check_any_hori_scheme_sl() ) then
+        ! For consistent transport the cfl may be slightly higher than expected
+        ! due to using the dry mass flux to compute departure points, therefore
+        ! an extra + 1 is added to remap_depth for safety
+        remap_depth = max(self%get_dep_stencil_extent_x(self%mesh_ids(1)), &
+                          self%get_dep_stencil_extent_y(self%mesh_ids(1))) &
+                    + 2_i_def + max(inner_order, outer_order)
+      end if
       call self%remap_on_extended_mesh(self%rho_d(1,step), rho_d, &
                                        self%rho_monotone_remap,   &
                                        self%rho_enforce_minvalue, &
-                                       self%rho_minvalue)
+                                       self%rho_minvalue,         &
+                                       remap_depth)
     else
       call rho_d%copy_field_properties(self%rho_d(1,step))
       call invoke( setval_X(self%rho_d(1,step), rho_d) )
@@ -1064,7 +1082,7 @@ contains
 
   end subroutine set_rho_d
 
-  !> @brief Sets and shifts a dry density field to use in FFSL tracer transport
+  !> @brief Sets a dry density field to use in FFSL tracer transport
   !> @pre Fields passed to this routine must be on the prime extrusion mesh
   !> @param[in,out] self        The transport_runtime object
   !> @param[in]     rho_d       Dry density field
@@ -1079,6 +1097,8 @@ contains
 
     type(mesh_type),         pointer :: prime_extrusion_mesh => null()
 
+    integer(kind=i_def) :: remap_depth
+
     ! The dry flux is on the prime extrusion mesh
     prime_extrusion_mesh => rho_d%get_mesh()
 
@@ -1087,10 +1107,17 @@ contains
     end if
 
     if (extended_mesh) then
-      call self%remap_on_extended_mesh(self%rho_d_ffsl_x(1,step), rho_d,       &
-                                       self%rho_monotone_remap,                &
-                                       self%rho_enforce_minvalue,              &
-                                       self%rho_minvalue)
+      ! For consistent transport the cfl may be slightly higher than expected
+      ! due to using the dry mass flux to compute departure points, therefore
+      ! an extra + 1 is added to remap_depth for safety
+      remap_depth = max(self%get_dep_stencil_extent_x(self%mesh_ids(1)), &
+                        self%get_dep_stencil_extent_y(self%mesh_ids(1))) &
+                  + 2_i_def + max(inner_order, outer_order)
+      call self%remap_on_extended_mesh(self%rho_d_ffsl_x(1,step), rho_d, &
+                                       self%rho_monotone_remap,          &
+                                       self%rho_enforce_minvalue,        &
+                                       self%rho_minvalue,                &
+                                       remap_depth)
     else
       call rho_d%copy_field_properties(self%rho_d_ffsl_x(1,step))
       call invoke( setval_X(self%rho_d_ffsl_x(1,step), rho_d) )
@@ -1100,7 +1127,7 @@ contains
 
   end subroutine set_rho_d_ffsl_x
 
-  !> @brief Sets and shifts a dry density field to use in FFSL tracer transport
+  !> @brief Sets a dry density field to use in FFSL tracer transport
   !> @pre Fields passed to this routine must be on the prime extrusion mesh
   !> @param[in,out] self        The transport_runtime object
   !> @param[in]     rho_d       Dry density field
@@ -1113,7 +1140,8 @@ contains
     type(r_tran_field_type),               intent(in)    :: rho_d
     integer(kind=i_def),                   intent(in)    :: step
 
-    type(mesh_type),         pointer :: prime_extrusion_mesh => null()
+    type(mesh_type), pointer :: prime_extrusion_mesh => null()
+    integer(kind=i_def)      :: remap_depth
 
     ! The dry flux is on the prime extrusion mesh
     prime_extrusion_mesh => rho_d%get_mesh()
@@ -1123,10 +1151,18 @@ contains
     end if
 
     if (extended_mesh) then
-      call self%remap_on_extended_mesh(self%rho_d_ffsl_y(1,step), rho_d,       &
-                                       self%rho_monotone_remap,                &
-                                       self%rho_enforce_minvalue,              &
-                                       self%rho_minvalue)
+      ! For consistent transport the cfl may be slightly higher than expected
+      ! due to using the dry mass flux to compute departure points, therefore
+      ! an extra + 1 is added to remap_depth for safety
+      remap_depth = max(self%get_dep_stencil_extent_x(self%mesh_ids(1)), &
+                        self%get_dep_stencil_extent_y(self%mesh_ids(1))) &
+                  + 2_i_def + max(inner_order, outer_order)
+
+      call self%remap_on_extended_mesh(self%rho_d_ffsl_y(1,step), rho_d, &
+                                       self%rho_monotone_remap,          &
+                                       self%rho_enforce_minvalue,        &
+                                       self%rho_minvalue,                &
+                                       remap_depth)
     else
       call rho_d%copy_field_properties(self%rho_d_ffsl_y(1,step))
       call invoke( setval_X(self%rho_d_ffsl_y(1,step), rho_d) )
@@ -1209,6 +1245,7 @@ contains
     integer(kind=i_def)                      :: target_mesh_id
     integer(kind=i_def)                      :: step, num_steps, fs_idx
     logical(kind=l_def)                      :: any_hori_dep_pts
+    integer(kind=i_def)                      :: remap_depth
 
     if ( subroutine_timers ) call timer('transport.runtime_restrict')
 
@@ -1245,6 +1282,10 @@ contains
           ! TODO: we should be able to get away with not doing all of these
           ! remappings, based on the direction and last step
           ! Restrict, then remap
+          remap_depth = max(self%get_dep_stencil_extent_x(self%mesh_ids(1)), &
+                            self%get_dep_stencil_extent_y(self%mesh_ids(1))) &
+                      + 1_i_def + max(inner_order, outer_order)
+
           call tmp_rho_d%initialise( vector_space = w3_fs )
           call invoke( restrict_scalar_weighted_kernel_type(tmp_rho_d,         &
                                                             source_rho_d,      &
@@ -1252,7 +1293,8 @@ contains
           call self%remap_on_extended_mesh(self%rho_d(1,step), tmp_rho_d,      &
                                            self%rho_monotone_remap,            &
                                            self%rho_enforce_minvalue,          &
-                                           self%rho_minvalue)
+                                           self%rho_minvalue,                  &
+                                           remap_depth)
         else
           ! Can restrict straight into self%rho_d
           call invoke( restrict_scalar_weighted_kernel_type(                   &
@@ -1285,7 +1327,8 @@ contains
                                                tmp_rho_d,                      &
                                                self%rho_monotone_remap,        &
                                                self%rho_enforce_minvalue,      &
-                                               self%rho_minvalue)
+                                               self%rho_minvalue,              &
+                                               remap_depth)
               call invoke( restrict_scalar_weighted_kernel_type(               &
                                                     tmp_rho_d,                 &
                                                     source_rho_d_ffsl_y,       &
@@ -1294,7 +1337,8 @@ contains
                                                tmp_rho_d,                      &
                                                self%rho_monotone_remap,        &
                                                self%rho_enforce_minvalue,      &
-                                               self%rho_minvalue)
+                                               self%rho_minvalue,              &
+                                               remap_depth)
             else
               ! Can restrict straight into self%rho_d fields
               call invoke( restrict_scalar_weighted_kernel_type(               &
@@ -1377,6 +1421,7 @@ contains
     type(function_space_type), pointer :: w3_fs => null()
     type(function_space_type), pointer :: w2_fs => null()
     logical(kind=l_def)                :: any_hori_dep_pts
+    integer(kind=i_def)                :: remap_depth
 
     if ( subroutine_timers ) call timer('transport.runtime_shift')
 
@@ -1391,7 +1436,22 @@ contains
       detj_prime => get_detj_at_w3_r_tran(prime_mesh_id)
       w3_fs => function_space_collection%get_fs(shifted_mesh, 0, W3)
 
-      if (extended_mesh) call tmp_rho_d_shifted%initialise( w3_fs )
+      if (extended_mesh) then
+        if ( check_any_scheme_mol() ) then
+          remap_depth = get_required_stencil_depth()
+        end if
+
+        if ( check_any_scheme_ffsl() .or. check_any_hori_scheme_sl() ) then
+          ! For consistent transport the cfl may be slightly higher than expected
+          ! due to using the dry mass flux to compute departure points, therefore
+          ! an extra + 1 is added to remap_depth for safety
+          remap_depth = max(self%get_dep_stencil_extent_x(self%mesh_ids(1)), &
+                            self%get_dep_stencil_extent_y(self%mesh_ids(1))) &
+                      + 2_i_def + max(inner_order, outer_order)
+        end if
+
+        call tmp_rho_d_shifted%initialise( w3_fs )
+      end if
 
       do step = 1, self%num_dry_steps + 1
 
@@ -1408,11 +1468,12 @@ contains
                                            self%rho_d(1,step),                 &
                                            detj_shifted,                       &
                                            detj_prime) )
-          call self%remap_on_extended_mesh(self%rho_d(2,step),                 &
+         call self%remap_on_extended_mesh(self%rho_d(2,step),                 &
                                            tmp_rho_d_shifted,                  &
                                            self%rho_monotone_remap,            &
                                            self%rho_enforce_minvalue,          &
-                                           self%rho_minvalue)
+                                           self%rho_minvalue,                  &
+                                           remap_depth)
         else
           call invoke( apply_w3_to_sh_w3_kernel_type(                          &
                                            self%rho_d(2,step),                 &
@@ -1441,7 +1502,8 @@ contains
                                                tmp_rho_d_shifted,              &
                                                self%rho_monotone_remap,        &
                                                self%rho_enforce_minvalue,      &
-                                               self%rho_minvalue)
+                                               self%rho_minvalue,              &
+                                               remap_depth)
               call invoke( apply_w3_to_sh_w3_kernel_type(                      &
                                                tmp_rho_d_shifted,              &
                                                self%rho_d_ffsl_y(1,step),      &
@@ -1451,7 +1513,8 @@ contains
                                                tmp_rho_d_shifted,              &
                                                self%rho_monotone_remap,        &
                                                self%rho_enforce_minvalue,      &
-                                               self%rho_minvalue)
+                                               self%rho_minvalue,              &
+                                               remap_depth)
             else
               call invoke( apply_w3_to_sh_w3_kernel_type(                      &
                                                self%rho_d_ffsl_x(2,step),      &
@@ -2981,8 +3044,9 @@ contains
 
   end function idx_from_mesh_id
 
-  subroutine remap_on_extended_mesh(self, remap_field, field, &
-                                    monotone, enforce_minvalue, minvalue)
+  subroutine remap_on_extended_mesh(self, remap_field, field,             &
+                                    monotone, enforce_minvalue, minvalue, &
+                                    depth)
 
     implicit none
     class(transport_runtime_type), target, intent(inout) :: self
@@ -2990,9 +3054,10 @@ contains
     type(r_tran_field_type), intent(inout) :: remap_field
     type(r_tran_field_type), intent(in)    :: field
 
-    logical(kind=l_def),           intent(in) :: monotone
-    logical(kind=l_def),           intent(in) :: enforce_minvalue
-    real(kind=r_tran),             intent(in) :: minvalue
+    logical(kind=l_def), intent(in) :: monotone
+    logical(kind=l_def), intent(in) :: enforce_minvalue
+    real(kind=r_tran),   intent(in) :: minvalue
+    integer(kind=i_def), intent(in) :: depth
 
     integer(kind=i_def) :: nremap
 
@@ -3021,7 +3086,8 @@ contains
                                       self%remap_indices, &
                                       monotone,           &
                                       enforce_minvalue,   &
-                                      minvalue )
+                                      minvalue,           &
+                                      depth )
     nullify( mesh, twod_mesh, w3_fs )
 
   end subroutine remap_on_extended_mesh

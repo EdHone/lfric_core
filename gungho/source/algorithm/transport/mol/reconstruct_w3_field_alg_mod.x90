@@ -526,6 +526,7 @@ contains
     type(transport_runtime_type), pointer :: transport_runtime => null()
 
     logical(kind=l_def) :: monotone
+    integer(kind=i_def) :: remap_depth
 
     if ( subroutine_timers ) call timer('transport.w3_hori_recon')
 
@@ -540,12 +541,14 @@ contains
 
     monotone = (transport_metadata%get_horizontal_monotone() == horizontal_monotone_koren)
     if ( extended_mesh .and. (monotone .or. oned_reconstruction) ) then
+      remap_depth = int(fv_horizontal_order/2)
       transport_runtime => get_transport_runtime(mesh)
       call transport_runtime%remap_on_extended_mesh(                   &
                            remap_field, field_old,                     &
                            monotone,                                   &
                            transport_metadata%get_enforce_min_value(), &
-                           transport_metadata%get_min_value())
+                           transport_metadata%get_min_value(),         &
+                           remap_depth)
       field_ptr => remap_field
       nullify(transport_runtime)
     else

@@ -24,6 +24,7 @@ module remap_on_extended_mesh_alg_mod
   use log_mod,                       only: log_event, LOG_LEVEL_ERROR, LOG_LEVEL_INFO
   use mesh_collection_mod,           only: mesh_collection
   use extrusion_mod,                 only: PRIME_EXTRUSION
+  use check_configuration_mod,       only: get_required_stencil_depth
 
   implicit none
 
@@ -62,7 +63,7 @@ contains
 
     if ( subroutine_timers ) call timer('transport.init_extended_mesh')
 
-    call log_event('Settting up remapping weights', &
+    call log_event('Setting up remapping weights', &
                    LOG_LEVEL_INFO)
 
     twod_mesh => remap_weights%get_mesh()
@@ -93,14 +94,18 @@ contains
   !> @brief Remap a field to remap_field on an extended cubed sphere mesh
   !> @param[in,out] remap_field      Field on extended cubed sphere mesh
   !> @param[in]     field            Field on standard cubed sphere mesh
+  !> @param[in]     remap_weights    Interpolation weights for remapping
+  !> @param[in]     remap_indices    Index of interpolation points used for remapping
   !> @param[in]     monotone         Force the extended field to be monotone
   !> @param[in]     enforce_minvalue Enforce a minimum value of the extended field
   !> @param[in]     minvalue         Minimum value to set the field to
+  !> @param[in]     depth_in         Halo depth to remap field to
   subroutine remap_field_on_extended_mesh(remap_field, field, &
                                           remap_weights, remap_indices, &
                                           monotone,           &
                                           enforce_minvalue,   &
-                                          minvalue)
+                                          minvalue,           &
+                                          depth_in)
 
     implicit none
 
@@ -111,13 +116,14 @@ contains
     logical(kind=l_def),      intent(in)    :: monotone
     logical(kind=l_def),      intent(in)    :: enforce_minvalue
     real(kind=r_tran),        intent(in)    :: minvalue
-
+    integer(kind=i_def),      intent(in)    :: depth_in
 
     type(mesh_type),           pointer :: mesh => null()
     type(field_type),          pointer :: panel_id => null()
     type(function_space_type), pointer :: fs => null()
 
     integer(kind=i_def) :: ndata
+    integer(kind=i_def) :: depth
 
 
     if ( subroutine_timers ) call timer('transport.remap_extended_mesh')
@@ -128,18 +134,23 @@ contains
     mesh => field%get_mesh()
     panel_id => get_panel_id(mesh%get_id())
 
+    ! Ensure remapping depth is not larger than the halo depth
+    depth = min( depth_in, get_required_stencil_depth() )
+
     call remap_field%initialise( field%get_function_space() )
     call invoke( setval_x( remap_field, field ) )
-    call invoke_remap_on_extended_mesh_kernel_type(              &
-                                           remap_field,          &
-                                           field, stencil_depth, &
-                                           remap_weights,        &
-                                           remap_indices,        &
-                                           panel_id,             &
-                                           ndata,                &
-                                           monotone,             &
-                                           enforce_minvalue,     &
-                                           minvalue )
+    call invoke_remap_on_extended_mesh_kernel_type(          &
+                                           remap_field,      &
+                                           field,            &
+                                           stencil_depth,    &
+                                           remap_weights,    &
+                                           remap_indices,    &
+                                           panel_id,         &
+                                           ndata,            &
+                                           monotone,         &
+                                           enforce_minvalue, &
+                                           minvalue,         &
+                                           depth )
     nullify(mesh, fs, panel_id)
 
     if ( subroutine_timers ) call timer('transport.remap_extended_mesh')

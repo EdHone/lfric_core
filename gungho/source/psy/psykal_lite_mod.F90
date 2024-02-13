@@ -1065,7 +1065,8 @@ contains
                                                          remap_weights, remap_indices, &
                                                          panel_id, &
                                                          ndata, &
-                                                         monotone, enforce_minvalue,minvalue )
+                                                         monotone, enforce_minvalue, minvalue, &
+                                                         halo_compute_depth )
 
       use remap_on_extended_mesh_kernel_mod, only: remap_on_extended_mesh_code
       use mesh_mod,                          only: mesh_type
@@ -1079,6 +1080,7 @@ contains
       logical(kind=l_def), intent(in) :: monotone
       logical(kind=l_def), intent(in) :: enforce_minvalue
       real(kind=r_tran),   intent(in) :: minvalue
+      integer(kind=i_def), intent(in) :: halo_compute_depth
       integer(kind=i_def) :: cell, stencil_depth
       integer(kind=i_def) :: nlayers
       type(r_tran_field_proxy_type) :: remap_field_proxy, field_proxy, remap_weights_proxy
@@ -1130,14 +1132,14 @@ contains
       undf_panel_id = panel_id_proxy%vspace%get_undf()
 
       ! Call kernels and communication routines
-      if (field_proxy%is_dirty(depth=mesh%get_halo_depth())) THEN
-        call field_proxy%halo_exchange(depth=mesh%get_halo_depth())
+      if (field_proxy%is_dirty(depth=halo_compute_depth)) THEN
+        call field_proxy%halo_exchange(depth=halo_compute_depth)
       end if
-      if (panel_id_proxy%is_dirty(depth=mesh%get_halo_depth())) THEN
-        call panel_id_proxy%halo_exchange(depth=mesh%get_halo_depth())
+      if (panel_id_proxy%is_dirty(depth=halo_compute_depth)) THEN
+        call panel_id_proxy%halo_exchange(depth=halo_compute_depth)
       end if
       cell_start = mesh%get_last_edge_cell() + 1
-      cell_end   = mesh%get_last_halo_cell(mesh%get_halo_depth())
+      cell_end   = mesh%get_last_halo_cell(halo_compute_depth)
 
       !$omp parallel default(shared), private(cell)
       !$omp do schedule(static)
@@ -1168,7 +1170,7 @@ contains
 
       ! Set halos dirty/clean for fields modified in the above loop
       !$omp master
-      call remap_field_proxy%set_clean(mesh%get_halo_depth())
+      call remap_field_proxy%set_clean(halo_compute_depth)
       !$omp end master
       !
       !$omp end parallel

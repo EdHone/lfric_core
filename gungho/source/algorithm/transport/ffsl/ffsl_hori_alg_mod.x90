@@ -278,6 +278,7 @@ contains
     integer(kind=i_def) :: cfl_stencil_x
     integer(kind=i_def) :: cfl_stencil_y
     real(kind=r_tran)   :: one_over_dt
+    integer(kind=i_def) :: remap_depth
 
     ! Get pre-computed objects and set pointers --------------------------------
     mesh_id = field_n%get_mesh_id()
@@ -342,10 +343,12 @@ contains
     ! If needed remap the field on an extended cubed sphere
     if ( extended_mesh ) then
       monotone_remap = ( monotone /= horizontal_monotone_none )
+      remap_depth = max(cfl_stencil_x, cfl_stencil_y)
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field, field_n, monotone_remap,       &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value())
+                          transport_metadata%get_min_value(),         &
+                          remap_depth)
       field_ptr => remap_field
     else
       field_ptr => field_n
@@ -519,6 +522,7 @@ contains
     integer(kind=i_def) :: stencil_extent_y
     integer(kind=i_def) :: cfl_stencil_x
     integer(kind=i_def) :: cfl_stencil_y
+    integer(kind=i_def) :: remap_depth
 
     real(kind=r_tran)   :: one_over_dt
     real(kind=r_tran)   :: half_dt
@@ -629,14 +633,17 @@ contains
     ! If needed remap the field on an extended cubed sphere
     if ( extended_mesh ) then
       monotone_remap = ( monotone /= horizontal_monotone_none )
+      remap_depth = max(cfl_stencil_x, cfl_stencil_y)
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field_x, field_x, monotone_remap,     &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value())
+                          transport_metadata%get_min_value(),         &
+                          remap_depth)
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field_y, field_y, monotone_remap,     &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value())
+                          transport_metadata%get_min_value(),         &
+                          remap_depth)
       field_x_ptr => remap_field_x
       field_y_ptr => remap_field_y
     else
@@ -955,6 +962,7 @@ contains
     integer(kind=i_def) :: stencil_extent_y
     integer(kind=i_def) :: cfl_stencil_x
     integer(kind=i_def) :: cfl_stencil_y
+    integer(kind=i_def) :: remap_depth
 
     ! Get pre-computed objects and set pointers --------------------------------
     mesh_id = field_x%get_mesh_id()
@@ -1008,10 +1016,12 @@ contains
     ! If needed remap the field on an extended cubed sphere
     if ( extended_mesh ) then
       monotone_remap = ( monotone /= horizontal_monotone_none )
+      remap_depth = max( cfl_stencil_x, cfl_stencil_y )
       call transport_runtime%remap_on_extended_mesh(                  &
                           remap_field, field_n, monotone_remap,       &
                           transport_metadata%get_enforce_min_value(), &
-                          transport_metadata%get_min_value())
+                          transport_metadata%get_min_value(),         &
+                          remap_depth)
       field_ptr => remap_field
     else
       field_ptr => field_n
