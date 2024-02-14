@@ -125,12 +125,10 @@ subroutine initialise_real_iter(self, collection)
   nullify(self%current)
   self%current => self%collection%get_next_item(self%current)
 
-  ! Empty lists are valid
-  !
-  if (.not. associated(self%current)) return
-
   do
-    ! Make sure first field pointed to in list is a real field
+    ! Exit here and return null pointer if list is empty or at the end of list
+    if (.not. associated(self%current)) exit
+    ! Only point to and return real fields
     select type(listfield => self%current%payload)
       type is (field_type)
         exit
@@ -159,12 +157,10 @@ subroutine initialise_integer_iter(self, collection)
   nullify(self%current)
   self%current => self%collection%get_next_item(self%current)
 
-  ! Empty lists are valid
-  !
-  if (.not. associated(self%current)) return
-
   do
-    ! Make sure first field pointed to in list is an integer field
+    ! Exit here and return null pointer if list is empty or at the end of list
+    if (.not. associated(self%current)) exit
+    ! Only point to and return integer fields
     select type(listfield => self%current%payload)
       type is (integer_field_type)
         exit

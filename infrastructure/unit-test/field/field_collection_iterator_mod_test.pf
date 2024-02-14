@@ -38,7 +38,9 @@ module field_collection_iterator_mod_test
   public :: test_all, &
             test_zero_length_iteration, &
             test_zero_length_real_iteration, &
-            test_zero_length_integer_iteration
+            test_zero_length_integer_iteration, &
+            test_real_collection_integer_iteration, &
+            test_integer_collection_real_iteration
 
   @TestCase
   type, extends(MPITestCase), public :: field_collection_iterator_test_type
@@ -308,5 +310,63 @@ contains
     @assertFalse( associated(field), message="Empty list integer iterator didn't return null field." )
 
   end subroutine test_zero_length_integer_iteration
+
+  @test( npes=1 )
+  subroutine test_real_collection_integer_iteration( this )
+
+    implicit none
+
+    class(field_collection_iterator_test_type), intent(inout) :: this
+
+    type(field_collection_type)                    :: collection
+    class(field_parent_type),              pointer :: field => null()
+    type(field_type)                               :: test_field1
+    type(field_collection_integer_iterator_type)   :: iter_integer
+
+    !--------------------------- Create real field ----------------------------!
+    ! Create a field object with the name 'test_field1'
+    call test_field1%initialise( this%w0_fs, name='test_field1' )
+
+    !---------------- Create field collection 'A' & test extract --------------!
+    ! Put test_field1 into a collection.
+    !
+    call collection%initialise( name="field_collection", table_len=5 )
+    call collection%add_field(test_field1)  ! a real field
+
+    call iter_integer%initialise(collection)
+
+    field => iter_integer%next()
+    @assertFalse( associated(field), message="Integer iterator didn't return null field." )
+
+  end subroutine test_real_collection_integer_iteration
+
+  @test( npes=1 )
+  subroutine test_integer_collection_real_iteration( this )
+
+    implicit none
+
+    class(field_collection_iterator_test_type), intent(inout) :: this
+
+    type(field_collection_type)                 :: collection
+    class(field_parent_type),           pointer :: field => null()
+    type(integer_field_type)                    :: test_field1
+    type(field_collection_real_iterator_type)   :: iter_real
+
+    !--------------------------- Create real field ----------------------------!
+    ! Create a field object with the name 'test_field1'
+    call test_field1%initialise( this%w0_fs, name='test_field1' )
+
+    !---------------- Create field collection 'A' & test extract --------------!
+    ! Put test_field1 into a collection.
+    !
+    call collection%initialise( name="field_collection", table_len=5 )
+    call collection%add_field(test_field1)  ! an integer field
+
+    call iter_real%initialise(collection)
+
+    field => iter_real%next()
+    @assertFalse( associated(field), message="Real iterator didn't return null field." )
+
+  end subroutine test_integer_collection_real_iteration
 
 end module field_collection_iterator_mod_test
