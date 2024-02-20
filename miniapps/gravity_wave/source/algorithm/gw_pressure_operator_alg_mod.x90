@@ -24,8 +24,7 @@ module gw_pressure_operator_alg_mod
   use r_solver_field_vector_mod,          only: r_solver_field_vector_type
   use constants_mod,                      only: i_def, r_solver, l_def
   use fem_constants_mod,                  only: get_mass_matrix,     &
-                                                get_inverse_w3_mass_matrix_r_solver, &
-                                                get_div_r_solver
+                                                get_inverse_w3_mass_matrix_r_solver
   use fs_continuity_mod,                  only: W0, W2, W3, Wtheta
   use timestepping_config_mod,            only: dt, &
                                                 alpha
@@ -60,6 +59,8 @@ module gw_pressure_operator_alg_mod
      type(r_solver_field_type) :: Hb_lumped_inv
      !> Multigrid level
      integer(kind=i_def) :: level
+     !> divergence operator
+     type(r_solver_operator_type) :: div
      contains
      !> Return the lumped inverse \f$\tilde{H}_B^{-1}\f$
      procedure, public  :: get_Hb_lumped_inv
@@ -116,6 +117,8 @@ contains
     use compute_mass_matrix_kernel_w_scalar_mod, &
                                             only: compute_mass_matrix_kernel_w_scalar_type
     use compute_mass_matrix_kernel_w2_mod,  only: compute_mass_matrix_kernel_w2_type
+    use compute_div_operator_kernel_mod,    only: compute_div_operator_kernel_type
+
     implicit none
 
     type(gw_pressure_operator_type)     :: self
@@ -137,6 +140,7 @@ contains
     type(quadrature_rule_gaussian_type) :: quadrature_rule
     type(r_solver_operator_type)        :: Q
     logical(kind=l_def)                 :: extend_mesh
+    type(operator_type)                 :: div_r_def
 
 
     call log_event( 'Constructing pressure operator...', LOG_LEVEL_INFO )
@@ -209,6 +213,12 @@ contains
                  matrix_vector_kernel_type(M_lumped_u, ones_u, Mu),         &
                  X_divideby_Y(self%Hb_lumped_inv, ones_u, M_lumped_u) )
 
+    ! Compute div
+    call self%div%initialise( wp, wu )
+    call div_r_def%initialise( wp, wu )
+    call invoke( compute_div_operator_kernel_type( div_r_def, chi,   &
+                                                   panel_id, qr ),   &
+                 operator_setval_x_kernel_type( self%div, div_r_def ) )
 
     call log_event( 'done', LOG_LEVEL_INFO )
 
@@ -234,9 +244,12 @@ contains
     call source%div_grad_p%copy_field_properties(dest%div_grad_p)
     call source%Hb_lumped_inv%copy_field_properties(dest%Hb_lumped_inv)
 
+    call dest%div%initialise( source%div%get_fs_to(), source%div%get_fs_from() )
+
     call invoke( setval_X(dest%grad_p, source%grad_p), &
                  setval_X(dest%div_grad_p, source%div_grad_p), &
-                 setval_X(dest%Hb_lumped_inv, source%Hb_lumped_inv) )
+                 setval_X(dest%Hb_lumped_inv, source%Hb_lumped_inv), &
+                 operator_setval_x_kernel_type( dest%div, source%div ) )
 
   end subroutine gw_pressure_operator_assign
 
@@ -274,8 +287,7 @@ contains
 
     type(mesh_type), pointer :: mesh => null()
 
-    type(r_solver_operator_type), pointer :: div => null(), &
-                                             M3_inv => null()
+    type(r_solver_operator_type), pointer :: M3_inv => null()
 
     ! Workaround for PSyclone to get pointers of the correct type for x and y
     type(r_solver_field_type), pointer :: x_vec => null(), &
@@ -292,25 +304,24 @@ contains
         x_vec => x%get_field_from_position(1)
         y_vec => y%get_field_from_position(1)
 
-        mesh   => x%vector(1)%get_mesh()
-        div    => get_div_r_solver(mesh%get_id())
+        mesh    => x%vector(1)%get_mesh()
         M3_inv => get_inverse_w3_mass_matrix_r_solver(mesh%get_id())
         const = self%alpha**2*real(dt**2*cs_square, r_solver)
         call invoke( setval_c(self%grad_p, 0.0_r_solver),             &
                      transpose_matrix_vector_kernel_type(self%grad_p, &
                                                          x_vec,       &
-                                                         div),        &
+                                                         self%div),   &
                      enforce_bc_kernel_type(self%grad_p),             &
                      inc_X_times_Y(self%grad_p, self%Hb_lumped_inv),  &
                      dg_matrix_vector_kernel_type(self%div_grad_p,    &
                                                   self%grad_p,        &
-                                                  div),               &
+                                                  self%div),          &
                      dg_matrix_vector_kernel_type(y_vec,              &
                                                   self%div_grad_p,    &
                                                   M3_inv),            &
                      inc_aX_plus_Y(const, y_vec, x_vec) )
 
-          nullify( div, M3_inv )
+          nullify( M3_inv )
 
       class default
 

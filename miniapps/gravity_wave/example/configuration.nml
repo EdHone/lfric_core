@@ -136,7 +136,7 @@ tolerance = 1.0e-12
 /
 
 &mixed_solver
-eliminate_variables='none',
+eliminate_variables='discrete',
 fail_on_non_converged=.true.
 gcrk = 4
 guess_np1 = .false.

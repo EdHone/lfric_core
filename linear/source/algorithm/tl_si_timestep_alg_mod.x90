@@ -443,7 +443,8 @@ contains
     !--------------------------------------------------------------------
     call rhs_alg( ls_rhs_n, varbeta*cast_dt, ls_state_after_slow, &
                   ls_state_n, ls_moist_dyn_itns(:,1,1),           &
-                  .false., .false. )
+                  compute_eos=.false., compute_rhs_t_d=.true.,    &
+                  dlayer_rhs=.false. )
 
     call copy_bundle(ls_state_after_slow, ls_advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
@@ -528,8 +529,9 @@ contains
                           ls_state_itns(:, outer, inner),     &
                           ls_state_itns(:, outer, inner),     &
                           ls_moist_dyn_itns(:, outer, inner), &
-                          .true.,                             &
-                          dlayer_on )
+                          compute_eos=.true.,                 &
+                          compute_rhs_t_d=.true.,             &
+                          dlayer_rhs=dlayer_on )
 
             !--------------------------------------------------------------------
             ! Compute the LAM LBCs and RHS
@@ -597,7 +599,7 @@ contains
                            ls_rhs_np1(:, outer, inner),                        &
                            ls_moist_dyn_itns(gas_law, next_outer, next_inner), &
                            ls_mr_itns(:, next_outer, next_inner),              &
-                           write_moisture_diag )
+                           write_moisture_diag, first_iteration=(inner==1) )
             ! If not already done update factors for moist dynamics
             if ( .not. guess_np1 .and. use_moisture) then
               call moist_dyn_factors_alg(                        &
@@ -784,10 +786,11 @@ contains
           if ( bundle_is_zero(1e-10_r_def, rhs_np1, bundle_size) ) then
             call set_bundle_scalar(0.0_r_def, state, bundle_size)
           else
-            call semi_implicit_solver_alg_step( state, rhs_np1,     &
-                                                moist_dyn(gas_law), &
-                                                mr,                 &
-                                                write_moisture_diag )
+            call semi_implicit_solver_alg_step( state, rhs_np1,      &
+                                                moist_dyn(gas_law),  &
+                                                mr,                  &
+                                                write_moisture_diag, &
+                                                first_iteration=(inner==1) )
           endif
 
           ! Update factors for moist dynamics

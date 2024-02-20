@@ -4,7 +4,7 @@
 ! which you should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> Test the mixed operator application to the equation of state
+!> Test the operator algebra kernel
 !>
 module operator_algebra_kernel_mod_test
 
@@ -17,7 +17,6 @@ module operator_algebra_kernel_mod_test
   public :: test_x_plus_ay
   public :: test_setval_c
   public :: test_setval_x
-  public :: test_x_times_y
 
   @TestCase
   type, extends(TestCase), public :: operator_algebra_test_type
@@ -28,7 +27,6 @@ module operator_algebra_kernel_mod_test
     procedure test_x_plus_ay
     procedure test_setval_c
     procedure test_setval_x
-    procedure test_x_times_y
   end type operator_algebra_test_type
 
 contains
@@ -211,59 +209,5 @@ contains
     @assertEqual(original, copy, use_tol)
 
   end subroutine test_setval_x
-
-
-  @Test( )
-  subroutine test_x_times_y( this )
-
-    use, intrinsic :: iso_fortran_env, only: real64
-    use operator_algebra_kernel_mod, only : operator_x_times_y_kernel_code
-
-    implicit none
-
-    class(operator_algebra_test_type), intent(inout) :: this
-
-    real(r_def), parameter :: tol = 1.0e-12_r_def   ! r_def 64bit
-    real(r_def)            :: use_tol
-
-    ! Mesh
-    integer(i_def), parameter :: nlayers = 1
-    integer(i_def), parameter :: cell = 1
-    integer(i_def), parameter :: ncell = 1
-
-    ! Spaces
-    integer(i_def), parameter :: ndf1 = 3
-    integer(i_def), parameter :: ndf2 = 2
-    integer(i_def), parameter :: ndf3 = 1
-
-    ! Operators
-    real(r_def), dimension(ndf1, ndf2, ncell) :: x_times_y
-    real(r_def), dimension(ndf1, ndf3, ncell) :: x
-    real(r_def), dimension(ndf3, ndf2, ncell) :: y
-
-    real(r_def), dimension(ndf1, ndf2) :: answer
-
-    ! Set up operators
-    x(:,1,1) = (/ 0.1_r_def, 3.4_r_def, 4.2_r_def /)
-    y(1,:,1) = (/ 2.1_r_def, -6.1_r_def /)
-
-    ! Compute x*y
-    call operator_x_times_y_kernel_code(cell, nlayers,    &
-                                        ncell, x_times_y, &
-                                        ncell, x,         &
-                                        ncell, y,         &
-                                        ndf1, ndf2, ndf3)
-    if ( r_def == real64 ) then
-      use_tol = tol
-    else
-      use_tol = 10.0_r_def*spacing( maxval(x_times_y) )
-    endif
-
-    answer(:,1) = x(:,1,1)*y(1,1,1)
-    answer(:,2) = x(:,1,1)*y(1,2,1)
-
-    @assertEqual(answer, x_times_y(:,:,1), use_tol)
-
-  end subroutine test_x_times_y
 
 end module operator_algebra_kernel_mod_test

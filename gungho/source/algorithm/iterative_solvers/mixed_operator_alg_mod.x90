@@ -42,7 +42,7 @@
 !!  \f[ \delta\Pi        = M_3^{\Pi}\Pi' + Q_{32} \mathbf{u}' \f]
 
 module mixed_operator_alg_mod
-  use constants_mod,               only: r_solver, i_def
+  use constants_mod,               only: r_solver, i_def, l_def
   use linear_operator_mod,         only: abstract_linear_operator_type
   use vector_mod,                  only: abstract_vector_type
   use r_solver_field_vector_mod,   only: r_solver_field_vector_type
@@ -54,9 +54,9 @@ module mixed_operator_alg_mod
   use split_w2_field_kernel_mod,         only: split_w2_field_kernel_type
   use mixed_solver_config_mod,           only: split_w, &
                                                eliminate_variables, &
-                                               eliminate_variables_none, &
                                                eliminate_variables_analytic, &
                                                eliminate_variables_discrete
+  use formulation_config_mod,    only: p2theta_vert
 
   implicit none
 
@@ -92,23 +92,18 @@ contains
     use io_config_mod,                      only: subroutine_timers
     use timestepping_config_mod,            only: dt, tau_r
     use timer_mod,                          only: timer
-    use field_indices_mod,                  only: isol_u, isol_t, isol_d, isol_p, &
+    use field_indices_mod,                  only: isol_u, isol_p, &
                                                   isol_w, isol_uv
     use operator_mod,                       only: r_solver_operator_type
     use r_solver_field_mod,                 only: r_solver_field_type
     use si_operators_alg_mod,               only: get_p2theta,        &
                                                   get_div_star,       &
                                                   get_ptheta2,        &
-                                                  get_m3_rho_star,    &
                                                   get_m3_exner_star,  &
                                                   get_p3theta,        &
-                                                  get_rho_at_u,       &
                                                   get_eliminated_q22, &
                                                   get_eliminated_q32
-    use fem_constants_mod,                  only: get_div_r_solver,                    &
-                                                  get_mass_matrix_r_solver,            &
-                                                  get_inverse_w3_mass_matrix_r_solver, &
-                                                  get_w2_mass_matrix_r_solver,         &
+    use fem_constants_mod,                  only: get_w2_mass_matrix_r_solver,         &
                                                   w2_si_matrix,                        &
                                                   get_normalisation_r_solver
     use limited_area_constants_mod,         only: get_mask_r_solver
@@ -117,13 +112,12 @@ contains
     use fs_continuity_mod,                  only: W2, W2h, W2v, W3, Wtheta
     use function_space_collection_mod,      only: function_space_collection
     use apply_mixed_lu_operator_kernel_mod, only: apply_mixed_lu_operator_kernel_type
-    use apply_mixed_lt_operator_kernel_mod, only: apply_mixed_lt_operator_kernel_type
-    use apply_mixed_lr_operator_kernel_mod, only: apply_mixed_lr_operator_kernel_type
-    use apply_mixed_lp_operator_kernel_mod, only: apply_mixed_lp_operator_kernel_type
+    use apply_mixed_operator_kernel_mod,    only: apply_mixed_operator_kernel_type
     use apply_elim_mixed_lp_operator_kernel_mod, &
                                             only: apply_elim_mixed_lp_operator_kernel_type
     use matrix_vector_kernel_mod,           only: matrix_vector_kernel_type
     use dg_inc_matrix_vector_kernel_mod,    only: dg_inc_matrix_vector_kernel_type
+    use apply_mixed_operator_kernel_mod,    only: apply_mixed_operator_kernel_type
 
     implicit none
 
@@ -132,44 +126,36 @@ contains
     class(abstract_vector_type), intent(inout) :: y
 
     type(r_solver_operator_type), pointer :: mm_vel => null(), &
-                                             mm_w3_inv => null(), &
-                                             mm_wtheta => null(), &
-                                             div   => null(), &
                                              p2theta => null(), &
                                              div_star => null(), &
                                              ptheta2 => null(), &
-                                             m3_rho_star => null(), &
                                              m3_exner_star => null(), &
                                              p3theta => null()
-    type(r_solver_field_type), pointer    :: rho_at_u => null(), &
-                                             mt_lumped_inv => null(), &
+    type(r_solver_field_type), pointer    :: mt_lumped_inv => null(), &
                                              m2_diag => null()
-    type(r_solver_field_type)             :: f_star, &
-                                             x_uvw, y_uvw
-    real(kind=r_solver)                   :: tau_r_dt
+    type(r_solver_field_type)             :: x_uvw, y_uvw
     type(function_space_type), pointer    :: u_fs => null(), &
                                              t_fs => null()
     integer(i_def)                        :: p
     type(r_solver_field_type), pointer    :: w2_mask     => null(), &
-                                             w3_mask     => null(), &
-                                             wtheta_mask => null()
+                                             w3_mask     => null()
     type(r_solver_field_type)             :: x_t
     real(kind=r_solver), parameter        :: minus_one = -1.0_r_solver
     type(r_solver_field_type)             :: q22u
     type(r_solver_operator_type), pointer :: q22_op => null(), &
                                              q32_op => null()
     type(r_solver_field_type), pointer    :: xvec_uv => null(), &
-                                             xvec_t => null(),  &
-                                             xvec_d => null(),  &
                                              xvec_p => null(),  &
                                              xvec_w => null()
     type(r_solver_field_type), pointer    :: yvec_uv => null(), &
-                                             yvec_t => null(),  &
-                                             yvec_d => null(),  &
                                              yvec_p => null(),  &
                                              yvec_w => null()
 
     type(mesh_type), pointer :: mesh => null()
+
+    logical(kind=l_def) :: optimised_operator
+
+    type(r_solver_field_type) :: w2h_mask, w2v_mask
 
     if ( subroutine_timers ) call timer('mixed_operator')
 
@@ -185,29 +171,23 @@ contains
 
     ! LAM Masks
     if ( limited_area ) then
-      w2_mask     => get_mask_r_solver(W2, mesh%get_id())
-      w3_mask     => get_mask_r_solver(W3, mesh%get_id())
-      wtheta_mask => get_mask_r_solver(Wtheta, mesh%get_id())
+      w2_mask => get_mask_r_solver(W2, mesh%get_id())
+      w3_mask => get_mask_r_solver(W3, mesh%get_id())
     end if
 
 
     ! Obtain operators from runtime constants
-    mm_w3_inv     => get_inverse_w3_mass_matrix_r_solver(mesh%get_id())
-    mm_wtheta     => get_mass_matrix_r_solver(Wtheta, mesh%get_id())
-    div           => get_div_r_solver(mesh%get_id())
     mt_lumped_inv => get_normalisation_r_solver(Wtheta, mesh%get_id())
     m2_diag       => get_normalisation_r_solver(W2, mesh%get_id())
     ! mm_vel = m2 (or dl) + tau_u*dt*coriolis
     mm_vel => get_w2_mass_matrix_r_solver(w2_si_matrix, mesh%get_id())
 
     ! Obtain operators from SI operators
-    p2theta           => get_p2theta()
-    div_star          => get_div_star()
-    ptheta2           => get_ptheta2()
-    m3_rho_star       => get_m3_rho_star()
-    m3_exner_star     => get_m3_exner_star()
-    p3theta           => get_p3theta()
-    rho_at_u          => get_rho_at_u()
+    p2theta       => get_p2theta()
+    div_star      => get_div_star()
+    ptheta2       => get_ptheta2()
+    m3_exner_star => get_m3_exner_star()
+    p3theta       => get_p3theta()
 
     select type (x)
     type is (r_solver_field_vector_type)
@@ -220,51 +200,46 @@ contains
          xvec_p  => x%get_field_from_position(isol_p)
          yvec_uv => y%get_field_from_position(isol_uv)
          yvec_p  => y%get_field_from_position(isol_p)
-         if ( eliminate_variables == eliminate_variables_none ) then
-           xvec_t  => x%get_field_from_position(isol_t)
-           xvec_d  => x%get_field_from_position(isol_d)
-           yvec_t  => y%get_field_from_position(isol_t)
-           yvec_d  => y%get_field_from_position(isol_d)
-         end if
          if ( split_w ) then
            xvec_w  => x%get_field_from_position(isol_w)
            yvec_w  => y%get_field_from_position(isol_w)
          end if
 
-         ! Create fields in 3D W2 space
-         p = y%vector(isol_u)%get_element_order()
-         u_fs => function_space_collection%get_fs( mesh, p, W2 )
+         ! Check if we can use the optimised operator setup
+         optimised_operator = ( p2theta_vert                      .and. &
+                                split_w                           .and. &
+                                eliminate_variables                     &
+                                  == eliminate_variables_discrete .and. &
+                                yvec_uv%get_element_order() == 0 )
 
-         call f_star%initialise( vector_space = u_fs )
-         call x_uvw%initialise( vector_space = u_fs )
-         call y_uvw%initialise( vector_space = u_fs )
+         if ( .not. optimised_operator ) then
+           ! Create fields in 3D W2 space
+           p = y%vector(isol_u)%get_element_order()
+           u_fs => function_space_collection%get_fs( mesh, p, W2 )
 
-         if ( split_w ) then
-           call invoke( combine_w2_field_kernel_type( x_uvw, xvec_uv, xvec_w ) )
-         else
-           call invoke( setval_X( x_uvw, xvec_uv ) )
+           call x_uvw%initialise( vector_space = u_fs )
+           call y_uvw%initialise( vector_space = u_fs )
+
+           if ( split_w ) then
+             call invoke( combine_w2_field_kernel_type( x_uvw, xvec_uv, xvec_w ) )
+           else
+             call invoke( setval_X( x_uvw, xvec_uv ) )
+           end if
          end if
 
          select case ( eliminate_variables )
 
-         case ( eliminate_variables_none )
-           ! Compute the action of the full mixed operator on all variables
-           tau_r_dt = real(tau_r*dt, kind=r_solver)
-           call invoke( name="mixed_lhs",                                                           &
-                        setval_c( y_uvw,  0.0_r_solver ),                                           &
-                        setval_c( yvec_t, 0.0_r_solver ),                                           &
-                        X_times_Y( f_star, rho_at_u, x_uvw ),                                       &
-                        apply_mixed_lu_operator_kernel_type( y_uvw, x_uvw, xvec_t, xvec_p,          &
-                                                             mm_vel, p2theta, div_star, m2_diag ),  &
-                        apply_mixed_lt_operator_kernel_type( yvec_t, x_uvw, xvec_t,                 &
-                                                             mm_wtheta, ptheta2, mt_lumped_inv ),   &
-                        apply_mixed_lr_operator_kernel_type( yvec_d, xvec_d,                        &
-                                                             mm_w3_inv, div, tau_r_dt, f_star ),    &
-                        apply_mixed_lp_operator_kernel_type( yvec_p, xvec_t, xvec_d, xvec_p,        &
-                                                             m3_exner_star, m3_rho_star, p3theta ), &
-                        enforce_bc_kernel_type( y_uvw ) )
-
          case ( eliminate_variables_discrete )
+           q32_op => get_eliminated_q32()
+           if ( optimised_operator ) then
+             call invoke( name="apply_mixed_operator_new",                                      &
+                          setval_c( yvec_uv, 0.0_r_solver ),                                    &
+                          apply_mixed_operator_kernel_type( yvec_uv, yvec_w, yvec_p,            &
+                                                            xvec_uv, xvec_w, xvec_p,            &
+                                                            ptheta2, mt_lumped_inv,             &
+                                                            mm_vel, p2theta, div_star, m2_diag, &
+                                                            m3_exner_star, q32_op, p3theta )  )
+           else
            ! Create theta' field
            t_fs => function_space_collection%get_fs( mesh, p, Wtheta )
            call x_t%initialise( vector_space = t_fs )
@@ -277,7 +252,6 @@ contains
            ! and x_t = -mt_lumped_inv*Ptheta2*u', so P3theta*x_t gives the
            ! contribution to the equation of state from eliminating the
            ! potential temperature
-           q32_op => get_eliminated_q32()
            call invoke( name="apply_discretely_eliminated_mixed_lhs",                              &
                         setval_c( x_t, 0.0_r_solver ),                                             &
                         dg_inc_matrix_vector_kernel_type( x_t, x_uvw, Ptheta2 ),                   &
@@ -289,6 +263,7 @@ contains
                                                                   xvec_p, m3_exner_star,           &
                                                                   q32_op, p3theta),                &
                         enforce_bc_kernel_type( y_uvw ) )
+           end if
 
          case ( eliminate_variables_analytic )
            ! Create theta' field
@@ -319,32 +294,37 @@ contains
 
         ! Lateral boundaries
          if ( limited_area ) then
-           call invoke( &
-                      inc_X_times_Y( y_uvw,  w2_mask ), &
-                      inc_X_times_Y( yvec_p, w3_mask )  &
-                      )
-           if ( eliminate_variables == eliminate_variables_none ) then
+           if ( optimised_operator ) then
+             call w2h_mask%initialise( yvec_uv%get_function_space() )
+             call w2v_mask%initialise( yvec_w%get_function_space() )
+             call invoke(                                      &
+                        split_w2_field_kernel_type( w2h_mask,  &
+                                         w2v_mask, w2_mask ),  &
+                        inc_X_times_Y( yvec_uv, w2h_mask ),    &
+                        inc_X_times_Y( yvec_w,  w2v_mask ),    &
+                        inc_X_times_Y( yvec_p,  w3_mask )      &
+                        )
+           else
              call invoke( &
-                        inc_X_times_Y( yvec_d, w3_mask ),    &
-                        inc_X_times_Y( yvec_t, wtheta_mask ) &
+                        inc_X_times_Y( y_uvw,  w2_mask ), &
+                        inc_X_times_Y( yvec_p, w3_mask )  &
                         )
            end if
+           nullify( w2_mask, w3_mask )
          end if
-         if ( split_w )then
-           call invoke( split_w2_field_kernel_type( yvec_uv, yvec_w, y_uvw ) )
-         else
-           call invoke( setval_X( yvec_uv, y_uvw ) )
-         end if
+         if ( .not. optimised_operator ) then
+           if ( split_w )then
+             call invoke( split_w2_field_kernel_type( yvec_uv, yvec_w, y_uvw ) )
+           else
+             call invoke( setval_X( yvec_uv, y_uvw ) )
+           end if
+        end if
 
-         nullify( mm_vel, mm_w3_inv, mm_wtheta, div, p2theta,               &
-                  div_star, ptheta2, m3_rho_star, m3_exner_star, p3theta,   &
-                  rho_at_u, mt_lumped_inv, m2_diag, u_fs, t_fs, q22_op,     &
-                  q32_op, xvec_uv, xvec_t, xvec_d, xvec_p, xvec_w, yvec_uv, &
-                  yvec_t, yvec_d, yvec_p, yvec_w )
-
-         if ( limited_area ) then
-           nullify( w2_mask, w3_mask, wtheta_mask )
-         end if
+         nullify( mm_vel, p2theta,                            &
+                  div_star, ptheta2, m3_exner_star, p3theta,  &
+                  mt_lumped_inv, m2_diag, u_fs, t_fs, q22_op, &
+                  q32_op, xvec_uv, xvec_p, xvec_w, yvec_uv,   &
+                  yvec_p, yvec_w )
 
        class default
           write(log_scratch_space, '(A)') &

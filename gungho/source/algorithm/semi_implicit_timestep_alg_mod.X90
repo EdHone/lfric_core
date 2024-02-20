@@ -471,8 +471,9 @@ contains
     !--------------------------------------------------------------------
     ! Compute the time-level n dynamics terms
     !--------------------------------------------------------------------
-    call rhs_alg( rhs_n, varbeta*cast_dt, state_after_slow, state_n, &
-                  moist_dyn, .false., .false. )
+    call rhs_alg( rhs_n, varbeta*cast_dt, state_after_slow, state_n,      &
+                  moist_dyn, compute_eos=.false., compute_rhs_t_d=.true., &
+                  dlayer_rhs=.false. )
 
     call copy_bundle(state_after_slow, advected_state,  bundle_size)
     ! Set predictors for transport
@@ -543,7 +544,8 @@ contains
 
         ! Compute the time-level n+1 dynamics terms
         call rhs_alg( rhs_np1, -varalpha*cast_dt, state, state, moist_dyn, &
-                      .true., dlayer_on )
+                      compute_eos=.true., compute_rhs_t_d=.true.,          &
+                      dlayer_rhs=dlayer_on )
       else
         if (use_moisture) call copy_bundle(mr_after_slow, mr, nummr)
       end if
@@ -628,9 +630,10 @@ contains
           !--------------------------------------------------------------------
           ! Compute the time-level n+1 dynamics terms
           !--------------------------------------------------------------------
-          if (inner > 1) call rhs_alg( rhs_np1, -varalpha*cast_dt, &
-                                       state, state, moist_dyn,    &
-                                       .true., dlayer_on )
+          if (inner > 1) call rhs_alg( rhs_np1, -varalpha*cast_dt,                  &
+                                       state, state, moist_dyn,                     &
+                                       compute_eos=.true., compute_rhs_t_d=.false., &
+                                       dlayer_rhs=dlayer_on )
 
           !--------------------------------------------------------------------
           ! Compute the LAM LBCs and RHS
@@ -671,10 +674,11 @@ contains
           !--------------------------------------------------------------------
           ! Solve semi-implicit system: A*inc = rhs, and incement state by inc
           !--------------------------------------------------------------------
-          call semi_implicit_solver_alg_step( state, rhs_np1,     &
-                                              moist_dyn(gas_law), &
-                                              mr,                 &
-                                              write_moisture_diag )
+          call semi_implicit_solver_alg_step( state, rhs_np1,      &
+                                              moist_dyn(gas_law),  &
+                                              mr,                  &
+                                              write_moisture_diag, &
+                                              first_iteration=(inner==1) )
 
           ! If not already done update factors for moist dynamics
           if ( .not. guess_np1 .and. use_moisture ) &

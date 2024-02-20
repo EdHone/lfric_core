@@ -81,8 +81,8 @@ module fem_constants_mod
   use multiplicity_kernel_mod,                only: multiplicity_kernel_type
   use operator_algebra_kernel_mod,            only: operator_x_plus_ay_kernel_type, &
                                                     operator_setval_c_kernel_type,  &
-                                                    operator_x_times_y_kernel_type, &
                                                     operator_setval_x_kernel_type
+  use operator_x_times_y_kernel_mod,          only: operator_x_times_y_kernel_type
   use project_ws_to_w2_operator_kernel_mod,   only: project_ws_to_w2_operator_kernel_type
   use project_w3_to_w2b_operator_kernel_mod,  only: project_w3_to_w2b_operator_kernel_type
   use w2_normalisation_kernel_mod,            only: w2_normalisation_kernel_type
@@ -158,10 +158,11 @@ module fem_constants_mod
   type(inventory_by_mesh_type) :: project_zdot_to_w2_inventory
 
   ! r_solver versions of operators
-  type(inventory_by_mesh_type) :: div_r_solver_inventory
   type(inventory_by_mesh_type) :: mm_w3_inv_r_solver_inventory
   type(inventory_by_mesh_type) :: mm_wtheta_r_solver_inventory
   type(inventory_by_mesh_type) :: mm_w2_si_r_solver_inventory
+  type(inventory_by_mesh_type) :: im3_div_r_solver_inventory
+
   ! r_solver versions of fields
   type(inventory_by_mesh_type) :: w2_normalisation_r_solver_inventory
   type(inventory_by_mesh_type) :: wt_normalisation_r_solver_inventory
@@ -213,12 +214,12 @@ module fem_constants_mod
   public :: get_project_zdot_to_w2b
 
   ! Getters for r_solver objects
-  public :: get_div_r_solver
   public :: get_mass_matrix_r_solver
   public :: get_inverse_w3_mass_matrix_r_solver
   public :: get_normalisation_r_solver
   public :: get_detj_at_w3_r_solver
   public :: get_w2_mass_matrix_r_solver
+  public :: get_im3_div_r_solver
 
   ! Getters for r_tran objects
   public :: get_directional_im3_div_r_tran
@@ -311,14 +312,16 @@ contains
 
 
     ! r_solver versions of operators
-    type(r_solver_operator_type), pointer :: div_r_solver => null()
     type(r_solver_operator_type), pointer :: mm_w3_inv_r_solver => null()
     type(r_solver_operator_type), pointer :: mm_wtheta_r_solver => null()
     type(r_solver_operator_type), pointer :: mm_w2_si_r_solver => null()
+    type(r_solver_operator_type), pointer :: im3_div_r_solver => null()
+
     ! r_solver versions of fields
     type(r_solver_field_type),    pointer :: w2_normalisation_r_solver => null()
     type(r_solver_field_type),    pointer :: wt_normalisation_r_solver => null()
     type(r_solver_field_type),    pointer :: detj_at_w3_r_solver => null()
+
     ! r_tran versions of operators
     type(r_tran_operator_type),   pointer :: im3_div_r_tran => null()
     type(r_tran_operator_type),   pointer :: im3_div_h_r_tran => null()
@@ -336,6 +339,7 @@ contains
     type(operator_type), target :: mm_w2_tmp, mm_wtheta_tmp, mm_w2_plus_dl_tmp
     type(field_type),    target :: w2_normalisation_tmp, mmtheta_lumped_inv_tmp
     type(r_tran_operator_type), target :: mm_w3_r_tran_tmp
+    type(r_solver_operator_type) :: div_r_solver
 
     ! Auxiliary parameters for PSyclone builtins
     integer(kind=i_def), parameter :: i_minus_one = -1_i_def
@@ -371,7 +375,6 @@ contains
     call mm_w2b_inventory%initialise(name="mm_w2b", table_len=num_meshes)
     call mm_w3_inventory%initialise(name="mm_w3", table_len=num_meshes)
     call mm_wtheta_inventory%initialise(name="mm_wtheta", table_len=num_meshes)
-    call div_r_solver_inventory%initialise(name="div_r_solver", table_len=num_meshes)
     call curl_inventory%initialise(name="curl", table_len=num_meshes)
     call div_inventory%initialise(name="div", table_len=num_meshes)
     call div_h_inventory%initialise(name="div_h", table_len=num_meshes)
@@ -382,6 +385,7 @@ contains
     call mm_w2h_inventory%initialise(name="mm_w2h", table_len=num_meshes)
     call mm_w2_plus_dl_lagged_inventory%initialise(name="mm_w2_plus_dl_lagged", table_len=num_meshes)
     call im3_div_inventory%initialise(name="im3_div", table_len=num_meshes)
+    call im3_div_r_solver_inventory%initialise(name="im3_div_r_solver", table_len=num_meshes)
     call mm_w2_plus_dl_inventory%initialise(name="mm_w2_plus_dl", table_len=num_meshes)
     call mm_w2_si_inventory%initialise(name="mm_w2_si", table_len=num_meshes)
     call mm1_diag_inventory%initialise(name="mm_w1_diag", table_len=num_meshes)
@@ -503,9 +507,6 @@ contains
       if ( label_list(i) == primary_mesh_label .or. &
            label_list(i) == multigrid_mesh_label .or. &
            label_list(i) == extra_mesh_label ) then
-        call div_r_solver_inventory%add_operator(div_r_solver, w3_fs, w2_fs, mesh)
-        call invoke( operator_setval_x_kernel_type(div_r_solver, div) )
-        nullify(div_r_solver)
       end if
       !============ Compute vertical and horizontal only operators ============!
 
@@ -552,8 +553,14 @@ contains
            label_list(i) == multigrid_mesh_label .or. &
            label_list(i) == extra_mesh_label ) then
         call mm_w3_inv_r_solver_inventory%add_operator(mm_w3_inv_r_solver, w3_fs, w3_fs, mesh)
-        call invoke( operator_setval_x_kernel_type( mm_w3_inv_r_solver, mm_w3_inv ) )
-        nullify( mm_w3_inv_r_solver )
+        call im3_div_r_solver_inventory%add_operator(im3_div_r_solver, w3_fs, w2_fs, mesh)
+        call div_r_solver%initialise( w3_fs, w2_fs )
+        call invoke( operator_setval_x_kernel_type( mm_w3_inv_r_solver, mm_w3_inv ), &
+                     operator_setval_x_kernel_type(div_r_solver, div),               &
+                     operator_x_times_y_kernel_type( im3_div_r_solver,               &
+                                                     mm_w3_inv_r_solver,             &
+                                                     div_r_solver ) )
+        nullify( mm_w3_inv_r_solver, im3_div_r_solver )
       end if
 
       ! Only transport meshes
@@ -1386,21 +1393,6 @@ contains
 
   end function get_curl
 
-  !> @brief Returns a pointer to the r_solver div operator
-  !> @param[in] mesh_id The ID of the mesh to get the object for
-  !> @return The div operator
-  function get_div_r_solver(mesh_id) result(sol_div_op)
-    implicit none
-    integer(kind=i_def),        intent(in) :: mesh_id
-    type(mesh_type),               pointer :: mesh => null()
-    type(r_solver_operator_type),  pointer :: sol_div_op
-
-    mesh => mesh_collection%get_mesh(mesh_id)
-    call div_r_solver_inventory%get_operator(mesh, sol_div_op)
-    nullify(mesh)
-
-  end function get_div_r_solver
-
   !> @brief Returns a pointer to the div operator
   !> @param[in] mesh_id The ID of the mesh to get the object for
   !> @return The div operator
@@ -1502,6 +1494,21 @@ contains
     nullify(mesh)
 
   end function get_directional_im3_div_r_tran
+
+  !> @brief Returns a pointer to the inv_m3 * div operator
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The div operator
+  function get_im3_div_r_solver(mesh_id) result(div_op_r_solver)
+    implicit none
+    integer(kind=i_def),       intent(in) :: mesh_id
+    type(mesh_type),              pointer :: mesh => null()
+    type(r_solver_operator_type), pointer :: div_op_r_solver
+
+    mesh => mesh_collection%get_mesh(mesh_id)
+    call im3_div_r_solver_inventory%get_operator(mesh, div_op_r_solver)
+    nullify(mesh)
+
+  end function get_im3_div_r_solver
 
   !> @brief Returns a pointer to the normalisation of prognostic fields
   !> @param[in] space   The space of the normalisation field
@@ -1809,13 +1816,13 @@ contains
     call mm_w2b_inv_inventory%clear()
     call mm_w3_inv_inventory%clear()
     call curl_inventory%clear()
-    call div_r_solver_inventory%clear()
     call mm_wtheta_inventory%clear()
     call mm_w3_inventory%clear()
     call mm_w2b_inventory%clear()
     call mm_w2_inventory%clear()
     call mm_w1_inventory%clear()
     call im3_div_inventory%clear()
+    call im3_div_r_solver_inventory%clear()
     call div_inventory%clear()
     call div_h_inventory%clear()
     call im3_div_r_tran_inventory%clear()

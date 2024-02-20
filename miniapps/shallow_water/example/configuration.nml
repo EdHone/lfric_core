@@ -38,7 +38,7 @@ write_minmax_tseries=.false.,
 /
 
 &mixed_solver
-eliminate_variables   = 'none'
+eliminate_variables   = 'discrete'
 fail_on_non_converged = .true.,
 si_method             = 'gmres',
 si_preconditioner     = 'diagonal',

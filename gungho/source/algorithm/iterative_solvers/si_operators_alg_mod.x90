@@ -373,7 +373,7 @@ contains
                                                     get_height
     use fem_constants_mod,                    only: get_normalisation_r_solver, &
                                                     get_rmultiplicity, &
-                                                    get_div_r_solver, &
+                                                    get_im3_div_r_solver, &
                                                     get_w2_mass_matrix, &
                                                     w2_lagged_damping_layer_matrix, &
                                                     get_detj_at_w3_r_solver, &
@@ -480,8 +480,6 @@ contains
                                reference_element, quadrature_rule)
     qr = quadrature_xyoz_type(nqp_exact, quadrature_rule)
 
-    ! Create r_solver versions of reference fields
-
     do level = 1, multigrid_levels
 
        write(log_scratch_space,'(A,I0)') "si_ops: mg level=",level
@@ -557,37 +555,27 @@ contains
        const1 = real(tau_u*dt*cp, r_solver)
        const2 = real(tau_t*dt, r_solver)
        const3 = real(tau_r*dt, r_solver)
-       m3_inv => get_inverse_w3_mass_matrix_r_solver(mesh%get_id())
-       div    => get_div_r_solver(mesh%get_id())
+       div => get_im3_div_r_solver(mesh%get_id())
        if ( p2theta_vert ) then
          ! The projection operators are restricted to use the vertical only
-         call invoke( name = "cell_and_boundary_kernels_vert",                          &
-            weighted_div_kernel_type(div_star(level), theta, const1, qr),               &
-            weighted_proj_2thetav_kernel_type(p2theta(level), exner, const1, qr),       &
-            weighted_proj_theta2_vert_kernel_type(ptheta2v(level), theta, const2, qr),  &
-            weighted_proj_theta2v_kernel_type(ptheta2(level), theta, const2, qr),       &
-            ! Boundary kernels
-            weighted_div_bd_kernel_type(div_star(level), theta, 1, const1, qrf),        &
-            ! Compound operators
-            compound_operator_kernel_type( compound_div(level), m3_rho_star(level),     &
-                                           m3_inv, div, rho_at_u(level), const3),       &
-            operator_setval_x_kernel_type( eliminated_q32(level), compound_div(level) ) )
+         call invoke( weighted_proj_2thetav_kernel_type(p2theta(level), exner, const1, qr), &
+                      weighted_proj_theta2v_kernel_type(ptheta2(level), theta, const2, qr) )
        else
          ! The projection operators use horizonal and vertical
-         call invoke( name = "cell_and_boundary_kernels",                                 &
-            weighted_div_kernel_type(div_star(level), theta, const1, qr),               &
-            weighted_proj_2theta_kernel_type(p2theta(level), exner, const1, qr),        &
-            weighted_proj_theta2_vert_kernel_type(ptheta2v(level), theta, const2, qr),  &
-            weighted_proj_theta2_kernel_type(ptheta2(level), theta, const2, qr),        &
-            ! Boundary kernels
-            weighted_div_bd_kernel_type(div_star(level), theta, 1, const1, qrf),        &
-            weighted_proj_theta2_bd_kernel_type(ptheta2(level), theta, 1, const2, qrf), &
-            weighted_proj_2theta_bd_kernel_type(p2theta(level), exner, 1, const1, qrf), &
-            ! Compound operators
-            compound_operator_kernel_type( compound_div(level), m3_rho_star(level),     &
-                                           m3_inv, div, rho_at_u(level), const3),       &
-            operator_setval_x_kernel_type( eliminated_q32(level), compound_div(level) ) )
+         call invoke( weighted_proj_2theta_kernel_type(p2theta(level), exner, const1, qr),        &
+                      weighted_proj_theta2_kernel_type(ptheta2(level), theta, const2, qr),        &
+                      weighted_proj_theta2_bd_kernel_type(ptheta2(level), theta, 1, const2, qrf), &
+                      weighted_proj_2theta_bd_kernel_type(p2theta(level), exner, 1, const1, qrf) )
        end if
+       call invoke( name = "cell_and_boundary_kernels_vert",                          &
+          weighted_div_kernel_type(div_star(level), theta, const1, qr),               &
+          weighted_proj_theta2_vert_kernel_type(ptheta2v(level), theta, const2, qr),  &
+          ! Boundary kernels
+          weighted_div_bd_kernel_type(div_star(level), theta, 1, const1, qrf),        &
+          ! Compound operators
+          compound_operator_kernel_type( compound_div(level), m3_rho_star(level),     &
+                                         div, rho_at_u(level), const3),               &
+          operator_setval_x_kernel_type( eliminated_q32(level), compound_div(level) ) )
 
        if ( level == 1 .and. eliminate_variables == eliminate_variables_analytic ) then
          call invoke( eliminated_theta_q2t_kernel_type(eliminated_q2t, u_normalisation, &
@@ -639,16 +627,15 @@ contains
          call invoke( name = "compute_lumped_inverse_h_b_operator",         &
                       setval_c(ones, 1.0_r_solver),                         &
                       setval_c(Hb_lumped_inv(level), 0.0_r_solver),         &
-                      setval_c(m2_u, 0.0_r_solver),                         &
                       setval_c(theta_adv_term, 0.0_r_solver),               &
-                      matrix_vector_kernel_type(m2_u, ones, m2_r_solver),   &
-                      matrix_vector_kernel_type(                            &
+                      dg_inc_matrix_vector_kernel_type(                     &
                                 theta_adv_term, ones, ptheta2v(level)),     &
                       inc_X_times_Y(theta_adv_term, t_normalisation),       &
                       matrix_vector_kernel_type(                            &
                                 Hb_lumped_inv(level), theta_adv_term,       &
                                 p2theta(level) ),                           &
-                      inc_X_plus_Y(Hb_lumped_inv(level), m2_u),             &
+                      matrix_vector_kernel_type(Hb_lumped_inv(level), ones, &
+                                                m2_r_solver),               &
                       inc_X_times_Y(Hb_lumped_inv(level), u_normalisation), &
                       inc_X_powint_n(Hb_lumped_inv(level), imone) )
        end if

@@ -1,0 +1,114 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2024 Met Office. All rights reserved.
+! For further details please refer to the file COPYRIGHT.txt
+! which you should have received as part of this distribution.
+!-----------------------------------------------------------------------------
+
+!> Test the operator X times Y kernel
+!>
+module operator_x_times_y_kernel_mod_test
+
+  use constants_mod, only : i_def, r_double, r_single
+  use pFUnit_Mod
+
+  implicit none
+
+  private
+  public :: test_x_times_y_r_double
+  public :: test_x_times_y_r_single
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Double precision test
+  @test( )
+  subroutine test_x_times_y_r_double( )
+
+    use operator_x_times_y_kernel_mod, only : operator_x_times_y_kernel_code
+
+    implicit none
+
+    real(r_double), parameter :: tol = 1.0e-12_r_double
+
+    ! Mesh
+    integer(i_def), parameter :: nlayers = 1
+    integer(i_def), parameter :: cell = 1
+    integer(i_def), parameter :: ncell = 1
+
+    ! Spaces
+    integer(i_def), parameter :: ndf1 = 3
+    integer(i_def), parameter :: ndf2 = 2
+    integer(i_def), parameter :: ndf3 = 1
+
+    ! Operators
+    real(r_double), dimension(ndf1, ndf2, ncell) :: x_times_y
+    real(r_double), dimension(ndf1, ndf3, ncell) :: x
+    real(r_double), dimension(ndf3, ndf2, ncell) :: y
+
+    real(r_double), dimension(ndf1, ndf2) :: answer
+
+    ! Set up operators
+    x(:,1,1) = (/ 0.1_r_double, 3.4_r_double, 4.2_r_double /)
+    y(1,:,1) = (/ 2.1_r_double, -6.1_r_double /)
+
+    ! Compute x*y
+    call operator_x_times_y_kernel_code(cell, nlayers,    &
+                                        ncell, x_times_y, &
+                                        ncell, x,         &
+                                        ncell, y,         &
+                                        ndf1, ndf2, ndf3)
+    answer(:,1) = x(:,1,1)*y(1,1,1)
+    answer(:,2) = x(:,1,1)*y(1,2,1)
+
+    @assertEqual(answer, x_times_y(:,:,1), tol)
+
+  end subroutine test_x_times_y_r_double
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Single precision test
+  @test( )
+  subroutine test_x_times_y_r_single( )
+
+    use, intrinsic :: iso_fortran_env, only: real64
+    use operator_x_times_y_kernel_mod, only : operator_x_times_y_kernel_code
+
+    implicit none
+
+    real(r_single), parameter :: tol = 1.0e-6_r_single
+
+    ! Mesh
+    integer(i_def), parameter :: nlayers = 1
+    integer(i_def), parameter :: cell = 1
+    integer(i_def), parameter :: ncell = 1
+
+    ! Spaces
+    integer(i_def), parameter :: ndf1 = 3
+    integer(i_def), parameter :: ndf2 = 2
+    integer(i_def), parameter :: ndf3 = 1
+
+    ! Operators
+    real(r_single), dimension(ndf1, ndf2, ncell) :: x_times_y
+    real(r_single), dimension(ndf1, ndf3, ncell) :: x
+    real(r_single), dimension(ndf3, ndf2, ncell) :: y
+
+    real(r_single), dimension(ndf1, ndf2) :: answer
+
+    ! Set up operators
+    x(:,1,1) = (/ 0.1_r_single, 3.4_r_single, 4.2_r_single /)
+    y(1,:,1) = (/ 2.1_r_single, -6.1_r_single /)
+
+    ! Compute x*y
+    call operator_x_times_y_kernel_code(cell, nlayers,    &
+                                        ncell, x_times_y, &
+                                        ncell, x,         &
+                                        ncell, y,         &
+                                        ndf1, ndf2, ndf3)
+
+    answer(:,1) = x(:,1,1)*y(1,1,1)
+    answer(:,2) = x(:,1,1)*y(1,2,1)
+
+    @assertEqual(answer, x_times_y(:,:,1), tol)
+
+  end subroutine test_x_times_y_r_single
+
+end module operator_x_times_y_kernel_mod_test

@@ -35,37 +35,9 @@ module field_indices_mod
   ! For Semi-Implicit Solver
   integer, parameter :: isol_u = 1       ! wind
   integer, parameter :: isol_uv = isol_u ! uv wind if split - must be the same as isol_u
-  integer, protected :: isol_p           ! Exner pressure
-  integer, protected :: isol_d           ! density
-  integer, protected :: isol_t           ! potential temperature
-  integer, protected :: isol_w           ! w wind if split
+  integer, parameter :: isol_p = 2       ! Exner pressure
+  integer, parameter :: isol_w = 3       ! w wind if split
 
 contains
-
-  !> @brief Set the solver indices to be a contiguous block of indices.
-  subroutine set_solver_field_indices()
-
-    use constants_mod,           only: IMDI
-    use mixed_solver_config_mod, only: eliminate_variables, &
-                                       eliminate_variables_none
-
-    implicit none
-
-    if ( eliminate_variables == eliminate_variables_none ) then
-      ! Set isol_ to match igh_
-      isol_t = igh_t
-      isol_d = igh_d
-      isol_p = igh_p
-      isol_w = igh_w
-    else
-      ! isol_t and isol_d are not needed and we want the remaining values to be
-      ! contiguous
-      isol_t = IMDI
-      isol_d = IMDI
-      isol_p = 2
-      isol_w = 3
-    end if
-
-  end subroutine set_solver_field_indices
 
 end module field_indices_mod

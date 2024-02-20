@@ -26,7 +26,6 @@ module semi_implicit_solver_alg_mod
   use mixed_solver_config_mod,            only: split_w,                  &
                                                 mixed_solver_a_tol,       &
                                                 eliminate_variables,      &
-                                                eliminate_variables_none, &
                                                 eliminate_variables_analytic
 
   ! Derived Types
@@ -35,11 +34,9 @@ module semi_implicit_solver_alg_mod
   use r_solver_field_vector_mod,          only: r_solver_field_vector_type
   use mesh_mod,                           only: mesh_type
   use derived_config_mod,                 only: bundle_size
-  use field_indices_mod,                  only: isol_p, isol_t, isol_d,  &
-                                                isol_u, isol_w, isol_uv, &
-                                                igh_p, igh_t, igh_d,     &
-                                                igh_u, igh_w, igh_uv,    &
-                                                set_solver_field_indices
+  use field_indices_mod,                  only: isol_p, isol_u, isol_w, isol_uv, &
+                                                igh_p, igh_t, igh_d,             &
+                                                igh_u, igh_w, igh_uv
 
 
 
@@ -156,9 +153,6 @@ contains
         'SI solver built with '//trim(PRECISION_R_SOLVER)// &
         '-bit real numbers'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
-
-    ! Set the correct indices for the solver fields
-    call set_solver_field_indices()
 
     pressure_operator &
       = pressure_operator_type(level=1_i_def)
@@ -402,14 +396,15 @@ contains
   !> @param[in]     mr                  Mixing ratio array
   !> @param[in]     write_moisture_diag Flag to control output of moisture
   !!                                    conservation diagnostics
-  subroutine semi_implicit_solver_alg_step(state, rhs, &
-                                           moist_dyn_gas_law, &
-                                           mr, write_moisture_diag)
+  !> @param[in]     first_iteration     Flag for first inner iteration
+  subroutine semi_implicit_solver_alg_step(state, rhs,              &
+                                           moist_dyn_gas_law,       &
+                                           mr, write_moisture_diag, &
+                                           first_iteration)
 
-    use fem_constants_mod,             only: get_inverse_w3_mass_matrix_r_solver, &
-                                             get_normalisation_r_solver, &
+    use fem_constants_mod,             only: get_normalisation_r_solver, &
                                              get_normalisation, &
-                                             get_div_r_solver, &
+                                             get_im3_div_r_solver, &
                                              get_qr
     use fs_continuity_mod,             only: W2, Wtheta
     use mr_indices_mod,                only: nummr
@@ -433,7 +428,8 @@ contains
     use enforce_bc_kernel_mod,         only: enforce_bc_kernel_type
     use mass_matrix_solver_alg_mod,    only: mass_matrix_solver_alg
     use psykal_lite_mod,               only: invoke_copy_to_rdef, &
-                                             invoke_copy_to_rsolver
+                                             invoke_copy_to_rsolver, &
+                                             invoke_inc_rdefX_plus_rsolverY
     use field_minmax_alg_mod,          only: log_field_minmax
 
     implicit none
@@ -444,28 +440,26 @@ contains
     type( field_type ),                         intent( in )    :: moist_dyn_gas_law
     type( field_type ), dimension(nummr),       intent( in )    :: mr
     logical( kind=l_def ),                      intent( in )    :: write_moisture_diag
+    logical( kind=l_def),                       intent( in )    :: first_iteration
 
     real( kind=r_def )                    :: si_err(bundle_size)
     type( field_type ),           pointer :: t_normalisation => null(), &
                                              u_normalisation => null()
     type( r_solver_field_vector_type )    :: vector_inc, vector_rhs
 
-    ! For eliminate of rho and theta
+    ! For analytic elimination of rho and theta
     type( field_type ) :: rhs_rdef,  &
-                          inc_uvw,   &
-                          inc_theta, &
-                          inc_rho,   &
-                          inc_exner
+                          inc_theta
 
     type( field_type ) :: rho_guess
 
     type( r_solver_field_type ), dimension(bundle_size) :: rhs_rsol
-    type( r_solver_field_type )    :: div_u,          &
-                                      rhs_tmp,        &
-                                      f_star,         &
-                                      inc_uvw_rsol,   &
-                                      inc_theta_rsol, &
-                                      inc_rho_rsol
+    type( r_solver_field_type ) :: div_u,          &
+                                   rhs_tmp,        &
+                                   f_star,         &
+                                   inc_uvw_rsol,   &
+                                   inc_theta_rsol, &
+                                   inc_rho_rsol
 
     type( r_solver_field_type ),    pointer :: rho_at_u => null(),      &
                                                m2_diag => null(),       &
@@ -473,16 +467,15 @@ contains
                                                inc_uv_rsol => null(),   &
                                                inc_w_rsol => null(),    &
                                                inc_exner_rsol => null()
-    type( r_solver_operator_type ), pointer :: div => null(), &
-                                               mm_w3_inv => null()
-    type( r_solver_operator_type ), pointer :: m3_rho_star => null(), &
+    type( r_solver_operator_type ), pointer :: div => null(),         &
+                                               m3_rho_star => null(), &
                                                p3theta => null(),     &
                                                p2theta => null(),     &
                                                ptheta2 => null(),     &
                                                q2t_op => null(),      &
                                                q3t_op => null()
-    real( kind=r_solver )          :: tau_r_dt
-    integer( kind=i_def )          :: mesh_id
+    real( kind=r_solver ) :: tau_r_dt
+    integer( kind=i_def ) :: mesh_id
 
     if ( subroutine_timers ) call timer('semi_implicit_solver_alg')
 
@@ -546,8 +539,9 @@ contains
     call invoke_copy_to_rsolver(rhs_rsol(igh_d), rhs(igh_d))
     call invoke_copy_to_rsolver(rhs_rsol(igh_p), rhs(igh_p))
 
-    ! Modify RHS if we are eliminating variables
-    if ( eliminate_variables /= eliminate_variables_none ) then
+    if ( first_iteration ) then
+      ! Modify RHS due to elimination of rho and theta only for inner iteration 1
+      ! (for other values rhs_rho = rhs_theta = 0 and so nothing needs to be done)
       m3_rho_star => get_m3_rho_star()
       ! Elimination of rho
       ! Set rhs_p = rhs_p + M_{3,rho} * rhs_rho
@@ -577,9 +571,8 @@ contains
     end if
 
     ! Solve the semi-implicit operator
-    call log_event( "Gungho: mixed solve:", LOG_LEVEL_INFO )
-
     if ( subroutine_timers ) call timer('mixed_solver')
+    call log_event( "Gungho: mixed solve:", LOG_LEVEL_INFO )
     ! Create field vectors out of field arrays
     call construct_solver_state(vector_inc, rhs_rsol, import_fields = .false.)
     call construct_solver_state(vector_rhs, rhs_rsol, import_fields = .true.)
@@ -589,7 +582,7 @@ contains
 
     ! Get the pressure increment
     inc_exner_rsol => vector_inc%get_field_from_position(isol_p)
-    call log_field_minmax( LOG_LEVEL_INFO, 'exner_inc', inc_exner_rsol )
+    call log_field_minmax( LOG_LEVEL_DEBUG, 'exner_inc', inc_exner_rsol )
 
     ! Get the velocity increments and if necessary combine them
     call inc_uvw_rsol%initialise( vector_space = rhs_rsol(igh_u)%get_function_space() )
@@ -597,73 +590,51 @@ contains
       inc_uv_rsol => vector_inc%get_field_from_position(isol_uv)
       inc_w_rsol  => vector_inc%get_field_from_position(isol_w)
       call invoke( combine_w2_field_kernel_type( inc_uvw_rsol, inc_uv_rsol, inc_w_rsol ) )
-      call log_field_minmax( LOG_LEVEL_INFO, 'uv_inc', inc_uv_rsol )
-      call log_field_minmax( LOG_LEVEL_INFO, 'w_inc', inc_w_rsol )
+      call log_field_minmax( LOG_LEVEL_DEBUG, 'uv_inc', inc_uv_rsol )
+      call log_field_minmax( LOG_LEVEL_DEBUG, 'w_inc', inc_w_rsol )
     else
       call vector_inc%vector(isol_u)%copy_field_properties(inc_uvw_rsol)
       call invoke( setval_X(inc_uvw_rsol, vector_inc%vector(isol_u)) )
-      call log_field_minmax( LOG_LEVEL_INFO, 'uvw_inc', inc_uvw_rsol )
+      call log_field_minmax( LOG_LEVEL_DEBUG, 'uvw_inc', inc_uvw_rsol )
     end if
 
     ! Get the theta and rho increments
     call inc_theta_rsol%initialise( vector_space = rhs_rsol(igh_t)%get_function_space() )
     call inc_rho_rsol%initialise( vector_space = rhs_rsol(igh_d)%get_function_space() )
-    if ( eliminate_variables == eliminate_variables_none ) then
-      ! Copy them from the solver vector increment
-      call vector_inc%vector(isol_d)%copy_field_properties(inc_rho_rsol)
-      call vector_inc%vector(isol_t)%copy_field_properties(inc_theta_rsol)
-      call invoke( setval_X(inc_rho_rsol, vector_inc%vector(isol_d)),   &
-                   setval_X(inc_theta_rsol, vector_inc%vector(isol_t)) )
+    ! Compute rho increment since solver does not provide one
+    div      => get_im3_div_r_solver(mesh_id)
+    rho_at_u => get_rho_at_u()
+    tau_r_dt = real(-tau_r*dt, kind=r_solver)
+    call div_u%initialise( vector_space = rhs_rsol(igh_p)%get_function_space() )
+    call f_star%initialise( vector_space = rhs_rsol(igh_u)%get_function_space() )
+
+    call invoke( X_times_Y( f_star, rho_at_u, inc_uvw_rsol ),              &
+                 dg_matrix_vector_kernel_type( div_u, f_star, div ),       &
+                 aX_plus_Y(inc_rho_rsol, tau_r_dt, div_u, rhs_rsol(igh_d)) &
+               )
+
+    ! Compute theta increment since solver does not provide one
+    ptheta2 => get_ptheta2()
+    mt_lumped_inv => get_normalisation_r_solver(Wtheta, mesh_id)
+    call rhs_tmp%initialise( vector_space = rhs_rsol(igh_t)%get_function_space() )
+    call invoke( setval_c(rhs_tmp, 0.0_r_def), &
+                 dg_inc_matrix_vector_kernel_type(rhs_tmp, inc_uvw_rsol, ptheta2))
+
+    if (  eliminate_variables == eliminate_variables_analytic ) then
+      call invoke_copy_to_rdef(rhs_rdef, rhs_tmp)
+      call inc_theta%initialise( state(igh_t)%get_function_space() )
+      call mass_matrix_solver_alg( inc_theta, rhs_rdef )
+      call invoke_copy_to_rsolver(rhs_tmp, inc_theta)
     else
-      ! Compute rho increment since solver does not provide one
-      div       => get_div_r_solver(mesh_id)
-      rho_at_u  => get_rho_at_u()
-      mm_w3_inv => get_inverse_w3_mass_matrix_r_solver(mesh_id)
-      tau_r_dt = real(-tau_r*dt, kind=r_solver)
-      call div_u%initialise( vector_space = rhs_rsol(igh_p)%get_function_space() )
-      call f_star%initialise( vector_space = rhs_rsol(igh_u)%get_function_space() )
-      call rhs_tmp%initialise( vector_space = rhs_rsol(igh_p)%get_function_space() )
-
-      call invoke( X_times_Y( f_star, rho_at_u, inc_uvw_rsol ),                   &
-                   dg_matrix_vector_kernel_type( div_u, f_star, div ),       &
-                   dg_matrix_vector_kernel_type( rhs_tmp, div_u, mm_w3_inv), &
-                   aX_plus_Y(inc_rho_rsol, tau_r_dt, rhs_tmp, rhs_rsol(igh_d))         &
-                 )
-
-      ! Compute theta increment since solver does not provide one
-      ptheta2 => get_ptheta2()
-      mt_lumped_inv => get_normalisation_r_solver(Wtheta, mesh_id)
-      call rhs_tmp%initialise( vector_space = rhs_rsol(igh_t)%get_function_space() )
-      call invoke( setval_c(rhs_tmp, 0.0_r_def), &
-                   matrix_vector_kernel_type(rhs_tmp, inc_uvw_rsol, ptheta2))
-
-      if (  eliminate_variables == eliminate_variables_analytic ) then
-        call invoke_copy_to_rdef(rhs_rdef, rhs_tmp)
-        call inc_theta%initialise( state(igh_t)%get_function_space() )
-        call mass_matrix_solver_alg( inc_theta, rhs_rdef )
-        call invoke_copy_to_rsolver(rhs_tmp, inc_theta)
-      else
-        call invoke( inc_X_times_Y(rhs_tmp, mt_lumped_inv) )
-      end if
-      call invoke( X_minus_Y( inc_theta_rsol, rhs_rsol(igh_t), rhs_tmp) )
+      call invoke( inc_X_times_Y(rhs_tmp, mt_lumped_inv) )
     end if
+    call invoke( X_minus_Y( inc_theta_rsol, rhs_rsol(igh_t), rhs_tmp) )
 
-    ! Finally we need to add r_def increments to the state field
-    call inc_uvw%initialise( state(igh_u)%get_function_space() )
-    call inc_exner%initialise( state(igh_p)%get_function_space() )
-    call inc_theta%initialise( state(igh_t)%get_function_space() )
-    call inc_rho%initialise( state(igh_d)%get_function_space() )
-
-    call invoke_copy_to_rdef(inc_uvw,   inc_uvw_rsol)
-    call invoke_copy_to_rdef(inc_exner, inc_exner_rsol)
-    call invoke_copy_to_rdef(inc_theta, inc_theta_rsol)
-    call invoke_copy_to_rdef(inc_rho,   inc_rho_rsol)
-
-    ! Add increments to state fields
-    call invoke( inc_X_plus_Y( state(igh_u), inc_uvw ), &
-                 inc_X_plus_Y( state(igh_p), inc_exner ), &
-                 inc_X_plus_Y( state(igh_t), inc_theta ), &
-                 inc_X_plus_Y( state(igh_d), inc_rho ) )
+    ! Finally we need to add r_solver increments to the r_def state field
+    call invoke_inc_rdefX_plus_rsolverY( state(igh_u), inc_uvw_rsol )
+    call invoke_inc_rdefX_plus_rsolverY( state(igh_p), inc_exner_rsol )
+    call invoke_inc_rdefX_plus_rsolverY( state(igh_t), inc_theta_rsol )
+    call invoke_inc_rdefX_plus_rsolverY( state(igh_d), inc_rho_rsol )
 
     if ( write_moisture_diag )  &
       call moisture_conservation_alg( state(igh_d), mr, 'After solve' )
@@ -675,7 +646,6 @@ contains
              mt_lumped_inv,   &
              div,             &
              m3_rho_star,     &
-             mm_w3_inv,       &
              p3theta,         &
              p2theta,         &
              ptheta2,         &
@@ -711,8 +681,6 @@ contains
     state_size = 2 ! Default UV + P fields
     if ( split_w ) &
       state_size = state_size + 1 ! Additional W field
-    if ( eliminate_variables == eliminate_variables_none ) &
-      state_size = state_size + 2 ! Additional T & D fields
 
     vector_state = r_solver_field_vector_type( state_size )
 
@@ -723,10 +691,10 @@ contains
 
       call uv%initialise( function_space_collection%get_fs( mesh, p, W2h ) )
       call w%initialise( function_space_collection%get_fs( mesh, p, W2v ) )
-      call invoke( setval_c( uv, 0.0_r_def ), &
-                   setval_c( w,  0.0_r_def ), &
-                   split_w2_field_kernel_type( uv, w, bundle_state(igh_u) ) )
       if ( import_fields ) then
+        call invoke( setval_c( uv, 0.0_r_def ), &
+                     setval_c( w,  0.0_r_def ), &
+                     split_w2_field_kernel_type( uv, w, bundle_state(igh_u) ) )
         call vector_state%import_field( uv, isol_uv )
         call vector_state%import_field( w, isol_w )
       else
@@ -746,17 +714,6 @@ contains
       call vector_state%import_field( bundle_state(igh_p), isol_p )
     else
       call vector_state%initialise_field( isol_p, bundle_state(igh_p)%get_function_space() )
-    end if
-
-    ! Density and potential temperature fields
-    if ( eliminate_variables == eliminate_variables_none ) then
-      if ( import_fields ) then
-        call vector_state%import_field( bundle_state(igh_t), isol_t )
-        call vector_state%import_field( bundle_state(igh_d), isol_d )
-      else
-        call vector_state%initialise_field( isol_t, bundle_state(igh_t)%get_function_space() )
-        call vector_state%initialise_field( isol_d, bundle_state(igh_d)%get_function_space() )
-      end if
     end if
 
     nullify(mesh)

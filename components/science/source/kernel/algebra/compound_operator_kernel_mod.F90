@@ -1,12 +1,13 @@
 !-----------------------------------------------------------------------------
-! Copyright (c) 2017,  Met Office, on behalf of HMSO and Queen's Printer
-! For further details please refer to the file LICENCE.original which you
-! should have received as part of this distribution.
+! (c) Crown copyright 2023 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
 !-----------------------------------------------------------------------------
 !
 !-------------------------------------------------------------------------------
-!> @brief Computes a compound operator A = B*C*D where A,B,C & D are all locally
-!!        assembled operators and B & C are mass matrices
+!> @brief Computes a compound operator A = tau*x*M*D where A,M & D are all locally
+!!        assembled operators and M is a mass matrix, tau is a scalar constant
+!!        and x is a field
 module compound_operator_kernel_mod
 
 use constants_mod,           only: r_solver, i_def
@@ -28,9 +29,8 @@ private
 
 type, public, extends(kernel_type) :: compound_operator_kernel_type
   private
-  type(arg_type) :: meta_args(6) = (/                                      &
+  type(arg_type) :: meta_args(5) = (/                                      &
        arg_type(GH_OPERATOR, GH_REAL, GH_WRITE, ANY_SPACE_1, ANY_SPACE_2), &
-       arg_type(GH_OPERATOR, GH_REAL, GH_READ,  ANY_SPACE_1, ANY_SPACE_1), &
        arg_type(GH_OPERATOR, GH_REAL, GH_READ,  ANY_SPACE_1, ANY_SPACE_1), &
        arg_type(GH_OPERATOR, GH_REAL, GH_READ,  ANY_SPACE_1, ANY_SPACE_2), &
        arg_type(GH_FIELD,    GH_REAL, GH_READ,  ANY_SPACE_2),              &
@@ -47,16 +47,14 @@ end type
 public :: compound_operator_kernel_code
 contains
 
-!> @brief This subroutine computes the div operator
+!> @brief This subroutine computes a compound operator = tau*field*mass_matrix*differential_matrix
 !! @param[in] cell Cell number
 !! @param[in] nlayers Number of layers.
 !! @param[in] ncell_3d_1 Ncell*ndf
 !! @param[in] ncell_3d_2 Ncell*ndf
 !! @param[in] ncell_3d_3 Ncell*ndf
-!! @param[in] ncell_3d_4 Ncell*ndf
 !! @param[in,out] compound_operator LMA operator to create
-!! @param[in] mass_matrix1 First mass matrix
-!! @param[in] mass_matrix2 Second mass matrix
+!! @param[in] mass_matrix Mass matrix
 !! @param[in] differential_matrix Third operator
 !! @param[in] field weighting field
 !! @param[in] tau scalar weighting
@@ -69,10 +67,8 @@ subroutine compound_operator_kernel_code(cell, nlayers, &
                                          ncell_3d_1,  &
                                          compound_operator, &
                                          ncell_3d_2,  &
-                                         mass_matrix1,  &
+                                         mass_matrix,  &
                                          ncell_3d_3,  &
-                                         mass_matrix2, &
-                                         ncell_3d_4,  &
                                          differential_matrix, &
                                          field, &
                                          tau, &
@@ -82,15 +78,14 @@ subroutine compound_operator_kernel_code(cell, nlayers, &
   ! Arguments
   integer(kind=i_def),                     intent(in) :: cell
   integer(kind=i_def),                     intent(in) :: nlayers
-  integer(kind=i_def),                     intent(in) :: ncell_3d_1, ncell_3d_2, ncell_3d_3, ncell_3d_4
+  integer(kind=i_def),                     intent(in) :: ncell_3d_1, ncell_3d_2, ncell_3d_3
   integer(kind=i_def),                     intent(in) :: ndf1, ndf2, undf2
   integer(kind=i_def), dimension(ndf2),    intent(in) :: map2
 
 
   real(kind=r_solver), dimension(ndf1,ndf2,ncell_3d_1), intent(inout) :: compound_operator
-  real(kind=r_solver), dimension(ndf1,ndf1,ncell_3d_2), intent(in)    :: mass_matrix1
-  real(kind=r_solver), dimension(ndf1,ndf1,ncell_3d_3), intent(in)    :: mass_matrix2
-  real(kind=r_solver), dimension(ndf1,ndf2,ncell_3d_4), intent(in)    :: differential_matrix
+  real(kind=r_solver), dimension(ndf1,ndf1,ncell_3d_2), intent(in)    :: mass_matrix
+  real(kind=r_solver), dimension(ndf1,ndf2,ncell_3d_3), intent(in)    :: differential_matrix
   real(kind=r_solver), dimension(undf2),                intent(in)    :: field
   real(kind=r_solver),                                  intent(in)    :: tau
 
@@ -100,8 +95,7 @@ subroutine compound_operator_kernel_code(cell, nlayers, &
 
   do k = 0, nlayers - 1
     ik = k + 1 + (cell-1)*nlayers
-    d = matmul(mass_matrix1(:,:,ik),matmul(mass_matrix2(:,:,ik),&
-                                           differential_matrix(:,:,ik)))
+    d = matmul(mass_matrix(:,:,ik),differential_matrix(:,:,ik))
     do df = 1,ndf2
       compound_operator(:,df,ik) = tau*d(:,df)*field(map2(df)+k)
     end do

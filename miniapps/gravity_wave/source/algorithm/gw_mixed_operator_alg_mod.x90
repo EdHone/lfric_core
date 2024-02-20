@@ -34,9 +34,9 @@ module gw_mixed_operator_alg_mod
   use log_mod,                           only: log_event, LOG_LEVEL_ERROR, &
                                                log_scratch_space
   use operator_mod,                      only: r_solver_operator_type
-  use fem_constants_mod,                 only: get_div_r_solver,             &
-                                               get_mass_matrix,     &
-                                               get_inverse_w3_mass_matrix_r_solver
+  use fem_constants_mod,                 only: get_im3_div_r_solver, &
+                                               get_mass_matrix,      &
+                                               get_div
   use limited_area_constants_mod,        only: get_mask_r_solver
   use vector_mod,                        only: abstract_vector_type
 
@@ -153,12 +153,13 @@ contains
 
     type(operator_type),          pointer :: mm => null()
     type(r_solver_operator_type)          :: mm_w2, mm_wt
-    type(r_solver_operator_type), pointer :: div, m3_inv => null()
+    type(r_solver_operator_type), pointer :: im3_div => null()
+    type(operator_type),          pointer :: div_r_def => null()
     type(r_solver_field_type),    pointer :: w2_mask => null()
     type(r_solver_field_type),    pointer :: w3_mask => null()
     type(r_solver_field_type),    pointer :: wtheta_mask => null()
+    type(r_solver_operator_type)          :: div
     integer(kind=i_def)                   :: buoyancy_space, mesh_id
-    type(r_solver_field_type)             :: lhs_p
 
     ! Auxiliary constants to group invokes
     real(kind=r_solver) :: const1, const2, const3
@@ -201,9 +202,9 @@ contains
     call invoke( operator_setval_x_kernel_type( mm_w2, mm ) )
 
     ! Extract divergence operator
-    div   => get_div_r_solver(mesh_id)
-    ! Extract inverse pressure mass matrix
-    m3_inv => get_inverse_w3_mass_matrix_r_solver(mesh_id)
+    im3_div   => get_im3_div_r_solver(mesh_id)
+    div_r_def => get_div(mesh_id)
+    call div%initialise( div_r_def%get_fs_to(), div_r_def%get_fs_from() )
 
     if (limited_area) then
       ! Extract limited area mask
@@ -233,18 +234,16 @@ contains
         y_vec_p => y%get_field_from_position( igw_p )
         y_vec_b => y%get_field_from_position( igw_b )
 
-        call lhs_p%initialise( x_vec_p%get_function_space() )
-
         ! Compute GW LHS
         call invoke( &
                 ! Initialise LHS
                 setval_c(y_vec_u, 0.0_r_solver),                               &
                 setval_c(y_vec_b, 0.0_r_solver),                               &
                 ! Compute LHS
+                operator_setval_x_kernel_type( div, div_r_def ),               &
                 transpose_matrix_vector_kernel_type(y_vec_u, x_vec_p, div),    &
                 matrix_vector_kernel_type          (y_vec_u, x_vec_b, self%Q), &
-                dg_matrix_vector_kernel_type       (lhs_p,   x_vec_u, div),    &
-                dg_matrix_vector_kernel_type       (y_vec_p, lhs_p,   m3_inv), &
+                dg_matrix_vector_kernel_type       (y_vec_p, x_vec_u, im3_div),&
                 transpose_matrix_vector_kernel_type(y_vec_b, x_vec_u, self%Q), &
                 ! Scale LHS
                 inc_a_times_X(const1, y_vec_u),                                &
@@ -286,7 +285,8 @@ contains
       nullify(wtheta_mask)
     endif
 
-    nullify( x_vec_u, x_vec_p, x_vec_b, y_vec_u, y_vec_p, y_vec_b )
+    nullify( x_vec_u, x_vec_p, x_vec_b, y_vec_u, y_vec_p, y_vec_b, &
+             div_r_def, im3_div )
 
   end subroutine apply_gw_mixed_operator
 

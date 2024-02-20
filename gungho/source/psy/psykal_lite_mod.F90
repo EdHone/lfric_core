@@ -1718,7 +1718,57 @@ stencil_dofmap(:,:,cell), ndf_adspc1_target_field, &
     !
   end subroutine invoke_r64_field_min_max
 
-!------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  subroutine invoke_inc_rdefX_plus_rsolverY(X, Y)
+
+    use mesh_mod, only: mesh_type
+
+    implicit none
+
+    type(field_type),          intent(inout) :: X
+    type(r_solver_field_type), intent(in)    :: Y
+    integer(kind=i_def) :: df
+    integer(kind=i_def) :: loop0_start, loop0_stop
+    type(field_proxy_type) :: X_proxy
+    type(r_solver_field_proxy_type) :: Y_proxy
+    integer(kind=i_def) :: max_halo_depth_mesh
+    type(mesh_type), pointer :: mesh => null()
+    !
+    ! Initialise field and/or operator proxies
+    !
+    X_proxy = X%get_proxy()
+    Y_proxy = Y%get_proxy()
+    !
+    ! Create a mesh object
+    !
+    mesh => X_proxy%vspace%get_mesh()
+    max_halo_depth_mesh = mesh%get_halo_depth()
+    !
+    ! Set-up all of the loop bounds
+    !
+    loop0_start = 1
+    loop0_stop = X_proxy%vspace%get_last_dof_annexed()
+    !
+    ! Call kernels and communication routines
+    !
+    !$omp parallel default(shared), private(df)
+    !$omp do schedule(static)
+    DO df=loop0_start,loop0_stop
+      X_proxy%data(df) = X_proxy%data(df) + real(Y_proxy%data(df),r_def)
+    END DO
+    !$omp end do
+    !$omp end parallel
+    !
+    ! Set halos dirty/clean for fields modified in the above loop(s)
+    !
+    CALL X_proxy%set_dirty()
+    !
+    ! End of set dirty/clean section for above loop(s)
+    !
+    !
+  end subroutine invoke_inc_rdefX_plus_rsolverY
+
+!==============================================================================
 
   ! Psykal-lite implementation required because we want to loop up to the edge
   ! of the halo, and mark this field as clean so that no halo swaps are performed

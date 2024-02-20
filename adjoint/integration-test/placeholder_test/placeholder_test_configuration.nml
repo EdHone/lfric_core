@@ -138,7 +138,7 @@ pert_option='random',
 run_log_level='info',
 /
 &mixed_solver
-eliminate_variables='none',
+eliminate_variables='discrete',
 fail_on_non_converged=.true.
 gcrk=6,
 guess_np1=.false.,

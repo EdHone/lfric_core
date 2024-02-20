@@ -54,11 +54,14 @@ module rhs_alg_mod
   use fs_continuity_mod,                   only: W1, W2, Wtheta
   use function_space_collection_mod,       only: function_space_collection
   use w2_vorticity_advection_kernel_mod,   only: w2_vorticity_advection_kernel_type
+  use pressure_gradient_p0_kernel_mod,     only: pressure_gradient_p0_kernel_type
 
   implicit none
 
   private
-  public :: rhs_alg
+  public  :: rhs_alg
+  private :: rhs_default_alg
+  private :: rhs_general_alg
 
 contains
 
@@ -77,16 +80,48 @@ contains
   !>         This can be given either timelevel n or n+1 fields to compute
   !>         the appropriate part of the full right hand side
   !> @param[in,out] rhs The state vector to compute
-  !> @param[in]     alpha_dt The offcentering parameter times the timestep
-  !> @param[in]     base_state The model prognostic state to which increments are added
-  !> @param[in]     state The current model prognostic state
-  !> @param[in]     moist_dyn Factors relating to moist dynamics
-  !> @param[in]     compute_eos Flag to control computation of the equation of
+  !> @param[in]     alpha_dt        The offcentering parameter times the timestep
+  !> @param[in]     base_state      The model prognostic state to which increments are added
+  !> @param[in]     state           The current model prognostic state
+  !> @param[in]     moist_dyn       Factors relating to moist dynamics
+  !> @param[in]     compute_eos     Flag to control computation of the equation of
   !!                state
-  !> @param[in]     dlayer_rhs Use damping layer in rhs yes/no
-  !> @param[in]     dt The model timestep length
-subroutine rhs_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
-                    dlayer_rhs )
+  !> @param[in]     dlayer_rhs      Use damping layer in rhs yes/no
+  !> @param[in]     compute_rhs_t_d Compute rhs for the potential temperature
+  !!                                and density
+  subroutine rhs_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
+                      compute_rhs_t_d, dlayer_rhs )
+    use boundaries_config_mod, only: limited_area
+    implicit none
+
+    real(kind=r_def),             intent(in)    :: alpha_dt
+    logical(kind=l_def),          intent(in)    :: dlayer_rhs
+
+    ! Form of state and rhs is [u,theta,rho,exner]
+    type(field_type), target,     intent(in)    :: base_state(bundle_size)
+    type(field_type), target,     intent(in)    :: state(bundle_size)
+    type(field_type),             intent(in)    :: moist_dyn(num_moist_factors)
+    type(field_type),             intent(inout) :: rhs(bundle_size)
+    logical(kind=l_def),          intent(in)    :: compute_eos
+    logical(kind=l_def),          intent(in)    :: compute_rhs_t_d
+
+    if (   (rhs(igh_u)%get_element_order() == 0) &
+     .and. (.not. si_momentum_equation)          &
+     .and. (.not. limited_area )                 &
+     .and. (eos_method == eos_method_sampled) ) then
+      call rhs_default_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
+                            compute_rhs_t_d, dlayer_rhs )
+    else
+      call rhs_general_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
+                            compute_rhs_t_d, dlayer_rhs )
+    end if
+
+  end subroutine rhs_alg
+
+  !> @brief rhs algorithm for the default setup ( lowest order elements,
+  !!        explicit momentum advection, global and sampled eos)
+  subroutine rhs_default_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
+                              compute_rhs_t_d, dlayer_rhs )
 
     implicit none
 
@@ -99,6 +134,113 @@ subroutine rhs_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
     type(field_type),             intent(in)    :: moist_dyn(num_moist_factors)
     type(field_type),             intent(inout) :: rhs(bundle_size)
     logical(kind=l_def),          intent(in)    :: compute_eos
+    logical(kind=l_def),          intent(in)    :: compute_rhs_t_d
+
+    type(operator_type), pointer :: mm_vel    => null(), &
+                                    mm_wtheta => null(), &
+                                    coriolis  => null()
+    type(field_type), pointer :: geopotential => null(), &
+                                 u            => null(), &
+                                 theta        => null(), &
+                                 rho          => null(), &
+                                 u_base       => null(), &
+                                 theta_base   => null(), &
+                                 rho_base     => null(), &
+                                 exner        => null()
+
+    type(field_type)    :: rhs_u
+    integer(kind=i_def) :: mesh_id
+    type(field_type)    :: theta_v
+
+    if ( subroutine_timers ) call timer('rhs_alg')
+
+    mesh_id = base_state(igh_u)%get_mesh_id()
+
+    geopotential => get_geopotential(mesh_id)
+    mm_wtheta    => get_mass_matrix(Wtheta, mesh_id)
+
+    ! Using modified velocity mass matrix if needing damping layer
+    if (dlayer_rhs) then
+      mm_vel => get_w2_mass_matrix(w2_damping_layer_matrix, mesh_id)
+    else
+      mm_vel => get_mass_matrix(W2, mesh_id)
+    end if
+
+    u     => state(igh_u)
+    theta => state(igh_t)
+    rho   => state(igh_d)
+    exner => state(igh_p)
+
+    u_base     => base_state(igh_u)
+    theta_base => base_state(igh_t)
+    rho_base   => base_state(igh_d)
+
+    call rhs_u%initialise( vector_space=rhs(igh_u)%get_function_space() )
+
+    ! Initialise RHS u and theta fields
+    call invoke( setval_c( rhs_u,    0.0_r_def ),   &
+                 setval_c( rhs(igh_u), 0.0_r_def ), &
+                 setval_c( rhs(igh_t), 0.0_r_def ) )
+
+    ! Compute rhs_u
+    if ( rotating ) then
+      coriolis => get_coriolis(mesh_id)
+      call invoke( matrix_vector_kernel_type( rhs_u, u, coriolis ) )
+    end if
+    call theta_v%initialise( theta%get_function_space() )
+    call invoke( X_times_Y( theta_v, theta, moist_dyn(1) ),                  &
+                 inc_X_divideby_Y( theta_v,  moist_dyn(2) ),                 &
+                 pressure_gradient_p0_kernel_type( rhs_u, exner,             &
+                                                   geopotential, theta_v, 1, &
+                                                   cp),                      &
+                 matrix_vector_kernel_type( rhs(igh_u), u_base, mm_vel ),    &
+                 inc_X_plus_bY( rhs(igh_u), alpha_dt, rhs_u ),               &
+                 enforce_bc_kernel_type(rhs(igh_u)) )
+
+    if ( compute_rhs_t_d ) then
+      call invoke( &
+    ! Compute rhs_theta
+                 dg_inc_matrix_vector_kernel_type( rhs(igh_t), theta_base,   &
+                                                   mm_wtheta ),              &
+    ! Compute rhs_rho
+                 setval_X( rhs(igh_d), rho_base ) )
+    else
+      call invoke(setval_c( rhs(igh_d), 0.0_r_def ) )
+    end if
+
+    ! Compute rhs_exner
+    if ( compute_eos ) then
+      call invoke( rhs_sample_eos_kernel_type( rhs(igh_p), exner, rho,    &
+                                               theta, moist_dyn(gas_law), &
+                                               kappa, rd, p_zero ) )
+    else
+      call invoke( setval_c(rhs(igh_p), 0.0_r_def) )
+    end if
+
+    nullify( mm_vel, mm_wtheta,                  &
+             geopotential, u, theta, rho, exner, &
+             u_base, theta_base, rho_base )
+
+    if ( subroutine_timers ) call timer('rhs_alg')
+
+  end subroutine rhs_default_alg
+
+  !> @brief rhs algorithm for any generic setup
+  subroutine rhs_general_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
+                              compute_rhs_t_d, dlayer_rhs )
+
+    implicit none
+
+    real(kind=r_def),             intent(in)    :: alpha_dt
+    logical(kind=l_def),          intent(in)    :: dlayer_rhs
+
+    ! Form of state and rhs is [u,theta,rho,exner]
+    type(field_type), target,     intent(in)    :: base_state(bundle_size)
+    type(field_type), target,     intent(in)    :: state(bundle_size)
+    type(field_type),             intent(in)    :: moist_dyn(num_moist_factors)
+    type(field_type),             intent(inout) :: rhs(bundle_size)
+    logical(kind=l_def),          intent(in)    :: compute_eos
+    logical(kind=l_def),          intent(in)    :: compute_rhs_t_d
 
     type(operator_type), pointer :: mm_vel    => null(), &
                                     mm_wtheta => null(), &
@@ -153,7 +295,6 @@ subroutine rhs_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
     rho_base   => base_state(igh_d)
 
     call rhs_tmp%initialise( vector_space=rhs(igh_u)%get_function_space() )
-    call rhs_eos%initialise( vector_space=rhs(igh_p)%get_function_space() )
     qr       = quadrature_xyoz_type(element_order+2, gaussian_quadrature)
     qr_exact = quadrature_xyoz_type(element_order+3, gaussian_quadrature)
     mesh              => theta%get_mesh()
@@ -215,20 +356,24 @@ subroutine rhs_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
                  inc_X_plus_bY( rhs(igh_u), alpha_dt, rhs_tmp ),    &
                  enforce_bc_kernel_type(rhs(igh_u)) )
 
-    call invoke( name = "compute_rhs_theta_and_rhs_rho",                    &
-    ! Compute rhs_theta
-                 dg_inc_matrix_vector_kernel_type( rhs(igh_t), theta_base, mm_wtheta ), &
-    ! Compute rhs_rho
-                 setval_X( rhs(igh_d), rho_base ) )
+    if ( compute_rhs_t_d ) then
+      call invoke( name = "compute_rhs_theta_and_rhs_rho",                    &
+      ! Compute rhs_theta
+                   dg_inc_matrix_vector_kernel_type( rhs(igh_t), theta_base, mm_wtheta ), &
+      ! Compute rhs_rho
+                   setval_X( rhs(igh_d), rho_base ) )
+    else
+      call invoke(setval_c( rhs(igh_d), 0.0_r_def ) )
+    end if
     if ( compute_eos ) then
       select case(eos_method)
         case(eos_method_sampled)
-          call invoke( name = "sample_rhs_eos",                                &
-                       rhs_sample_eos_kernel_type( rhs_eos, exner, rho, theta, &
-                                                   moist_dyn(gas_law),         &
-                                                   kappa, rd, p_zero ),        &
-                       setval_X( rhs(igh_p), rhs_eos) )
+          call invoke( name = "sample_rhs_eos",                               &
+                       rhs_sample_eos_kernel_type( rhs(igh_p), exner, rho,    &
+                                                   theta, moist_dyn(gas_law), &
+                                                   kappa, rd, p_zero ) )
         case(eos_method_projected)
+          call rhs_eos%initialise( vector_space=rhs(igh_p)%get_function_space() )
           call invoke( name = "project_rhs_eos",                                &
                        rhs_project_eos_kernel_type(rhs_eos, exner, rho, theta,  &
                                                    moist_dyn(gas_law), chi,     &
@@ -249,6 +394,6 @@ subroutine rhs_alg( rhs, alpha_dt, base_state, state, moist_dyn, compute_eos, &
 
     if ( subroutine_timers ) call timer('rhs_alg')
 
-  end subroutine rhs_alg
+  end subroutine rhs_general_alg
 
 end module rhs_alg_mod
