@@ -42,7 +42,10 @@
        <field id="checkpoint_constant" name="constant" long_name="constant" standard_name="constant" unit="kg/kg" domain_ref="checkpoint_Wtheta" />
        <field id="checkpoint_m_v" name="m_v" long_name="m_v" unit="kg/kg" domain_ref="checkpoint_Wtheta" />
        <field id="checkpoint_w2_vector" name="w2_vector" long_name="transported_vector" unit="m s-1" domain_ref="checkpoint_W2" />
-       <field id="checkpoint_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_w3_aerosol" name="w3_aerosol" long_name="w3_aerosol" unit="kg/kg" domain_ref="checkpoint_W3" />
+       <field id="checkpoint_wt_aerosol" name="wt_aerosol" long_name="wt_aerosol" unit="kg/kg" domain_ref="checkpoint_Wtheta" />
+       <field id="checkpoint_aerosol_wind" name="uaerosol_wind" long_name="aerosol_wind" unit="m s-1" domain_ref="checkpoint_W2" />
+       <field id="checkpoint_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="s-1" domain_ref="checkpoint_W3" />
      </field_group>
 
      <!-- Main diagnostic group -->
@@ -56,10 +59,17 @@
        <field id="tracer_adv" name="tracer_adv" long_name="tracer_adv" standard_name="tracer_adv" unit="kg/kg" grid_ref="half_level_face_grid" />
        <field id="constant" name="constant" long_name="constant" standard_name="constant" unit="kg/kg" grid_ref="full_level_face_grid" />
        <field id="m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" grid_ref="full_level_face_grid" />
-       <field id="divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" grid_ref="half_level_face_grid" />
+       <field id="divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="s-1" grid_ref="half_level_face_grid" />
        <field id="w2_vector1" name="w2_vector1" long_name="eastward_w2_vector" standard_name="eastward_w2_vector" unit="m s-1" grid_ref="half_level_edge_grid" />
        <field id="w2_vector2" name="w2_vector2" long_name="northward_w2_vector" standard_name="northward_w2_vector" unit="m s-1" grid_ref="half_level_edge_grid" />
        <field id="w2_vector3" name="w2_vector3" long_name="upward_w2_vector" standard_name="upward_w2_vector" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="wt_aerosol" name="wt_aerosol" long_name="wt_aerosol" standard_name="wt_aerosol" unit="kg/kg" grid_ref="full_level_face_grid" />
+       <field id="w3_aerosol" name="w3_aerosol" long_name="w3_aerosol" standard_name="w3_aerosol" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="aerosol_wind1" name="aerosol_wind1" long_name="eastward_aerosol_wind" standard_name="eastward_aerosol_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="aerosol_wind2" name="aerosol_wind2" long_name="northward_aerosol_wind" standard_name="northward_aerosol_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="aerosol_wind3" name="aerosol_wind3" long_name="upward_aerosol_wind" standard_name="upward_aerosol_wind" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="height_w3" name="height_w3" long_name="height_of_cell_centres_above_earth_radius" unit="m" grid_ref="half_level_face_grid" />
+       <field id="height_wth" name="height_wth" long_name="height_of_cell_interfaces_above_earth_radius" unit="m" grid_ref="full_level_face_grid" />
      </field_group>
 
       <!-- Initial conditions group -->
@@ -77,6 +87,13 @@
        <field id="init_w2_vector1" name="w2_vector1" long_name="eastward_w2_vector" standard_name="eastward_w2_vector" unit="m s-1" grid_ref="half_level_edge_grid" />
        <field id="init_w2_vector2" name="w2_vector2" long_name="northward_w2_vector" standard_name="northward_w2_vector" unit="m s-1" grid_ref="half_level_edge_grid" />
        <field id="init_w2_vector3" name="w2_vector3" long_name="upward_w2_vector" standard_name="upward_w2_vector" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="init_wt_aerosol" name="wt_aerosol" long_name="wt_aerosol" standard_name="wt_aerosol" unit="kg/kg" grid_ref="full_level_face_grid" />
+       <field id="init_w3_aerosol" name="w3_aerosol" long_name="w3_aerosol" standard_name="w3_aerosol" unit="kg/kg" grid_ref="half_level_face_grid" />
+       <field id="init_aerosol_wind1" name="aerosol_wind1" long_name="eastward_aerosol_wind" standard_name="eastward_aerosol_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="init_aerosol_wind2" name="aerosol_wind2" long_name="northward_aerosol_wind" standard_name="northward_aerosol_wind" unit="m s-1" grid_ref="half_level_edge_grid" />
+       <field id="init_aerosol_wind3" name="aerosol_wind3" long_name="upward_aerosol_wind" standard_name="upward_aerosol_wind" unit="m s-1" grid_ref="full_level_face_grid" />
+       <field id="init_height_w3" name="height_w3" long_name="height_of_cell_centres_above_earth_radius" unit="m" grid_ref="half_level_face_grid" />
+       <field id="init_height_wth" name="height_wth" long_name="height_of_cell_interfaces_above_earth_radius" unit="m" grid_ref="full_level_face_grid" />
      </field_group>
 
    </field_definition>
@@ -97,6 +114,9 @@
         <field field_ref="checkpoint_m_v"/>
         <field field_ref="checkpoint_u"/>
         <field field_ref="checkpoint_w2_vector"/>
+        <field field_ref="checkpoint_w3_aerosol"/>
+        <field field_ref="checkpoint_wt_aerosol"/>
+        <field field_ref="checkpoint_aerosol_wind"/>
         <field field_ref="checkpoint_divergence"/>
       </file>
 
@@ -110,7 +130,10 @@
        <field id="restart_m_v" name="m_v" long_name="m_v" standard_name="m_v" unit="kg/kg" operation="instant" domain_ref="checkpoint_Wtheta" />
        <field id="restart_u" name="u" long_name="wind" unit="m s-1" operation="instant" domain_ref="checkpoint_W2" />
        <field id="restart_w2_vector" name="w2_vector" long_name="transported_vector" unit="m s-1" operation="instant" domain_ref="checkpoint_W2" />
-       <field id="restart_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="kg m-3" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_divergence" name="divergence" long_name="wind_divergence" standard_name="wind_divergence" unit="s-1" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_wt_aerosol" name="wt_aerosol" long_name="wt_aerosol" standard_name="wt_aerosol" unit="kg/kg" operation="instant" domain_ref="checkpoint_Wtheta" />
+       <field id="restart_w3_aerosol" name="w3_aerosol" long_name="w3_aerosol" standard_name="w3_aerosol" unit="kg/kg" operation="instant" domain_ref="checkpoint_W3" />
+       <field id="restart_aerosol_wind" name="aerosol_wind" long_name="aerosol_wind" unit="m s-1" operation="instant" domain_ref="checkpoint_W2" />
       </file>
 
       <file id="lfric_diag" name="lfric_diag" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
@@ -127,6 +150,11 @@
         <field field_ref="w2_vector1"/>
         <field field_ref="w2_vector2"/>
         <field field_ref="w2_vector3"/>
+        <field field_ref="w3_aerosol"/>
+        <field field_ref="wt_aerosol"/>
+        <field field_ref="aerosol_wind1"/>
+        <field field_ref="aerosol_wind2"/>
+        <field field_ref="aerosol_wind3"/>
       </file>
 
       <file id="lfric_initial" name="lfric_initial" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
@@ -143,6 +171,13 @@
         <field field_ref="init_w2_vector1"/>
         <field field_ref="init_w2_vector2"/>
         <field field_ref="init_w2_vector3"/>
+        <field field_ref="init_w3_aerosol"/>
+        <field field_ref="init_wt_aerosol"/>
+        <field field_ref="init_aerosol_wind1"/>
+        <field field_ref="init_aerosol_wind2"/>
+        <field field_ref="init_aerosol_wind3"/>
+        <field field_ref="init_height_w3"/>
+        <field field_ref="init_height_wth"/>
       </file>
 
 

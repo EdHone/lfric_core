@@ -30,10 +30,13 @@ module transport_driver_mod
                                               PRIME_EXTRUSION, TWOD,       &
                                               SHIFTED, DOUBLE_LEVEL
   use field_mod,                        only: field_type
-  use geometric_constants_mod,          only: get_chi_inventory, &
-                                              get_panel_id_inventory
+  use fs_continuity_mod,                only: W3, Wtheta
+  use geometric_constants_mod,          only: get_chi_inventory,      &
+                                              get_panel_id_inventory, &
+                                              get_height
 
   use inventory_by_mesh_mod,            only: inventory_by_mesh_type
+  use lfric_xios_context_mod,           only: lfric_xios_context_type, advance
   use local_mesh_mod,                   only: local_mesh_type
   use log_mod,                          only: log_event,         &
                                               log_scratch_space, &
@@ -92,64 +95,65 @@ contains
   !> @brief Sets up required state in preparation for run.
   !> @param[in]      program_name  Identifier given to the model being run
   !> @param[inout]   modeldb       The modeldb object
-  subroutine initialise_transport( program_name, modeldb)
-
-    use io_config_mod, only: nodal_output_on_w3, &
-                             write_diag
+  subroutine initialise_transport( program_name, modeldb )
 
     implicit none
 
     character(*),            intent(in)    :: program_name
     type(modeldb_type),      intent(inout) :: modeldb
 
-    character(len=*), parameter :: xios_ctx  = "transport"
-
+    character(len=*),         parameter   :: xios_ctx = "transport"
     integer(kind=i_def)                   :: num_base_meshes
     integer(kind=i_def),      allocatable :: local_mesh_ids(:)
-    type(local_mesh_type),        pointer :: local_mesh => null()
-    type(mesh_type),              pointer :: mesh => null()
-    type(mesh_type),              pointer :: aerosol_mesh => null()
-    type(inventory_by_mesh_type), pointer :: chi_inventory => null()
-    type(inventory_by_mesh_type), pointer :: panel_id_inventory => null()
-    character(str_def),       allocatable :: base_mesh_names(:)
-    character(str_def),       allocatable :: extra_io_mesh_names(:)
-    logical(l_def)                        :: create_rdef_div_operators
+    type(local_mesh_type),        pointer :: local_mesh
+    type(mesh_type),              pointer :: mesh
+    type(mesh_type),              pointer :: aerosol_mesh
+    type(inventory_by_mesh_type), pointer :: chi_inventory
+    type(inventory_by_mesh_type), pointer :: panel_id_inventory
+    character(len=str_def),   allocatable :: base_mesh_names(:)
+    character(len=str_def),   allocatable :: extra_io_mesh_names(:)
+    logical(kind=l_def)                   :: create_rdef_div_operators
+    type(field_type),             pointer :: height_w3
+    type(field_type),             pointer :: height_wth
 
+    type(lfric_xios_context_type),         pointer :: io_context
     class(extrusion_type),             allocatable :: extrusion
     type(uniform_extrusion_type),      allocatable :: extrusion_2d
     type(shifted_extrusion_type),      allocatable :: extrusion_shifted
     type(double_level_extrusion_type), allocatable :: extrusion_double
 
-    character(str_def), allocatable :: meshes_to_shift(:)
-    character(str_def), allocatable :: meshes_to_double(:)
-    character(str_def), allocatable :: twod_names(:)
-    character(str_def), allocatable :: shifted_names(:)
-    character(str_def), allocatable :: double_names(:)
+    character(len=str_def), allocatable :: meshes_to_shift(:)
+    character(len=str_def), allocatable :: meshes_to_double(:)
+    character(len=str_def), allocatable :: twod_names(:)
+    character(len=str_def), allocatable :: shifted_names(:)
+    character(len=str_def), allocatable :: double_names(:)
+    character(len=str_def), allocatable :: chain_mesh_tags(:)
+    character(len=str_def)              :: aerosol_mesh_name
+    character(len=str_def)              :: prime_mesh_name
 
-    character(str_def), allocatable :: chain_mesh_tags(:)
-    character(str_def)              :: aerosol_mesh_name
+    logical(kind=l_def) :: use_multires_coupling
+    logical(kind=l_def) :: l_multigrid
+    logical(kind=l_def) :: prepartitioned
+    logical(kind=l_def) :: apply_partition_check
 
-    character(str_def) :: prime_mesh_name
+    integer(kind=i_def) :: geometry
+    integer(kind=i_def) :: stencil_depth
+    real(kind=r_def)    :: domain_bottom
+    real(kind=r_def)    :: domain_top
+    real(kind=r_def)    :: scaled_radius
+    integer(kind=i_def) :: method
+    integer(kind=i_def) :: number_of_layers
+    logical(kind=l_def) :: nodal_output_on_w3
+    logical(kind=l_def) :: write_diag
+    logical(kind=l_def) :: use_xios_io
 
-    logical(l_def) :: use_multires_coupling
-    logical(l_def) :: l_multigrid
-    logical(l_def) :: prepartitioned
-    logical(l_def) :: apply_partition_check
-
-    integer(i_def) :: geometry
-    integer(i_def) :: stencil_depth
-    real(r_def)    :: domain_bottom
-    real(r_def)    :: domain_top
-    real(r_def)    :: scaled_radius
-    integer(i_def) :: method
-    integer(i_def) :: number_of_layers
-
-    type(namelist_type), pointer :: base_mesh_nml   => null()
-    type(namelist_type), pointer :: formulation_nml => null()
-    type(namelist_type), pointer :: extrusion_nml   => null()
-    type(namelist_type), pointer :: planet_nml      => null()
-    type(namelist_type), pointer :: multigrid_nml   => null()
-    type(namelist_type), pointer :: multires_coupling_nml => null()
+    type(namelist_type), pointer :: base_mesh_nml
+    type(namelist_type), pointer :: formulation_nml
+    type(namelist_type), pointer :: extrusion_nml
+    type(namelist_type), pointer :: planet_nml
+    type(namelist_type), pointer :: multigrid_nml
+    type(namelist_type), pointer :: multires_coupling_nml
+    type(namelist_type), pointer :: io_nml
 
     integer(i_def) :: i
     integer(i_def), parameter :: one_layer = 1_i_def
@@ -161,6 +165,7 @@ contains
     formulation_nml => modeldb%configuration%get_namelist('formulation')
     extrusion_nml   => modeldb%configuration%get_namelist('extrusion')
     planet_nml      => modeldb%configuration%get_namelist('planet')
+    io_nml          => modeldb%configuration%get_namelist('io')
 
     call formulation_nml%get_value( 'l_multigrid', l_multigrid )
     call formulation_nml%get_value( 'use_multires_coupling', &
@@ -185,12 +190,15 @@ contains
     call extrusion_nml%get_value( 'domain_top', domain_top )
     call extrusion_nml%get_value( 'number_of_layers', number_of_layers )
     call planet_nml%get_value( 'scaled_radius', scaled_radius )
+    call io_nml%get_value( 'nodal_output_on_w3', nodal_output_on_w3 )
+    call io_nml%get_value( 'write_diag', write_diag )
+    call io_nml%get_value( 'use_xios_io', use_xios_io )
 
     base_mesh_nml   => null()
     extrusion_nml   => null()
     formulation_nml => null()
     planet_nml      => null()
-
+    io_nml          => null()
 
     !-----------------------------------------------------------------------
     ! Initialise infrastructure
@@ -330,7 +338,6 @@ contains
       end if
     end if
 
-
     !=======================================================================
     ! 2.0 Initialise FEM / Coordinates
     !=======================================================================
@@ -400,6 +407,13 @@ contains
                     panel_id_inventory )
     end if
 
+    ! Call clock initial step before initial conditions output
+    ! This ensures that lfric_initial.nc will be written out
+    if (modeldb%clock%is_initialisation() .and. use_xios_io) then
+      call modeldb%io_contexts%get_io_context(xios_ctx, io_context)
+      call advance(io_context, modeldb%clock)
+    end if
+
     ! Output initial conditions
     if (modeldb%clock%is_initialisation() .and. write_diag) then
 
@@ -424,6 +438,13 @@ contains
                                       mesh, nodal_output_on_w3 )
       end if
       if (use_aerosols) then
+        height_w3 => get_height(W3, aerosol_mesh%get_id())
+        height_wth => get_height(Wtheta, aerosol_mesh%get_id())
+        call write_scalar_diagnostic( 'aerosol_height_w3', height_w3, modeldb%clock, &
+                                      aerosol_mesh, nodal_output_on_w3 )
+        call write_scalar_diagnostic( 'aerosol_height_wth', height_wth, modeldb%clock, &
+                                      aerosol_mesh, nodal_output_on_w3 )
+
         call write_vector_diagnostic( 'aerosol_wind', aerosol_wind, modeldb%clock, &
                                       aerosol_mesh, nodal_output_on_w3 )
         call write_scalar_diagnostic( 'w3_aerosol', w3_aerosol, modeldb%clock, &
@@ -431,6 +452,14 @@ contains
         call write_scalar_diagnostic( 'wt_aerosol', wt_aerosol, modeldb%clock, &
                                       aerosol_mesh, nodal_output_on_w3 )
       end if
+
+      height_w3 => get_height(W3, mesh%get_id())
+      height_wth => get_height(Wtheta, mesh%get_id())
+      call write_scalar_diagnostic( 'height_w3', height_w3, modeldb%clock, &
+                                    mesh, nodal_output_on_w3 )
+      call write_scalar_diagnostic( 'height_wth', height_wth, modeldb%clock, &
+                                    mesh, nodal_output_on_w3 )
+
     end if
 
     if (allocated(base_mesh_names))  deallocate(base_mesh_names)
@@ -461,8 +490,8 @@ contains
 
     class(model_clock_type), intent(in) :: model_clock
 
-    type(mesh_type), pointer :: mesh => null()
-    type(mesh_type), pointer :: aerosol_mesh => null()
+    type(mesh_type), pointer :: mesh
+    type(mesh_type), pointer :: aerosol_mesh
 
     call log_event( 'Miniapp will run with default precision set as:', LOG_LEVEL_INFO )
     write(log_scratch_space, '(I1)') kind(1.0_r_def)
@@ -470,7 +499,8 @@ contains
     write(log_scratch_space, '(I1)') kind(1_i_def)
     call log_event( '        i_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
 
-    call mass_conservation( model_clock%get_step(), density, mr )
+    call mass_conservation( model_clock%get_step(), density, mr, &
+                            w3_aerosol, wt_aerosol, use_aerosols )
     call log_field_minmax( LOG_LEVEL_INFO, 'rho', density )
     call log_field_minmax( LOG_LEVEL_INFO, 'theta', theta )
     call log_field_minmax( LOG_LEVEL_INFO, 'tracer_con', tracer_con )
@@ -502,7 +532,8 @@ contains
     if ( subroutine_timers ) call timer( 'transport step' )
 
     ! Write out conservation diagnostics
-    call mass_conservation( model_clock%get_step(), density, mr )
+    call mass_conservation( model_clock%get_step(), density, mr, &
+                            w3_aerosol, wt_aerosol, use_aerosols )
     call log_field_minmax( LOG_LEVEL_INFO, 'rho', density )
     call log_field_minmax( LOG_LEVEL_INFO, 'theta', theta )
     call log_field_minmax( LOG_LEVEL_INFO, 'tracer_con', tracer_con )
