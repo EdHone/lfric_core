@@ -87,7 +87,7 @@
       'agnesi_hyd_cart', 'agnesi_nhyd_cart', 'schar3d_cart_8s',
       'schar_cart_8s', 'schar_cart_8s_lagged_orog', 'schar_cart_8s_inconsistent', 'bell_3d_cart',
       'bryan_fritsch-dry', 'bryan_fritsch-moist', 'grabowski-clark',
-      'runge-kutta-for-linear', 'semi-implicit-for-linear',
+      'runge-kutta-for-linear', 'semi-implicit-for-linear', 'no-timestep-method',
       'baroclinic-ffsl-split-spt-edges',
       'default'
     ] } %}
@@ -273,6 +273,10 @@
                      resolutions=[("C12",1.0)], env={"nrun":30} )',
     'run_application("gungho_model", "semi-implicit-for-linear",
                      resolutions=[("C12",10.0)], env={"nrun":3, "directives":{"default":{"use_xios":"False"} } } )',
+    'run_application("gungho_model", "no-timestep-method",
+                     resolutions=[("C12",1.0)],
+                     checkkgo=False,
+		     env={"nrun":3} )',
     'check_compilers("gungho_model", "baroclinic-noio", "intel", "fast-debug",
                      resolution=("C24_MG",3600.0), precisions=["32"],
                      publish=True )',
@@ -483,7 +487,7 @@
                                   env={"crun":1, "nrun":96,
                                        "directives":{"default":{"mpi_parts":36,"threads":6,"use_xios":"False","wallclock":"00:40:00"} }
                                       }
-                                 )',               
+                                 )',
                  'run_application("gungho_model",
                                   "gh_profile_omp9_6nodes",
                                   resolutions=[("C192_MG",1200.0)],

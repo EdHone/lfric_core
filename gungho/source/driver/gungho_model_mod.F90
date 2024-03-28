@@ -55,6 +55,7 @@ module gungho_model_mod
                                          LOG_LEVEL_INFO,     &
                                          LOG_LEVEL_ERROR,    &
                                          LOG_LEVEL_TRACE,    &
+                                         LOG_LEVEL_WARNING,  &
                                          LOG_LEVEL_ALWAYS
   use minmax_tseries_mod,         only : minmax_tseries,      &
                                          minmax_tseries_init, &
@@ -879,11 +880,14 @@ contains
         end if
       case( method_no_timestepping )
         ! Initialise a null-timestep method
-        allocate( timestep_method, source=no_timestep_type(modeldb) )
+        allocate( timestep_method, source=no_timestep_type() )
         ! Add to the model database
         call modeldb%values%add_key_value('timestep_method', &
                         timestep_method)
-
+        write( log_scratch_space, &
+                    '(A, A)' ) 'CAUTION: Running with no timestepping. ' // &
+                    ' Prognostic fields not evolved'
+        call log_event( log_scratch_space, LOG_LEVEL_WARNING )
       case default
         call log_event("Gungho: Incorrect time stepping option chosen, "// &
                         "stopping program! ",LOG_LEVEL_ERROR)

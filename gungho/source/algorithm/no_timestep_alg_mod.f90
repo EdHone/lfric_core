@@ -4,7 +4,8 @@
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
 
-!> @brief A dummy method for use when running without evolving time-step
+!> @brief A dummy method for use when running without evolving time-step. As the
+!>        object holds no data, we can rely on the default constructor.
 
 module no_timestep_alg_mod
 
@@ -27,29 +28,7 @@ module no_timestep_alg_mod
 
   end type no_timestep_type
 
-  ! Constructor for type
-  interface no_timestep_type
-    module procedure no_timestep_init
-  end interface no_timestep_type
-
 contains
-
-  !> @brief Fulfils API without doing anything
-  !> @param[in] modeldb Holds the model state
-  function no_timestep_init(modeldb) result(self)
-
-    implicit none
-
-    type(no_timestep_type) :: self
-
-    type(modeldb_type),     intent(in), target  :: modeldb
-
-    write( log_scratch_space, &
-                    '(A, A)' ) 'CAUTION: Running with no timestepping. ' // &
-                    ' Prognostic fields not evolved'
-    call log_event( log_scratch_space, LOG_LEVEL_WARNING )
-
-  end function no_timestep_init
 
   !> @brief Fulfils API without doing anything
   !> @param[in] modeldb Holds the model state
