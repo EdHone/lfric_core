@@ -18,6 +18,9 @@ module calc_detj_at_w3_kernel_mod
   use fs_continuity_mod, only : W3
   use kernel_mod,        only : kernel_type
 
+  use finite_element_config_mod, only: coord_system
+  use planet_config_mod,         only: scaled_radius
+
   implicit none
 
   private
@@ -126,10 +129,12 @@ subroutine calc_detj_at_w3_code_r_single( nlayers,                             &
     end do
 
     do df = 1,ndf_w3
-      call pointwise_coordinate_jacobian(ndf_chi, chi1_e, chi2_e, chi3_e, &
-                                         ipanel, basis_chi(:,:,df),       &
-                                         diff_basis_chi(:,:,df),          &
-                                         jacobian, detj)
+      call pointwise_coordinate_jacobian( ndf_chi, chi1_e, chi2_e, chi3_e, &
+                                          coord_system, scaled_radius,     &
+                                          ipanel, basis_chi(:,:,df),       &
+                                          diff_basis_chi(:,:,df),          &
+                                          jacobian, detj )
+
       detj_w3(map_w3(df)+k) = real(detj, r_single)
     end do
 
@@ -188,10 +193,12 @@ subroutine calc_detj_at_w3_code_r_double( nlayers,                             &
     end do
 
     do df = 1,ndf_w3
-      call pointwise_coordinate_jacobian(ndf_chi, chi1_e, chi2_e, chi3_e, &
-                                         ipanel, basis_chi(:,:,df),       &
-                                         diff_basis_chi(:,:,df),          &
-                                         jacobian, detj)
+      call pointwise_coordinate_jacobian( ndf_chi, chi1_e, chi2_e, chi3_e, &
+                                          coord_system, scaled_radius,     &
+                                          ipanel, basis_chi(:,:,df),       &
+                                          diff_basis_chi(:,:,df),          &
+                                          jacobian, detj )
+
       detj_w3(map_w3(df)+k) = real(detj, r_double)
     end do
 

@@ -10,13 +10,11 @@
 !> per panel for certain meshes such as cubed sphere.
 module coordinate_jacobian_mod
 
-  use constants_mod,             only: i_def, r_double, r_single
-  use finite_element_config_mod, only: coord_system,            &
-                                       coord_system_xyz,        &
-                                       coord_system_alphabetaz, &
-                                       coord_system_lonlatz
+  use constants_mod,             only: i_def, r_def, r_double, r_single
   use coord_transform_mod,       only: PANEL_ROT_MATRIX
-  use planet_config_mod,         only: scaled_radius
+  use finite_element_config_mod, only: COORD_SYSTEM_XYZ,        &
+                                       COORD_SYSTEM_ALPHABETAZ, &
+                                       COORD_SYSTEM_LONLATZ
 
   implicit none
 
@@ -82,22 +80,26 @@ contains
   !> reference space \f[ \hat{\chi} \f] to physical space \f[ \chi \f]
   !> \f[ J^{i,j} = \frac{\partial \chi_i} / {\partial \hat{\chi_j}} \f]
   !> and the determinant det(J)
-  !! @param[in] ndf        Size of the chi arrays
-  !! @param[in] ngp_h      Number of quadrature points in horizontal direction
-  !! @param[in] ngp_v      Number of quadrature points in vertical direction
-  !! @param[in] chi_1      1st component of the coordinate field
-  !! @param[in] chi_2      2nd component of the coordinate field
-  !! @param[in] chi_3      3rd component of the coordinate field
-  !! @param[in] panel_id   An integer identifying the mesh panel
-  !! @param[in] basis      Wchi basis functions
-  !! @param[in] diff_basis Grad of Wchi basis functions
-  !! @param[out] jac       Jacobian on quadrature points
-  !! @param[out] dj        Determinant of the Jacobian on quadrature points
-  subroutine coordinate_jacobian_quadrature_r_single( &
-                                           ndf, ngp_h, ngp_v,   &
-                                           chi_1, chi_2, chi_3, &
-                                           panel_id, basis,     &
-                                           diff_basis, jac, dj  )
+  !! @param[in] ndf           Size of the chi arrays
+  !! @param[in] ngp_h         Number of quadrature points in horizontal direction
+  !! @param[in] ngp_v         Number of quadrature points in vertical direction
+  !! @param[in] chi_1         1st component of the coordinate field
+  !! @param[in] chi_2         2nd component of the coordinate field
+  !! @param[in] chi_3         3rd component of the coordinate field
+  !! @param[in] coord_system  Finite-element coordinate system choice
+  !! @param[in] scaled_radius Scaled radius of planet
+  !! @param[in] panel_id      An integer identifying the mesh panel
+  !! @param[in] basis         Wchi basis functions
+  !! @param[in] diff_basis    Grad of Wchi basis functions
+  !! @param[out] jac          Jacobian on quadrature points
+  !! @param[out] dj           Determinant of the Jacobian on quadrature points
+  subroutine coordinate_jacobian_quadrature_r_single(                   &
+                                           ndf, ngp_h, ngp_v,           &
+                                           chi_1, chi_2, chi_3,         &
+                                           coord_system, scaled_radius, &
+                                           panel_id,                    &
+                                           basis, diff_basis, jac, dj )
+
   !-----------------------------------------------------------------------------
   ! Compute the Jacobian J^{i,j} = d chi_i / d \hat{chi_j} and the
   ! determinant det(J)
@@ -105,7 +107,9 @@ contains
     implicit none
 
     integer(kind=i_def),  intent(in) :: ndf, ngp_h, ngp_v
+    integer(kind=i_def),  intent(in) :: coord_system
     integer(kind=i_def),  intent(in) :: panel_id
+    real(kind=r_def),     intent(in) :: scaled_radius
 
     real(kind=r_single),  intent(in) :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
     real(kind=r_single), intent(out) :: jac(3,3,ngp_h,ngp_v)
@@ -139,10 +143,11 @@ contains
       end do
     end do
 
-    if (coord_system == coord_system_xyz) then
+    select case (coord_system)
+    case (COORD_SYSTEM_XYZ)
       jac = jac_ref2sph
 
-    else if (coord_system == coord_system_alphabetaz) then
+    case (COORD_SYSTEM_ALPHABETAZ)
       do j = 1,ngp_v
         do i = 1,ngp_h
           alpha  = 0.0_r_single
@@ -158,7 +163,7 @@ contains
         end do
       end do
 
-    else if (coord_system == coord_system_lonlatz) then
+    case (COORD_SYSTEM_LONLATZ)
       do j = 1,ngp_v
         do i = 1,ngp_h
           longitude = 0.0_r_single
@@ -173,7 +178,8 @@ contains
           jac(:,:,i,j) = matmul(jac_sph2XYZ, jac_ref2sph(:,:,i,j))
         end do
       end do
-    end if
+
+    end select ! coord_system
 
     do j = 1,ngp_v
       do i = 1,ngp_h
@@ -188,11 +194,12 @@ contains
 
   end subroutine coordinate_jacobian_quadrature_r_single
 
-  subroutine coordinate_jacobian_quadrature_r_double( &
-                                           ndf, ngp_h, ngp_v,   &
-                                           chi_1, chi_2, chi_3, &
-                                           panel_id, basis,     &
-                                           diff_basis, jac, dj  )
+  subroutine coordinate_jacobian_quadrature_r_double(                   &
+                                           ndf, ngp_h, ngp_v,           &
+                                           chi_1, chi_2, chi_3,         &
+                                           coord_system, scaled_radius, &
+                                           panel_id, basis,             &
+                                           diff_basis, jac, dj )
   !-----------------------------------------------------------------------------
   ! Compute the Jacobian J^{i,j} = d chi_i / d \hat{chi_j} and the
   ! determinant det(J)
@@ -200,7 +207,9 @@ contains
     implicit none
 
     integer(kind=i_def),  intent(in) :: ndf, ngp_h, ngp_v
+    integer(kind=i_def),  intent(in) :: coord_system
     integer(kind=i_def),  intent(in) :: panel_id
+    real(kind=r_def),     intent(in) :: scaled_radius
 
     real(kind=r_double),  intent(in) :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
     real(kind=r_double), intent(out) :: jac(3,3,ngp_h,ngp_v)
@@ -234,10 +243,11 @@ contains
       end do
     end do
 
-    if (coord_system == coord_system_xyz) then
+    select case (coord_system)
+    case (COORD_SYSTEM_XYZ)
       jac = jac_ref2sph
 
-    else if (coord_system == coord_system_alphabetaz) then
+    case (COORD_SYSTEM_ALPHABETAZ)
       do j = 1,ngp_v
         do i = 1,ngp_h
           alpha  = 0.0_r_double
@@ -253,7 +263,7 @@ contains
         end do
       end do
 
-    else if (coord_system == coord_system_lonlatz) then
+    case (COORD_SYSTEM_LONLATZ)
       do j = 1,ngp_v
         do i = 1,ngp_h
           longitude = 0.0_r_double
@@ -269,7 +279,7 @@ contains
         end do
       end do
 
-    end if
+    end select ! coord_system
 
     do j = 1,ngp_v
       do i = 1,ngp_h
@@ -293,21 +303,24 @@ contains
   !> reference space \f[ \hat{\chi} \f] to physical space \f[ \chi \f]
   !> \f[ J^{i,j} = \frac{\partial \chi_i} / {\partial \hat{\chi_j}} \f]
   !> and the determinant det(J)
-  !! @param[in] ndf          Size of the chi arrays
-  !! @param[in] neval_points Number of points basis functions are evaluated on
-  !! @param[in] chi_1        1st component of the coordinate field
-  !! @param[in] chi_2        2nd component of the coordinate field
-  !! @param[in] chi_3        3rd component of the coordinate field
-  !! @param[in] panel_id     An integer identifying the mesh panel
-  !! @param[in] basis        Wchi basis functions
-  !! @param[in] diff_basis   Grad of Wchi basis functions
-  !! @param[out] jac         Jacobian on quadrature points
-  !! @param[out] dj          Determinant of the Jacobian on quadrature points
-  subroutine coordinate_jacobian_evaluator_r_single( &
-                                           ndf, neval_points,   &
-                                           chi_1, chi_2, chi_3, &
-                                           panel_id, basis,     &
-                                           diff_basis, jac, dj  )
+  !! @param[in] ndf           Size of the chi arrays
+  !! @param[in] neval_points  Number of points basis functions are evaluated on
+  !! @param[in] chi_1         1st component of the coordinate field
+  !! @param[in] chi_2         2nd component of the coordinate field
+  !! @param[in] chi_3         3rd component of the coordinate field
+  !! @param[in] coord_system  Finite-element coordinate system choice
+  !! @param[in] scaled_radius Scaled radius of planet
+  !! @param[in] panel_id      An integer identifying the mesh panel
+  !! @param[in] basis         Wchi basis functions
+  !! @param[in] diff_basis    Grad of Wchi basis functions
+  !! @param[out] jac          Jacobian on quadrature points
+  !! @param[out] dj           Determinant of the Jacobian on quadrature points
+  subroutine coordinate_jacobian_evaluator_r_single(                    &
+                                           ndf, neval_points,           &
+                                           chi_1, chi_2, chi_3,         &
+                                           coord_system, scaled_radius, &
+                                           panel_id, basis,             &
+                                           diff_basis, jac, dj )
   !-----------------------------------------------------------------------------
   ! Compute the Jacobian J^{i,j} = d chi_i / d \hat{chi_j} and the
   ! determinant det(J)
@@ -315,7 +328,9 @@ contains
     implicit none
 
     integer(kind=i_def),  intent(in) :: ndf, neval_points
+    integer(kind=i_def),  intent(in) :: coord_system
     integer(kind=i_def),  intent(in) :: panel_id
+    real(kind=r_def),     intent(in) :: scaled_radius
 
     real(kind=r_single),  intent(in) :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
     real(kind=r_single), intent(out) :: jac(3,3,neval_points)
@@ -344,10 +359,11 @@ contains
       end do
     end do
 
-    if (coord_system == coord_system_xyz) then
+    select case (coord_system)
+    case (COORD_SYSTEM_XYZ)
       jac = jac_ref2sph
 
-    else if (coord_system == coord_system_alphabetaz) then
+    case (COORD_SYSTEM_ALPHABETAZ)
       do i = 1,neval_points
         alpha  = 0.0_r_single
         beta   = 0.0_r_single
@@ -361,7 +377,7 @@ contains
         jac(:,:,i) = matmul(jac_sph2XYZ, jac_ref2sph(:,:,i))
       end do
 
-    else if (coord_system == coord_system_lonlatz) then
+    case (COORD_SYSTEM_LONLATZ)
       do i = 1,neval_points
         longitude = 0.0_r_single
         latitude  = 0.0_r_single
@@ -375,7 +391,7 @@ contains
         jac(:,:,i) = matmul(jac_sph2XYZ, jac_ref2sph(:,:,i))
       end do
 
-    end if
+    end select ! coord_system
 
     do i = 1,neval_points
       dj(i) = jac(1,1,i)*(jac(2,2,i)*jac(3,3,i)        &
@@ -388,11 +404,12 @@ contains
 
   end subroutine coordinate_jacobian_evaluator_r_single
 
-  subroutine coordinate_jacobian_evaluator_r_double( &
-                                           ndf, neval_points,   &
-                                           chi_1, chi_2, chi_3, &
-                                           panel_id, basis,     &
-                                           diff_basis, jac, dj  )
+  subroutine coordinate_jacobian_evaluator_r_double(                    &
+                                           ndf, neval_points,           &
+                                           chi_1, chi_2, chi_3,         &
+                                           coord_system, scaled_radius, &
+                                           panel_id, basis,             &
+                                           diff_basis, jac, dj )
   !-----------------------------------------------------------------------------
   ! Compute the Jacobian J^{i,j} = d chi_i / d \hat{chi_j} and the
   ! determinant det(J)
@@ -400,7 +417,9 @@ contains
     implicit none
 
     integer(kind=i_def),  intent(in) :: ndf, neval_points
+    integer(kind=i_def),  intent(in) :: coord_system
     integer(kind=i_def),  intent(in) :: panel_id
+    real(kind=r_def),     intent(in) :: scaled_radius
 
     real(kind=r_double),  intent(in) :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
     real(kind=r_double), intent(out) :: jac(3,3,neval_points)
@@ -429,10 +448,11 @@ contains
       end do
     end do
 
-    if (coord_system == coord_system_xyz) then
+    select case (coord_system)
+    case (COORD_SYSTEM_XYZ)
       jac = jac_ref2sph
 
-    else if (coord_system == coord_system_alphabetaz) then
+    case (COORD_SYSTEM_ALPHABETAZ)
       do i = 1,neval_points
         alpha  = 0.0_r_double
         beta   = 0.0_r_double
@@ -446,7 +466,7 @@ contains
         jac(:,:,i) = matmul(jac_sph2XYZ, jac_ref2sph(:,:,i))
       end do
 
-    else if (coord_system == coord_system_lonlatz) then
+    case (COORD_SYSTEM_LONLATZ)
       do i = 1,neval_points
         longitude = 0.0_r_double
         latitude  = 0.0_r_double
@@ -460,7 +480,7 @@ contains
         jac(:,:,i) = matmul(jac_sph2XYZ, jac_ref2sph(:,:,i))
       end do
 
-    end if
+    end select ! coord_system
 
     do i = 1,neval_points
       dj(i) = jac(1,1,i)*(jac(2,2,i)*jac(3,3,i)        &
@@ -620,23 +640,28 @@ contains
   !> reference space \f[ \hat{\chi} \f] to physical space \f[ \chi \f]
   !> \f[ J^{i,j} = \frac{\partial \chi_i} / {\partial \hat{\chi_j}} \f]
   !> and the determinant det(J) for a single point
-  !! @param[in] ndf        Size of the chi arrays
-  !! @param[in] chi_1      Coordinate field
-  !! @param[in] chi_2      Coordinate field
-  !! @param[in] chi_3      Coordinate field
-  !! @param[in] panel_id   panel_id
-  !! @param[in] basis      Wchi basis functions
-  !! @param[in] diff_basis Grad of Wchi basis functions
-  !! @param[out] jac       Jacobian on quadrature points
-  !! @param[out] dj        Determinant of the Jacobian on quadrature points
-  subroutine pointwise_coordinate_jacobian_r_single( &
-                                       ndf, chi_1, chi_2, chi_3,      &
-                                       panel_id, basis, diff_basis,   &
-                                       jac, dj      )
+  !! @param[in] ndf           Size of the chi arrays
+  !! @param[in] chi_1         Coordinate field
+  !! @param[in] chi_2         Coordinate field
+  !! @param[in] chi_3         Coordinate field
+  !! @param[in] coord_system  Finite-element coordinate system choice
+  !! @param[in] scaled_radius Scaled radius of planet
+  !! @param[in] panel_id      panel_id
+  !! @param[in] basis         Wchi basis functions
+  !! @param[in] diff_basis    Grad of Wchi basis functions
+  !! @param[out] jac          Jacobian on quadrature points
+  !! @param[out] dj           Determinant of the Jacobian on quadrature points
+  subroutine pointwise_coordinate_jacobian_r_single(                &
+                                       ndf, chi_1, chi_2, chi_3,    &
+                                       coord_system, scaled_radius, &
+                                       panel_id, basis, diff_basis, &
+                                       jac, dj )
     implicit none
 
     integer(kind=i_def),  intent(in) :: ndf
+    integer(kind=i_def),  intent(in) :: coord_system
     integer(kind=i_def),  intent(in) :: panel_id
+    real(kind=r_def),     intent(in) :: scaled_radius
 
     real(kind=r_single),  intent(in) :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
     real(kind=r_single),  intent(in) :: basis(1,ndf)
@@ -662,10 +687,11 @@ contains
       end do
     end do
 
-    if (coord_system == coord_system_xyz) then
+    select case (coord_system)
+    case (COORD_SYSTEM_XYZ)
       jac = jac_ref2sph
 
-    else if (coord_system == coord_system_alphabetaz) then
+    case (COORD_SYSTEM_ALPHABETAZ)
       alpha  = 0.0_r_single
       beta   = 0.0_r_single
       radius = real(scaled_radius, kind=r_single)
@@ -677,7 +703,7 @@ contains
       jac_sph2XYZ = jacobian_abr2XYZ(alpha, beta, radius, panel_id)
       jac = matmul(jac_sph2XYZ, jac_ref2sph)
 
-    else if (coord_system == coord_system_lonlatz) then
+    case (COORD_SYSTEM_LONLATZ)
       longitude = 0.0_r_single
       latitude  = 0.0_r_single
       radius    = real(scaled_radius, kind=r_single)
@@ -689,7 +715,7 @@ contains
       jac_sph2XYZ = jacobian_llr2XYZ(longitude, latitude, radius)
       jac = matmul(jac_sph2XYZ, jac_ref2sph)
 
-    end if
+    end select ! coord_system
 
     dj = jac(1,1)*(jac(2,2)*jac(3,3)        &
                  - jac(2,3)*jac(3,2))       &
@@ -700,14 +726,17 @@ contains
 
   end subroutine pointwise_coordinate_jacobian_r_single
 
-  subroutine pointwise_coordinate_jacobian_r_double( &
-                                       ndf, chi_1, chi_2, chi_3,      &
-                                       panel_id, basis, diff_basis,   &
-                                       jac, dj      )
+  subroutine pointwise_coordinate_jacobian_r_double(                &
+                                       ndf, chi_1, chi_2, chi_3,    &
+                                       coord_system, scaled_radius, &
+                                       panel_id, basis, diff_basis, &
+                                       jac, dj )
     implicit none
 
     integer(kind=i_def),  intent(in) :: ndf
+    integer(kind=i_def),  intent(in) :: coord_system
     integer(kind=i_def),  intent(in) :: panel_id
+    real(kind=r_def),     intent(in) :: scaled_radius
 
     real(kind=r_double),  intent(in) :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
     real(kind=r_double),  intent(in) :: basis(1,ndf)
@@ -733,10 +762,11 @@ contains
       end do
     end do
 
-    if (coord_system == coord_system_xyz) then
+    select case (coord_system)
+    case (COORD_SYSTEM_XYZ)
       jac = jac_ref2sph
 
-    else if (coord_system == coord_system_alphabetaz) then
+    case (COORD_SYSTEM_ALPHABETAZ)
       alpha  = 0.0_r_double
       beta   = 0.0_r_double
       radius = real(scaled_radius, kind=r_double)
@@ -748,7 +778,7 @@ contains
       jac_sph2XYZ = jacobian_abr2XYZ(alpha, beta, radius, panel_id)
       jac = matmul(jac_sph2XYZ, jac_ref2sph)
 
-    else if (coord_system == coord_system_lonlatz) then
+    case(COORD_SYSTEM_LONLATZ)
       longitude = 0.0_r_double
       latitude  = 0.0_r_double
       radius    = real(scaled_radius, kind=r_double)
@@ -760,7 +790,7 @@ contains
       jac_sph2XYZ = jacobian_llr2XYZ(longitude, latitude, radius)
       jac = matmul(jac_sph2XYZ, jac_ref2sph)
 
-    end if
+    end select ! coord_system
 
     dj = jac(1,1)*(jac(2,2)*jac(3,3)        &
                  - jac(2,3)*jac(3,2))       &

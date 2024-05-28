@@ -26,13 +26,17 @@ module compute_sample_u_ops_kernel_mod
   use constants_mod,           only : r_def, i_def
   use fs_continuity_mod,       only : W2broken, W3, Wtheta, Wchi
   use kernel_mod,              only : kernel_type
-  use base_mesh_config_mod,    only : geometry,  geometry_spherical, &
-                                      geometry_planar
   use chi_transform_mod,       only : chi2llr
   use coordinate_jacobian_mod, only : coordinate_jacobian, &
                                       coordinate_jacobian_inverse
   use coord_transform_mod,     only : sphere2cart_vector
   use reference_element_mod,   only : W, S, N, E, T, B
+
+  use base_mesh_config_mod,      only: geometry,           &
+                                       GEOMETRY_SPHERICAL, &
+                                       GEOMETRY_PLANAR
+  use finite_element_config_mod, only: coord_system
+  use planet_config_mod,         only: scaled_radius
 
   implicit none
 
@@ -156,7 +160,7 @@ subroutine compute_sample_u_ops_code( col, nlayers,                   &
   ! For spherical geometry, need to rotate from (lon,lat,r) components
   ! For planar geometry, components should already be in (X,Y,Z) coordinates
   select case ( geometry )
-  case ( geometry_planar )
+  case ( GEOMETRY_PLANAR )
 
     X_vector = (/ 1.0_r_def, 0.0_r_def, 0.0_r_def /)
     Y_vector = (/ 0.0_r_def, 1.0_r_def, 0.0_r_def /)
@@ -176,8 +180,11 @@ subroutine compute_sample_u_ops_code( col, nlayers,                   &
         chi3_e(df_chi) = chi3(map_chi(df_chi) + k)
       end do
 
-      call coordinate_jacobian(ndf_chi, ndf_w2b, chi1_e, chi2_e, chi3_e,       &
-                              ipanel, chi_basis, chi_diff_basis, jacobian, dj)
+      call coordinate_jacobian( ndf_chi, ndf_w2b,                    &
+                                chi1_e, chi2_e, chi3_e,              &
+                                coord_system, scaled_radius, ipanel, &
+                                chi_basis, chi_diff_basis, jacobian, dj )
+
       call coordinate_jacobian_inverse(ndf_w2b, jacobian, dj, jac_inv)
 
       ! X and Y components contribute equally to all W2 DoFs
@@ -205,7 +212,7 @@ subroutine compute_sample_u_ops_code( col, nlayers,                   &
 
     end do
 
-  case ( geometry_spherical )
+  case ( GEOMETRY_SPHERICAL )
 
     lon_vector_llr = (/ 1.0_r_def, 0.0_r_def, 0.0_r_def /)
     lat_vector_llr = (/ 0.0_r_def, 1.0_r_def, 0.0_r_def /)
@@ -225,8 +232,11 @@ subroutine compute_sample_u_ops_code( col, nlayers,                   &
         chi3_e(df_chi) = chi3(map_chi(df_chi) + k)
       end do
 
-      call coordinate_jacobian(ndf_chi, ndf_w2b, chi1_e, chi2_e, chi3_e,       &
-                               ipanel, chi_basis, chi_diff_basis, jacobian, dj)
+      call coordinate_jacobian( ndf_chi, ndf_w2b,                    &
+                                chi1_e, chi2_e, chi3_e,              &
+                                coord_system, scaled_radius, ipanel, &
+                                chi_basis, chi_diff_basis, jacobian, dj )
+
       call coordinate_jacobian_inverse(ndf_w2b, jacobian, dj, jac_inv)
 
       ! Convert (lon,lat,r) vectors into (X,Y,Z) components

@@ -28,6 +28,9 @@ module compute_map_u_operators_kernel_mod
   use kernel_mod,              only : kernel_type
   use log_mod,                 only : log_event, LOG_LEVEL_ERROR, LOG_LEVEL_INFO
 
+  use finite_element_config_mod, only: coord_system
+  use planet_config_mod,         only: scaled_radius
+
   implicit none
 
   private
@@ -179,6 +182,8 @@ subroutine compute_map_u_operators_code(cell, nlayers, ncell_3d_1, &
                              chi_sph_1_cell,     &
                              chi_sph_2_cell,     &
                              chi_sph_3_cell,     &
+                             coord_system,       &
+                             scaled_radius,      &
                              ipanel,             &
                              chi_sph_basis,      &
                              chi_sph_diff_basis, &

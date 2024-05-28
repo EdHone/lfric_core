@@ -24,6 +24,9 @@ module compute_mass_matrix_kernel_w_scalar_mod
   use fs_continuity_mod,       only: W0, Wtheta, Wchi
   use kernel_mod,              only: kernel_type
 
+  use finite_element_config_mod, only: coord_system
+  use planet_config_mod,         only: scaled_radius
+
   implicit none
 
   private
@@ -161,10 +164,10 @@ contains
         chi3_e(df) = chi3(map_chi(df) + k - 1)
       end do
 
-      call coordinate_jacobian(ndf_chi, nqp_h, nqp_v,          &
-                               chi1_e, chi2_e, chi3_e, ipanel, &
-                               basis_chi, diff_basis_chi,      &
-                               jac, dj)
+      call coordinate_jacobian( ndf_chi, nqp_h, nqp_v,               &
+                                chi1_e, chi2_e, chi3_e,              &
+                                coord_system, scaled_radius, ipanel, &
+                                basis_chi, diff_basis_chi, jac, dj )
 
       do df2 = 1, ndf_w_scalar
         do df = df2, ndf_w_scalar ! mass matrix is symmetric
@@ -257,10 +260,10 @@ contains
         chi3_e(df) = chi3(map_chi(df) + k - 1)
       end do
 
-      call coordinate_jacobian(ndf_chi, nqp_h, nqp_v,          &
-                               chi1_e, chi2_e, chi3_e, ipanel, &
-                               basis_chi, diff_basis_chi,      &
-                               jac, dj)
+      call coordinate_jacobian( ndf_chi, nqp_h, nqp_v,               &
+                                chi1_e, chi2_e, chi3_e,              &
+                                coord_system, scaled_radius, ipanel, &
+                                basis_chi, diff_basis_chi, jac, dj )
 
       do df2 = 1, ndf_w_scalar
         do df = df2, ndf_w_scalar ! mass matrix is symmetric
@@ -356,10 +359,10 @@ contains
         chi3_e(df) = chi3(map_chi(df) + k - 1)
       end do
 
-      call coordinate_jacobian(ndf_chi, nqp_h, nqp_v,          &
-                               chi1_e, chi2_e, chi3_e, ipanel, &
-                               basis_chi, diff_basis_chi,      &
-                               jac, dj)
+      call coordinate_jacobian( ndf_chi, nqp_h, nqp_v,               &
+                                chi1_e, chi2_e, chi3_e,              &
+                                coord_system, scaled_radius, ipanel, &
+                                basis_chi, diff_basis_chi, jac, dj )
 
       do df2 = 1, ndf_w_scalar
         do df = df2, ndf_w_scalar ! mass matrix is symmetric
