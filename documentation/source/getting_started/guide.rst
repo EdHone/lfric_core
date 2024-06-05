@@ -60,5 +60,7 @@ The :ref:`Technical Articles section <section technical articles>`
 includes articles on several topics including the distributed memory
 strategy and implementation, the clock and calendar.
 
+A :ref:`Glossary of Terms <glossary_of_terms>` defines commonly used terms and is available from the right-hand side panel of each page.
+
 Finally, detailed API documentation is given for the LFRic
 infrastructure and each LFRic component.
