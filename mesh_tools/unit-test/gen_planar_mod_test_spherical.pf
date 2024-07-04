@@ -189,8 +189,8 @@ contains
       config_type(                                                 &
         x_size=1, x_periodic=.false.,                              &
         y_size=1, y_periodic=.false.,                              &
-        domain_size=(/50.0, 10.0/),                                &
-        domain_centre=(/0.0, 0.0/),                                &
+        domain_size=(/50.0_r_def, 10.0_r_def/),                    &
+        domain_centre=(/0.0_r_def, 0.0_r_def/),                    &
         rotate_mesh=.false.,                                       &
         target_north_pole=(/0.0_r_def, 0.0_r_def/),                &
         target_null_island=(/0.0_r_def, 0.0_r_def/),               &
@@ -202,19 +202,19 @@ contains
         edges_on_face=reshape( (/1, 2, 3, 4/), (/4, 1/) ),         &
         nodes_on_edge=reshape( (/4, 1,   1, 2,                     &
                                  3, 2,   4, 3/), (/2, 4/) ),       &
-        coords=reshape( (/-25.0, -5.0,                             &
-                           25.0, -5.0,                             &
-                           25.0,  5.0,                             &
-                          -25.0,  5.0/), (/2, 4/) ),               &
-        face_coords=reshape( (/0.0, 0.0/), (/2, 1/) ),             &
-        number_of_maps=0                                           &
-      ),                                                           &
+        coords=reshape(      (/-25.0_r_def, -5.0_r_def,                 &
+                                25.0_r_def, -5.0_r_def,                 &
+                                25.0_r_def,  5.0_r_def,                 &
+                               -25.0_r_def,  5.0_r_def/), (/2, 4/) ),   &
+        face_coords=reshape( (/  0.0_r_def,  0.0_r_def/), (/2, 1/) ),   &
+        number_of_maps=0                                                &
+      ),                                                                &
       ! 1x1 rotated south
       config_type(                                                 &
         x_size=1, x_periodic=.false.,                              &
         y_size=1, y_periodic=.false.,                              &
-        domain_size=(/180.0, 10.0/),                               &
-        domain_centre=(/90.0, 0.0/),                               &
+        domain_size=(/180.0_r_def, 10.0_r_def/),                   &
+        domain_centre=(/90.0_r_def, 0.0_r_def/),                   &
         rotate_mesh=.true.,                                        &
         target_north_pole=(/0.0_r_def, 85.0_r_def/),               &
         target_null_island=(/180.0_r_def, 5.0_r_def/),             &
@@ -226,19 +226,19 @@ contains
         edges_on_face=reshape( (/1, 2, 3, 4/), (/4, 1/) ),         &
         nodes_on_edge=reshape( (/4, 1,   1, 2,                     &
                                  3, 2,   4, 3/), (/2, 4/) ),       &
-        coords=reshape( (/  0.0, -10.0,                            &
-                          180.0,   0.0,                            &
-                          180.0,  10.0,                            &
-                            0.0,   0.0/), (/2, 4/) ),              &
-        face_coords=reshape( (/90.0, 0.0/), (/2, 1/) ),            &
+        coords=reshape(      (/  0.0_r_def, -10.0_r_def,           &
+                              180.0_r_def,   0.0_r_def,            &
+                              180.0_r_def,  10.0_r_def,            &
+                              0.0_r_def,   0.0_r_def/), (/2, 4/) ),&
+        face_coords=reshape((/90.0_r_def,0.0_r_def/), (/2, 1/) ),  &
         number_of_maps=0                                           &
       ),                                                           &
       ! 1x1 rotated north
       config_type(                                                 &
         x_size=1, x_periodic=.false.,                              &
         y_size=1, y_periodic=.false.,                              &
-        domain_size=(/180.0, 10.0/),                               &
-        domain_centre=(/90.0, 0.0/),                               &
+        domain_size=(/180.0_r_def, 10.0_r_def/),                   &
+        domain_centre=(/90.0_r_def, 0.0_r_def/),                   &
         rotate_mesh=.true.,                                        &
         target_north_pole=(/180.0_r_def, 85.0_r_def/),             &
         target_null_island=(/0.0_r_def, 5.0_r_def/),               &
@@ -250,11 +250,11 @@ contains
         edges_on_face=reshape( (/1, 2, 3, 4/), (/4, 1/) ),         &
         nodes_on_edge=reshape( (/4, 1,   1, 2,                     &
                                  3, 2,   4, 3/), (/2, 4/) ),       &
-        coords=reshape( (/  0.0,   0.0,                            &
-                          180.0, -10.0,                            &
-                          180.0,   0.0,                            &
-                            0.0,  10.0/), (/2, 4/) ),              &
-        face_coords=reshape( (/90.0, 0.0/), (/2, 1/) ),            &
+        coords=reshape( (/  0.0_r_def,   0.0_r_def,                &
+                          180.0_r_def, -10.0_r_def,                &
+                          180.0_r_def,   0.0_r_def,                &
+                            0.0_r_def,  10.0_r_def/), (/2, 4/) ),  &
+        face_coords=reshape( (/90.0_r_def, 0.0_r_def/), (/2, 1/) ),&
         number_of_maps=0                                           &
       )                                                            &
     ]

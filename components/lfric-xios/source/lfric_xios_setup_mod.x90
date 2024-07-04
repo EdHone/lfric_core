@@ -872,7 +872,7 @@ contains
 
     ! Mesh information for biperiodic reconstruction
     type(domain_type) :: domain
-    real(r_def), parameter :: vert_loc_tol = 1e-8
+    real(r_def), parameter :: vert_loc_tol = 1e-8_r_def
 
     ! Factor to convert coords from radians to degrees if needed
     ! set as 1.0 for planar mesh

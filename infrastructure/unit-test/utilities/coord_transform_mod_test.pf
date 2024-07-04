@@ -66,7 +66,7 @@ contains
     ! Use that tan(pi/12) = 2 - sqrt(3)
     ! Use that tan(pi/6) = sqrt(3) / 3
     ! radius found from 1**2 + (sqrt(3)/3)**2 + (2-sqrt(3))**3 = 25/3-4*sqrt(3)
-    XYZ(:) = (/ 2.0_r_def - sqrt(3.0_r_def), sqrt(3.0)/3.0_r_def, 1.0_r_def /)
+    XYZ(:) = (/ 2.0_r_def - sqrt(3.0_r_def), sqrt(3.0_r_def)/3.0_r_def, 1.0_r_def /)
     abr_answer(:) = (/ pi/6.0_r_def,                                           &
                        -pi/12.0_r_def,                                         &
                        sqrt(25.0_r_def/3.0_r_def - 4.0_r_def*sqrt(3.0_r_def)) /)
@@ -130,7 +130,7 @@ contains
     ! Use that tan(pi/12) = 2 - sqrt(3)
     ! Use that tan(pi/6) = sqrt(3) / 3
     ! radius found from 1**2 + (sqrt(3)/3)**2 + (2-sqrt(3))**3 = 25/3-4*sqrt(3)
-    XYZ_answer(:) = (/ -sqrt(3.0)/3.0_r_def,         &
+    XYZ_answer(:) = (/ -sqrt(3.0_r_def)/3.0_r_def,         &
                        -2.0_r_def + sqrt(3.0_r_def), &
                       -1.0_r_def                    /)
     abr(:) = (/ pi/6.0_r_def,                                           &

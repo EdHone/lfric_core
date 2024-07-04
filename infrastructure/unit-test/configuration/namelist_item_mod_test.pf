@@ -36,19 +36,19 @@ contains
     type(namelist_item_type), allocatable :: test_array_unit(:)
 
     character(*),   parameter :: tall_key = 'tall'
-    integer(int32), parameter :: tall  = 6.0
+    integer(int32), parameter :: tall  = 6.0_int32
     integer(int32)            :: test_tall
 
     character(*),   parameter :: short_key = 'short'
-    integer(int64), parameter :: short = 3.0
+    integer(int64), parameter :: short = 3.0_int64
     integer(int64)            :: test_short
 
     character(*),   parameter :: fish_key = 'mackeral'
-    real(real32),   parameter :: smelly   = 12.0
+    real(real32),   parameter :: smelly   = 12.0_real32
     real(real32)              :: test_smelly
 
     character(*),   parameter :: bat_key = 'pointy'
-    real(real64),   parameter :: wings = 2.0
+    real(real64),   parameter :: wings = 2.0_real64
     real(real64)              :: test_wings
 
     character(*),   parameter :: mammal_key = 'human'
@@ -68,11 +68,11 @@ contains
     integer(int64), allocatable :: test_bust(:)
 
     character(*),   parameter   :: spooky_key = 'ghoul'
-    real(real32),   parameter   :: mould(2) = [12.0, 72.0]
+    real(real32),   parameter   :: mould(2) = [12.0_real32, 72.0_real32]
     real(real32),   allocatable :: test_mould(:)
 
     character(*),   parameter   :: goose_key = 'pointy'
-    real(real64),   parameter   :: feet(2) = [27.0, 36.0]
+    real(real64),   parameter   :: feet(2) = [27.0_real64, 36.0_real64]
     real(real64),   allocatable :: test_feet(:)
 
     character(*),   parameter   :: water_key = 'waste'

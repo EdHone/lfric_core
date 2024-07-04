@@ -77,14 +77,14 @@ module rotation_mod
     ! If angle is less than ~ 0.0001 degrees (i.e. norm2(rot_vec) < 1.e-6)
     ! then don't change the axis.
     rotate_the_pole = .true.
-    if (norm2(rot_vec) < 1.e-6) rotate_the_pole = .false.
+    if (norm2(rot_vec) < 1.e-6_r_def) rotate_the_pole = .false.
 
     ! The rotation_angle is chosen to from 0 degrees to pole_lon.
     rotation_angle = target_north_pole(1) + PI
 
     ! If rotation_angle < 0.0001 degrees, then don't rotate.
     rotate_about_pole = .true.
-    if (abs(target_north_pole(1)) < 0.0001) rotate_about_pole = .false.
+    if (abs(target_north_pole(1)) < 0.0001_r_def) rotate_about_pole = .false.
 
     if (rotate_the_pole .or. rotate_about_pole) then
 

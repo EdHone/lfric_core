@@ -79,7 +79,7 @@ contains
                           undf2,              &
                           map2 )
 
-    answer = (/ 1.0,1.0,2.0,3.0 /)
+    answer = (/ 1.0_r_def,1.0_r_def,2.0_r_def,3.0_r_def /)
     @assertEqual(answer,delta_at_wtheta,tol)
 
   end subroutine test_all

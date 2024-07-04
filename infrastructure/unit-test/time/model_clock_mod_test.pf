@@ -96,7 +96,7 @@ contains
         spinup_fraction(idx) = min(spinup_fraction(idx), 1.0_r_def)
       end do
     else ! spinup_length <= 0
-      end_spinup = 0.0
+      end_spinup = 0.0_r_second
     end if
 
     unit_under_test = model_clock_type( this%inject_first,   &
@@ -170,21 +170,21 @@ contains
     type(parameter_type) :: parameters(8)
     parameters = (/                                                   &
   ! Initial run without spinup
-                   parameter_type(1, 5, 12.7, 0.0, 1, 5, 5, 0),   &
+                   parameter_type(1, 5, 12.7_r_second, 0.0_r_second, 1, 5, 5, 0),   &
   ! Initial run with full spinup
-                   parameter_type(1, 5, 12.7, 20.0, 1, 5, 5, 2),  &
+                   parameter_type(1, 5, 12.7_r_second, 20.0_r_second, 1, 5, 5, 2),  &
   ! Initial run with start of spinup
-                   parameter_type(1, 5, 0.4, 2.5, 1, 5, 5, 5),   &
+                   parameter_type(1, 5, 0.4_r_second, 2.5_r_second, 1, 5, 5, 5),   &
   ! Subsequent run without spinup
-                   parameter_type(9, 15, 13.2, 0.0, 9, 15, 7, 0), &
+                   parameter_type(9, 15, 13.2_r_second, 0.0_r_second, 9, 15, 7, 0), &
   ! Subsequent run across spinup
-                   parameter_type(9, 15, 0.3, 4.0, 9, 15, 7, 6),  &
+                   parameter_type(9, 15, 0.3_r_second, 4.0_r_second, 9, 15, 7, 6),  &
   ! Subsequent run after spinup
-                   parameter_type(9, 15, 0.3, 2.0, 9, 15, 7, 0),  &
+                   parameter_type(9, 15, 0.3_r_second, 2.0_r_second, 9, 15, 7, 0),  &
   ! Single step initial run without spinup
-                   parameter_type(1, 1, 7.9, 0.0, 1, 1, 1, 0),    &
+                   parameter_type(1, 1, 7.9_r_second, 0.0_r_second, 1, 1, 1, 0),    &
   ! Single step subsequent run after spinup
-                   parameter_type(3, 3, 7.9, 8.0, 3, 3, 1, 0)/)
+                   parameter_type(3, 3, 7.9_r_second, 8.0_r_second, 3, 3, 1, 0)/)
   end function get_parameters
 
   ! Format a nice human readable description of the current parameter set.

@@ -219,8 +219,8 @@ contains
    logical(l_def)     :: periodic_y       = .false.
    integer(i_def)     :: edge_cells_x     = 9
    integer(i_def)     :: edge_cells_y     = 8
-   real(r_def)        :: domain_size(2)   = [9.0, 8.0]
-   real(r_def)        :: domain_centre(2) = [0.0, 0.0]
+   real(r_def)        :: domain_size(2)   = [9.0_r_def, 8.0_r_def]
+   real(r_def)        :: domain_centre(2) = [0.0_r_def, 0.0_r_def]
    integer(i_def)     :: rim_depth        = 3
 
    character(str_def) :: test_str(5)
@@ -388,8 +388,8 @@ contains
    logical(l_def)     :: periodic_y       = .false.
    integer(i_def)     :: edge_cells_x     = 6
    integer(i_def)     :: edge_cells_y     = 5
-   real(r_def)        :: domain_size(2)   = [6.0, 5.0]
-   real(r_def)        :: domain_centre(2) = [0.0, 0.0]
+   real(r_def)        :: domain_size(2)   = [6.0_r_def, 5.0_r_def]
+   real(r_def)        :: domain_centre(2) = [0.0_r_def, 0.0_r_def]
    integer(i_def)     :: rim_depth        = 2
 
    ! Setup
@@ -527,8 +527,8 @@ contains
    logical(l_def)     :: periodic_y       = .false.
    integer(i_def)     :: edge_cells_x     = 3
    integer(i_def)     :: edge_cells_y     = 4
-   real(r_def)        :: domain_size(2)   = [3.0, 4.0]
-   real(r_def)        :: domain_centre(2) = [0.0, 0.0]
+   real(r_def)        :: domain_size(2)   = [3.0_r_def, 4.0_r_def]
+   real(r_def)        :: domain_centre(2) = [0.0_r_def, 0.0_r_def]
    integer(i_def)     :: rim_depth        = 1
 
    ! Set cells for kgos

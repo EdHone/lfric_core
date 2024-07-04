@@ -1763,7 +1763,7 @@ subroutine calc_cell_centres(self)
     ! centre in the target coordinates (e.g. ll or xyz).
 
     do cell=1, ncells
-      self%cell_coords(:,cell) = 0.0
+      self%cell_coords(:,cell) = 0.0_r_def
       cell_verts(:) = self%verts_on_cell(1:NVERTS_PER_CELL, cell)
 
       do i=1,NVERTS_PER_CELL

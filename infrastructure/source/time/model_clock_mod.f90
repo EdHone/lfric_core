@@ -362,7 +362,7 @@ contains
     class(model_clock_type), intent(inout) :: this
     real(r_def) :: frac
 
-    if (this%last_spinup_step > 0.0) then ! avoids divide by zero
+    if (this%last_spinup_step > 0.0_r_def) then ! avoids divide by zero
       frac = min( (real(this%current_step, r_def) - 0.5_r_def) &
                   / real(this%last_spinup_step, r_def), &
                   1.0_r_def )

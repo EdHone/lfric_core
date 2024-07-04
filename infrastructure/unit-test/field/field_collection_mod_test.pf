@@ -346,7 +346,7 @@ contains
     ! Create field with the name 'test_field1' and put 42.0 in the first dof.
     call test_field1%initialise( self % w0_fs, name='test_field1' )
     proxy = test_field1%get_proxy()
-    proxy%data(1) = 42.0
+    proxy%data(1) = 42.0_r_def
 
     ! Check that adding a field to one collection doesn't result
     ! in it being added to the copy.
@@ -361,7 +361,7 @@ contains
     ! doesn't change the data in the copy.
     @assertEqual(test_field1 % get_name(), returned_field % get_name())
     proxy = test_field1 % get_proxy()
-    proxy%data(1) = 112.0
+    proxy%data(1) = 112.0_r_def
     proxy = returned_field % get_proxy()
     @assertEqual(42.0, proxy%data(1), tol)
 
@@ -386,7 +386,7 @@ contains
     ! pointer from the copied collection, and we should be pointing at the same data.
     nullify(test_field2_ptr)
     proxy = test_field2 % get_proxy()
-    proxy%data(1) = 112.0
+    proxy%data(1) = 112.0_r_def
     proxy = returned_field % get_proxy()
     @assertEqual(112.0, proxy%data(1), tol)
 

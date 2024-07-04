@@ -148,14 +148,14 @@ contains
     call get_w0_3x3x3_field(chi1, chi2, chi3, dx, dy, dz, &
                             map_w0,nlayers)
 
-    answer = (/ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, &
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 12.0, 36.0, 60.0, 0.0,   &
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 12.0, 36.0,    &
-                60.0, 0.0, 12.0, 24.0, 36.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  &
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, &
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, &
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, &
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
+    answer = (/ 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, &
+                0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 12.0_r_def, 36.0_r_def, 60.0_r_def, 0.0_r_def,         &
+                0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 12.0_r_def, 36.0_r_def,          &
+                60.0_r_def, 0.0_r_def, 12.0_r_def, 24.0_r_def, 36.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def,        &
+                0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, &
+                0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, &
+                0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, &
+                0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def /)
 
     ! Call the kernel
     cell = 3

@@ -175,8 +175,8 @@ contains
     ! Now set up initial field in W2 and the answer in shifted W2
     ! Assume a velocity that is constant in the horizontal
     ! Velocity varies linearly in the vertical
-    u_field(:) = 0.0
-    answer(:) = 0.0
+    u_field(:) = 0.0_r_def
+    answer(:) = 0.0_r_def
 
     do k = 1, nlayers
       dz = height_wt(map_wt(2, cell)+k-1) - height_wt(map_wt(1, cell)+k-1)

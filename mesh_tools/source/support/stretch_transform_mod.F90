@@ -189,7 +189,7 @@ subroutine calculate_settings( axis_direction, total_n,    &
   stretch_depth_real = 0.0_r_def
   do i=1, n_stretch
     stretch_depth_real = stretch_depth_real &
-                       + ( 1.0 + inflation_factor ) ** i * delta_inner
+                       + ( 1.0_r_def + inflation_factor ) ** i * delta_inner
   end do
   stretch_ends_r = inner_ends_r + stretch_depth_real
   stretch_ends_l = inner_ends_l - stretch_depth_real
@@ -322,7 +322,7 @@ subroutine stretch_transform( cell, node_coord,           &
 
     stretching_coord = inner_ends_l
     do c = 1, ( n_outer + n_stretch + 1 ) - stretch_cell
-      stretching_coord = stretching_coord - ( 1.0 + inflation_factor )** (c) * delta_inner
+      stretching_coord = stretching_coord - ( 1.0_r_def + inflation_factor )** (c) * delta_inner
     end do
 
   ! Inner region
@@ -338,7 +338,7 @@ subroutine stretch_transform( cell, node_coord,           &
 
     stretching_coord = inner_ends_r
     do c = 1, stretch_cell - ( n_outer + n_stretch + n_inner )
-      stretching_coord = stretching_coord + (1.0 + inflation_factor)** (c) * delta_inner
+      stretching_coord = stretching_coord + (1.0_r_def + inflation_factor)** (c) * delta_inner
     end do
 
   ! Outer region - right

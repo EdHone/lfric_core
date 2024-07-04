@@ -126,9 +126,9 @@ contains
     type(parameter_type) :: parameters(2)
     parameters = (/                                        &
   ! Initial run
-                   parameter_type(5, 1, -12.7, 5, 1, 5),   &
+                   parameter_type(5, 1, -12.7_r_second, 5, 1, 5),   &
   ! Single step
-                   parameter_type(3, 3, -7.9, 3, 3, 1)/)
+                   parameter_type(3, 3, -7.9_r_second, 3, 3, 1)/)
   end function get_parameters
 
   ! Format a nice human readable description of the current parameter set.

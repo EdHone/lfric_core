@@ -50,8 +50,8 @@ module calc_global_cell_map_mod_test
     integer(i_def) :: coarse_ncells_y  = 2
     integer(i_def) :: fine_ncells_x    = 4
     integer(i_def) :: fine_ncells_y    = 6
-    real(r_def)    :: domain_size(2)   = [10.0, 10.0]
-    real(r_def)    :: domain_centre(2) = [0.0, 0.0]
+    real(r_def)    :: domain_size(2)   = [10.0_r_def, 10.0_r_def]
+    real(r_def)    :: domain_centre(2) = [0.0_r_def, 0.0_r_def]
 
     integer(i_def), allocatable ::  cell_map(:,:,:)
 

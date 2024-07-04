@@ -154,7 +154,7 @@ contains
         do k = 0,6
           dl_chi1(map_dl_w0(1,icell)+k) = real(i-1)*dx
           dl_chi2(map_dl_w0(1,icell)+k) = real(j-1)*dy
-          dl_chi3(map_dl_w0(1,icell)+k) = real(k)*0.5*dz
+          dl_chi3(map_dl_w0(1,icell)+k) = real(k)*0.5_r_def*dz
         end do
         icell = icell + 1
       end do
@@ -192,10 +192,10 @@ contains
                                         nqp_h, nqp_v, wh, wv              &
                                       )
 
-    I_lower_i_ip1_answer = dx * dy * dz / 8.0
-    I_lower_i_i_answer = 3.0 * dx * dy * dz / 8.0
-    I_upper_i_i_answer = 3.0 * dx * dy * dz / 8.0
-    I_upper_i_im1_answer = dx * dy * dz / 8.0
+    I_lower_i_ip1_answer = dx * dy * dz / 8.0_r_def
+    I_lower_i_i_answer = 3.0_r_def * dx * dy * dz / 8.0_r_def
+    I_upper_i_i_answer = 3.0_r_def * dx * dy * dz / 8.0_r_def
+    I_upper_i_im1_answer = dx * dy * dz / 8.0_r_def
     @assertEqual(I_lower_i_ip1_answer, I_lower_i_ip1(map_w3(1, cell)), tol)
     @assertEqual(I_lower_i_i_answer,   I_lower_i_i(map_w3(1, cell)),   tol)
 

@@ -136,24 +136,24 @@ contains
     ! Setup expected data arrays
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    W0_data = (/ 1.0, 10.0, 19.0, 28.0, 2.0, 11.0, 20.0, 29.0, 3.0, 12.0, 21.0, 30.0, &
-                 4.0, 13.0, 22.0, 31.0, 5.0, 14.0, 23.0, 32.0, 6.0, 15.0, 24.0, 33.0, &
-                 7.0, 16.0, 25.0, 34.0, 8.0, 17.0, 26.0, 35.0, 9.0, 18.0, 27.0, 36.0 /)
+    W0_data = (/ 1.0_dp_xios, 10.0_dp_xios, 19.0_dp_xios, 28.0_dp_xios, 2.0_dp_xios, 11.0_dp_xios, 20.0_dp_xios, 29.0_dp_xios, 3.0_dp_xios, 12.0_dp_xios, 21.0_dp_xios, 30.0_dp_xios, &
+                 4.0_dp_xios, 13.0_dp_xios, 22.0_dp_xios, 31.0_dp_xios, 5.0_dp_xios, 14.0_dp_xios, 23.0_dp_xios, 32.0_dp_xios, 6.0_dp_xios, 15.0_dp_xios, 24.0_dp_xios, 33.0_dp_xios, &
+                 7.0_dp_xios, 16.0_dp_xios, 25.0_dp_xios, 34.0_dp_xios, 8.0_dp_xios, 17.0_dp_xios, 26.0_dp_xios, 35.0_dp_xios, 9.0_dp_xios, 18.0_dp_xios, 27.0_dp_xios, 36.0_dp_xios /)
 
-    W2H_data = (/ 1.00, 19.0, 37.0, 2.00, 20.0, 38.0, 3.00, 21.0, 39.0, &
-                  4.00, 22.0, 40.0, 5.00, 23.0, 41.0, 6.00, 24.0, 42.0, &
-                  7.00, 25.0, 43.0, 8.00, 26.0, 44.0, 9.00, 27.0, 45.0, &
-                  10.0, 28.0, 46.0, 11.0, 29.0, 47.0, 12.0, 30.0, 48.0, &
-                  13.0, 31.0, 49.0, 14.0, 32.0, 50.0, 15.0, 33.0, 51.0, &
-                  16.0, 34.0, 52.0, 17.0, 35.0, 53.0, 18.0, 36.0, 54.0 /)
+    W2H_data = (/ 1.00_dp_xios, 19.0_dp_xios, 37.0_dp_xios, 2.00_dp_xios, 20.0_dp_xios, 38.0_dp_xios, 3.00_dp_xios, 21.0_dp_xios, 39.0_dp_xios, &
+                  4.00_dp_xios, 22.0_dp_xios, 40.0_dp_xios, 5.00_dp_xios, 23.0_dp_xios, 41.0_dp_xios, 6.00_dp_xios, 24.0_dp_xios, 42.0_dp_xios, &
+                  7.00_dp_xios, 25.0_dp_xios, 43.0_dp_xios, 8.00_dp_xios, 26.0_dp_xios, 44.0_dp_xios, 9.00_dp_xios, 27.0_dp_xios, 45.0_dp_xios, &
+                  10.0_dp_xios, 28.0_dp_xios, 46.0_dp_xios, 11.0_dp_xios, 29.0_dp_xios, 47.0_dp_xios, 12.0_dp_xios, 30.0_dp_xios, 48.0_dp_xios, &
+                  13.0_dp_xios, 31.0_dp_xios, 49.0_dp_xios, 14.0_dp_xios, 32.0_dp_xios, 50.0_dp_xios, 15.0_dp_xios, 33.0_dp_xios, 51.0_dp_xios, &
+                  16.0_dp_xios, 34.0_dp_xios, 52.0_dp_xios, 17.0_dp_xios, 35.0_dp_xios, 53.0_dp_xios, 18.0_dp_xios, 36.0_dp_xios, 54.0_dp_xios /)
 
-    WTheta_data = (/ 1.0, 10.0, 19.0, 28.0, 2.0, 11.0, 20.0, 29.0, 3.0, 12.0, 21.0, 30.0, &
-                     4.0, 13.0, 22.0, 31.0, 5.0, 14.0, 23.0, 32.0, 6.0, 15.0, 24.0, 33.0, &
-                     7.0, 16.0, 25.0, 34.0, 8.0, 17.0, 26.0, 35.0, 9.0, 18.0, 27.0, 36.0 /)
+    WTheta_data = (/ 1.0_dp_xios, 10.0_dp_xios, 19.0_dp_xios, 28.0_dp_xios, 2.0_dp_xios, 11.0_dp_xios, 20.0_dp_xios, 29.0_dp_xios, 3.0_dp_xios, 12.0_dp_xios, 21.0_dp_xios, 30.0_dp_xios, &
+                     4.0_dp_xios, 13.0_dp_xios, 22.0_dp_xios, 31.0_dp_xios, 5.0_dp_xios, 14.0_dp_xios, 23.0_dp_xios, 32.0_dp_xios, 6.0_dp_xios, 15.0_dp_xios, 24.0_dp_xios, 33.0_dp_xios, &
+                     7.0_dp_xios, 16.0_dp_xios, 25.0_dp_xios, 34.0_dp_xios, 8.0_dp_xios, 17.0_dp_xios, 26.0_dp_xios, 35.0_dp_xios, 9.0_dp_xios, 18.0_dp_xios, 27.0_dp_xios, 36.0_dp_xios /)
 
-    W3_data = (/ 1.0, 10.0, 19.0, 2.0, 11.0, 20.0, 3.0, 12.0, 21.0, &
-                 4.0, 13.0, 22.0, 5.0, 14.0, 23.0, 6.0, 15.0, 24.0, &
-                 7.0, 16.0, 25.0, 8.0, 17.0, 26.0, 9.0, 18.0, 27.0 /)
+    W3_data = (/ 1.0_dp_xios, 10.0_dp_xios, 19.0_dp_xios, 2.0_dp_xios, 11.0_dp_xios, 20.0_dp_xios, 3.0_dp_xios, 12.0_dp_xios, 21.0_dp_xios, &
+                 4.0_dp_xios, 13.0_dp_xios, 22.0_dp_xios, 5.0_dp_xios, 14.0_dp_xios, 23.0_dp_xios, 6.0_dp_xios, 15.0_dp_xios, 24.0_dp_xios, &
+                 7.0_dp_xios, 16.0_dp_xios, 25.0_dp_xios, 8.0_dp_xios, 17.0_dp_xios, 26.0_dp_xios, 9.0_dp_xios, 18.0_dp_xios, 27.0_dp_xios /)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Test node write

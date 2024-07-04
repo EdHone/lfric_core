@@ -202,10 +202,10 @@ contains
   self%nmaps      = 0
   self%coord_sys  = coord_sys
 
-  self%domain_extents(:,1) = [ -180.0, -90.0 ]
-  self%domain_extents(:,2) = [  180.0, -90.0 ]
-  self%domain_extents(:,3) = [  180.0,  90.0 ]
-  self%domain_extents(:,4) = [ -180.0,  90.0 ]
+  self%domain_extents(:,1) = [ -180.0_r_def, -90.0_r_def ]
+  self%domain_extents(:,2) = [  180.0_r_def, -90.0_r_def ]
+  self%domain_extents(:,3) = [  180.0_r_def,  90.0_r_def ]
+  self%domain_extents(:,4) = [ -180.0_r_def,  90.0_r_def ]
 
   ! There are a maximum of 4 faces around a node in this type of mesh
   self%max_num_faces_per_node = 4

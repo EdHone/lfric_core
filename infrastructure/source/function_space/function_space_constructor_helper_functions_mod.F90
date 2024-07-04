@@ -2473,7 +2473,7 @@ contains
 
     ! Allocate temp levels array to be the maximum possible size
     allocate(tmp_levs(size(entity_array) * nlayers))
-    tmp_levs = 999.0
+    tmp_levs = 999.0_r_def
     idx = 1
 
     do ilayer = 0, (nlayers - 1)

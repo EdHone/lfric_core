@@ -567,7 +567,7 @@ pure function rodrigues_rotation(x_vec, rot_vec, alpha) result(y_vec)
   ! Create a rotated vector using the normalised rotation vector
   y_vec = x_vec * cos(alpha) +                                                     &
           cross_product( unit_rot_vec, x_vec ) * sin( alpha )                      &
-          + unit_rot_vec * dot_product( x_vec, unit_rot_vec ) * ( 1.0 -cos(alpha) )
+          + unit_rot_vec * dot_product( x_vec, unit_rot_vec ) * ( 1.0_r_def -cos(alpha) )
 
 end function rodrigues_rotation
 

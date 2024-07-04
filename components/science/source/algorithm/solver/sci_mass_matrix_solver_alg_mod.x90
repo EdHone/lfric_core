@@ -105,7 +105,7 @@ contains
     class(abstract_iterative_solver_type), allocatable :: mass_matrix_solver
 
     !> Absolute solver tolerance (mixed solver)
-    real(kind=r_def), parameter :: solver_a_tol = 1.E-16
+    real(kind=r_def), parameter :: solver_a_tol = 1.E-16_r_def
 
     integer(kind=i_def)             :: fs
     logical(kind=l_def)             :: apply_bc

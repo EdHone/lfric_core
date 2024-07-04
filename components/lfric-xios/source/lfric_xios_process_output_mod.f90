@@ -31,7 +31,7 @@ module lfric_xios_process_output_mod
   private
 
   ! Public scaling factor for planar mesh coordinates to circumvent XIOS issue
-  real(kind=dp_xios), public, parameter :: xyz_scaling_factor = 1.0e-4
+  real(kind=dp_xios), public, parameter :: xyz_scaling_factor = 1.0e-4_dp_xios
 
   logical :: model_has_planar_geometry = .false.
 

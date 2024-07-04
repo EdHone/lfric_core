@@ -43,7 +43,7 @@ contains
     data_array1 = (/1.0_r_def, 2.0_r_def, 3.0_r_def, 4.0_r_def, 5.0_r_def, &
                     6.0_r_def, 7.0_r_def, 8.0_r_def, 9.0_r_def, 10.0_r_def/)
     test_attr = "test_attr_value"
-    test_attr_real = 123.4
+    test_attr_real = 123.4_r_def
 
     file1 = lfric_ncdf_file_type("test_field.nc", open_mode=FILE_OP_CREATE, &
                                   io_mode=FILE_MODE_WRITE)

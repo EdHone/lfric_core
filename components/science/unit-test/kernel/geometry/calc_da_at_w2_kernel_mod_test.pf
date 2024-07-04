@@ -83,7 +83,7 @@ contains
     real(kind=r_def), parameter :: dx   = 4.0_r_def
     real(kind=r_def), parameter :: dy   = 7.0_r_def
     real(kind=r_def), parameter :: dz   = 13.0_r_def
-    real(kind=r_def), parameter :: dzdx = 0.75   ! slope to mimic orography
+    real(kind=r_def), parameter :: dzdx = 0.75_r_def   ! slope to mimic orography
 
     ! Reference element parameters for the faces of the cube.
     integer(i_def), parameter :: W=1 !< "West" face of the cell.

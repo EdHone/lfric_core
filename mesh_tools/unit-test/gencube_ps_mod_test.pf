@@ -495,7 +495,7 @@ contains
     ! tol used as relaxed tolerance for stretched mesh values
     ! at higher resolutions this is expected to tend towards the true value
     real(r_def), parameter :: eps = 1E-09_r_def
-    real(r_def), parameter :: tol = 0.1
+    real(r_def), parameter :: tol = 0.1_r_def
 
     ! Higher cells used for this test to minimise deformation from a sphere
     integer(i_def), parameter :: edge_cells = 9

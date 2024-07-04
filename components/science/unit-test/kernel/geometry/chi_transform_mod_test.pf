@@ -273,7 +273,7 @@ contains
 
     ! Check if answers are correct
     if ( r_def == real64 ) then
-       tol = 1e-12
+       tol = 1e-12_r_def
        @assertEqual( this%target_chi_1, new_coord_1, tol )
        @assertEqual( this%target_chi_2, new_coord_2, tol )
        @assertEqual( this%target_chi_3, new_coord_3, tol )

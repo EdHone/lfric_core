@@ -89,7 +89,7 @@ subroutine sample_wtheta_to_w3_code( nlayers,   &
   ! Consider W3 space with 1 DoF and Wtheta space with 2 DoFs
   do k = 0, nlayers - 1
     ! Assume W3 DoF is halfway between Wtheta DoFs
-    field_w3(map_w3(1) + k) = 0.5 * (field_wt(map_wt(1) + k) + &
+    field_w3(map_w3(1) + k) = 0.5_r_def * (field_wt(map_wt(1) + k) + &
                                      field_wt(map_wt(2) + k) )
   end do
 

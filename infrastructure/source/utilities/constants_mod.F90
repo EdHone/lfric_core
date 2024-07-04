@@ -183,11 +183,11 @@ module constants_mod
 
   !> @name Missing data indicators
   !> @{
-  real     (r_def),     parameter :: RMDI  = -32768.0*32768.0 !< Value for real numbers
-  integer  (i_def),     parameter :: IMDI  = -32768           !< Value for integer numbers
-  character(str_short), parameter :: CMDI  = 'unset'          !< Value for characters
-  character(str_short), parameter :: UNSET_KEY  = CMDI        !< Chararater value for namelist enumerations
-  integer  (i_def),     parameter :: EMDI  = -1_i_def         !< Integer value for namelist enumerations
+  real     (r_def),     parameter :: RMDI  = -32768.0_r_def*32768.0_r_def !< Value for real numbers
+  integer  (i_def),     parameter :: IMDI  = -32768                  !< Value for integer numbers
+  character(str_short), parameter :: CMDI  = 'unset'                 !< Value for characters
+  character(str_short), parameter :: UNSET_KEY  = CMDI               !< Chararater value for namelist enumerations
+  integer  (i_def),     parameter :: EMDI  = -1_i_def                !< Integer value for namelist enumerations
   !> @}
 
   !> @name Halo defaults

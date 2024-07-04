@@ -188,13 +188,13 @@ contains
       ! k = 1
       centre_coords(1,j) = centre_coords_2d(1,j)
       centre_coords(2,j) = centre_coords_2d(2,j)
-      centre_coords(3,j) = centre_coords_2d(3,j) + dz(1)/2.0
+      centre_coords(3,j) = centre_coords_2d(3,j) + dz(1)/2.0_r_def
 
       do k=2, nlayers
         centre_coords(1,j+(k-1)*ncells_2d) = centre_coords_2d(1,j)
         centre_coords(2,j+(k-1)*ncells_2d) = centre_coords_2d(2,j)
         centre_coords(3,j+(k-1)*ncells_2d) = centre_coords_2d(3,j) + &
-                                               sum(dz(1:k-1)) + dz(k)/2.0
+                                               sum(dz(1:k-1)) + dz(k)/2.0_r_def
       end do
     end do
     if ( ll_coords ) then

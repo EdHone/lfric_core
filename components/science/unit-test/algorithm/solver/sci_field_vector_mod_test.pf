@@ -172,7 +172,7 @@ contains
 
     ! test for aypx
     ! fv1 is still 2.0 and fv2 is 2.5
-    scalar = 2.0
+    scalar = 2.0_r_def
     call fv1%aypx(scalar, fv2)
     ! fv1 = 2.0*2.0 + 2.5 = 6.5
     test = fv1%norm()

@@ -262,11 +262,11 @@ contains
         edge_gid = local_mesh%get_edge_gid_on_cell( 4, 5 )
         @assertEqual ( 46, edge_gid )
 
-        known_vert_coords(:) = [ -750.0, 500.0 ]
+        known_vert_coords(:) = [ -750.0_r_def, 500.0_r_def ]
         call local_mesh%get_vert_coords( 3, vert_coords )
         @assertEqual ( known_vert_coords, vert_coords, 1.0e-2_r_def )
 
-        known_cell_coords(:) = [ 375.0, 375.0 ]
+        known_cell_coords(:) = [ 375.0_r_def, 375.0_r_def ]
         call local_mesh%get_cell_coords( 3, cell_coords )
         @assertEqual ( known_cell_coords, cell_coords, 1.0e-2_r_def )
 
@@ -361,32 +361,32 @@ contains
         call local_mesh%get_vert_coords( 3, vert_coords )
         select case ( this%local_rank )
           case (0)
-            known_vert_coords(:) = [ -1500.0, -250.0 ]
+            known_vert_coords(:) = [ -1500.0_r_def, -250.0_r_def ]
             @assertEqual( known_vert_coords, vert_coords, 1.0e-2_r_def )
           case (1)
-            known_vert_coords(:) = [  1500.0, -250.0 ]
+            known_vert_coords(:) = [  1500.0_r_def, -250.0_r_def ]
             @assertEqual( known_vert_coords, vert_coords, 1.0e-2_r_def )
           case (2)
-            known_vert_coords(:) = [ -1500.0,  750.0 ]
+            known_vert_coords(:) = [ -1500.0_r_def,  750.0_r_def ]
             @assertEqual( known_vert_coords, vert_coords, 1.0e-2_r_def )
           case (3)
-            known_vert_coords(:) = [  1500.0,  750.0 ]
+            known_vert_coords(:) = [  1500.0_r_def,  750.0_r_def ]
             @assertEqual( known_vert_coords, vert_coords, 1.0e-2_r_def )
         end select
 
         call local_mesh%get_cell_coords( 3, cell_coords )
         select case ( this%local_rank )
           case (0)
-            known_cell_coords(:) = [ -1875.0, -625.0 ]
+            known_cell_coords(:) = [ -1875.0_r_def, -625.0_r_def ]
             @assertEqual( known_cell_coords, cell_coords, 1.0e-2_r_def )
           case (1)
-            known_cell_coords(:) = [  1125.0, -625.0 ]
+            known_cell_coords(:) = [  1125.0_r_def, -625.0_r_def ]
             @assertEqual( known_cell_coords, cell_coords, 1.0e-2_r_def )
           case (2)
-            known_cell_coords(:) = [ -1875.0,  375.0 ]
+            known_cell_coords(:) = [ -1875.0_r_def,  375.0_r_def ]
             @assertEqual( known_cell_coords, cell_coords, 1.0e-2_r_def )
           case (3)
-            known_cell_coords(:) = [  1125.0,  375.0 ]
+            known_cell_coords(:) = [  1125.0_r_def,  375.0_r_def ]
             @assertEqual( known_cell_coords, cell_coords, 1.0e-2_r_def )
         end select
 
@@ -550,8 +550,8 @@ contains
     integer(i_def), parameter :: kgo_n_faces = 49
     integer(i_def), parameter :: kgo_n_ghosts = 13
     integer(i_def), parameter :: kgo_n_cells_in_layer = kgo_n_faces - kgo_n_ghosts
-    real(r_def),    parameter :: kgo_north_pole(2)  = [0.0, 90.0]
-    real(r_def),    parameter :: kgo_null_island(2) = [0.0,  0.0]
+    real(r_def),    parameter :: kgo_north_pole(2)  = [0.0_r_def, 90.0_r_def]
+    real(r_def),    parameter :: kgo_null_island(2) = [0.0_r_def,  0.0_r_def]
 
     character(str_def), parameter :: kgo_target_names(1)   = ['SQ10']
     character(str_def), parameter :: kgo_coord_units_xy(2) = ['degrees_east ',&
@@ -570,31 +570,31 @@ contains
     real(r_def) :: tol
 
     real(r_def), parameter :: kgo_node_coords(2, kgo_n_nodes) = reshape( &
-      [ -3.0,14.0,   -2.0,14.0,   -2.0,15.0,   -3.0,15.0,   -1.0,14.0,   &
-        -1.0,15.0,   -3.0,13.0,   -2.0,13.0,   -1.0,13.0,   -4.0,15.0,   &
-        -3.0,16.0,   -4.0,16.0,   -2.0,16.0,   -1.0,16.0,    0.0,15.0,   &
-         0.0,16.0,   -4.0,14.0,    0.0,14.0,   -4.0,13.0,    0.0,13.0,   &
-        -4.0,12.0,   -3.0,12.0,   -2.0,12.0,   -1.0,12.0,    0.0,12.0,   &
-         1.0,15.0,    1.0,16.0,    1.0,14.0,    1.0,13.0,    1.0,12.0,   &
-        -4.0,11.0,   -3.0,11.0,   -2.0,11.0,   -1.0,11.0,    0.0,11.0,   &
-         1.0,11.0,    2.0,15.0,    2.0,16.0,    2.0,14.0,    2.0,13.0,   &
-         2.0,12.0,    2.0,11.0,   -4.0,10.0,   -3.0,10.0,   -2.0,10.0,   &
-        -1.0,10.0,    0.0,10.0,    1.0,10.0,    2.0,10.0,    3.0,15.0,   &
-         3.0,16.0,    3.0,14.0,    3.0,13.0,    3.0,12.0,    3.0,11.0,   &
-         3.0,10.0,   -4.0, 9.0,   -3.0, 9.0,   -2.0, 9.0,   -1.0, 9.0,   &
-         0.0, 9.0,    1.0, 9.0,    2.0, 9.0,    3.0, 9.0 ], (/2, kgo_n_nodes/) )
+      [ -3.0_r_def,14.0_r_def,   -2.0_r_def,14.0_r_def,   -2.0_r_def,15.0_r_def,   -3.0_r_def,15.0_r_def,   -1.0_r_def,14.0_r_def,   &
+        -1.0_r_def,15.0_r_def,   -3.0_r_def,13.0_r_def,   -2.0_r_def,13.0_r_def,   -1.0_r_def,13.0_r_def,   -4.0_r_def,15.0_r_def,   &
+        -3.0_r_def,16.0_r_def,   -4.0_r_def,16.0_r_def,   -2.0_r_def,16.0_r_def,   -1.0_r_def,16.0_r_def,    0.0_r_def,15.0_r_def,   &
+         0.0_r_def,16.0_r_def,   -4.0_r_def,14.0_r_def,    0.0_r_def,14.0_r_def,   -4.0_r_def,13.0_r_def,    0.0_r_def,13.0_r_def,   &
+        -4.0_r_def,12.0_r_def,   -3.0_r_def,12.0_r_def,   -2.0_r_def,12.0_r_def,   -1.0_r_def,12.0_r_def,    0.0_r_def,12.0_r_def,   &
+         1.0_r_def,15.0_r_def,    1.0_r_def,16.0_r_def,    1.0_r_def,14.0_r_def,    1.0_r_def,13.0_r_def,    1.0_r_def,12.0_r_def,   &
+        -4.0_r_def,11.0_r_def,   -3.0_r_def,11.0_r_def,   -2.0_r_def,11.0_r_def,   -1.0_r_def,11.0_r_def,    0.0_r_def,11.0_r_def,   &
+         1.0_r_def,11.0_r_def,    2.0_r_def,15.0_r_def,    2.0_r_def,16.0_r_def,    2.0_r_def,14.0_r_def,    2.0_r_def,13.0_r_def,   &
+         2.0_r_def,12.0_r_def,    2.0_r_def,11.0_r_def,   -4.0_r_def,10.0_r_def,   -3.0_r_def,10.0_r_def,   -2.0_r_def,10.0_r_def,   &
+        -1.0_r_def,10.0_r_def,    0.0_r_def,10.0_r_def,    1.0_r_def,10.0_r_def,    2.0_r_def,10.0_r_def,    3.0_r_def,15.0_r_def,   &
+         3.0_r_def,16.0_r_def,    3.0_r_def,14.0_r_def,    3.0_r_def,13.0_r_def,    3.0_r_def,12.0_r_def,    3.0_r_def,11.0_r_def,   &
+         3.0_r_def,10.0_r_def,   -4.0_r_def, 9.0_r_def,   -3.0_r_def, 9.0_r_def,   -2.0_r_def, 9.0_r_def,   -1.0_r_def, 9.0_r_def,   &
+         0.0_r_def, 9.0_r_def,    1.0_r_def, 9.0_r_def,    2.0_r_def, 9.0_r_def,    3.0_r_def, 9.0_r_def ], (/2, kgo_n_nodes/) )
 
     real(r_def), parameter :: kgo_face_coords(2, kgo_n_faces) = reshape( &
-      [ -2.5,14.5,   -1.5,14.5,   -2.5,13.5,   -1.5,13.5,   -3.5,15.5,   &
-        -2.5,15.5,   -1.5,15.5,   -0.5,15.5,   -3.5,14.5,   -0.5,14.5,   &
-        -3.5,13.5,   -0.5,13.5,   -3.5,12.5,   -2.5,12.5,   -1.5,12.5,   &
-        -0.5,12.5,    0.5,15.5,    0.5,14.5,    0.5,13.5,    0.5,12.5,   &
-        -3.5,11.5,   -2.5,11.5,   -1.5,11.5,   -0.5,11.5,    0.5,11.5,   &
-         1.5,15.5,    1.5,14.5,    1.5,13.5,    1.5,12.5,    1.5,11.5,   &
-        -3.5,10.5,   -2.5,10.5,   -1.5,10.5,   -0.5,10.5,    0.5,10.5,   &
-         1.5,10.5,    2.5,15.5,    2.5,14.5,    2.5,13.5,    2.5,12.5,   &
-         2.5,11.5,    2.5,10.5,   -3.5, 9.5,   -2.5, 9.5,   -1.5, 9.5,   &
-        -0.5, 9.5,    0.5, 9.5,    1.5, 9.5,    2.5, 9.5 ], (/2, kgo_n_faces/) )
+      [ -2.5_r_def,14.5_r_def,   -1.5_r_def,14.5_r_def,   -2.5_r_def,13.5_r_def,   -1.5_r_def,13.5_r_def,   -3.5_r_def,15.5_r_def,   &
+        -2.5_r_def,15.5_r_def,   -1.5_r_def,15.5_r_def,   -0.5_r_def,15.5_r_def,   -3.5_r_def,14.5_r_def,   -0.5_r_def,14.5_r_def,   &
+        -3.5_r_def,13.5_r_def,   -0.5_r_def,13.5_r_def,   -3.5_r_def,12.5_r_def,   -2.5_r_def,12.5_r_def,   -1.5_r_def,12.5_r_def,   &
+        -0.5_r_def,12.5_r_def,    0.5_r_def,15.5_r_def,    0.5_r_def,14.5_r_def,    0.5_r_def,13.5_r_def,    0.5_r_def,12.5_r_def,   &
+        -3.5_r_def,11.5_r_def,   -2.5_r_def,11.5_r_def,   -1.5_r_def,11.5_r_def,   -0.5_r_def,11.5_r_def,    0.5_r_def,11.5_r_def,   &
+         1.5_r_def,15.5_r_def,    1.5_r_def,14.5_r_def,    1.5_r_def,13.5_r_def,    1.5_r_def,12.5_r_def,    1.5_r_def,11.5_r_def,   &
+        -3.5_r_def,10.5_r_def,   -2.5_r_def,10.5_r_def,   -1.5_r_def,10.5_r_def,   -0.5_r_def,10.5_r_def,    0.5_r_def,10.5_r_def,   &
+         1.5_r_def,10.5_r_def,    2.5_r_def,15.5_r_def,    2.5_r_def,14.5_r_def,    2.5_r_def,13.5_r_def,    2.5_r_def,12.5_r_def,   &
+         2.5_r_def,11.5_r_def,    2.5_r_def,10.5_r_def,   -3.5_r_def, 9.5_r_def,   -2.5_r_def, 9.5_r_def,   -1.5_r_def, 9.5_r_def,   &
+        -0.5_r_def, 9.5_r_def,    0.5_r_def, 9.5_r_def,    1.5_r_def, 9.5_r_def,    2.5_r_def, 9.5_r_def ], (/2, kgo_n_faces/) )
 
     integer(i_def), parameter :: kgo_face_on_face(4, kgo_n_faces) = reshape(  &
       [   9,   3,   2,   6,        1,   4,  10,   7,       11,  14,   4,   1, &
@@ -807,14 +807,14 @@ contains
     @assertEqual(  1_i_def, SQ20%get_num_panels_global_mesh() )
 
 
-    tol=1.0e-14
+    tol=1.0e-14_r_def
     do i=1, SQ20%get_n_unique_vertices()
       call SQ20%get_vert_coords( i, vert_coords )
       @assertEqual( kgo_node_coords(:,i), vert_coords*radians_to_degrees, tol )
       @assertEqual( kgo_node_owner(i), SQ20%get_vert_cell_owner(i) )
     end do
 
-    tol=1.0e-14
+    tol=1.0e-14_r_def
     do i=1, SQ20%get_num_cells_in_layer()
       call SQ20%get_cell_coords( i, cell_coords )
       @assertEqual( kgo_face_coords(:,i), cell_coords*radians_to_degrees, tol )

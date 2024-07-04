@@ -75,7 +75,7 @@ contains
     negative_field(:) = 1.0_r_def
     positive_field(:) = 1.0_r_def
 
-    negative_field(map_fine(1,1)) = -0.25
+    negative_field(map_fine(1,1)) = -0.25_r_def
 
     lambda_field(:) = 0.0_r_def
 

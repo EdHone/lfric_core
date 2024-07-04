@@ -114,13 +114,13 @@ contains
 
     @assertEqual(get_axis_dimension('test_axis_99'), 99)
 
-    val = 1.234
+    val = 1.234_real64
     call set_variable('var1', val)
     @assertEqual(get_variable('var1'), val)
     @assertEqual(get_variable('var1', 999.0*val), val)
     ! verify that call with tolerant setting succeedds
     call set_variable('does_not_exist', val, .true.)
-    val = 9.876
+    val = 9.876_real64
     @assertEqual(get_variable('does_not_exist', val), val)
 
     ! test zoom axis handling - verify that call succeeds

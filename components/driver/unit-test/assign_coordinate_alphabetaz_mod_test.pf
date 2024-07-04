@@ -111,13 +111,13 @@ contains
                           -r_bot/panel_rho(3), -r_bot/panel_rho(4), &
                           -r_top/panel_rho(1), -r_top/panel_rho(2), &
                           -r_top/panel_rho(3), -r_top/panel_rho(4) /)
-    verts_XYZ(2,:,1) = (/ -r_bot/sqrt(3.0)/panel_rho(1),                   &
+    verts_XYZ(2,:,1) = (/ -r_bot/sqrt(3.0_r_def)/panel_rho(1),                   &
                            r_bot*(2.0_r_def-sqrt(3.0_r_def))/panel_rho(2), &
-                          -r_bot/sqrt(3.0)/panel_rho(3),                   &
+                          -r_bot/sqrt(3.0_r_def)/panel_rho(3),                   &
                            r_bot*(2.0_r_def-sqrt(3.0_r_def))/panel_rho(4), &
-                          -r_top/sqrt(3.0)/panel_rho(1),                   &
+                          -r_top/sqrt(3.0_r_def)/panel_rho(1),                   &
                            r_top*(2.0_r_def-sqrt(3.0_r_def))/panel_rho(2), &
-                          -r_top/sqrt(3.0)/panel_rho(3),                   &
+                          -r_top/sqrt(3.0_r_def)/panel_rho(3),                   &
                            r_top*(2.0_r_def-sqrt(3.0_r_def))/panel_rho(4) /)
     verts_XYZ(3,:,1) = (/ 0.0_r_def,  0.0_r_def,              &
                           r_bot/sqrt(3.0_r_def)/panel_rho(3), &
