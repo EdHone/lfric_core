@@ -15,8 +15,6 @@ import subprocess
 
 WORKING_CONFIGS = {
     "meto": ["all"],
-#    "nci": ["all"],
-#    "niwa" : ["all"],
 }
 
 
