@@ -233,6 +233,30 @@ class TestFortranDependency:
                  'parent', Path('parent.f90'), 'module')
             ]
 
+
+    def test_compile_dependencies_missing_prerequisite(self, tmp_path: Path):
+        """
+        Checks that the correct error is raised and message displayed if a
+        prerequisite cannot be found for a module.
+        """
+        database = FortranDependencies(
+            SQLiteDatabase(tmp_path / 'fortran.db')
+        )
+
+        database.add_program('prog', Path('prog.f90'))
+        database.add_module('parent', Path('parent.f90'))
+        database.add_submodule('child2', Path('child2.f90'))
+
+        database.add_compile_dependency('prog', 'parent')
+        database.add_compile_dependency('child2', 'child1')
+
+        with raises(DatabaseException) as err:
+            sorted(database.get_compile_dependencies('child1'))
+        # Assert prerequisite and units
+        assert ("Unable to find prerequisite 'child1' of 'child2'"
+                in str(err.value))
+
+
     @staticmethod
     def test_duplicate_module(example_db: FortranDependencies):
         """

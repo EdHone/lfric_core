@@ -522,7 +522,7 @@ class FortranDependencies(object):
                 except DatabaseException:
                     raise DatabaseException(
                         "Unable to find prerequisite "
-                        f"'{dep_row['prerequiaite']}' of '{dep_row['unit']}"
+                        f"'{dep_row['prerequisite']}' of '{dep_row['unit']}'"
                     )
 
                 units.append(dep_row['prerequisite'])
