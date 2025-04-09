@@ -19,15 +19,30 @@ class inventory_by_local_mesh_mod::inventory_by_local_mesh_type {
   +add_field( <<out>> field: field_real32_type, <<in>> fs: function_space_type, <<in>> local_mesh: local_mesh_type, <<in, optional>> name: character, <<in, optional>> halo_depth: integer ) :
   +add_field( <<out>> field: field_real64_type, <<in>> fs: function_space_type, <<in>> local_mesh: local_mesh_type, <<in, optional>> name: character, <<in, optional>> halo_depth: integer ) :
   +add_field( <<out>> field: integer_field_type, <<in>> fs: function_space_type, <<in>> local_mesh: local_mesh_type, <<in, optional>> name: character, <<in, optional>> halo_depth: integer ) :
+  +add_field_array( <<out>> field_array: field_real32_type, <<in>> fs: function_space_type, <<in>> array_size: integer, <<in>> local_mesh: local_mesh_type, <<in, optional>> halo_depth: integer ) :
+  +add_field_array( <<out>> field_array: field_real64_type, <<in>> fs: function_space_type, <<in>> array_size: integer, <<in>> local_mesh: local_mesh_type, <<in, optional>> halo_depth: integer ) :
+  +add_field_array( <<out>> field_array: integer_field_type, <<in>> fs: function_space_type, <<in>> array_size: integer, <<in>> local_mesh: local_mesh_type, <<in, optional>> halo_depth: integer ) :
   +add_integer( <<in>> number: integer, <<in>> local_mesh: local_mesh_type ) :
   +add_integer_array( <<in>> numbers: integer, <<in>> local_mesh: local_mesh_type ) :
+  +add_logical( <<in>> bool_flag: logical, <<in>> local_mesh: local_mesh_type ) :
+  +add_real32( <<in>> number: real, <<in>> local_mesh: local_mesh_type ) :
+  +add_real64( <<in>> number: real, <<in>> local_mesh: local_mesh_type ) :
   +copy_field( <<in>> field: field_real32_type, <<in>> local_mesh: local_mesh_type ) :
   +copy_field( <<in>> field: field_real64_type, <<in>> local_mesh: local_mesh_type ) :
   +copy_field( <<in>> field: integer_field_type, <<in>> local_mesh: local_mesh_type ) :
+  +copy_field_array( <<in>> field_array: field_real32_type, <<in>> local_mesh: local_mesh_type ) :
+  +copy_field_array( <<in>> field_array: field_real64_type, <<in>> local_mesh: local_mesh_type ) :
+  +copy_field_array( <<in>> field_array: integer_field_type, <<in>> local_mesh: local_mesh_type ) :
   +get_field( <<in>> local_mesh: local_mesh_type, <<out>> field: field_real32_type ) :
   +get_field( <<in>> local_mesh: local_mesh_type, <<out>> field: field_real64_type ) :
   +get_field( <<in>> local_mesh: local_mesh_type, <<out>> field: integer_field_type ) :
+  +get_field_array( <<in>> local_mesh: local_mesh_type, <<out>> field_array: field_real32_type ) :
+  +get_field_array( <<in>> local_mesh: local_mesh_type, <<out>> field_array: field_real64_type ) :
+  +get_field_array( <<in>> local_mesh: local_mesh_type, <<out>> field_array: integer_field_type ) :
   +get_integer( <<in>> local_mesh: local_mesh_type, <<out>> number: integer ) :
   +get_integer_array( <<in>> local_mesh: local_mesh_type, <<out>> numbers: integer ) :
+  +get_logical( <<in>> local_mesh: local_mesh_type, <<out>> bool_flag: logical ) :
+  +get_real32( <<in>> local_mesh: local_mesh_type, <<out>> number: real ) :
+  +get_real64( <<in>> local_mesh: local_mesh_type, <<out>> number: real ) :
   <<destroy>>+inventory_by_local_mesh_destructor()
 }

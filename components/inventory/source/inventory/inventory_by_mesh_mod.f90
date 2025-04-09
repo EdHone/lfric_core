@@ -11,7 +11,8 @@
 !
 module inventory_by_mesh_mod
 
-  use constants_mod,                    only: i_def, l_def, str_def
+  use constants_mod,                    only: i_def, l_def, str_def, r_single, &
+                                              r_double
   use field_mod,                        only: field_type
   use field_real32_mod,                 only: field_real32_type
   use field_real64_mod,                 only: field_real64_type
@@ -36,6 +37,9 @@ module inventory_by_mesh_mod
   use id_integer_field_array_pair_mod,  only: id_integer_field_array_pair_type
   use id_integer_pair_mod,              only: id_integer_pair_type
   use id_integer_array_pair_mod,        only: id_integer_array_pair_type
+  use id_real32_pair_mod,               only: id_real32_pair_type
+  use id_real64_pair_mod,               only: id_real64_pair_type
+  use id_logical_pair_mod,              only: id_logical_pair_type
   use id_r32_operator_pair_mod,         only: id_r32_operator_pair_type
   use id_r64_operator_pair_mod,         only: id_r64_operator_pair_type
 
@@ -94,6 +98,11 @@ module inventory_by_mesh_mod
                                             add_integer_field_array
     procedure, public :: add_integer
     procedure, public :: add_integer_array
+    procedure, public :: add_logical
+    procedure, public :: add_real32
+    procedure, public :: add_real64
+    generic           :: add_real => add_real32, &
+                                     add_real64
     procedure, public :: add_r32_operator
     procedure, public :: add_r64_operator
     generic           :: add_operator => add_r32_operator, &
@@ -140,6 +149,11 @@ module inventory_by_mesh_mod
                                             get_integer_field_array
     procedure, public :: get_integer
     procedure, public :: get_integer_array
+    procedure, public :: get_logical
+    procedure, public :: get_real32
+    procedure, public :: get_real64
+    generic           :: get_real => get_real32, &
+                                     get_real64
     procedure, public :: get_r32_operator
     procedure, public :: get_r64_operator
     generic           :: get_operator => get_r32_operator, &
@@ -429,6 +443,24 @@ function get_paired_object(self, id) result(paired_object)
           paired_object => list_paired_object
           exit
         end if
+      type is (id_logical_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_real32_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_real64_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
       class default
         call log_event('Type of ID paired object not supported', LOG_LEVEL_ERROR)
     end select
@@ -531,6 +563,24 @@ function paired_object_exists(self, id) result(exists)
           exists=.true.
           exit
         end if
+      type is (id_logical_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_real32_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_real64_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
       class default
         call log_event('Type of ID paired object not supported', LOG_LEVEL_ERROR)
     end select
@@ -625,6 +675,24 @@ subroutine remove_paired_object(self, id)
           exit
         end if
       type is (id_integer_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_logical_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_real32_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_real64_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
           call self%paired_object_list(hash)%remove_item(loop)
@@ -914,6 +982,60 @@ subroutine add_integer_array(self, numbers, mesh)
   call self%add_paired_object(paired_object)
 
 end subroutine add_integer_array
+
+!> @brief Adds a real32 to the inventory
+!> @param[in] number      The real that is to be added to the inventory
+!> @param[in] mesh        The mesh to pair the real with
+subroutine add_real32(self, number, mesh)
+
+  implicit none
+
+  class(inventory_by_mesh_type), intent(inout) :: self
+  real(kind=r_single),           intent(in)    :: number
+  type(mesh_type),               intent(in)    :: mesh
+  type(id_real32_pair_type)                    :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(number, mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine add_real32
+
+!> @brief Adds a real64 to the inventory
+!> @param[in] number      The real that is to be added to the inventory
+!> @param[in] mesh        The mesh to pair the real with
+subroutine add_real64(self, number, mesh)
+
+  implicit none
+
+  class(inventory_by_mesh_type), intent(inout) :: self
+  real(kind=r_double),           intent(in)    :: number
+  type(mesh_type),               intent(in)    :: mesh
+  type(id_real64_pair_type)                    :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(number, mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine add_real64
+
+!> @brief Adds a  logical to the inventory
+!> @param[in] bool_flag   The logical that is to be added to the inventory
+!> @param[in] mesh        The mesh to pair the logical with
+subroutine add_logical(self, bool_flag, mesh)
+
+  implicit none
+
+  class(inventory_by_mesh_type), intent(inout) :: self
+  logical(kind=i_def),           intent(in)    :: bool_flag
+  type(mesh_type),               intent(in)    :: mesh
+  type(id_logical_pair_type)                   :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(bool_flag, mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine add_logical
 
 !> @brief Adds an r32 operator to the inventory and returns a pointer to it
 !> @param[out] operator_out Pointer to the operator that is to be added
@@ -1400,6 +1522,75 @@ subroutine get_integer_array(self, mesh, numbers)
   end select
 
 end subroutine get_integer_array
+
+!> @brief Sets a pointer to a real32 from the inventory
+!> @param[in]  mesh    The mesh of the real to be accessed
+!> @param[out] number  Pointer to the real to be accessed
+subroutine get_real32(self, mesh, number)
+
+  implicit none
+
+  class(inventory_by_mesh_type), intent(in)  :: self
+  type(mesh_type),               intent(in)  :: mesh
+  real(kind=r_single),  pointer, intent(out) :: number
+  class(id_abstract_pair_type),  pointer     :: paired_object
+
+  paired_object => self%get_paired_object(mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_real32_pair_type)
+      number => this%get_real32()
+    class default
+      call log_event('Paired ID object must be of real32 type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real32
+
+!> @brief Sets a pointer to a real64 from the inventory
+!> @param[in]  mesh    The mesh of the real to be accessed
+!> @param[out] number  Pointer to the real to be accessed
+subroutine get_real64(self, mesh, number)
+
+  implicit none
+
+  class(inventory_by_mesh_type), intent(in)  :: self
+  type(mesh_type),               intent(in)  :: mesh
+  real(kind=r_double),  pointer, intent(out) :: number
+  class(id_abstract_pair_type),  pointer     :: paired_object
+
+  paired_object => self%get_paired_object(mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_real64_pair_type)
+      number => this%get_real64()
+    class default
+      call log_event('Paired ID object must be of real64 type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real64
+
+!> @brief Sets a pointer to a logical from the inventory
+!> @param[in]  mesh       The mesh of the logical to be accessed
+!> @param[out] bool_flag  Pointer to the logical to be accessed
+subroutine get_logical(self, mesh, bool_flag)
+
+  implicit none
+
+  class(inventory_by_mesh_type), intent(in)  :: self
+  type(mesh_type),               intent(in)  :: mesh
+  logical(kind=l_def),  pointer, intent(out) :: bool_flag
+  class(id_abstract_pair_type),  pointer     :: paired_object
+
+  paired_object => self%get_paired_object(mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_logical_pair_type)
+      bool_flag => this%get_logical()
+    class default
+      call log_event('Paired ID object must be of logical type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_logical
 
 !> @brief Sets a pointer to an r32 operator from the inventory
 !> @param[in]  mesh          The mesh of the operator to be accessed

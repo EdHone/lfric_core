@@ -8,7 +8,7 @@
 !>
 module inventory_by_local_mesh_mod_test
 
-    use constants_mod,                 only : i_def, r_def, l_def
+    use constants_mod,                 only : i_def, r_def, l_def, r_solver
     use function_space_mod,            only : function_space_type
     use function_space_collection_mod, only : function_space_collection_type, &
                                               function_space_collection
@@ -146,11 +146,21 @@ contains
     type(field_proxy_type)                :: returned_field_B_p
 
     type(inventory_by_local_mesh_type), target :: test_inventory_by_local_mesh_A
-    type(inventory_by_local_mesh_type), target :: test_inventory_by_local_mesh_B
 
-    real(r_def), parameter                :: tol = 1.0e-6_r_def
-    integer(i_def)                        :: length
-    logical(l_def)                        :: exists
+    real(kind=r_def),    parameter :: tol = 1.0e-8_r_def
+    real(kind=r_solver), parameter :: tol_rsol = 1.0e-8_r_solver
+
+    real(kind=r_def)    :: first_real
+    real(kind=r_solver) :: second_real
+    logical(kind=l_def) :: exists
+    logical(kind=l_def) :: scalar_logical
+    integer(kind=i_def) :: scalar_integer
+    integer(kind=i_def) :: length
+
+    real(kind=r_def),    pointer :: returned_real1
+    real(kind=r_solver), pointer :: returned_real2
+    logical(kind=l_def), pointer :: returned_logical
+    integer(kind=i_def), pointer :: returned_integer
 
     !---------------------------- Create fields -------------------------------!
     ! Create a field object and put 99.0 in the first dof
@@ -165,7 +175,7 @@ contains
     local_mesh_A => this%mesh_A%get_local_mesh()
     local_mesh_B => this%mesh_B%get_local_mesh()
 
-    !----------------- Create inventory 'A' & test extracts ------------!
+    !-------------------- Create inventory 'A' & test extracts ----------------!
     ! Create a inventory_by_local_mesh_A and put fields in it
     call test_inventory_by_local_mesh_A%initialise(name="test_inventory_of_fields", &
                                              table_len=5)
@@ -203,6 +213,40 @@ contains
     call test_inventory_by_local_mesh_A%get_field(local_mesh_A, returned_field_A)
     returned_field_A_p = returned_field_A%get_proxy()
     @assertEqual(99.0_r_def, returned_field_A_p%data(1), tol)
+
+    ! --- Check use of scalars in inventories
+    call test_inventory_by_local_mesh_A%clear()
+    call test_inventory_by_local_mesh_A%initialise(                            &
+            name="test_inventory_of_scalars", table_len=5                      &
+    )
+    ! Add a logical
+    scalar_logical = .true.
+    call test_inventory_by_local_mesh_A%add_logical( scalar_logical, local_mesh_A )
+    call test_inventory_by_local_mesh_A%get_logical( local_mesh_A, returned_logical )
+    @assertTrue(returned_logical)
+
+    ! Add an integer
+    scalar_integer = 19
+    call test_inventory_by_local_mesh_A%add_integer( scalar_integer, local_mesh_B )
+    call test_inventory_by_local_mesh_A%get_integer( local_mesh_B, returned_integer )
+    @assertEqual(scalar_integer, returned_integer)
+
+    ! Add reals
+    call test_inventory_by_local_mesh_A%clear()
+    call test_inventory_by_local_mesh_A%initialise(                            &
+            name="test_inventory_of_scalars", table_len=5                      &
+    )
+    first_real = 19.19_r_def
+    second_real = 19.1919_r_solver
+    call test_inventory_by_local_mesh_A%add_real( first_real, local_mesh_A )
+    call test_inventory_by_local_mesh_A%add_real( second_real, local_mesh_B )
+    call test_inventory_by_local_mesh_A%get_real( local_mesh_A, returned_real1 )
+    call test_inventory_by_local_mesh_A%get_real( local_mesh_B, returned_real2 )
+    @assertEqual(first_real, returned_real1, tol)
+    @assertEqual(second_real, returned_real2, tol_rsol)
+
+    ! Tidy up by clearing inventories
+    call test_inventory_by_local_mesh_A%clear()
 
   end subroutine test_all
 

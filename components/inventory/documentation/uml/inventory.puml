@@ -13,6 +13,9 @@
 !include inventory/id_integer_array_pair_mod.iuml
 !include inventory/id_integer_field_pair_mod.iuml
 !include inventory/id_integer_field_array_pair_mod.iuml
+!include inventory/id_logical_pair_mod.iuml
+!include inventory/id_real32_pair_mod.iuml
+!include inventory/id_real64_pair_mod.iuml
 !include inventory/id_r32_field_array_pair_mod.iuml
 !include inventory/id_r32_field_pair_mod.iuml
 !include inventory/id_r32_operator_pair_mod.iuml
@@ -26,6 +29,9 @@ id_abstract_pair_mod::id_abstract_pair_type ^- id_integer_pair_mod::id_integer_p
 id_abstract_pair_mod::id_abstract_pair_type ^- id_integer_array_pair_mod::id_integer_array_pair_type
 id_abstract_pair_mod::id_abstract_pair_type ^- id_integer_field_pair_mod::id_integer_field_pair_type
 id_abstract_pair_mod::id_abstract_pair_type ^- id_integer_field_array_pair_mod::id_integer_field_array_pair_type
+id_abstract_pair_mod::id_abstract_pair_type ^- id_logical_pair_mod::id_logical_pair_type
+id_abstract_pair_mod::id_abstract_pair_type ^- id_real32_pair_mod::id_real32_pair_type
+id_abstract_pair_mod::id_abstract_pair_type ^- id_real64_pair_mod::id_real64_pair_type
 id_abstract_pair_mod::id_abstract_pair_type ^- id_r32_field_pair_mod::id_r32_field_pair_type
 id_abstract_pair_mod::id_abstract_pair_type ^- id_r32_field_array_pair_mod::id_r32_field_array_pair_type
 id_abstract_pair_mod::id_abstract_pair_type ^- id_r32_operator_pair_mod::id_r32_operator_pair_type

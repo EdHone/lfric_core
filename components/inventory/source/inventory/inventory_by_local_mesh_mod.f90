@@ -11,7 +11,8 @@
 !
 module inventory_by_local_mesh_mod
 
-  use constants_mod,                    only: i_def, l_def, str_def
+  use constants_mod,                    only: i_def, l_def, str_def, r_single, &
+                                              r_double
   use field_mod,                        only: field_type
   use field_real32_mod,                 only: field_real32_type
   use field_real64_mod,                 only: field_real64_type
@@ -27,8 +28,14 @@ module inventory_by_local_mesh_mod
   use id_r32_field_pair_mod,            only: id_r32_field_pair_type
   use id_r64_field_pair_mod,            only: id_r64_field_pair_type
   use id_integer_field_pair_mod,        only: id_integer_field_pair_type
+  use id_r32_field_array_pair_mod,      only: id_r32_field_array_pair_type
+  use id_r64_field_array_pair_mod,      only: id_r64_field_array_pair_type
+  use id_integer_field_array_pair_mod,  only: id_integer_field_array_pair_type
   use id_integer_pair_mod,              only: id_integer_pair_type
   use id_integer_array_pair_mod,        only: id_integer_array_pair_type
+  use id_real32_pair_mod,               only: id_real32_pair_type
+  use id_real64_pair_mod,               only: id_real64_pair_type
+  use id_logical_pair_mod,              only: id_logical_pair_type
 
   implicit none
 
@@ -73,8 +80,19 @@ module inventory_by_local_mesh_mod
     generic           :: add_field => add_r32_field, &
                                       add_r64_field, &
                                       add_integer_field
+    procedure, public :: add_r32_field_array
+    procedure, public :: add_r64_field_array
+    procedure, public :: add_integer_field_array
+    generic           :: add_field_array => add_r32_field_array, &
+                                            add_r64_field_array, &
+                                            add_integer_field_array
     procedure, public :: add_integer
     procedure, public :: add_integer_array
+    procedure, public :: add_logical
+    procedure, public :: add_real32
+    procedure, public :: add_real64
+    generic           :: add_real => add_real32, &
+                                     add_real64
     ! Specific routines for copying different objects into the inventory
     ! To support new objects, add more routines here
     procedure, public :: copy_r32_field
@@ -83,6 +101,12 @@ module inventory_by_local_mesh_mod
     generic           :: copy_field => copy_r32_field, &
                                        copy_r64_field, &
                                        copy_integer_field
+    procedure, public :: copy_r32_field_array
+    procedure, public :: copy_r64_field_array
+    procedure, public :: copy_integer_field_array
+    generic           :: copy_field_array => copy_r32_field_array, &
+                                             copy_r64_field_array, &
+                                             copy_integer_field_array
     ! Specific routines for getting different objects from the inventory
     ! To support new objects, add more routines here
     procedure, public :: get_r32_field
@@ -91,8 +115,19 @@ module inventory_by_local_mesh_mod
     generic           :: get_field => get_r32_field, &
                                       get_r64_field, &
                                       get_integer_field
+    procedure, public :: get_r32_field_array
+    procedure, public :: get_r64_field_array
+    procedure, public :: get_integer_field_array
+    generic           :: get_field_array => get_r32_field_array, &
+                                            get_r64_field_array, &
+                                            get_integer_field_array
     procedure, public :: get_integer
     procedure, public :: get_integer_array
+    procedure, public :: get_logical
+    procedure, public :: get_real32
+    procedure, public :: get_real64
+    generic           :: get_real => get_real32, &
+                                     get_real64
 
     ! Overloaded routine (which will trigger a failure)
     procedure, private :: inventory_copy_constructor
@@ -332,6 +367,24 @@ function get_paired_object(self, id) result(paired_object)
           paired_object => list_paired_object
           exit
         end if
+      type is (id_r32_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_r64_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_integer_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
       type is (id_integer_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
@@ -339,6 +392,24 @@ function get_paired_object(self, id) result(paired_object)
           exit
         end if
       type is (id_integer_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_logical_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_real32_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          paired_object => list_paired_object
+          exit
+        end if
+      type is (id_real64_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
           paired_object => list_paired_object
@@ -404,6 +475,24 @@ function paired_object_exists(self, id) result(exists)
           exists=.true.
           exit
         end if
+      type is (id_r32_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_r64_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_integer_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
       type is (id_integer_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
@@ -411,6 +500,24 @@ function paired_object_exists(self, id) result(exists)
           exit
         end if
       type is (id_integer_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_logical_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_real32_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          exists=.true.
+          exit
+        end if
+      type is (id_real64_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
           exists=.true.
@@ -473,6 +580,24 @@ subroutine remove_paired_object(self, id)
           call self%paired_object_list(hash)%remove_item(loop)
           exit
         end if
+      type is (id_r32_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_r64_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_integer_field_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
       type is (id_integer_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
@@ -480,6 +605,24 @@ subroutine remove_paired_object(self, id)
           exit
         end if
       type is (id_integer_array_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_logical_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_real32_pair_type)
+        loop_id = list_paired_object%get_id()
+        if ( id == loop_id ) then
+          call self%paired_object_list(hash)%remove_item(loop)
+          exit
+        end if
+      type is (id_real64_pair_type)
         loop_id = list_paired_object%get_id()
         if ( id == loop_id ) then
           call self%paired_object_list(hash)%remove_item(loop)
@@ -596,6 +739,87 @@ subroutine add_integer_field(self, field, fs, local_mesh, name, halo_depth)
 
 end subroutine add_integer_field
 
+!> @brief Adds an r32 field_array to the inventory and returns a pointer to it
+!> @param[out] field_array  Pointer to the field_array that is to be added
+!> @param[in]  fs           Function space for the fields to be created
+!> @param[in]  array_size   Size of array of fields to be created
+!> @param[in]  local_mesh   The local mesh to pair the field_array with
+!> @param[in]  halo_depth   Optional halo depth for field (to overwrite the
+!!                          default halo depth)
+subroutine add_r32_field_array(self, field_array, fs, array_size, local_mesh, halo_depth)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  type(field_real32_type),    pointer, intent(out)   :: field_array(:)
+  type(function_space_type),  pointer, intent(in)    :: fs
+  integer(kind=i_def),                 intent(in)    :: array_size
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  integer(i_def),            optional, intent(in)    :: halo_depth
+  type(id_r32_field_array_pair_type)                 :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(fs, local_mesh%get_id(), array_size, &
+                                halo_depth=halo_depth)
+  call self%add_paired_object(paired_object)
+  call self%get_r32_field_array(local_mesh, field_array)
+
+end subroutine add_r32_field_array
+
+!> @brief Adds an r64 field_array to the inventory and returns a pointer to it
+!> @param[out] field_array  Pointer to the field_array that is to be added
+!> @param[in]  fs           Function space for the fields to be created
+!> @param[in]  array_size   Size of array of fields to be created
+!> @param[in]  local_mesh   The local mesh to pair the field_array with
+!> @param[in]  halo_depth   Optional halo depth for field (to overwrite the
+!!                          default halo depth)
+subroutine add_r64_field_array(self, field_array, fs, array_size, local_mesh, halo_depth)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  type(field_real64_type),    pointer, intent(out)   :: field_array(:)
+  type(function_space_type),  pointer, intent(in)    :: fs
+  integer(kind=i_def),                 intent(in)    :: array_size
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  integer(i_def),            optional, intent(in)    :: halo_depth
+  type(id_r64_field_array_pair_type)                 :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(fs, local_mesh%get_id(), array_size, &
+                                halo_depth=halo_depth)
+  call self%add_paired_object(paired_object)
+  call self%get_r64_field_array(local_mesh, field_array)
+
+end subroutine add_r64_field_array
+
+!> @brief Adds an integer field_array to the inventory and returns a pointer to it
+!> @param[out] field_array  Pointer to the field_array that is to be added
+!> @param[in]  fs           Function space for the fields to be created
+!> @param[in]  array_size   Size of array of fields to be created
+!> @param[in]  local_mesh   The local mesh to pair the field_array with
+!> @param[in]  halo_depth   Optional halo depth for field (to overwrite the
+!!                          default halo depth)
+subroutine add_integer_field_array(self, field_array, fs, array_size, local_mesh, halo_depth)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  type(integer_field_type),   pointer, intent(out)   :: field_array(:)
+  type(function_space_type),  pointer, intent(in)    :: fs
+  integer(kind=i_def),                 intent(in)    :: array_size
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  integer(i_def),            optional, intent(in)    :: halo_depth
+  type(id_integer_field_array_pair_type)             :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(fs, local_mesh%get_id(), array_size, &
+                                halo_depth=halo_depth)
+  call self%add_paired_object(paired_object)
+  call self%get_integer_field_array(local_mesh, field_array)
+
+end subroutine add_integer_field_array
+
 !> @brief Adds an integer to the inventory
 !> @param[in] number      The integer that is to be copied into the inventory
 !> @param[in] local_mesh  The local_mesh to pair the integer with
@@ -631,6 +855,60 @@ subroutine add_integer_array(self, numbers, local_mesh)
   call self%add_paired_object(paired_object)
 
 end subroutine add_integer_array
+
+!> @brief Adds a real32 to the inventory
+!> @param[in] number      The real that is to be copied into the inventory
+!> @param[in] local_mesh  The local_mesh to pair the real with
+subroutine add_real32(self, number, local_mesh)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  real(kind=r_single),                 intent(in)    :: number
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  type(id_real32_pair_type)                          :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(number, local_mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine add_real32
+
+!> @brief Adds a real64 to the inventory
+!> @param[in] number      The real that is to be copied into the inventory
+!> @param[in] local_mesh  The local_mesh to pair the real with
+subroutine add_real64(self, number, local_mesh)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  real(kind=r_double),                 intent(in)    :: number
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  type(id_real64_pair_type)                          :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(number, local_mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine add_real64
+
+!> @brief Adds a logical to the inventory
+!> @param[in] bool_flag   The logical that is to be copied into the inventory
+!> @param[in] local_mesh  The local_mesh to pair the logical with
+subroutine add_logical(self, bool_flag, local_mesh)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  logical(kind=l_def),                 intent(in)    :: bool_flag
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  type(id_logical_pair_type)                         :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%initialise(bool_flag, local_mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine add_logical
 
 ! ============================================================================ !
 ! COPY OBJECT ROUTINES -- these are specific to an inventory_by_local_mesh
@@ -689,6 +967,60 @@ subroutine copy_integer_field(self, field, local_mesh)
   call self%add_paired_object(paired_object)
 
 end subroutine copy_integer_field
+
+!> @brief Copies an r32 field_array into the inventory
+!> @param[in] field_array The field_array that is to be copied into the inventory
+!> @param[in] local_mesh  The local mesh to pair the field_array with
+subroutine copy_r32_field_array(self, field_array, local_mesh)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  type(field_real32_type),             intent(in)    :: field_array(:)
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  type(id_r32_field_array_pair_type)                 :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%copy_initialise(field_array, local_mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine copy_r32_field_array
+
+!> @brief Copies an r64 field_array into the inventory
+!> @param[in] field_array The field_array that is to be copied into the inventory
+!> @param[in] local_mesh  The local mesh to pair the field_array with
+subroutine copy_r64_field_array(self, field_array, local_mesh)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(inout) :: self
+  type(field_real64_type),             intent(in)    :: field_array(:)
+  type(local_mesh_type),               intent(in)    :: local_mesh
+  type(id_r64_field_array_pair_type)                 :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%copy_initialise(field_array, local_mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine copy_r64_field_array
+
+!> @brief Copies an integer field_array into the inventory
+!> @param[in] field_array The field_array that is to be copied into the inventory
+!> @param[in] local_mesh  The local mesh to pair the field_array with
+subroutine copy_integer_field_array(self, field_array, local_mesh)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type),     intent(inout) :: self
+  type(integer_field_type),                intent(in)    :: field_array(:)
+  type(local_mesh_type),                   intent(in)    :: local_mesh
+  type(id_integer_field_array_pair_type)                 :: paired_object
+
+  ! Set up the paired_object
+  call paired_object%copy_initialise(field_array, local_mesh%get_id())
+  call self%add_paired_object(paired_object)
+
+end subroutine copy_integer_field_array
 
 ! ============================================================================ !
 ! GET OBJECT ROUTINES -- these are specific to an inventory_by_local_mesh
@@ -763,6 +1095,75 @@ subroutine get_integer_field(self, local_mesh, field)
 
 end subroutine get_integer_field
 
+!> @brief Sets a pointer to an array of r32 fields from the inventory
+!> @param[in]  local_mesh   The local_mesh of the r32 field array to be accessed
+!> @param[out] field_array  Pointer to the array of r32 fields to be accessed
+subroutine get_r32_field_array(self, local_mesh, field_array)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(in)  :: self
+  type(local_mesh_type),               intent(in)  :: local_mesh
+  type(field_real32_type),    pointer, intent(out) :: field_array(:)
+  class(id_abstract_pair_type),        pointer     :: paired_object
+
+  paired_object => self%get_paired_object(local_mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_r32_field_array_pair_type)
+      field_array => this%get_field_array()
+    class default
+      call log_event('Paired ID object must be of r32 field_array type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_r32_field_array
+
+!> @brief Sets a pointer to an array of r64 fields from the inventory
+!> @param[in]  local_mesh   The local_mesh of the r64 field array to be accessed
+!> @param[out] field_array  Pointer to the array of r64 fields to be accessed
+subroutine get_r64_field_array(self, local_mesh, field_array)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(in)  :: self
+  type(local_mesh_type),               intent(in)  :: local_mesh
+  type(field_real64_type),    pointer, intent(out) :: field_array(:)
+  class(id_abstract_pair_type),        pointer     :: paired_object
+
+  paired_object => self%get_paired_object(local_mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_r64_field_array_pair_type)
+      field_array => this%get_field_array()
+    class default
+      call log_event('Paired ID object must be of r64 field_array type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_r64_field_array
+
+!> @brief Sets a pointer to an array of integer fields from the inventory
+!> @param[in]  local_mesh   The local_mesh of the field array to be accessed
+!> @param[out] field_array  Pointer to the array of fields to be accessed
+subroutine get_integer_field_array(self, local_mesh, field_array)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type),  intent(in)  :: self
+  type(local_mesh_type),                intent(in)  :: local_mesh
+  type(integer_field_type),    pointer, intent(out) :: field_array(:)
+  class(id_abstract_pair_type),         pointer     :: paired_object
+
+  paired_object => self%get_paired_object(local_mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_integer_field_array_pair_type)
+      field_array => this%get_field_array()
+    class default
+      call log_event('Paired ID object must be of integer field_array type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_integer_field_array
+
 !> @brief Sets a pointer to an integer from the inventory
 !> @param[in]  local_mesh  The local mesh of the integer to be accessed
 !> @param[out] number      Pointer to the integer to be accessed
@@ -808,5 +1209,74 @@ subroutine get_integer_array(self, local_mesh, numbers)
   end select
 
 end subroutine get_integer_array
+
+!> @brief Sets a pointer to a real32 from the inventory
+!> @param[in]  local_mesh  The local mesh of the real to be accessed
+!> @param[out] number      Pointer to the real to be accessed
+subroutine get_real32(self, local_mesh, number)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(in)  :: self
+  type(local_mesh_type),               intent(in)  :: local_mesh
+  real(kind=r_single),  pointer,       intent(out) :: number
+  class(id_abstract_pair_type),        pointer     :: paired_object
+
+  paired_object => self%get_paired_object(local_mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_real32_pair_type)
+      number => this%get_real32()
+    class default
+      call log_event('Paired ID object must be of real32 type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real32
+
+!> @brief Sets a pointer to a real64 from the inventory
+!> @param[in]  local_mesh  The local mesh of the real to be accessed
+!> @param[out] number      Pointer to the real to be accessed
+subroutine get_real64(self, local_mesh, number)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(in)  :: self
+  type(local_mesh_type),               intent(in)  :: local_mesh
+  real(kind=r_double),  pointer,       intent(out) :: number
+  class(id_abstract_pair_type),        pointer     :: paired_object
+
+  paired_object => self%get_paired_object(local_mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_real64_pair_type)
+      number => this%get_real64()
+    class default
+      call log_event('Paired ID object must be of real64 type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real64
+
+!> @brief Sets a pointer to a logical from the inventory
+!> @param[in]  local_mesh  The local mesh of the logical to be accessed
+!> @param[out] number      Pointer to the logical to be accessed
+subroutine get_logical(self, local_mesh, bool_flag)
+
+  implicit none
+
+  class(inventory_by_local_mesh_type), intent(in)  :: self
+  type(local_mesh_type),               intent(in)  :: local_mesh
+  logical(kind=l_def),  pointer,       intent(out) :: bool_flag
+  class(id_abstract_pair_type),        pointer     :: paired_object
+
+  paired_object => self%get_paired_object(local_mesh%get_id())
+
+  select type(this => paired_object)
+    type is (id_logical_pair_type)
+      bool_flag => this%get_logical()
+    class default
+      call log_event('Paired ID object must be of logical type', LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_logical
 
 end module inventory_by_local_mesh_mod

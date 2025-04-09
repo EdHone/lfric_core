@@ -26,6 +26,9 @@ class inventory_by_mesh_mod::inventory_by_mesh_type {
   +add_field_array( <<out>> field_array: integer_field_type, <<in>> fs: function_space_type, <<in>> array_size: integer, <<in>> mesh: mesh_type, <<in, optional>> halo_depth: integer ) :
   +add_integer( <<in>> number: integer, <<in>> mesh: mesh_type ) :
   +add_integer_array( <<in>> numbers: integer, <<in>> mesh: mesh_type ) :
+  +add_logical( <<in>> bool_flag: logical, <<in>> mesh: mesh_type ) :
+  +add_real32( <<in>> number: real, <<in>> mesh: mesh_type ) :
+  +add_real64( <<in>> number: real, <<in>> mesh: mesh_type ) :
   +add_operator( <<out>> operator_in: operator_real32_type, <<in>> fs_target: function_space_type, <<in>> fs_source: function_space_type, <<in>> mesh: mesh_type ) :
   +add_operator( <<out>> operator_in: operator_real64_type, <<in>> fs_target: function_space_type, <<in>> fs_source: function_space_type, <<in>> mesh: mesh_type ) :
   +copy_field( <<in>> field: field_real32_type, <<in>> mesh: mesh_type ) :
@@ -48,6 +51,9 @@ class inventory_by_mesh_mod::inventory_by_mesh_type {
   +get_field_array( <<in>> mesh: mesh_type, <<out>> field_array: integer_field_type ) :
   +get_integer( <<in>> mesh: mesh_type, <<out>> number: integer ) :
   +get_integer_array( <<in>> mesh: mesh_type, <<out>> numbers: integer ) :
+  +get_logical( <<in>> mesh: mesh_type, <<out>> bool_flag: logical ) :
+  +get_real32( <<in>> mesh: mesh_type, <<out>> number: real ) :
+  +get_real64( <<in>> mesh: mesh_type, <<out>> number: real ) :
   +get_operator( <<in>> mesh: mesh_type, <<out>> operator_out: operator_real32_type ) :
   +get_operator( <<in>> mesh: mesh_type, <<out>> operator_out: operator_real64_type ) :
   +compute_intermesh_id( <<in>> source_mesh: mesh_type, <<in>> target_mesh: mesh_type ) : integer
