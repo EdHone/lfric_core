@@ -32,11 +32,11 @@ LDFLAGS_COMPILER = -g
 # The LFRIC_OFFLOAD_DIRECTIVES env_variable is also queried in the PSyclone
 # script to generate matching directives
 ifeq ("$(LFRIC_OFFLOAD_DIRECTIVES)", "omp")
-	FFLAGS_OPENMP  = -mp=gpu -gpu=managed
-	LDFLAGS_OPENMP = -mp=gpu -gpu=managed -cuda
+	FFLAGS_OPENMP  = -mp=gpu -gpu=mem:managed
+	LDFLAGS_OPENMP = -mp=gpu -gpu=mem:managed -cuda
 else ifeq ("$(LFRIC_OFFLOAD_DIRECTIVES)", "acc")
-	FFLAGS_OPENMP  = -acc=gpu -gpu=managed -mp=multicore
-	LDFLAGS_OPENMP = -acc=gpu -gpu=managed -mp=multicore -cuda
+	FFLAGS_OPENMP  = -acc=gpu -gpu=mem:managed -mp=multicore
+	LDFLAGS_OPENMP = -acc=gpu -gpu=mem:managed -mp=multicore -cuda
 else
 	FFLAGS_OPENMP  = -mp
 	LDFLAGS_OPENMP = -mp
