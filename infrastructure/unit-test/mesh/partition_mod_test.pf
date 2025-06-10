@@ -118,7 +118,7 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     character(len = str_max_filename) :: filename
 
@@ -136,7 +136,7 @@ contains
     total_ranks = this%getNumProcesses()
     max_stencil_depth = 2
 
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     filename = 'data/mesh_BiP8x8-750x250.nc'
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -154,7 +154,7 @@ contains
                                 xproc,                 &
                                 yproc,                 &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank,            &
                                 total_ranks )
 
@@ -262,7 +262,7 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     character(len = str_max_filename) :: filename
 
@@ -280,7 +280,7 @@ contains
     total_ranks = this%getNumProcesses()
     max_stencil_depth = 2
 
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     filename = 'data/mesh_planar.nc'
 
@@ -300,7 +300,7 @@ contains
                                 xproc,                 &
                                 yproc,                 &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank,            &
                                 total_ranks )
     ! Test functionality of the partition object we've just created on both 1
@@ -407,7 +407,7 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     character(len = str_max_filename) :: filename
 
@@ -425,7 +425,7 @@ contains
     total_ranks = this%getNumProcesses()
     max_stencil_depth = 2
 
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     filename = 'data/mesh_trench_x.nc'
 
@@ -445,7 +445,7 @@ contains
                                 xproc,                 &
                                 yproc,                 &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank,            &
                                 total_ranks )
     ! Test functionality of the partition object we've just created on both 1
@@ -552,7 +552,7 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     character(len = str_max_filename) :: filename
 
@@ -570,7 +570,7 @@ contains
     total_ranks = this%getNumProcesses()
     max_stencil_depth = 2
 
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     filename = 'data/mesh_trench_y.nc'
 
@@ -590,7 +590,7 @@ contains
                                 xproc,                 &
                                 yproc,                 &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank,            &
                                 total_ranks )
     ! Test functionality of the partition object we've just created on both 1
@@ -699,7 +699,7 @@ contains
 
     integer(i_def) :: global_mesh_id
 
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     character(len = str_max_filename) :: filename
 
@@ -709,7 +709,7 @@ contains
     total_ranks = this%getNumProcesses()
     max_stencil_depth = 2
 
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     filename = 'data/mesh_C4.nc'
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -726,7 +726,7 @@ contains
                                 xproc,                 &
                                 yproc,                 &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank,            &
                                 total_ranks )
     !
@@ -784,7 +784,7 @@ contains
     !                              xproc,                 &
     !                              yproc,                 &
     !                              max_stencil_depth,     &
-    !                              generate_inner_haloes, &
+    !                              generate_inner_halos, &
     !                              local_rank,            &
     !                              total_ranks )
     !  !

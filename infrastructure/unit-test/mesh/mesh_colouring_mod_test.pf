@@ -128,7 +128,7 @@ subroutine test_compute_colours_cubedsphere(this)
   integer(i_def)   :: err
   character( 200 ) :: message
 
-  logical(l_def), parameter   :: generate_inner_haloes = .true.
+  logical(l_def), parameter   :: generate_inner_halos = .true.
 
   filename = "data/mesh_C4.nc"
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -142,7 +142,7 @@ subroutine test_compute_colours_cubedsphere(this)
                             this%xproc,            &
                             this%yproc,            &
                             halo_depth,            &
-                            generate_inner_haloes, &
+                            generate_inner_halos, &
                             this%local_rank,       &
                             this%total_ranks)
 
@@ -251,7 +251,7 @@ subroutine test_compute_colours_biperiodic(this)
   type(mesh_type) :: mesh
   integer(i_def)  :: err
 
-  logical(l_def), parameter   :: generate_inner_haloes = .true.
+  logical(l_def), parameter   :: generate_inner_halos = .true.
 
   filename = "data/mesh_BiP8x8-750x250.nc"
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -265,7 +265,7 @@ subroutine test_compute_colours_biperiodic(this)
                             this%xproc,            &
                             this%yproc,            &
                             1,                     &
-                            generate_inner_haloes, &
+                            generate_inner_halos, &
                             this%local_rank,       &
                             this%total_ranks)
 
@@ -350,7 +350,7 @@ subroutine test_compute_colours_generic(this)
   type(mesh_type) :: mesh
   integer(i_def)  :: err
 
-  logical(l_def), parameter   :: generate_inner_haloes = .true.
+  logical(l_def), parameter   :: generate_inner_halos = .true.
 
   ! Force colour generator to use generic colour routine by not saying
   ! it's a cubed sphere
@@ -366,7 +366,7 @@ subroutine test_compute_colours_generic(this)
                             this%xproc,            &
                             this%yproc,            &
                             1,                     &
-                            generate_inner_haloes, &
+                            generate_inner_halos, &
                             this%local_rank,       &
                             this%total_ranks)
 

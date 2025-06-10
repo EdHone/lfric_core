@@ -107,7 +107,7 @@ contains
 
 
 !> @brief Extend the equiangular coordinate fields from panel boundaries into
-!!        the haloes
+!!        the halos
 !! @param[in]     nlayers    Number of layers
 !! @param[in,out] alpha_ext  Extension of the alpha (chi(1)) coodinate field
 !! @param[in,out] beta_ext   Extension of the beta (chi(2)) coodinate field

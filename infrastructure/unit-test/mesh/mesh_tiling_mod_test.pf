@@ -85,7 +85,7 @@ contains
 !-------------------------------------------------------------------------------
 
   function get_mesh( filename, xyprocs, max_stencil_depth, local_rank,      &
-                     total_ranks, num_layers, generate_inner_haloes,        &
+                     total_ranks, num_layers, generate_inner_halos,        &
                      tile_size, inner_halo_tiles ) &
                      result ( mesh )
 
@@ -107,7 +107,7 @@ contains
     integer(i_def), intent(in)                    :: num_layers
     integer(i_def), intent(in)                    :: tile_size(2)
     logical(l_def), intent(in)                    :: inner_halo_tiles
-    logical(l_def), intent(in)                    :: generate_inner_haloes
+    logical(l_def), intent(in)                    :: generate_inner_halos
     type(mesh_type)                               :: mesh
 
     character(str_def), parameter             :: mesh_name ='unit_test'
@@ -136,7 +136,7 @@ contains
                                 xyprocs(1),            &
                                 xyprocs(2),            &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank,            &
                                 total_ranks )
 
@@ -184,7 +184,7 @@ contains
     integer(i_def), allocatable       :: last_inner_cells(:,:,:)
     integer(i_def), allocatable       :: last_edge_cells(:,:)
     integer(i_def), allocatable       :: last_halo_cells(:,:,:)
-    logical(l_def)                    :: generate_inner_haloes
+    logical(l_def)                    :: generate_inner_halos
 
     select case ( this%getNumProcesses() )
       case (1)
@@ -193,14 +193,14 @@ contains
         xyprocs = 2
     end select
     max_stencil_depth = 2
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     filename = 'data/mesh_BiP8x8-750x250.nc'
 
     ! Initialise mesh, this also initialises tiling
     mesh = get_mesh( filename , xyprocs, max_stencil_depth,         &
                      this%getProcessRank(), this%getNumProcesses(), &
-                     this%num_layers, generate_inner_haloes,        &
+                     this%num_layers, generate_inner_halos,        &
                      tile_size, .false. )
 
     ! Retrieve colouring data through mesh_type API and fill comparison arrays
@@ -286,12 +286,12 @@ contains
     integer(i_def)                    :: last_edge_cells( ncolours, ntiles )
     integer(i_def)                    :: &
          last_halo_cells( ncolours, ntiles, ndepths )
-    logical(l_def)                    :: generate_inner_haloes
+    logical(l_def)                    :: generate_inner_halos
 
     xyprocs = 2
     max_stencil_depth = 4
     filename = 'data/mesh_planar-32x32.nc'
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     ! The global mesh will be partitioned into 2x2 rectangular local meshes
     ! with 16x16 cells each, and outer halos along two of the 4 partition
@@ -413,7 +413,7 @@ contains
     ! Initialise mesh, this also initialises tiling
     mesh = get_mesh( filename , xyprocs, max_stencil_depth,         &
                      this%getProcessRank(), this%getNumProcesses(), &
-                     this%num_layers, generate_inner_haloes,        &
+                     this%num_layers, generate_inner_halos,        &
                      tile_size, .true. )
 
     ! Edge and inner tiles are the same when inner halos are tiled separately
@@ -451,12 +451,12 @@ contains
     integer(i_def)                    :: last_edge_cells( ncolours, ntiles )
     integer(i_def)                    :: &
          last_halo_cells( ncolours, ntiles, ndepths )
-    logical(l_def)                    :: generate_inner_haloes
+    logical(l_def)                    :: generate_inner_halos
 
     xyprocs = 2
     max_stencil_depth = 4
     filename = 'data/mesh_planar-32x32.nc'
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     ! Same test as "test_partitioned_planar_mesh_separated_halo", but without
     ! separating inner halo and partition interior. This leads to the
@@ -584,7 +584,7 @@ contains
     ! Initialise mesh, this also initialises tiling
     mesh = get_mesh( filename , xyprocs, max_stencil_depth,         &
                      this%getProcessRank(), this%getNumProcesses(), &
-                     this%num_layers, generate_inner_haloes,        &
+                     this%num_layers, generate_inner_halos,        &
                      tile_size, .false. )
 
     call check_tiling_results( mesh, ncolours, ntiles, ndepths, ndepths,   &

@@ -75,7 +75,7 @@ integer(i_def), parameter :: yproc                 = 1_i_def
 integer(i_def), parameter :: element_order_h       = 0_i_def
 integer(i_def), parameter :: element_order_v       = 0_i_def
 integer(i_def), parameter :: nlayers               = 5_i_def
-logical(l_def), parameter :: generate_inner_haloes = .true.
+logical(l_def), parameter :: generate_inner_halos = .true.
 real(r_def),    parameter :: domain_top            = 10000.0_r_def
 
 real(r_def), parameter :: gravity  = 10.0_r_def
@@ -153,7 +153,7 @@ do i=1, size(mesh_names)
 
   partition =  partition_type( global_mesh_ptr, partitioner_ptr, &
                                xproc, yproc, max_stencil_depth,  &
-                               generate_inner_haloes,            &
+                               generate_inner_halos,            &
                                local_rank, total_ranks )
   call local_mesh%initialise( global_mesh_ptr, partition )
   call local_mesh%init_cell_owner()
@@ -210,7 +210,7 @@ do i=1, size(mesh_names)
   source_local_mesh_ptr => local_mesh_collection % get_local_mesh (mesh_names(i))
   partition =  partition_type( global_mesh_ptr, partitioner_ptr, &
                                xproc, yproc, max_stencil_depth,  &
-                               generate_inner_haloes,            &
+                               generate_inner_halos,            &
                                local_rank, total_ranks )
   mesh = mesh_type( source_local_mesh_ptr, extrusion )
   mesh_id(i) =  mesh_collection % add_new_mesh( mesh )

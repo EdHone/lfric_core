@@ -125,7 +125,7 @@ subroutine init_mesh( configuration,           &
   integer(i_def) :: cellshape
 
   logical :: prepartitioned
-  logical :: generate_inner_haloes
+  logical :: generate_inner_halos
 
   integer :: geometry
   integer :: topology
@@ -155,7 +155,7 @@ subroutine init_mesh( configuration,           &
   call base_mesh_nml%get_value( 'file_prefix',    file_prefix )
 
   call finite_element_nml%get_value( 'cellshape', cellshape )
-  call partitioning_nml%get_value( 'generate_inner_haloes', generate_inner_haloes )
+  call partitioning_nml%get_value( 'generate_inner_halos', generate_inner_halos )
 
 
 
@@ -320,7 +320,7 @@ subroutine init_mesh( configuration,           &
                             local_rank, total_ranks, &
                             xproc, yproc,            &
                             stencil_depth,           &
-                            generate_inner_haloes,   &
+                            generate_inner_halos,   &
                             partitioner_ptr )
 
 

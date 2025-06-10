@@ -283,7 +283,7 @@ end subroutine get_partition_strategy
 !> @param[in]  total_ranks            Total number of MPI ranks in this job
 !> @param[in]  xproc                  Number of ranks in mesh panel x-direction
 !> @param[in]  yproc                  Number of ranks in mesh panel y-direction
-!> @param[in]  generate_inner_haloes  Generate inner halo regions
+!> @param[in]  generate_inner_halos  Generate inner halo regions
 !!                                    to overlap comms & compute
 !> @param[in]  stencil_depth          Depth of cells outside the base cell
 !!                                    of stencil.
@@ -292,7 +292,7 @@ subroutine create_local_mesh( mesh_names,              &
                               local_rank, total_ranks, &
                               xproc, yproc,            &
                               stencil_depth,           &
-                              generate_inner_haloes,   &
+                              generate_inner_halos,   &
                               partitioner_ptr )
 
   implicit none
@@ -305,7 +305,7 @@ subroutine create_local_mesh( mesh_names,              &
   integer(i_def), intent(in) :: yproc
   integer(i_def), intent(in) :: stencil_depth
 
-  logical(l_def), intent(in) :: generate_inner_haloes
+  logical(l_def), intent(in) :: generate_inner_halos
 
   procedure(partitioner_interface), intent(in), pointer :: partitioner_ptr
 
@@ -324,7 +324,7 @@ subroutine create_local_mesh( mesh_names,              &
                                 partitioner_ptr,       &
                                 xproc, yproc,          &
                                 stencil_depth,         &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 local_rank, total_ranks )
     ! Create local_mesh
     call local_mesh%initialise( global_mesh_ptr, partition )

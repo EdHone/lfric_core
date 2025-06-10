@@ -53,7 +53,7 @@ subroutine generate_op_local_objects( local_mesh_bank,               &
                                       mesh_names, global_mesh_bank,  &
                                       n_partitions, partition_range, &
                                       max_stencil_depth,             &
-                                      generate_inner_haloes,         &
+                                      generate_inner_halos,         &
                                       xproc, yproc, partitioner,     &
                                       lbc_parent_name )
 
@@ -69,7 +69,7 @@ subroutine generate_op_local_objects( local_mesh_bank,               &
   integer(i_def),                    intent(in) :: xproc
   integer(i_def),                    intent(in) :: yproc
 
-  logical(l_def),                    intent(in) :: generate_inner_haloes
+  logical(l_def),                    intent(in) :: generate_inner_halos
 
   procedure(partitioner_interface),  intent(in), pointer :: partitioner
 
@@ -130,7 +130,7 @@ subroutine generate_op_local_objects( local_mesh_bank,               &
                                   partitioner,            &
                                   xproc, yproc,           &
                                   max_stencil_depth,      &
-                                  generate_inner_haloes,  &
+                                  generate_inner_halos,  &
                                   j, n_partitions )
 
       write( name,'(A,I0)' ) trim(source_name)//'_', j

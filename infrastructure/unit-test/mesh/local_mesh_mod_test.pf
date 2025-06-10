@@ -137,7 +137,7 @@ contains
     real(r_def)    :: known_vert_coords(2)
     real(r_def)    :: known_cell_coords(2)
 
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     logical(l_def) :: answer
 
@@ -165,14 +165,14 @@ contains
         yproc = 2
     end select
     max_stencil_depth = 2
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
 
     partition = partition_type( global_mesh_ptr,       &
                                 partitioner_ptr,       &
                                 xproc,                 &
                                 yproc,                 &
                                 max_stencil_depth,     &
-                                generate_inner_haloes, &
+                                generate_inner_halos, &
                                 this%getProcessRank(), &
                                 this%getNumProcesses() )
 
@@ -457,7 +457,7 @@ contains
     integer(i_def) :: max_stencil_depth
     integer(i_def) :: local_rank
     integer(i_def) :: total_ranks
-    logical(l_def) :: generate_inner_haloes
+    logical(l_def) :: generate_inner_halos
 
     type(global_mesh_type), target  :: global_mesh
     type(global_mesh_type), pointer :: global_mesh_ptr => null()
@@ -475,7 +475,7 @@ contains
     xproc = 1
     yproc = 1
     max_stencil_depth = 1
-    generate_inner_haloes = .true.
+    generate_inner_halos = .true.
     local_rank = 0
     total_ranks = 1
 
@@ -488,7 +488,7 @@ contains
       global_mesh_ptr => global_mesh
       partition = partition_type( global_mesh_ptr, partitioner_ptr,     &
                                   xproc, yproc, max_stencil_depth,      &
-                                  generate_inner_haloes, local_rank,    &
+                                  generate_inner_halos, local_rank,    &
                                   total_ranks )
 
       call local_mesh(i)%initialise( global_mesh_ptr, partition )

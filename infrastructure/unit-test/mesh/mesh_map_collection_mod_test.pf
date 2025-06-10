@@ -55,7 +55,7 @@ module mesh_map_collection_mod_test
   integer(i_def), parameter :: nlayers               = 5_i_def
   real(r_def),    parameter :: domain_top            = 10000.0_r_def
   real(r_def),    parameter :: radius                = 6371229.0_r_def
-  logical(l_def), parameter :: generate_inner_haloes = .true.
+  logical(l_def), parameter :: generate_inner_halos = .true.
 
 
 contains
@@ -111,7 +111,7 @@ contains
                                        partitioner_ptr,        &
                                        xproc, yproc,           &
                                        max_stencil_depth,      &
-                                       generate_inner_haloes,  &
+                                       generate_inner_halos,  &
                                        local_rank, total_ranks )
 
     call coarse_local_mesh%initialise( coarse_global_mesh_ptr, &
@@ -131,7 +131,7 @@ contains
                                        partitioner_ptr,        &
                                        xproc, yproc,           &
                                        max_stencil_depth,      &
-                                       generate_inner_haloes,  &
+                                       generate_inner_halos,  &
                                        local_rank, total_ranks )
 
     call fine_local_mesh%initialise( fine_global_mesh_ptr, &
