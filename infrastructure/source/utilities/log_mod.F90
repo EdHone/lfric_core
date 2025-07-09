@@ -79,6 +79,8 @@ module log_mod
   integer(i_timestep), private, allocatable :: timestep
   !> Control optional log suppression by rank, all ranks log by default.
   logical, private :: emit_log_message
+  !> To identify messages received before logger initialised
+  logical, private :: logger_uninitialised = .true.
 
 contains
 
@@ -113,6 +115,9 @@ contains
     integer(i_def)                :: this_rank
     integer(i_def)                :: total_ranks
     logical                       :: log_to_rank_0_only
+
+    ! indicate that logger is initialised
+    logger_uninitialised = .false.
 
     ! default behaviour: log to all ranks
     emit_log_message = .true.
@@ -228,6 +233,8 @@ contains
 #endif
       deallocate( mpi_communicator )
     end if
+
+    logger_uninitialised = .true.
 
   end subroutine finalise_logging
 
@@ -415,6 +422,14 @@ contains
         if (logging_level <= LOG_LEVEL_DEBUG) then
           flush(unit)
         end if
+
+      else if (logger_uninitialised) then
+
+        write(unit,'(A)')'Log message received before logger initialised. Message is:'
+        write(unit,'(A)')trim( message )
+        ! Let's assume a message now is a bad thing, and try to flush
+        ! it before the model fails
+        flush(unit)
 
       endif
 
