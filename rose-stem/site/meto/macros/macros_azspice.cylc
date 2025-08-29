@@ -7,17 +7,14 @@
 
 {# Macros here have largely been copied from the UM for now #}
 
-{# Macro to set wallclock, input is in minutes #}
-{% macro set_wallclock(time) %}
-            --time=00:{{time|int}}:00
-{% endmacro %}
+{% macro set_task_resources(mpi_ranks,
+                            memory,
+                            threads=1,
+                            xios_nodes=0,
+                            ocean_nodes=0,
+                            river_nodes=0) %}
 
-
-{% macro set_task_cores(mpi_ranks,
-                        threads=1,
-                        xios_nodes=0,
-                        ocean_nodes=0,
-                        river_nodes=0) %}
+    {{ set_memory(memory) }}
             --ntasks={{mpi_ranks|int + xios_nodes|int}}
             --cpus-per-task={{threads|int}}
 {% endmacro %}

@@ -19,11 +19,14 @@
     [[{{task}}]]
         inherit={{inherit.str|upper}}
         script = {{script_str}}
+        execution time limit = PT{{task_values["mesh_wallclock"]}}M
         [[[environment]]]
             DESTINATION_DIRECTORY = {{destination_dir}}
             BIN_DIR               = {{bin_dir}}
             MESH_DIR              = {{mesh_dir}}
             SOURCE_DIRECTORY      = $SOURCE_ROOT/mesh_tools
             OUTPUT_FILE_PREFIX    = $MESH_DIR/mesh_{{task_ns.conf_name}}
+        [[[directives]]]
+    {{ set_task_resources(task_values["mesh_cpus"], task_values["mesh_memory"]) }}
 
 {% do LOG.debug("Finished in templates/runtime/generate_runtime_mesh.cylc") %}

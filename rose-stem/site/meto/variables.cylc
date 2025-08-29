@@ -53,4 +53,6 @@
 {% endif %}
 {% do LOG.info("Host EX: " + site_vars.host_ex) %}
 
+{% include "site/meto/common/default_directives.cylc" %}
+
 {% do LOG.debug("Finished in site/meto/variables.cylc") %}

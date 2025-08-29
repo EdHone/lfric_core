@@ -9,8 +9,7 @@
 
 {# Import macros to set custom directive values for this platform #}
 {% from "site/"~SITE~"/macros/macros_"~site_vars["scripts_platform"]~".cylc" import
-    set_wallclock,
-    set_memory
+    set_task_resources,
     with context %}
 
 {# Set the family inheritance for this task #}
@@ -24,39 +23,36 @@
 {# Scripts Runtime Sections #}
 {# ######################## #}
 
+    [[{{task}}]]
+ 	    execution time limit = PT15M
+
 {% if "config_dump_checker" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=check_config_dump"
 
 {% elif "style_checker" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=check_style"
 
 {% elif "extract_checker" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=extract_list_checker"
 
 {% elif "site_validator" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=site_validator"
 
 {% elif "rose-stem_lint_checker" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=rose-stem_lint_check"
 
 {% elif "validate_rose_meta" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=validate_rose_meta"
         [[[environment]]]
@@ -65,28 +61,17 @@
 
 {% elif "global_variables_checker" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=check_global_variables"
 
 {% elif "python_unit_tests" in task %}
 
-    [[{{task}}]]
         inherit={{inherit.str|upper}}
         script="rose task-run --app-key=python_unit_tests"
 
 {% endif %}
 
-
-{# Directives Macros #}
-{# If this script task has any directives specified at this site, update those #}
         [[[directives]]]
-{% if "wallclock" in task_values %}
-    {{ set_wallclock(task_values["wallclock"]) }}
-{% endif %}
-
-{% if "memory" in task_values %}
-    {{ set_memory(task_values["memory"]) }}
-{% endif %}
+{{ set_task_resources(1, [1, "GB"]) }}
 
 {% do LOG.debug("Finished in templates/runtime/generate_runtime_scripts.cylc") %}

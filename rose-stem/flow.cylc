@@ -10,6 +10,7 @@
 {# Contains some settings used for the workflow #}
 {% set site_vars = {} %}
 {% set kgo_vars = {} %}
+{% set default_directives = {} %}
 {% include "site/"~SITE~"/variables.cylc" %}
 {# Default the scripts platform to the first platform listed if not already given #}
 {% if "scripts_platform" not in site_vars %}

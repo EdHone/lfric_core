@@ -23,7 +23,17 @@
                     'ulimit -a '%}
 
 {% set ex1a_scitools = 'module load scitools/production-os47-1' %}
+
 {% set ex1a_tech = 'module load nccmp' %}
+
+{% set ex1a_coupled_cce = 'module unload xios/2701-h57fm7d || true ; ' ~
+                          'module load cray-hdf5-parallel ; ' ~
+                          'module load cray-netcdf-hdf5parallel ; ' ~
+                          'module use /data/users/moci/modules_ngms/modules ; '~
+                          'module load GC4-PrgEnv/2024-01-lfric_apps_coupled_port-cpe23.05/5548.lua' %}
+
+{% set ex1a_coupled_run = '. $BIG_DATA_DIR/ancils/lfric_coupled/ocean/ocean_ancil_GO8p0_CORE_forcing_eORCA025 ; ' ~
+                          'DIAG_MEAN_PERIOD="INVALID_PERIOD"'%}
 
     [[EX1A_BASE]]
         platform = {{site_vars.host_ex}}
@@ -33,26 +43,14 @@
             CORES_PER_NODE  = 128
             NUMA_REGIONS_PER_NODE = 2
 
-    [[EX1A_SHARED_QUEUE]]
-        [[[environment]]]
-        ROSE_LAUNCHER = 'mpiexec'
-
-    [[EX1A_NORMAL_QUEUE]]
-        [[[environment]]]
-            ROSE_LAUNCHER = 'mpiexec'
-
     [[EX1A_BUILD]]
-        inherit=EX1A_SHARED_QUEUE
         [[[environment]]]
             USE_VERNIER=yes
             USE_TIMING_WRAPPER=yes
         [[[directives]]]
-            -l select=1:ncpus=16:mem=12GB:tmpsize=4GB
-            -l walltime=01:00:00
-            -q=shared
+            -l tmpsize=12GB
 
     [[EX1A_RUN]]
-        inherit=EX1A_NORMAL_QUEUE
         [[[environment]]]
             {# BIG_DATA_DIR holds files for io tests #}
 {% if site_vars["host_ex"] == "exz" %}
@@ -62,10 +60,6 @@
 {% endif %}
             TARGET_PLATFORM = 'meto-ex1a'
             RUN_METHOD = 'mpiexec'
-        [[[directives]]]
-            -l select=1
-            -l walltime=00:10:00
-            -q=normal
 
     [[EX1A_GNU]]
         [[[environment]]]
@@ -79,6 +73,10 @@
         inherit=EX1A_BASE,EX1A_BUILD,EX1A_GNU
         {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_gnu]) }}
 
+    [[EX1A_BUILD_COUPLED_CCE]]
+ 	    inherit=EX1A_BASE,EX1A_BUILD,EX1A_CCE
+ 	    {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_cce, ex1a_coupled_cce]) }}
+
     [[EX1A_BUILD_CCE]]
         inherit=EX1A_BASE,EX1A_BUILD,EX1A_CCE
         {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_cce]) }}
@@ -91,12 +89,18 @@
         inherit=EX1A_BASE,EX1A_RUN,EX1A_CCE
         {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_cce, set_ulimit]) }}
 
+    [[EX1A_RUN_COUPLED_CCE]]
+ 	    inherit=EX1A_BASE,EX1A_RUN,EX1A_CCE
+ 	    {{ generate_script("pre-script", [ex1a_base,
+ 	                                      ex1a_compiler_cce,
+ 	                                      ex1a_coupled_cce,
+ 	                                      ex1a_coupled_run,
+ 	                                      set_ulimit]) }}
+
     [[EX1A_MESH]]
-        inherit=EX1A_BASE,EX1A_SHARED_QUEUE
+        inherit=EX1A_BASE
         [[[directives]]]
-            -l select=1:ncpus=1:mem=6GB:tmpsize=6GB
-            -l walltime=00:10:00
-            -q=shared
+            -l tmpsize=6GB
 
     [[EX1A_MESH_GNU]]
         inherit=EX1A_GNU,EX1A_MESH
@@ -110,11 +114,9 @@
 
 
     [[EX1A_TECH_BASE]]
-        inherit=EX1A_BASE,EX1A_SHARED_QUEUE
+        inherit=EX1A_BASE
         [[[directives]]]
-            -l select=1:ncpus=1:mem=6GB:tmpsize=6GB
-            -l walltime=00:20:00
-            -q=shared
+            -l tmpsize=6GB
 
     [[EX1A_TECH_TESTS]]
         inherit=EX1A_TECH_BASE

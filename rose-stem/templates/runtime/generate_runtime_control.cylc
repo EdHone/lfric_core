@@ -55,9 +55,16 @@
 
     {% set platform = task.split('_')[1] %}
 
+    {% from "site/"~SITE~"/macros/macros_"~platform~".cylc" import
+        set_task_resources,
+        with context %}
+
     [[{{task}}]]
         inherit = HOUSEKEEPING, {{platform|upper}}_HOUSEKEEPING
         script = rose task-run --app-key=housekeeping
+        execution time limit = PT5M
+        [[[directives]]]
+    {{ set_task_resources(1, [1, "GB"]) }}
 
 {% elif task.startswith("remote-init") %}
 

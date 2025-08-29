@@ -103,6 +103,7 @@
         inherit={{inherit.str|upper}}
         script = {{script_str.name}}
         {{ generate_script("post-script", post_script_commands) }}
+        execution time limit = PT{{task_values["wallclock"]}}M
         [[[environment]]]
             DESTINATION_DIRECTORY = {{destination_dir}}
             CORE_ROOT_DIR         = $SOURCE_ROOT
@@ -156,16 +157,9 @@
 
 {# Set any directives using macros imported in generate_runtime for this platform #}
         [[[directives]]]
-{{ set_task_cores(task_values["mpi_parts"],
-                  threads=task_values["threads"],
-                  xios_nodes=task_values["xios_nodes"]) }}
-
-{% if "wallclock" in task_values %}
-    {{ set_wallclock(task_values["wallclock"]) }}
-{% endif %}
-
-{% if "memory" in task_values %}
-    {{ set_memory(task_values["memory"]) }}
-{% endif %}
+{{ set_task_resources(task_values["mpi_parts"],
+                      task_values["memory"],
+                      threads=task_values["threads"],
+                      xios_nodes=task_values["xios_nodes"]) }}
 
 {% do LOG.debug("Finished in templates/runtime/generate_runtime_application.cylc") %}

@@ -17,6 +17,9 @@
 
 {% set azspice_tech = 'module load lfric/vn2.2' %}
 
+{% set azspice_coupled_gnu = 'ml xios/2701-oasis ; '~
+                                  'ml oasis/3-mct5.0' %}
+
     [[AZSPICE_BASE]]
         platform = spice
         [[[environment]]]
@@ -31,9 +34,6 @@
             USE_VERNIER = yes
             USE_TIMING_WRAPPER=yes
         [[[directives]]]
-            --time=00:45:00
-            --ntasks=6
-            --mem-per-cpu=1G
             --gres=tmp:1024
             --export=NONE
 
@@ -44,8 +44,6 @@
             TARGET_PLATFORM = 'meto-azspice'
             RUN_METHOD = mpiexec
         [[[directives]]]
-            --time=00:10:00
-            --mem-per-cpu=4G
             --export=NONE
 
     [[AZSPICE_GNU]]
@@ -58,16 +56,25 @@
         [[[environment]]]
             USE_MPI_F08 = "use_mpi_f08"
 
+    [[AZSPICE_BUILD_COUPLED_GNU]]
+ 	    inherit=AZSPICE_BASE,AZSPICE_BUILD,AZSPICE_GNU
+ 	    {{ generate_script("pre-script", [azspice_base,
+ 	                                      azspice_compiler_gnu,
+ 	                                      azspice_coupled_gnu]) }}
+
     [[AZSPICE_RUN_GNU]]
         inherit=AZSPICE_BASE,AZSPICE_RUN,AZSPICE_GNU
         {{ generate_script("pre-script", [azspice_base, azspice_compiler_gnu, azspice_run]) }}
 
+    [[AZSPICE_RUN_COUPLED_GNU]]
+        inherit=AZSPICE_BASE,AZSPICE_RUN,AZSPICE_GNU
+        {{ generate_script("pre-script", [azspice_base,
+                                          azspice_compiler_gnu,
+                                          azspice_coupled_gnu]) }}
+
     [[AZSPICE_MESH]]
         inherit=AZSPICE_BASE
         [[[directives]]]
-            --time=00:20:00
-            --ntasks=6
-            --mem-per-cpu=1G
             --export=NONE
 
     [[AZSPICE_MESH_GNU]]
@@ -78,9 +85,6 @@
     [[AZSPICE_TECH_BASE]]
         inherit=AZSPICE_BASE
         [[[directives]]]
-            --time=00:15:00
-            --ntasks=1
-            --mem-per-cpu=1G
             --export=NONE
 
     [[AZSPICE_TECH_TESTS]]

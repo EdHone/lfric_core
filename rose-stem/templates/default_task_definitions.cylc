@@ -6,6 +6,12 @@
 {% do LOG.debug("Entered templates/default_task_definitions.cylc") %}
 {% do LOG.debug("Task: "~task) %}
 
+{# ################## #}
+{# Directives Setting #}
+{# ################## #}
+
+{% include "templates/default_directives.cylc" %}
+
 {# ################ #}
 {# General Settings #}
 {# ################ #}

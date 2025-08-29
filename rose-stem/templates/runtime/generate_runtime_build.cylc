@@ -26,6 +26,7 @@
     [[{{task}}]]
         inherit={{inherit.str|upper}}
         script = 'module list; rose task-run --app-key=compile'
+        execution time limit = PT{{task_values["build_wallclock"]}}M
         [[[environment]]]
             SOURCE_DIRECTORY        = $SOURCE_ROOT/{{src_path}}
             CORE_ROOT_DIR           = $SOURCE_ROOT
@@ -50,9 +51,6 @@
 {% endif %}
 
         [[[directives]]]
-
-{% if "wallclock" in task_values %}
-    {{ set_wallclock(task_values["wallclock"]) }}
-{% endif %}
+{{ set_task_resources(task_values["build_cpus"], task_values["build_memory"]) }}
 
 {% do LOG.debug("Finished in templates/runtime/generate_runtime_build.cylc") %}
