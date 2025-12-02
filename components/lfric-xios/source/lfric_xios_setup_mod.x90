@@ -478,7 +478,7 @@ contains
       call log_event("Invalid choice for file convention", log_level_error)
 
     end select
-    call xios_set_attr(file_definition, description="LFRic file format v0.3.0")
+    call xios_set_attr(file_definition, description="LFRic file format v3.1_dev")
     ! Start at the head of the file linked list
     loop => files_list%get_head()
     do while(associated(loop))
