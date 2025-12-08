@@ -11,6 +11,7 @@ then destroys it. This will also create an attached XIOS context.
 
 from testframework import TestEngine, TestFailed
 from xiostest import LFRicXiosTest
+from pathlib import Path
 import sys
 
 ###############################################################################
@@ -21,6 +22,7 @@ class LfricXiosContextTest(LFRicXiosTest):
 
     def __init__(self):
         super().__init__(command=[sys.argv[1], "resources/configs/context.nml"], processes=1)
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
