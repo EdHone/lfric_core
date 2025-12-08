@@ -29,6 +29,7 @@ class LfricXiosFullNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
         self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
                          Path("resources/configs/non_cyclic_full.nml"), {} )
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -62,6 +63,7 @@ class LfricXiosNonCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-
         self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
                          Path("resources/configs/non_cyclic_high_freq.nml"),
                          {"dt":"10.0"} )
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -95,6 +97,7 @@ class LfricXiosPartialNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-p
         self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
                          Path("resources/configs/non_cyclic_mid.nml"),
                          {'calendar_start':"'2024-01-01 15:01:00'"} )
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -128,6 +131,7 @@ class LfricXiosNonCyclicFutureTest(LFRicXiosTest):  # pylint: disable=too-few-pu
                          Path("resources/configs/non_cyclic_future.nml"),
                          {'calendar_start':"'2024-01-01 10:00:00'",
                           'calendar_origin':"'2024-01-01 10:00:00'"} )
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -161,6 +165,7 @@ class LfricXiosNonCyclicPastTest(LFRicXiosTest):  # pylint: disable=too-few-publ
                          Path("resources/configs/non_cyclic_past.nml"),
                          {'calendar_start':"'2024-02-01 10:00:00'",
                           'calendar_origin':"'2024-02-01 10:00:00'"} )
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -180,6 +185,34 @@ class LfricXiosNonCyclicPastTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         return "Expected error for past non-cyclic data reading..."
 
 
+class LfricXiosNonCyclicFromIodef(LFRicXiosTest):  # pylint: disable=too-few-public-methods
+    """
+    Tests the LFRic-XIOS reading for non-cyclic data in the future (expected failure)
+    """
+
+    def __init__(self):
+        super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1)
+        test_data_dir = Path(Path.cwd(), 'resources/data')
+        Path('lfric_xios_temporal_input.nc').unlink(missing_ok=True)
+        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
+        self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
+                         Path("resources/configs/non_cyclic_full.nml"), {} )
+        self.use_iodef(Path("resources/iodef.xml"))
+
+
+    def test(self, returncode: int, out: str, err: str):
+        """
+        Test the output of the context test
+        """
+
+        if returncode != 0:
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
+                             f"stderr:\n" +
+                             f"{err}")
+
+        return "From iodef"
+
+
 
 
 ##############################################################################
@@ -189,3 +222,4 @@ if __name__ == "__main__":
     TestEngine.run(LfricXiosPartialNonCyclicTest())
     TestEngine.run(LfricXiosNonCyclicFutureTest())
     TestEngine.run(LfricXiosNonCyclicPastTest())
+    TestEngine.run(LfricXiosNonCyclicFromIodef())

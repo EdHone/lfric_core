@@ -8,6 +8,7 @@ import os
 import subprocess
 from pathlib import Path
 import sys
+import shutil
 from typing import List
 
 from testframework import MpiTest
@@ -38,6 +39,12 @@ class LFRicXiosTest(MpiTest):
         if proc.returncode != 0:
             raise Exception("Test data generation failed:\n" + f"{err}")
         
+    def use_iodef(self, iodef_source: Path):
+        """
+        Copy an iodef file to the working directory.
+        """
+        shutil.copy(iodef_source, Path(os.getcwd()) / "iodef.xml")
+
     def gen_config(self, config_source: Path, config_out: Path, new_config: dict):
         """
         Create an LFRic configuration namelist.
