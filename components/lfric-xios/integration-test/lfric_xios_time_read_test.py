@@ -27,6 +27,7 @@ class LfricXiosTimeReadTest(LFRicXiosTest):  # pylint: disable=too-few-public-me
         Path('lfric_xios_time_read_data.nc').unlink(missing_ok=True)
         self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_time_read_data.nc'))
         self.nprocs = nprocs
+        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
