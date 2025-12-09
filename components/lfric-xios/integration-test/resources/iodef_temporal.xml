@@ -4,10 +4,9 @@
   <context id = "test_io_context">
 
     <file_definition
-        type="one_file"
-        time_counter="time">
+        type="one_file">
 
-      <file id="lfric_xios_temporal_input" name="lfric_xios_temporal_input" output_freq="10ts" convention="UGRID" enabled=".TRUE.">
+      <file id="lfric_xios_temporal_input" name="lfric_xios_temporal_input" output_freq="60s" convention="UGRID" enabled=".TRUE.">
       </file>
 
       </file_definition>
