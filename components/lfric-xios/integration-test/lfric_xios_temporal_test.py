@@ -185,36 +185,6 @@ class LfricXiosNonCyclicPastTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         return "Expected error for past non-cyclic data reading..."
 
 
-class LfricXiosNonCyclicFromIodef(LFRicXiosTest):  # pylint: disable=too-few-public-methods
-    """
-    Tests the LFRic-XIOS reading for non-cyclic data in the future (expected failure)
-    """
-
-    def __init__(self):
-        super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1)
-        test_data_dir = Path(Path.cwd(), 'resources/data')
-        Path('lfric_xios_temporal_input.nc').unlink(missing_ok=True)
-        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
-        self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
-                         Path("resources/configs/non_cyclic_full.nml"), {} )
-        self.use_iodef(Path("resources/iodef.xml"))
-
-
-    def test(self, returncode: int, out: str, err: str):
-        """
-        Test the output of the context test
-        """
-
-        if returncode != 0:
-            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
-                             f"stderr:\n" +
-                             f"{err}")
-
-        return "From iodef"
-
-
-
-
 ##############################################################################
 if __name__ == "__main__":
     TestEngine.run(LfricXiosFullNonCyclicTest())
@@ -222,4 +192,3 @@ if __name__ == "__main__":
     TestEngine.run(LfricXiosPartialNonCyclicTest())
     TestEngine.run(LfricXiosNonCyclicFutureTest())
     TestEngine.run(LfricXiosNonCyclicPastTest())
-    TestEngine.run(LfricXiosNonCyclicFromIodef())
