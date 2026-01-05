@@ -9,5 +9,4 @@
 | MatthewHambley  | Matthew Hambley  | Met Office  | 2025-12-15 |
 | yaswant         | Yaswant Pradhan  | Met Office  | 2025-12-16 |
 | harry-shepherd  | Harry Shepherd   | Met Office  | 2026-01-08 |
-| EdHone          | Ed Hone          | Met Office  | 2026-01-05 |
-
+| EdHone          | Ed Hone          | Met Office  | 2026-01-09 |
