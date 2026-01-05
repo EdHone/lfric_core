@@ -25,6 +25,7 @@ class LfricXiosFullNonCyclicIodefTest(LFRicXiosTest):  # pylint: disable=too-few
 
     def __init__(self):
         super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1)
+        print(Path.cwd())
         test_data_dir = Path(Path.cwd(), 'resources/data')
         Path('lfric_xios_temporal_input.nc').unlink(missing_ok=True)
         self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
@@ -93,6 +94,7 @@ class LfricXiosFullNonCyclicIodefNoFreqTest(LFRicXiosTest):  # pylint: disable=t
 
     def __init__(self):
         super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1)
+        print(Path.cwd())
         test_data_dir = Path(Path.cwd(), 'resources/data')
         Path('lfric_xios_temporal_input.nc').unlink(missing_ok=True)
         self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
@@ -116,8 +118,6 @@ class LfricXiosFullNonCyclicIodefNoFreqTest(LFRicXiosTest):  # pylint: disable=t
             raise TestFailed("Test executable succeeded unexpectedly despite missing frequency setting.")
         else:
             raise TestFailed("Test executable failed with unexpected return code.")
-
-
 
 
 ##############################################################################
