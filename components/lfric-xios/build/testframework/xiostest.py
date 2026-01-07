@@ -21,7 +21,12 @@ class LFRicXiosTest(MpiTest):
     Base for LFRic-XIOS integration tests.
     """
 
-    def __init__(self, command=sys.argv[1], processes=1):
+    def __init__(self, command=sys.argv[1], processes=1, iodef_file=None):
+        if iodef_file is None:
+            self.iodef_file = "iodef.xml"
+        else:
+            self.iodef_file = iodef_file
+
         super().__init__(command, processes)
         self.xios_out: List[XiosOutput] = []
         self.xios_err: List[XiosOutput] = []
@@ -39,12 +44,6 @@ class LFRicXiosTest(MpiTest):
         if proc.returncode != 0:
             raise Exception("Test data generation failed:\n" + f"{err}")
         
-    def use_iodef(self, iodef_source: Path):
-        """
-        Copy an iodef file to the working directory.
-        """
-        shutil.copy(iodef_source, Path(os.getcwd()) / "iodef.xml")
-
     def gen_config(self, config_source: Path, config_out: Path, new_config: dict):
         """
         Create an LFRic configuration namelist.
@@ -60,7 +59,21 @@ class LFRicXiosTest(MpiTest):
         f = open(config_out, "w")
         for line in config:
             f.write(line)
-        f.close()            
+        f.close()
+
+
+    def performTest(self):
+        """
+        Removes any old log files and runs the executable.
+        """
+
+        # Handle iodef file
+        if os.path.exists(self.iodef_file):
+            os.remove(self.iodef_file)
+        shutil.copy(Path(os.getcwd()) / "resources" / self.iodef_file, Path(os.getcwd()) / "iodef.xml")
+
+        return super().performTest()
+
 
     def nc_kgo_check(self, output: Path, kgo: Path):
         """

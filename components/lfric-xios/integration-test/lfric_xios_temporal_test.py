@@ -29,7 +29,6 @@ class LfricXiosFullNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
         self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
                          Path("resources/configs/non_cyclic_full.nml"), {} )
-        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -63,7 +62,6 @@ class LfricXiosNonCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-
         self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
                          Path("resources/configs/non_cyclic_high_freq.nml"),
                          {"dt":"10.0"} )
-        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -97,7 +95,6 @@ class LfricXiosPartialNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-p
         self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
                          Path("resources/configs/non_cyclic_mid.nml"),
                          {'calendar_start':"'2024-01-01 15:01:00'"} )
-        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -131,7 +128,6 @@ class LfricXiosNonCyclicFutureTest(LFRicXiosTest):  # pylint: disable=too-few-pu
                          Path("resources/configs/non_cyclic_future.nml"),
                          {'calendar_start':"'2024-01-01 10:00:00'",
                           'calendar_origin':"'2024-01-01 10:00:00'"} )
-        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -165,7 +161,6 @@ class LfricXiosNonCyclicPastTest(LFRicXiosTest):  # pylint: disable=too-few-publ
                          Path("resources/configs/non_cyclic_past.nml"),
                          {'calendar_start':"'2024-02-01 10:00:00'",
                           'calendar_origin':"'2024-02-01 10:00:00'"} )
-        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
