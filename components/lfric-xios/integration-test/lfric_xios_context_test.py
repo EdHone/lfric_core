@@ -22,7 +22,6 @@ class LfricXiosContextTest(LFRicXiosTest):
 
     def __init__(self):
         super().__init__(command=[sys.argv[1], "resources/configs/context.nml"], processes=1)
-        self.use_iodef(Path("resources/iodef.xml"))
 
     def test(self, returncode: int, out: str, err: str):
         """
