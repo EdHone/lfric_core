@@ -315,7 +315,7 @@ subroutine file_close(self)
     call log_event( "Waiting for XIOS to close file ["//trim(self%path)//".nc]", &
                     log_level_debug )
     call init_wait()
-    call process_output_file(trim(self%path)//".nc")
+    !call process_output_file(trim(self%path)//".nc")
   end if
 
   self%is_closed = .true.
@@ -410,7 +410,7 @@ subroutine register_with_context(self)
 
     ! Iterate over field collection and register fields
     do i = 1, size(self%fields)
-      call self%fields(i)%register()
+      call self%fields(i)%register((self%io_mode == FILE_MODE_READ))
     end do
 
     ! Set up time axis if needed
