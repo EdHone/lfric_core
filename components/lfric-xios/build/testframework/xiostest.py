@@ -27,9 +27,27 @@ class LFRicXiosTest(MpiTest):
         else:
             self.iodef_file = iodef_file
 
-        super().__init__(command, processes)
         self.xios_out: List[XiosOutput] = []
         self.xios_err: List[XiosOutput] = []
+
+        # Setup test working directory
+        self.test_top_level: Path = Path(os.getcwd())
+        self.resources_dir: Path = self.test_top_level / "resources"
+        self.test_working_dir: Path = self.test_top_level / "working" / type(self).__name__
+
+        # Replace resource path with absolute path in command
+        for i in range(len(command)):
+            if "resources/" in command[i]:
+                command[i] = command[i].replace("resources/", str(self.resources_dir) + "/")
+
+        super().__init__(command, processes)
+
+        if not os.path.exists(self.test_working_dir):
+            os.makedirs(self.test_working_dir)
+
+        # Change to test working directory
+        os.chdir(self.test_working_dir)
+
 
     def gen_data(self, source: Path, dest: Path):
         """
@@ -70,7 +88,7 @@ class LFRicXiosTest(MpiTest):
         # Handle iodef file
         if os.path.exists(self.iodef_file):
             os.remove(self.iodef_file)
-        shutil.copy(Path(os.getcwd()) / "resources" / self.iodef_file, Path(os.getcwd()) / "iodef.xml")
+        shutil.copy(self.resources_dir / self.iodef_file, self.test_working_dir / "iodef.xml")
 
         return super().performTest()
 
@@ -114,6 +132,9 @@ class LFRicXiosTest(MpiTest):
         for proc in range(self._processes):
             self.xios_out.append(XiosOutput(f"xios_client_{proc}.out"))
             self.xios_err.append(XiosOutput(f"xios_client_{proc}.err"))
+
+        # Return to top level directory
+        os.chdir(self.test_top_level)
 
 
 class XiosOutput:
