@@ -22,9 +22,9 @@ class LfricXiosTimeReadTest(LFRicXiosTest):  # pylint: disable=too-few-public-me
 
     def __init__(self, nprocs: int):
         super().__init__(command=[sys.argv[1], "resources/configs/context.nml"], processes=nprocs)
-        test_data_dir = Path(Path.cwd(), 'resources/data')
-        Path('lfric_xios_time_read_data.nc').unlink(missing_ok=True)
-        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_time_read_data.nc'))
+        test_data_dir = Path(self.resources_dir, 'data')
+        Path(self.test_working_dir, 'lfric_xios_time_read_data.nc').unlink(missing_ok=True)
+        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path(self.test_working_dir, 'lfric_xios_time_read_data.nc'))
         self.nprocs = nprocs
 
     def test(self, returncode: int, out: str, err: str):
