@@ -24,12 +24,9 @@ class LfricXiosFullNonCyclicIodefTest(LFRicXiosTest):  # pylint: disable=too-few
     """
 
     def __init__(self):
-        super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1, iodef_file="iodef_temporal.xml")
-        test_data_dir = Path(self.resources_dir, 'data')
-        Path(self.test_working_dir, 'lfric_xios_temporal_input.nc').unlink(missing_ok=True)
-        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path(self.test_working_dir, 'lfric_xios_temporal_input.nc'))
-        self.gen_config( Path(self.resources_dir, "configs/non_cyclic_base.nml"),
-                         Path(self.resources_dir, "configs/non_cyclic_full.nml"), {} )
+        super().__init__(command=[sys.argv[1], "non_cyclic_full.nml"], processes=1, iodef_file="iodef_temporal.xml")
+        self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
+        self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {} )
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -38,7 +35,7 @@ class LfricXiosFullNonCyclicIodefTest(LFRicXiosTest):  # pylint: disable=too-few
 
         if returncode != 0:
             print(out)
-            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" + 
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
         if not self.nc_data_match(Path(self.test_working_dir, 'lfric_xios_temporal_input.nc'),
@@ -56,14 +53,10 @@ class LfricXiosFullNonCyclicIodefHighFreqTest(LFRicXiosTest):  # pylint: disable
     """
 
     def __init__(self):
-        super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1, iodef_file="iodef_temporal.xml")
-        test_data_dir = Path(self.resources_dir, 'data')
-        Path(self.test_working_dir, 'lfric_xios_temporal_input.nc').unlink(missing_ok=True)
-        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path(self.test_working_dir, 'lfric_xios_temporal_input.nc'))
-        self.gen_config( Path(self.resources_dir, "configs/non_cyclic_base.nml"),
-                         Path(self.resources_dir, "configs/non_cyclic_full.nml"),
-                         {"dt": 10.0,
-                          "timestep_end": 60} )
+        super().__init__(command=[sys.argv[1], "non_cyclic_full.nml"], processes=1, iodef_file="iodef_temporal.xml")
+        self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
+        self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {"dt": 10.0,
+                          "timestep_end": '60'} )
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -90,22 +83,20 @@ class LfricXiosFullNonCyclicIodefNoFreqTest(LFRicXiosTest):  # pylint: disable=t
     """
 
     def __init__(self):
-        super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_full.nml"], processes=1)
-        test_data_dir = Path(self.resources_dir, 'data')
-        Path(self.test_working_dir, 'lfric_xios_temporal_input.nc').unlink(missing_ok=True)
-        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path(self.test_working_dir, 'lfric_xios_temporal_input.nc'))
-        self.gen_config( Path(self.resources_dir, "configs/non_cyclic_base.nml"),
-                         Path(self.resources_dir, "configs/non_cyclic_full.nml"), {} )
+        super().__init__(command=[sys.argv[1], "non_cyclic_full.nml"], processes=1)
+        self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
+        self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {} )
 
     def test(self, returncode: int, out: str, err: str):
         """
         Test the output of the context test
         """
 
-        expected_xios_err = 'In file "type_impl.hpp", function "void xios::CType<T>::_checkEmpty() const [with T = xios::CDuration]",  line 210 -> Data is not initialized'
+        expected_xios_errs = ['In file "type_impl.hpp", function "void xios::CType<T>::_checkEmpty() const [with T = xios::CDuration]",  line 210 -> Data is not initialized',
+                              'In file "type_impl.hpp", function "void xios::CType<xios::CDuration>::_checkEmpty() const [T = xios::CDuration]",  line 210 -> Data is not initialized']
 
         if returncode == 134:
-            if self.xios_err[0].contents.strip() == expected_xios_err:
+            if self.xios_err[0].contents.strip() in expected_xios_errs:
                 return "Expected failure of test executable due to missing frequency setting."
             else:
                 raise TestFailed("Test executable failed, but with unexpected error message.")

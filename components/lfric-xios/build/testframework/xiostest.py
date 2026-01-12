@@ -27,6 +27,8 @@ class LFRicXiosTest(MpiTest):
         else:
             self.iodef_file = iodef_file
 
+        super().__init__(command, processes)
+
         self.xios_out: List[XiosOutput] = []
         self.xios_err: List[XiosOutput] = []
 
@@ -34,47 +36,53 @@ class LFRicXiosTest(MpiTest):
         self.test_top_level: Path = Path(os.getcwd())
         self.resources_dir: Path = self.test_top_level / "resources"
         self.test_working_dir: Path = self.test_top_level / "working" / type(self).__name__
-
-        # Replace resource path with absolute path in command
-        for i in range(len(command)):
-            if "resources/" in command[i]:
-                command[i] = command[i].replace("resources/", str(self.resources_dir) + "/")
-
-        super().__init__(command, processes)
-
         if not os.path.exists(self.test_working_dir):
             os.makedirs(self.test_working_dir)
+
+        # Create symlink to test executable in working directory
+        if not os.path.exists(Path(self.test_working_dir) / command[0].split("/")[-1]):
+            os.symlink(Path(command[0]), Path(self.test_working_dir) / command[0].split("/")[-1])
 
         # Change to test working directory
         os.chdir(self.test_working_dir)
 
 
-    def gen_data(self, source: Path, dest: Path):
+    def gen_data(self, source: str, dest: str):
         """
-        Create input data files from CDL formatted text.
+        Create input data files from CDL formatted text. Looks for source file
+        in resources/data directory and generates dest file in test working directory.
         """
+        dest_path: Path = Path(self.test_working_dir) / Path(dest)
+        source_path: Path = Path(self.resources_dir, 'data') / Path(source)
+        dest_path.unlink(missing_ok=True)
+
         proc = subprocess.Popen(
-            ['ncgen', '-k', 'nc4', '-o', f'{dest}', f'{source}'],
+            ['ncgen', '-k', 'nc4', '-o', f'{dest_path}', f'{source_path }'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             )
         _, err = proc.communicate()
         if proc.returncode != 0:
             raise Exception("Test data generation failed:\n" + f"{err}")
-        
-    def gen_config(self, config_source: Path, config_out: Path, new_config: dict):
+
+
+    def gen_config(self, config_source: str, config_out: str, new_config: dict):
         """
-        Create an LFRic configuration namelist.
+        Create an LFRic configuration namelist. Looks for source file
+        in resources/configs directory and generates dest file in test working directory.
         """
-        config_in = open(config_source, 'r')
+        config_in = open(Path(self.resources_dir, 'configs', config_source), 'r')
         config = config_in.readlines()
         for key in new_config.keys():
             for i in range(len(config)):
                 if key in config[i]:
-                    config[i] = f"  {key}={new_config[key]}\n"
+                    if type(new_config[key]) == str:
+                        config[i] = f"  {key}='{new_config[key]}'\n"
+                    else:
+                        config[i] = f"  {key}={new_config[key]}\n"
         config_in.close()
 
-        f = open(config_out, "w")
+        f = open(Path(self.test_working_dir, config_out), "w")
         for line in config:
             f.write(line)
         f.close()
@@ -130,8 +138,8 @@ class LFRicXiosTest(MpiTest):
         """
 
         for proc in range(self._processes):
-            self.xios_out.append(XiosOutput(f"xios_client_{proc}.out"))
-            self.xios_err.append(XiosOutput(f"xios_client_{proc}.err"))
+            self.xios_out.append(XiosOutput(self.test_working_dir / f"xios_client_{proc}.out"))
+            self.xios_err.append(XiosOutput(self.test_working_dir / f"xios_client_{proc}.err"))
 
         # Return to top level directory
         os.chdir(self.test_top_level)
@@ -143,7 +151,7 @@ class XiosOutput:
     """
 
     def __init__(self, filename):
-        self.path: Path = Path(os.getcwd()) / Path(filename)
+        self.path: Path = Path(filename)
 
         with open(self.path, "rt") as handle:
             self.contents = handle.read()
