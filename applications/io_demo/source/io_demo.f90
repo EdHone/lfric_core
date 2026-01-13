@@ -3,6 +3,7 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
+
 !> @page Miniapp io_demo program
 !> @brief Main program used to calculate diffusion of randomly initialised theta field
 !> @details Calls init, run and finalise routines from io_demo driver module
