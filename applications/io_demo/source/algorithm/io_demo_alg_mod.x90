@@ -65,7 +65,8 @@ contains
                                                   field_in, &
                                                   stencil_depth, &
                                                   visc, &
-                                                  dx_at_w2) )
+                                                  dx_at_w2) , &
+                 inc_X_divideby_a(dfield_in, 100.0_r_def) )
 
     ! Printing the min/max values in field_in and dfield_in
     call log_field_minmax( LOG_LEVEL_INFO, 'dfield_in', dfield_in )

@@ -17,7 +17,8 @@ module io_demo_driver_mod
   use driver_mesh_mod,            only : init_mesh
   use driver_modeldb_mod,         only : modeldb_type
   use driver_fem_mod,             only : init_fem, final_fem
-  use driver_io_mod,              only : init_io, final_io
+  use driver_io_mod,              only : init_io, final_io, filelist_populator
+  use driver_timer_mod,           only : init_timers, final_timers
   use extrusion_mod,              only : extrusion_type,         &
                                          uniform_extrusion_type, &
                                          TWOD, PRIME_EXTRUSION
@@ -36,6 +37,8 @@ module io_demo_driver_mod
   use model_clock_mod,            only : model_clock_type
   use multifile_field_setup_mod,  only : create_multifile_io_fields
   use multifile_io_mod,           only : init_multifile_io, step_multifile_io
+  use io_benchmark_setup_mod,     only : create_io_benchmark_fields, setup_io_benchmark_files
+  use io_benchmark_step_mod,      only : step_io_benchmark
   use namelist_mod,               only : namelist_type
 
   use io_demo_alg_mod,   only : io_demo_alg
@@ -84,8 +87,9 @@ contains
     type(namelist_type), pointer :: base_mesh_nml => null()
     type(namelist_type), pointer :: planet_nml    => null()
     type(namelist_type), pointer :: extrusion_nml => null()
-    type(namelist_type), pointer :: io_nml => null()
+    type(namelist_type), pointer :: io_demo_nml => null()
 
+    procedure(filelist_populator), pointer :: files_init_ptr => null()
     character(str_def) :: prime_mesh_name
 
     integer(i_def) :: stencil_depth
@@ -97,6 +101,7 @@ contains
     real(r_def)    :: scaled_radius
     logical        :: check_partitions
     logical        :: multifile_io
+    logical        :: io_benchmark
 
     integer(i_def), parameter :: one_layer = 1_i_def
     integer(i_def) :: i
@@ -107,7 +112,7 @@ contains
     base_mesh_nml => modeldb%configuration%get_namelist('base_mesh')
     planet_nml    => modeldb%configuration%get_namelist('planet')
     extrusion_nml => modeldb%configuration%get_namelist('extrusion')
-    io_nml        => modeldb%configuration%get_namelist('io')
+    io_demo_nml   => modeldb%configuration%get_namelist('io_demo')
 
     call base_mesh_nml%get_value( 'prime_mesh_name', prime_mesh_name )
     call base_mesh_nml%get_value( 'geometry', geometry )
@@ -115,12 +120,15 @@ contains
     call extrusion_nml%get_value( 'domain_height', domain_height )
     call extrusion_nml%get_value( 'number_of_layers', number_of_layers )
     call planet_nml%get_value( 'scaled_radius', scaled_radius )
-    call io_nml%get_value( 'multifile_io', multifile_io)
+    call io_demo_nml%get_value( 'multifile_io', multifile_io )
+    call io_demo_nml%get_value( 'io_benchmark', io_benchmark )
 
     base_mesh_nml => null()
     planet_nml    => null()
     extrusion_nml => null()
-    io_nml        => null()
+    io_demo_nml   => null()
+
+    call init_timers("io_demo")
 
     !=======================================================================
     ! Mesh
@@ -191,17 +199,29 @@ contains
     !=======================================================================
     ! Setup multifile reading
     !=======================================================================
+    files_init_ptr => null()
     if(multifile_io) then
       call create_multifile_io_fields(modeldb)
       call init_multifile_io(modeldb)
+    end if
+
+    if (io_benchmark) then
+      call create_io_benchmark_fields(modeldb)
+      files_init_ptr => setup_io_benchmark_files
     end if
 
     !=======================================================================
     ! Setup general I/O system.
     !=======================================================================
     ! Initialise I/O context
-    call init_io( program_name, prime_mesh_name, modeldb, &
-                  chi_inventory, panel_id_inventory )
+    if (associated(files_init_ptr)) then
+      call init_io( program_name, prime_mesh_name, modeldb, &
+                    chi_inventory, panel_id_inventory,      &
+                    populate_filelist=files_init_ptr )
+    else
+      call init_io( program_name, prime_mesh_name, modeldb, &
+                    chi_inventory, panel_id_inventory )
+    end if
 
 
     !=======================================================================
@@ -231,11 +251,13 @@ contains
     type( field_collection_type ), pointer :: multifile_col
     type( field_type ),            pointer :: diffusion_field
     type( field_type ),            pointer :: multifile_field
-    type(namelist_type), pointer :: io_nml => null()
-    logical :: multifile_io
+    type(namelist_type), pointer :: io_demo_nml => null()
+    logical :: multifile_io, io_benchmark
 
-    io_nml => modeldb%configuration%get_namelist('io')
-    call io_nml%get_value( 'multifile_io', multifile_io)
+    io_demo_nml => modeldb%configuration%get_namelist('io_demo')
+    call io_demo_nml%get_value( 'multifile_io', multifile_io)
+    call io_demo_nml%get_value( 'io_benchmark', io_benchmark)
+
     if( multifile_io ) then
       call step_multifile_io(modeldb, chi_inventory, panel_id_inventory)
       multifile_col => modeldb%fields%get_field_collection("multifile_io_fields")
@@ -249,6 +271,10 @@ contains
     ! Call an algorithm
     call log_event(program_name//": Calculating diffusion", LOG_LEVEL_INFO)
     call io_demo_alg(diffusion_field)
+
+    if (io_benchmark) then
+      call step_io_benchmark(modeldb)
+    end if
 
     if (write_diag) then
         ! Write out output file
@@ -273,7 +299,7 @@ contains
     type( field_collection_type ), pointer :: multifile_col
     type( field_type ),            pointer :: multifile_field
 
-    type(namelist_type), pointer :: io_nml
+    type(namelist_type), pointer :: io_demo_nml
     logical :: multifile_io
     !-------------------------------------------------------------------------
     ! Checksum output
@@ -281,8 +307,8 @@ contains
     depository => modeldb%fields%get_field_collection("depository")
     call depository%get_field("diffusion_field", diffusion_field)
 
-    io_nml => modeldb%configuration%get_namelist('io')
-    call io_nml%get_value( 'multifile_io', multifile_io)
+    io_demo_nml => modeldb%configuration%get_namelist('io_demo')
+    call io_demo_nml%get_value( 'multifile_io', multifile_io)
 
     if( multifile_io ) then
       multifile_col => modeldb%fields%get_field_collection("multifile_io_fields")
@@ -303,6 +329,7 @@ contains
     ! Finalise IO
     call final_io(modeldb)
     call final_fem()
+    call final_timers("io_demo")
 
   end subroutine finalise
 
