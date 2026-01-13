@@ -1,8 +1,9 @@
-!-------------------------------------------------------------------------------
-! (c) Crown copyright 2025 Met Office. All rights reserved.
+!-----------------------------------------------------------------------------
+! (C) Crown copyright Met Office. All rights reserved.
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
-!-------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+
 !> @brief Setup infrastructure used for I/O benchmark
 !> @details Handles the setup of all the fields that will be passed used to
 !!          benchmark the speed of XIOS reading and writing
