@@ -7,8 +7,6 @@
 !> Steps the I/O benchmark section of IO_demo
 module io_benchmark_step_mod
 
-  use, intrinsic :: iso_c_binding, only : c_int, c_int32_t
-
   use constants_mod,        only: i_def, r_def
   use driver_modeldb_mod,   only: modeldb_type
   use field_mod,            only: field_type
@@ -25,16 +23,6 @@ module io_benchmark_step_mod
 
   private
   public :: step_io_benchmark
-
-  interface
-    ! int usleep(useconds_t useconds)
-    function c_usleep(useconds) bind(c, name='usleep')
-        import :: c_int, c_int32_t
-        implicit none
-        integer(kind=c_int32_t), value :: useconds
-        integer(kind=c_int)            :: c_usleep
-    end function c_usleep
-  end interface
 
 contains
 
@@ -56,8 +44,7 @@ contains
       type(field_type),            pointer :: diffusion_field
       type(namelist_type),         pointer :: io_demo_nml
 
-      integer(i_def)     :: i, sleep_duration, rc
-      integer(c_int32_t) :: sleep_ms
+      integer(i_def)     :: i, sleep_duration
       real(r_def)        :: loop_factor
 
       io_demo_nml => modeldb%configuration%get_namelist('io_demo')
@@ -85,8 +72,7 @@ contains
 
       write(log_scratch_space,'(A,I0,A)') "io_demo: sleeping for ", sleep_duration, " seconds"
       call log_event(log_scratch_space, LOG_LEVEL_INFO)
-      sleep_ms = int(sleep_duration * 1e6, c_int32_t)
-      rc = c_usleep(sleep_ms)
+      call sleep(sleep_duration)
 
       nullify(step_field)
       nullify(kernel_field)
