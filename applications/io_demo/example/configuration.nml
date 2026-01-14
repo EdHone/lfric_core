@@ -47,7 +47,13 @@ coord_system='native'
   checkpoint_read       = .false.
   checkpoint_write      = .false.
   file_convention       = 'UGRID'
+/
+
+&io_demo
   multifile_io          = .false.
+  io_benchmark          = .true.
+  n_benchmark_fields    = 10
+  benchmark_sleep_time  = 1
 /
 
 &logging
@@ -57,7 +63,7 @@ coord_system='native'
 &time
   calendar = 'timestep'
   timestep_start = '1'
-  timestep_end = '90'
+  timestep_end = '100'
   calendar_type='gregorian'
   calendar_start='2016-01-01 15:00:00'
   calendar_origin='2016-01-01 15:00:00'
