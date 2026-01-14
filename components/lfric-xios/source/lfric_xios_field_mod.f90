@@ -112,12 +112,12 @@ end function lfric_xios_field_constructor
 
 !> Registers a representation of the model field with the associated XIOS field
 !> group
-subroutine register(self, field_is_read)
+subroutine register(self, field_read_access)
 
   implicit none
 
   class(lfric_xios_field_type), intent(inout) :: self
-  logical,                      intent(in)    :: field_is_read
+  logical,                      intent(in)    :: field_read_access
 
   type(xios_fieldgroup) :: fieldgroup_hdl
   type(xios_domain)     :: domain
@@ -136,7 +136,9 @@ subroutine register(self, field_is_read)
   ! Get field group handle and add field
   call xios_get_handle(trim(adjustl(self%fieldgroup_id)), fieldgroup_hdl)
   call xios_add_child(fieldgroup_hdl, self%handle, trim(self%xios_id))
-  call xios_set_attr(self%handle, name=trim(adjustl(self%model_field%get_name())), read_access=field_is_read)
+  call xios_set_attr( self%handle,                                     &
+                      name=trim(adjustl(self%model_field%get_name())), &
+                      read_access=field_read_access )
 
   ! Set up dimensions of output field
   vspace => self%model_field%get_function_space()
