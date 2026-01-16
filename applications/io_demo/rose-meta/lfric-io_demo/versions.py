@@ -2,7 +2,7 @@ import sys
 
 from metomi.rose.upgrade import MacroUpgrade
 
-from .version21_22 import *
+from .version22_30 import *
 
 
 class UpgradeError(Exception):
@@ -30,23 +30,11 @@ class vnXX_txxx(MacroUpgrade):
 """
 
 
-class vn22_t4661(MacroUpgrade):
-    """Upgrade macro for ticket #4661 by Denis Sergeev."""
+class vn30_t216(MacroUpgrade):
+    """Upgrade macro for ticket #216 by Ed Hone."""
 
-    BEFORE_TAG = "vn2.2"
-    AFTER_TAG = "vn2.2_t4661"
-
-    def upgrade(self, config, meta_config=None):
-        # Commands From: rose-meta/lfric-driver
-        self.add_setting(config, ["namelist:extrusion", "eta_values"], "''")
-        return config, self.reports
-
-
-class vn22_t4684(MacroUpgrade):
-    """Upgrade macro for ticket #4684 by Ed Hone."""
-
-    BEFORE_TAG = "vn2.2_t4661"
-    AFTER_TAG = "vn2.2_t4684"
+    BEFORE_TAG = "vn3.0"
+    AFTER_TAG = "vn3.0_t216"
 
     def upgrade(self, config, meta_config=None):
         # Commands From: rose-meta/lfric-io_demo
