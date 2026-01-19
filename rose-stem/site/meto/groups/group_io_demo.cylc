@@ -49,9 +49,8 @@
         "io_demo_ex1a_unit_tests",
     ],
     "io_demo_ex1a_benchmark": [
-        "io_demo_benchmark-nwp-C24_ex1a_cce_fast-debug-32bit",
-        "io_demo_benchmark-nwp-C24_ex1a_gnu_fast-debug-32bit",
-        "io_demo_benchmark-nwp-C24_ex1a_gnu_fast-debug-64bit",
+        "io_demo_benchmark-nwp-C224_ex1a_cce_fast-debug-32bit",
+        "io_demo_benchmark-nwp-C224_ex1a_gnu_fast-debug-32bit",
     ],
     "io_demo_ex1a": [
         "io_demo_ex1a_developer"
