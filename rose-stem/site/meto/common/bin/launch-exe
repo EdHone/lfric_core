@@ -24,7 +24,6 @@ else
   LAUNCHER=${RUN_METHOD}
 fi
 
-
 # Construct launcher options
 #===========================================
 LAUNCHER_OPTS=""
@@ -32,7 +31,7 @@ if [ "${RUN_METHOD}" = "mpiexec" ] ; then
   if [ "${SITE_MPI_LAUNCHER_OPTS}" != "" ] ; then
     LAUNCHER_OPTS=${SITE_MPI_LAUNCHER_OPTS}
   else
-    LAUNCHER_OPTS="-n ${TOTAL_RANKS}"
+    LAUNCHER_OPTS="-n ${TOTAL_RANKS} --ppn ${CORES_PER_NODE}"
   fi
 elif [ "${RUN_METHOD}" = "srun" ] ; then
   LAUNCHER_OPTS="--ntasks ${TOTAL_RANKS}"
