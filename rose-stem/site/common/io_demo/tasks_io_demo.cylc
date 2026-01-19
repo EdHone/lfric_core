@@ -21,6 +21,16 @@
         "tsteps": 90,
     }) %}
 
+{% elif task_ns.conf_name == "benchmark-C24" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["benchmark"],
+        "resolution": "C24",
+        "tsteps": 24,
+        "kgo_checks": [],
+    }) %}
+
+
 {% elif task_ns.conf_name == "unit_tests" %}
 
     {% do task_dict.update({
