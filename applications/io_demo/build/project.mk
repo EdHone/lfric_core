@@ -8,4 +8,4 @@
 # via the Makefile.
 
 $(info io_demo miniapp project specials)
-FFLAGS += -fall-intrinsics
+export FFLAGS_GNU_OPTIONS = -fall-intrinsics
