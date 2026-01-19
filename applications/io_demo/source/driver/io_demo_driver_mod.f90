@@ -256,10 +256,14 @@ contains
 
     ! Call an algorithm
     call log_event(program_name//": Calculating diffusion", LOG_LEVEL_INFO)
-    call io_demo_alg(modeldb, diffusion_field)
 
+    ! Diffusion algorithm unstable with high viscosity values at high
+    ! resolution, so for io_benchmark mode we lower the viscosity
     if (io_benchmark) then
+      call io_demo_alg(modeldb, diffusion_field, visc_in=1000.0_r_def)
       call step_io_benchmark(modeldb)
+    else
+      call io_demo_alg(modeldb, diffusion_field)
     end if
 
     if (write_diag) then
