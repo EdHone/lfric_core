@@ -30,6 +30,19 @@
         "kgo_checks": [],
     }) %}
 
+{% elif task_ns.conf_name == "benchmark-nwp-C24" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["benchmark-nwp"],
+        "resolution": "C24",
+        "tsteps": 24,
+        "kgo_checks": [],
+        "mpi_parts": 6,
+        "mpi_parts_xios": 1,
+        "xios_nodes": 1,
+        "xios_server_mode": true,
+        "xios_server_ranks": 1,
+    }) %}
 
 {% elif task_ns.conf_name == "unit_tests" %}
 
