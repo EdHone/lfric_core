@@ -40,7 +40,7 @@ coord_system='native'
   use_xios_io           = .true.
   write_diag            = .true.
   diagnostic_frequency  = 1
-  subroutine_timers     = .false.
+  subroutine_timers     = .true.
   timer_output_path     = 'timer.txt'
   subroutine_counters   = .false.
   counter_output_suffix = 'counter.txt'
@@ -53,7 +53,7 @@ coord_system='native'
   multifile_io          = .false.
   io_benchmark          = .true.
   n_benchmark_fields    = 10
-  benchmark_sleep_time  = 1
+  benchmark_sleep_time  = 0
 /
 
 &logging
@@ -63,7 +63,7 @@ coord_system='native'
 &time
   calendar = 'timestep'
   timestep_start = '1'
-  timestep_end = '100'
+  timestep_end = '10'
   calendar_type='gregorian'
   calendar_start='2016-01-01 15:00:00'
   calendar_origin='2016-01-01 15:00:00'
