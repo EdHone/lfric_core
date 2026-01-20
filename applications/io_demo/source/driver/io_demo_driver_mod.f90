@@ -115,8 +115,6 @@ contains
     multifile_io     = modeldb%config%io_demo%multifile_io()
     io_benchmark     = modeldb%config%io_demo%io_benchmark()
 
-    call init_timers("io_demo")
-
     !=======================================================================
     ! Mesh
     !=======================================================================
@@ -317,7 +315,6 @@ contains
     ! Finalise IO
     call final_io(modeldb)
     call final_fem()
-    call final_timers("io_demo")
 
   end subroutine finalise
 
