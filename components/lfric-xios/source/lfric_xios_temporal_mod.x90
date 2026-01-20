@@ -36,7 +36,7 @@ module lfric_xios_temporal_mod
                                   xios_add_child, xios_get_start_date,        &
                                   xios_get_timestep, xios_day, xios_month,    &
                                   xios_year, operator(-), operator(+),        &
-                                  operator(<), operator(<=)
+                                  operator(*), operator(<), operator(<=)
 
   implicit none
 
@@ -120,10 +120,10 @@ contains
 
     self%io_frequency = io_frequency
 
-    if (cyclic) then
-      call log_event("Temporal control not yet implemented for cyclic time axes", LOG_LEVEL_ERROR)
+    self%is_cyclic = cyclic
+    if (self%is_cyclic) then
+ 		  self%cycle_period = self%io_frequency * size(self%time_data)
     else
-      self%is_cyclic = .false.
       self%cycle_period = xios_duration(0)
     end if
 
@@ -174,6 +174,11 @@ contains
     if (self%is_cyclic) then
       ! Loop through to find the correct validity window
       do
+        if (context_start < self%time_data(1)) then
+          call log_event( "I/O context must start after data time window" // &
+                          " when reading cyclic temporal data",              &
+                          log_level_error )
+        end if
         if ( ( self%time_data(1) <= context_start ) .and. &
               ( context_start < self%time_data(1) + self%cycle_period ) ) then
           exit
