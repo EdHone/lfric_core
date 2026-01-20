@@ -45,6 +45,10 @@ class LfricXiosFullNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publ
                                   'temporal_field'):
             raise TestFailed("Output data does not match input data for same time values")
 
+        self.plot_output(Path('lfric_xios_temporal_input.nc'),
+                         Path('lfric_xios_temporal_output.nc'),
+                         'temporal_field')
+
         return "Reading full set of non-cylic data okay..."
 
 
