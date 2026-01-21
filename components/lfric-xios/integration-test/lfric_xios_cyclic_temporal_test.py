@@ -205,12 +205,12 @@ class LfricXiosCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         test_data_dir = Path(Path.cwd(), 'resources/data')
         Path('lfric_xios_cyclic_input.nc').unlink(missing_ok=True)
         self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_cyclic_input.nc'))
-        #self.gen_data(Path(test_data_dir, 'cyclic_high_freq_kgo.cdl'), Path('cyclic_high_freq_kgo.nc'))
+        self.gen_data(Path(test_data_dir, 'non_sync_kgo.cdl'), Path('non_sync_kgo.nc'))
         self.gen_config( Path("resources/configs/cyclic_base.nml"),
                          Path("resources/configs/cyclic_non_sync.nml"),
                          {"dt":"10.0",
-                          "calendar_start":"'2024-01-01 15:01:30'",
-                          "timestep_end":"'10'"} )
+                          "calendar_start":"'2024-01-01 15:03:20'",
+                          "timestep_end":"'30'"} )
 
     def test(self, returncode: int, out: str, err: str):
         """
@@ -222,16 +222,16 @@ class LfricXiosCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-publ
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
-        #if not self.nc_data_match(Path('cyclic_high_freq_kgo.nc'),
-        #                          Path('lfric_xios_cyclic_output.nc'),
-        #                          'temporal_field'):
-        #    raise TestFailed("Output data does not match expected values")
+        if not self.nc_data_match(Path('non_sync_kgo.nc'),
+                                  Path('lfric_xios_cyclic_output.nc'),
+                                  'temporal_field'):
+            raise TestFailed("Output data does not match expected values")
 
         self.plot_output(Path('lfric_xios_cyclic_input.nc'),
                          Path('lfric_xios_cyclic_output.nc'),
                          'temporal_field')
 
-        return "Reading full set of cylic data from the past okay..."
+        return "Reading non-synchronised cyclic data okay..."
 
 
 

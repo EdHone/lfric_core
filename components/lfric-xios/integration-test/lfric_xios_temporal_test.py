@@ -46,6 +46,11 @@ class LfricXiosFullNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publ
                          Path('lfric_xios_temporal_output.nc'),
                          'temporal_field')
 
+        if not self.nc_data_match(Path('lfric_xios_temporal_input.nc'),
+                                  Path('lfric_xios_temporal_output.nc'),
+                                  'temporal_field'):
+            raise TestFailed("Output data does not match input data for same time values")
+
         return "Reading full set of non-cylic data okay..."
 
 
@@ -76,6 +81,45 @@ class LfricXiosNonCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-
             raise TestFailed("Output data does not match input data for same time values")
 
         return "Reading full set of non-cylic data at higher model frequency okay..."
+
+
+class LfricXiosNonCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
+    """
+    Tests the LFRic-XIOS temporal reading functionality for a full set of
+    non-cyclic data at higher frequency than the input data
+    """
+
+    def __init__(self):
+        super().__init__(command=[sys.argv[1], "resources/configs/non_cyclic_non_sync.nml"], processes=1)
+        test_data_dir = Path(Path.cwd(), 'resources/data')
+        Path('lfric_xios_temporal_input.nc').unlink(missing_ok=True)
+        self.gen_data(Path(test_data_dir, 'temporal_data.cdl'), Path('lfric_xios_temporal_input.nc'))
+        self.gen_data(Path(test_data_dir, 'non_sync_kgo.cdl'), Path('non_sync_kgo.nc'))
+        self.gen_config( Path("resources/configs/non_cyclic_base.nml"),
+                         Path("resources/configs/non_cyclic_non_sync.nml"),
+                         {"dt":"10.0",
+                          "calendar_start":"'2024-01-01 15:03:20'",
+                          "timestep_end":"'30'"} )
+
+    def test(self, returncode: int, out: str, err: str):
+        """
+        Test the output of the context test
+        """
+
+        if returncode != 0:
+            print(out)
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
+                             f"stderr:\n" +
+                             f"{err}")
+        self.plot_output(Path('lfric_xios_temporal_input.nc'),
+                         Path('lfric_xios_temporal_output.nc'),
+                         'temporal_field')
+        if not self.nc_data_match(Path('non_sync_kgo.nc'),
+                                  Path('lfric_xios_temporal_output.nc'),
+                                  'temporal_field'):
+            raise TestFailed("Output data does not match input data for same time values")
+
+        return "Reading non-synchronised non-cylic data at higher model frequency okay..."
 
 
 class LfricXiosPartialNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -169,6 +213,7 @@ class LfricXiosNonCyclicPastTest(LFRicXiosTest):  # pylint: disable=too-few-publ
 if __name__ == "__main__":
     TestEngine.run(LfricXiosFullNonCyclicTest())
     TestEngine.run(LfricXiosNonCyclicHighFreqTest())
+    TestEngine.run(LfricXiosNonCyclicNonSyncTest())
     TestEngine.run(LfricXiosPartialNonCyclicTest())
     TestEngine.run(LfricXiosNonCyclicFutureTest())
     TestEngine.run(LfricXiosNonCyclicPastTest())
