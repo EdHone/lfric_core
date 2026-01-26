@@ -132,7 +132,7 @@ contains
 
     self%is_cyclic = cyclic
     if (self%is_cyclic) then
- 		  self%cycle_period = self%io_frequency * size(self%time_data)
+      self%cycle_period = self%io_frequency * size(self%time_data)
     else
       self%cycle_period = xios_duration(0)
     end if
@@ -156,6 +156,7 @@ contains
 
     ! Set up fields for reading and holding data
     n_fields = size(file_fields)
+    print*, n_fields, self%window_size
     allocate(self%fields(self%window_size,n_fields))
     self%current_field_index = 1
     do i = 1, n_fields
@@ -180,6 +181,9 @@ contains
 
   !> Aligns the internal time data axis with the current model time
   !!
+
+
+
   !> @param[in]    context_start  The date at which the current XIOS starts
   !> @param[inout] record_offset  The index corresponding to the start of the
   !!                              aligned time axis
@@ -248,14 +252,14 @@ contains
     character(len=*),     intent(in) :: file_path
     integer(i_def),       intent(in) :: record_offset, n_fields
 
-    integer(i_def)        :: i, j, f, init_offset
+    integer(i_def)        :: i, f, init_offset
     type(xios_duration)   :: timestep_duration
     type(xios_filegroup)  :: file_definition
     type(xios_file)       :: initial_read_file
     type(xios_fieldgroup) :: init_fieldgroup
     character(str_def)    :: init_fields_id
 
-    class(field_parent_type), pointer :: init_field_ptr => null()
+    class(field_parent_type), pointer :: init_field_ptr
 
     ! Set up separate file instance for initial read, in the case of time-varying
     ! inputs that need multiple time entries present on initialisation
@@ -284,6 +288,7 @@ contains
       init_fields_id = trim(file_id)//"_init_fields"
       call xios_add_child(initial_read_file, init_fieldgroup, trim(init_fields_id))
       do i = 1, n_fields
+        !!!SOMETHING WRONG WITH f here
         init_field_ptr => self%fields(f,i)
         self%init_fields(f,i) = lfric_xios_field_type( init_field_ptr, &
                                           fieldgroup_id=trim(init_fields_id) )
@@ -295,6 +300,8 @@ contains
     end do
 
     self%read_initial_fields = .true.
+
+    nullify(init_field_ptr)
 
   end subroutine setup_initial_read_definition
 
@@ -376,8 +383,8 @@ contains
 
     class(temporal_type),       intent(inout) :: self
 
-    class(field_parent_type), pointer :: tmp_model_field => null()
-    type(field_type),         pointer :: model_field     => null()
+    class(field_parent_type), pointer :: tmp_model_field
+    type(field_type),         pointer :: model_field
 
     integer(i_def) :: i, n_fields
 
@@ -392,6 +399,9 @@ contains
       end select
       call invoke(setval_X(model_field, self%fields(self%current_field_index, i)))
     end do
+
+    nullify(tmp_model_field)
+    nullify(model_field)
 
   end subroutine update_model_data
 
