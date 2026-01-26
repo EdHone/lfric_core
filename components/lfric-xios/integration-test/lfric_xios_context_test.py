@@ -11,7 +11,6 @@ then destroys it. This will also create an attached XIOS context.
 
 from testframework import TestEngine, TestFailed
 from xiostest import LFRicXiosTest
-from pathlib import Path
 import sys
 
 ###############################################################################

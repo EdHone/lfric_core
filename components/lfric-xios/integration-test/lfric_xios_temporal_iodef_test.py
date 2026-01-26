@@ -49,7 +49,7 @@ class LfricXiosFullNonCyclicIodefTest(LFRicXiosTest):  # pylint: disable=too-few
 class LfricXiosFullNonCyclicIodefHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
     """
     Tests the LFRic-XIOS temporal reading functionality for a full set of
-    non-cyclic data at hieher model frequency
+    non-cyclic data at higher model frequency
     """
 
     def __init__(self):
