@@ -288,10 +288,10 @@ contains
       init_fields_id = trim(file_id)//"_init_fields"
       call xios_add_child(initial_read_file, init_fieldgroup, trim(init_fields_id))
       do i = 1, n_fields
-        !!!SOMETHING WRONG WITH f here
         init_field_ptr => self%fields(f,i)
         self%init_fields(f,i) = lfric_xios_field_type( init_field_ptr, &
                                           fieldgroup_id=trim(init_fields_id) )
+        call self%init_fields(f,i)%set_model_field(init_field_ptr)
         call self%init_fields(f,i)%set_xios_name(trim(adjustl(self%field_dest(i)%get_xios_name())))
         call self%init_fields(f,i)%register()
       end do
