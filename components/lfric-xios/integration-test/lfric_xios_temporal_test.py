@@ -37,7 +37,7 @@ class LfricXiosFullNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publ
 
         if returncode != 0:
             print(out)
-            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" + 
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
 
@@ -50,7 +50,7 @@ class LfricXiosFullNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publ
                                   'temporal_field'):
             raise TestFailed("Output data does not match input data for same time values")
 
-        return "Reading full set of non-cylic data okay..."
+        return "Reading full set of non-cyclic data okay..."
 
 
 class LfricXiosNonCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -75,7 +75,7 @@ class LfricXiosNonCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-
 
         if returncode != 0:
             print(out)
-            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" + 
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
         if not self.nc_data_match(Path('lfric_xios_temporal_input.nc'),
@@ -83,7 +83,7 @@ class LfricXiosNonCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-
                                   'temporal_field'):
             raise TestFailed("Output data does not match input data for same time values")
 
-        return "Reading full set of non-cylic data at higher model frequency okay..."
+        return "Reading full set of non-cyclic data at higher model frequency okay..."
 
 
 class LfricXiosNonCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -122,7 +122,7 @@ class LfricXiosNonCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-p
                                   'temporal_field'):
             raise TestFailed("Output data does not match input data for same time values")
 
-        return "Reading non-synchronised non-cylic data at higher model frequency okay..."
+        return "Reading non-synchronised non-cyclic data at higher model frequency okay..."
 
 
 class LfricXiosPartialNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -146,7 +146,7 @@ class LfricXiosPartialNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-p
         """
 
         if returncode != 0:
-            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" + 
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
 
@@ -155,7 +155,7 @@ class LfricXiosPartialNonCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-p
                                   'temporal_field'):
             raise TestFailed("Output data does not match input data for same time values")
 
-        return "Reading partial set of non-cylic data okay..."
+        return "Reading partial set of non-cyclic data okay..."
 
 
 class LfricXiosNonCyclicFutureTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods

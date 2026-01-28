@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 ##############################################################################
-# (C) Crown copyright 2024 Met Office. All rights reserved.
+# (C) Crown copyright 2026 Met Office. All rights reserved.
 # The file LICENCE, distributed with this code, contains details of the terms
 # under which the code may be used.
 ##############################################################################
@@ -34,7 +34,7 @@ class LfricXiosFullCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-
 
         if returncode != 0:
             print(out)
-            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" + 
+            raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
 
@@ -47,7 +47,7 @@ class LfricXiosFullCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-
                                   'temporal_field'):
             raise TestFailed("Output data does not match input data for same time values")
 
-        return "Reading full set of cylic data okay..."
+        return "Reading full set of cyclic data okay..."
 
 
 class LfricXiosFutureCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -116,7 +116,7 @@ class LfricXiosPastCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-
                                   'temporal_field'):
             raise TestFailed("Output data does not match expected values")
 
-        return "Reading full set of cylic data from the past okay..."
+        return "Reading full set of cyclic data from the past okay..."
 
 
 class LfricXiosCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -154,7 +154,7 @@ class LfricXiosCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-pub
                                   'temporal_field'):
             raise TestFailed("Output data does not match expected values")
 
-        return "Reading full set of cylic data from the past okay..."
+        return "Reading full set of cyclic data from the past okay..."
 
 
 class LfricXiosCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -192,7 +192,7 @@ class LfricXiosCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-pub
                                   'temporal_field'):
             raise TestFailed("Output data does not match expected values")
 
-        return "Reading full set of cylic data from the past okay..."
+        return "Reading full set of cyclic data from the past okay..."
 
 
 class LfricXiosCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
