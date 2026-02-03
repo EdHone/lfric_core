@@ -1,3 +1,9 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright Met Office. All rights reserved.
+! For further details please refer to the file LICENCE which you should have
+! received as part of this distribution.
+!-----------------------------------------------------------------------------
+
 !> Module containing an interface to the sleep and usleep utilities from C.
 module sleep_mod
 
