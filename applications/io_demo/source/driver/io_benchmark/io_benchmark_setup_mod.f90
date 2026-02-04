@@ -23,7 +23,6 @@ module io_benchmark_setup_mod
   use linked_list_mod,               only: linked_list_type
   use mesh_mod,                      only: mesh_type
   use mesh_collection_mod,           only: mesh_collection
-  use namelist_mod,                  only: namelist_type
 
   implicit none
 
@@ -44,10 +43,6 @@ contains
     procedure(read_interface),  pointer  :: tmp_read_ptr
     procedure(write_interface), pointer  :: tmp_write_ptr
 
-    type(namelist_type), pointer :: base_mesh_nml
-    type(namelist_type), pointer :: finite_element_nml
-    type(namelist_type), pointer :: io_demo_nml
-    type(namelist_type), pointer :: io_nml
     character(str_def) :: prime_mesh_name, tmp_field_name
     integer(i_def) :: element_order_h
     integer(i_def) :: element_order_v
@@ -55,16 +50,11 @@ contains
     integer(i_def) :: n_benchmark_fields
     integer(i_def) :: diagnostic_frequency
 
-
-    base_mesh_nml => modeldb%configuration%get_namelist('base_mesh')
-    finite_element_nml => modeldb%configuration%get_namelist('finite_element')
-    io_demo_nml => modeldb%configuration%get_namelist('io_demo')
-    io_nml => modeldb%configuration%get_namelist('io')
-    call base_mesh_nml%get_value( 'prime_mesh_name', prime_mesh_name )
-    call finite_element_nml%get_value('element_order_h', element_order_h)
-    call finite_element_nml%get_value('element_order_v', element_order_v)
-    call io_demo_nml%get_value('n_benchmark_fields', n_benchmark_fields)
-    call io_nml%get_value('diagnostic_frequency', diagnostic_frequency)
+    prime_mesh_name  = modeldb%config%base_mesh%prime_mesh_name()
+    element_order_h  = modeldb%config%finite_element%element_order_h()
+    element_order_v  = modeldb%config%finite_element%element_order_v()
+    n_benchmark_fields = modeldb%config%io_demo%n_benchmark_fields()
+    diagnostic_frequency = modeldb%config%io%diagnostic_frequency()
 
     mesh => mesh_collection%get_mesh(prime_mesh_name)
 
@@ -95,11 +85,8 @@ contains
 
     integer(i_def)                       :: diagnostic_frequency
     type(field_collection_type), pointer :: io_benchmark_fields
-    type(namelist_type),         pointer :: io_nml
 
-    io_nml => modeldb%configuration%get_namelist('io')
-    call io_nml%get_value('diagnostic_frequency', diagnostic_frequency)
-
+    diagnostic_frequency = modeldb%config%io%diagnostic_frequency()
 
     io_benchmark_fields => modeldb%fields%get_field_collection("io_benchmark_fields")
 
@@ -112,7 +99,6 @@ contains
                                                       fields_in_file=io_benchmark_fields ) )
 
   nullify(io_benchmark_fields)
-  nullify(io_nml)
 
   end subroutine setup_io_benchmark_files
 

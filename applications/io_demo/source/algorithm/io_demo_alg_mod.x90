@@ -51,7 +51,6 @@ contains
     type( field_type )                  :: visc
 
     real(r_def)                         :: visc_val
-    type(mesh_type), pointer            :: mesh => null()
     integer(kind=i_def), parameter      :: stencil_depth = 1_i_def
 
     type(mesh_type),           pointer :: mesh

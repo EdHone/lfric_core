@@ -17,7 +17,6 @@ module io_benchmark_step_mod
   use log_mod,              only: log_event,         &
                                   log_scratch_space, &
                                   LOG_LEVEL_INFO
-  use namelist_mod,         only: namelist_type
 
   implicit none
 
@@ -42,13 +41,11 @@ contains
       class(field_parent_type),    pointer :: step_field
       type(field_type),            pointer :: kernel_field
       type(field_type),            pointer :: diffusion_field
-      type(namelist_type),         pointer :: io_demo_nml
 
       integer(i_def)     :: i, sleep_duration
       real(r_def)        :: loop_factor
 
-      io_demo_nml => modeldb%configuration%get_namelist('io_demo')
-      call io_demo_nml%get_value('benchmark_sleep_time', sleep_duration)
+      sleep_duration = modeldb%config%io_demo%benchmark_sleep_time()
 
       ! Get field data ready
       depository => modeldb%fields%get_field_collection("depository")
