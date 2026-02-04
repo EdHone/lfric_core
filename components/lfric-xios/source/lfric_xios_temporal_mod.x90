@@ -174,7 +174,6 @@ contains
       ! Set up additional file definition for initialisation
       call self%setup_initial_read_definition(file_id, file_path, record_offset, n_fields)
       call self%shift_read_index(file_fields)
-      record_offset = record_offset + 1
     end if
 
   end subroutine initialise
@@ -248,11 +247,12 @@ contains
     implicit none
 
     class(temporal_type), intent(inout), target :: self
-    character(len=*),     intent(in) :: file_id
-    character(len=*),     intent(in) :: file_path
-    integer(i_def),       intent(in) :: record_offset, n_fields
+    character(len=*),     intent(in)    :: file_id
+    character(len=*),     intent(in)    :: file_path
+    integer(i_def),       intent(inout) :: record_offset
+    integer(i_def),       intent(in)    :: n_fields
 
-    integer(i_def)        :: i, f, init_offset
+    integer(i_def)        :: i, f
     type(xios_duration)   :: timestep_duration
     type(xios_filegroup)  :: file_definition
     type(xios_file)       :: initial_read_file
@@ -270,19 +270,17 @@ contains
       call xios_get_handle("file_definition", file_definition)
       call xios_add_child( file_definition, initial_read_file, &
                             trim(file_id)//"_init" )
-      if (record_offset == 0) then
-        init_offset = n_fields - 1
-      else
-        init_offset = record_offset - 1
-      end if
 
       call xios_set_attr( initial_read_file, name=trim(adjustl(file_path)), &
                                               output_freq=timestep_duration, &
                                               mode="read",                   &
                                               type="one_file",               &
-                                              record_offset=init_offset,     &
+                                              record_offset=record_offset,  &
                                               time_counter_name="time",      &
                                               enabled=.true. )
+
+      ! Move on record offset for next read
+      record_offset = record_offset + 1
 
       ! Add fields to initial file definition
       init_fields_id = trim(file_id)//"_init_fields"
