@@ -16,6 +16,7 @@ module io_benchmark_setup_mod
   use field_parent_mod,              only: read_interface, write_interface
   use file_mod,                      only: FILE_MODE_WRITE
   use fs_continuity_mod,             only: Wtheta
+  use function_space_mod,            only: function_space_type
   use function_space_collection_mod, only: function_space_collection
   use lfric_xios_file_mod,           only: lfric_xios_file_type, OPERATION_TIMESERIES
   use lfric_xios_read_mod,           only: read_field_generic
@@ -42,6 +43,7 @@ contains
     type(field_type)                     :: tmp_io_field
     procedure(read_interface),  pointer  :: tmp_read_ptr
     procedure(write_interface), pointer  :: tmp_write_ptr
+    type(function_space_type),  pointer  :: wtheta_fs
 
     character(str_def) :: prime_mesh_name, tmp_field_name
     integer(i_def) :: element_order_h
@@ -60,19 +62,21 @@ contains
 
     call modeldb%fields%add_empty_field_collection("io_benchmark_fields")
     io_benchmark_fields => modeldb%fields%get_field_collection("io_benchmark_fields")
+    wtheta_fs => function_space_collection%get_fs( mesh, element_order_h, &
+                                                   element_order_v, Wtheta )
 
     do i = 1, n_benchmark_fields
         write(tmp_field_name, "(A19, I3.3)") 'io_benchmark_field_', i
-        call tmp_io_field%initialise( vector_space = &
-                function_space_collection%get_fs(mesh, element_order_h, &
-                                        element_order_v, Wtheta), &
-                name=tmp_field_name )
+        call tmp_io_field%initialise( vector_space = wtheta_fs, &
+                                      name=tmp_field_name )
         tmp_read_ptr => read_field_generic
         tmp_write_ptr => write_field_generic
         call tmp_io_field%set_read_behaviour(tmp_read_ptr)
         call tmp_io_field%set_write_behaviour(tmp_write_ptr)
         call io_benchmark_fields%add_field(tmp_io_field)
     end do
+
+    nullify( mesh, io_benchmark_fields, wtheta_fs )
 
   end subroutine create_io_benchmark_fields
 
