@@ -151,7 +151,6 @@ contains
 
     self%next_model_update = context_start
 
-    ! #TODO - hard coded to 1 until cyclic temporal control implemented
     self%read_index = 1
 
     ! Set up fields for reading and holding data
