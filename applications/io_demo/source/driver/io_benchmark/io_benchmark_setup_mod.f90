@@ -34,6 +34,7 @@ contains
   !> @details Creates the fields needed for the IO benchmark
   !> @param[in,out] modeldb The model database in which to store model data.
   subroutine create_io_benchmark_fields(modeldb)
+
     implicit none
 
     type(modeldb_type), intent(inout) :: modeldb
@@ -66,14 +67,14 @@ contains
                                                    element_order_v, Wtheta )
 
     do i = 1, n_benchmark_fields
-        write(tmp_field_name, "(A19, I3.3)") 'io_benchmark_field_', i
-        call tmp_io_field%initialise( vector_space = wtheta_fs, &
-                                      name=tmp_field_name )
-        tmp_read_ptr => read_field_generic
-        tmp_write_ptr => write_field_generic
-        call tmp_io_field%set_read_behaviour(tmp_read_ptr)
-        call tmp_io_field%set_write_behaviour(tmp_write_ptr)
-        call io_benchmark_fields%add_field(tmp_io_field)
+      write(tmp_field_name, "(A19, I3.3)") 'io_benchmark_field_', i
+      call tmp_io_field%initialise( vector_space = wtheta_fs, &
+                                    name=tmp_field_name )
+      tmp_read_ptr => read_field_generic
+      tmp_write_ptr => write_field_generic
+      call tmp_io_field%set_read_behaviour(tmp_read_ptr)
+      call tmp_io_field%set_write_behaviour(tmp_write_ptr)
+      call io_benchmark_fields%add_field(tmp_io_field)
     end do
 
     nullify( mesh, io_benchmark_fields, wtheta_fs )
