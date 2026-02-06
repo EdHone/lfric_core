@@ -185,7 +185,7 @@ contains
     ! Setup multifile reading
     !=======================================================================
     files_init_ptr => null()
-    if(multifile_io) then
+    if (multifile_io) then
       call create_multifile_io_fields(modeldb)
       call init_multifile_io(modeldb)
     end if
