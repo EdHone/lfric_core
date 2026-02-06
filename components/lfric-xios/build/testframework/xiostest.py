@@ -4,12 +4,12 @@
 # The file LICENCE, distributed with this code, contains details of the terms
 # under which the code may be used.
 ##############################################################################
+from pathlib import Path
 import os
 import subprocess
-from pathlib import Path
 import sys
 import shutil
-from typing import List
+from typing import List, Optional
 
 from testframework import MpiTest
 import xarray as xr
@@ -21,11 +21,9 @@ class LFRicXiosTest(MpiTest):
     Base for LFRic-XIOS integration tests.
     """
 
-    def __init__(self, command=sys.argv[1], processes=1, iodef_file=None):
-        if iodef_file is None:
-            self.iodef_file = "iodef.xml"
-        else:
-            self.iodef_file = iodef_file
+    def __init__(self, command=sys.argv[1], processes:int=1, iodef_file: Optional[Path]="iodef.xml"):
+
+        self.iodef_file = Path(iodef_file)
 
         super().__init__(command, processes)
 
@@ -33,46 +31,46 @@ class LFRicXiosTest(MpiTest):
         self.xios_err: List[XiosOutput] = []
 
         # Setup test working directory
-        self.test_top_level: Path = Path(os.getcwd())
-        self.resources_dir: Path = self.test_top_level / "resources"
-        self.test_working_dir: Path = self.test_top_level / "working" / type(self).__name__
-        if not os.path.exists(self.test_working_dir):
-            os.makedirs(self.test_working_dir)
+        self.test_top_level = Path(os.getcwd())
+        self.resources_dir = self.test_top_level / "resources"
+        self.test_working_dir = self.test_top_level / "working" / type(self).__name__
+        self.test_working_dir.mkdir(parents=True, exist_ok=True)
 
         # Create symlink to test executable in working directory
-        if not os.path.exists(Path(self.test_working_dir) / command[0].split("/")[-1]):
-            os.symlink(Path(command[0]), Path(self.test_working_dir) / command[0].split("/")[-1])
+        executable = self.test_working_dir / command[0].split('/')[-1]
+        if not executable.exists():
+            command_path = Path(command[0])
+            executable.symlink_to(command_path)
 
         # Change to test working directory
         os.chdir(self.test_working_dir)
 
 
-    def gen_data(self, source: str, dest: str):
+    def gen_data(self, source: Path, dest: Path):
         """
         Create input data files from CDL formatted text. Looks for source file
         in resources/data directory and generates dest file in test working directory.
         """
-        dest_path: Path = Path(self.test_working_dir) / Path(dest)
-        source_path: Path = Path(self.resources_dir, 'data') / Path(source)
+        dest_path = Path(self.test_working_dir) / dest
+        source_path = Path(self.resources_dir, 'data') / source
         dest_path.unlink(missing_ok=True)
 
-        proc = subprocess.Popen(
+        proc = subprocess.run(
             ['ncgen', '-k', 'nc4', '-o', f'{dest_path}', f'{source_path }'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             )
-        _, err = proc.communicate()
         if proc.returncode != 0:
-            raise Exception("Test data generation failed:\n" + f"{err}")
+            raise Exception("Test data generation failed:\n" + f"{proc.stderr}")
 
 
-    def gen_config(self, config_source: str, config_out: str, new_config: dict):
+    def gen_config(self, config_source: Path, config_out: Path, new_config: dict):
         """
         Create an LFRic configuration namelist. Looks for source file
         in resources/configs directory and generates dest file in test working directory.
         """
-        config_in = open(Path(self.resources_dir, 'configs', config_source), 'r')
-        config = config_in.readlines()
+        filename = Path(self.resources_dir, 'configs', config_source)
+        config = filename.read_text().splitlines()
         for key in new_config.keys():
             for i in range(len(config)):
                 if key in config[i]:
@@ -80,12 +78,8 @@ class LFRicXiosTest(MpiTest):
                         config[i] = f"  {key}='{new_config[key]}'\n"
                     else:
                         config[i] = f"  {key}={new_config[key]}\n"
-        config_in.close()
 
-        f = open(Path(self.test_working_dir, config_out), "w")
-        for line in config:
-            f.write(line)
-        f.close()
+        Path(self.test_working_dir, config_out).write_text('\n'.join(config) + '\n')
 
 
     def performTest(self):
@@ -94,8 +88,7 @@ class LFRicXiosTest(MpiTest):
         """
 
         # Handle iodef file
-        if os.path.exists(self.iodef_file):
-            os.remove(self.iodef_file)
+        self.iodef_file.unlink(missing_ok=True)
         shutil.copy(self.resources_dir / self.iodef_file, self.test_working_dir / "iodef.xml")
 
         return super().performTest()
@@ -105,14 +98,13 @@ class LFRicXiosTest(MpiTest):
         """
         Compare output files with nccmp.
         """
-        proc = subprocess.Popen(
+        proc = subprocess.run(
             ['nccmp', '-Fdm', '--exclude=Mesh2d', '--tolerance=0.000001', f'{output}', f'{kgo}'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             )
-        _, err = proc.communicate()
 
-        return proc.returncode, err
+        return proc.returncode, proc.stderr
     
     def nc_data_match(self, in_file: Path, out_file: Path, varname: str):
         """
