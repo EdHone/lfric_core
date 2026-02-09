@@ -246,6 +246,11 @@ function lfric_xios_file_constructor( file_name, xios_id, io_mode, freq,      &
     self%cyclic = cyclic
   end if
 
+  if (present(update_freq)) then
+    self%update_freq = update_freq
+    print*, self%update_freq
+  end if
+
   if (present(freq)) then
     if (freq < 0) then ! we are going to allow freq = 0 (= no_freq)
       call log_event( "XIOS files cannot have negative frequency", &
@@ -275,10 +280,6 @@ function lfric_xios_file_constructor( file_name, xios_id, io_mode, freq,      &
   if (present(diag_always_on_sampling)) &
     self%diag_always_on_sampling = diag_always_on_sampling
   return
-
-  if (present(update_freq)) then
-    self%update_freq = update_freq
-  end if
 
 end function lfric_xios_file_constructor
 
