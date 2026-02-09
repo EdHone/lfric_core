@@ -24,7 +24,7 @@ module lfric_xios_temporal_mod
   use lfric_ncdf_file_mod,  only: lfric_ncdf_file_type
   use lfric_xios_field_mod, only: lfric_xios_field_type
   use lfric_xios_utils_mod, only: parse_date_as_xios, seconds_from_date, &
-                                  read_time_data
+                                  read_time_data, duration_from_enum
   use linked_list_data_mod, only: linked_list_data_type
   use log_mod,              only: log_event, log_scratch_space, &
                                   LOG_LEVEL_ERROR, LOG_LEVEL_INFO, &
@@ -108,9 +108,10 @@ contains
   !> @param[in,out] file_fields    A list of fields within the file
   !> @param[in]     io_frequency   How often the file is read
   !> @param[in]     cyclic         Is the time axis cyclic or not
+  !> @param[in]     update_frequency How often the model data should be updated (enum)
   !> @param[out]    record_offset  Time index for XIOS to start reading data from
   subroutine initialise( self, file_id, file_path, file_fields, io_frequency, &
-                         cyclic, record_offset )
+                         cyclic, update_freq, record_offset )
 
     implicit none
 
@@ -120,6 +121,7 @@ contains
     type(lfric_xios_field_type),  intent(inout) :: file_fields(:)
     type(xios_duration),          intent(in)    :: io_frequency
     logical,                      intent(in)    :: cyclic
+    integer(i_def),               intent(in)    :: update_freq
     integer(i_def),               intent(out)   :: record_offset
 
     type(xios_date)       :: context_start
@@ -132,8 +134,8 @@ contains
 
     self%io_frequency = io_frequency
 
-    ! TEMPORARY Set update freq to ts
-    call xios_get_timestep(self%update_frequency)
+    ! TODO - null value for update frequency = 0
+    self%update_frequency = duration_from_enum(update_freq)
 
     self%is_cyclic = cyclic
     if (self%is_cyclic) then
@@ -347,9 +349,13 @@ contains
 
     if ( self%next_model_update <= model_date ) then
       call self%update_model_data()
-      ! TEMPORARY - use update freq instead of time data
-      !self%next_model_update = self%time_data(2)
-      self%next_model_update = self%next_model_update + self%update_frequency
+      ! If the update frequency is 0, the model data is updated at each point
+      ! corresponding to the frequency of the input data
+      if (self%time_data(1) + self%update_frequency == self%time_data(1) + xios_duration(0)) then
+        self%next_model_update = self%time_data(2)
+      else
+        self%next_model_update = self%next_model_update + self%update_frequency
+      end if
     end if
 
   end function advance
