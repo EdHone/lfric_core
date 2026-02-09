@@ -21,9 +21,9 @@ module lfric_xios_constants_mod
 
   !< Enums for configuring XIOS durations within LFRic
   !< These must be large-ish prime numbers
-  integer, parameter :: lx_second = 107
-  integer, parameter :: lx_day    = 1049
-  integer, parameter :: lx_month  = 10259
-  integer, parameter :: lx_year   = 100537
+  integer, public, parameter :: lx_second = 107
+  integer, public, parameter :: lx_day    = 1049
+  integer, public, parameter :: lx_month  = 10259
+  integer, public, parameter :: lx_year   = 100537
 
 end module lfric_xios_constants_mod
