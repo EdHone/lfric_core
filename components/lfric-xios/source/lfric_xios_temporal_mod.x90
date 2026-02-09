@@ -135,7 +135,6 @@ contains
 
     self%io_frequency = io_frequency
 
-    ! TODO - null value for update frequency = 0
     self%update_frequency = duration_from_enum(update_freq)
 
     self%is_cyclic = cyclic
@@ -155,7 +154,6 @@ contains
     end if
 
     ! Add 1 to window size if interpolation is required
-    print*, self%update_frequency
     if (context_start + self%update_frequency == context_start + xios_duration(0)) then
       self%interp_flag = .false.
     else
@@ -188,7 +186,9 @@ contains
     if (.not. context_start == self%time_data(1) .or. self%interp_flag) then
       ! Set up additional file definition for initialisation
       call self%setup_initial_read_definition(file_id, file_path, record_offset, n_fields)
-      call self%shift_read_index(file_fields)
+      do j = 1, self%window_size - 1
+        call self%shift_read_index(file_fields)
+      end do
     end if
 
   end subroutine initialise
@@ -270,18 +270,20 @@ contains
     type(xios_file)       :: initial_read_file
     type(xios_fieldgroup) :: init_fieldgroup
     character(str_def)    :: init_fields_id
+    character(len=7)      :: init_suffix
 
     class(field_parent_type), pointer :: init_field_ptr
+
+    call xios_get_timestep(timestep_duration)
+    call xios_get_handle("file_definition", file_definition)
 
     ! Set up separate file instance for initial read, in the case of time-varying
     ! inputs that need multiple time entries present on initialisation
     allocate(self%init_fields(self%window_size-1, n_fields))
     do f = 1, self%window_size-1
-      call xios_get_timestep(timestep_duration)
-
-      call xios_get_handle("file_definition", file_definition)
+      write(init_suffix, "(A,I0)") "_init_", f
       call xios_add_child( file_definition, initial_read_file, &
-                            trim(file_id)//"_init" )
+                            trim(file_id)//init_suffix )
 
       call xios_set_attr( initial_read_file, name=trim(adjustl(file_path)), &
                                               output_freq=timestep_duration, &
@@ -295,7 +297,7 @@ contains
       record_offset = record_offset + 1
 
       ! Add fields to initial file definition
-      init_fields_id = trim(file_id)//"_init_fields"
+      init_fields_id = trim(file_id)//init_suffix//"_fields"
       call xios_add_child(initial_read_file, init_fieldgroup, trim(init_fields_id))
       do i = 1, n_fields
         init_field_ptr => self%fields(f,i)
@@ -327,15 +329,17 @@ contains
     logical :: carryon
 
     type(xios_date)   :: model_date
-    integer(i_def) :: next_field_index, i
+    integer(i_def) :: next_field_index, i, f
 
     ! Get current date from XIOS calendar
     call xios_get_current_date(model_date)
 
     ! Perform initial field read
     if (self%read_initial_fields) then
-      do i = 1, size(self%init_fields(1,:))
-        call self%init_fields(1,i)%recv()
+      do f = 1, self%window_size - 1
+        do i = 1, size(self%init_fields(f,:))
+          call self%init_fields(f,i)%recv()
+        end do
       end do
       self%read_initial_fields = .false.
       call self%update_model_data()
@@ -465,8 +469,6 @@ contains
                     seconds_from_date(time_window(1))
     window_time_sec = seconds_from_date(model_date) - &
                       seconds_from_date(time_window(1))
-
-    print*, window_dt_sec, window_time_sec
 
     dt_recip = 1.0_r_def/window_dt_sec
 

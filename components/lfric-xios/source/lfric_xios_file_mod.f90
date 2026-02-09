@@ -248,7 +248,6 @@ function lfric_xios_file_constructor( file_name, xios_id, io_mode, freq,      &
 
   if (present(update_freq)) then
     self%update_freq = update_freq
-    print*, self%update_freq
   end if
 
   if (present(freq)) then
