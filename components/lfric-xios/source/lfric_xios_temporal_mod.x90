@@ -75,6 +75,7 @@ module lfric_xios_temporal_mod
     logical(l_def) :: read_initial_fields = .false.
     !> How often the model data updated
     type(xios_duration) :: update_frequency
+    logical :: interp_flag = .false.
 
 
   contains
@@ -150,6 +151,15 @@ contains
 
     ! Add 1 to window_size if model timesteps not synchonised with time data
     if (.not. context_start == self%time_data(1)) then
+      self%window_size = self%window_size + 1
+    end if
+
+    ! Add 1 to window size if interpolation is required
+    print*, self%update_frequency
+    if (context_start + self%update_frequency == context_start + xios_duration(0)) then
+      self%interp_flag = .false.
+    else
+      self%interp_flag = .true.
       self%window_size = self%window_size + 1
     end if
 
@@ -355,10 +365,10 @@ contains
       call self%update_model_data()
       ! If the update frequency is 0, the model data is updated at each point
       ! corresponding to the frequency of the input data
-      if (self%time_data(1) + self%update_frequency == self%time_data(1) + xios_duration(0)) then
-        self%next_model_update = self%time_data(2)
-      else
+      if (self%interp_flag) then
         self%next_model_update = self%next_model_update + self%update_frequency
+      else
+        self%next_model_update = self%time_data(2)
       end if
     end if
 
@@ -399,8 +409,6 @@ contains
 
     integer(i_def) :: i, n_fields, next_field_index
 
-    logical :: interp_flag = .true.
-
     call xios_get_current_date(current_date)
 
     n_fields = size(self%fields, dim=2)
@@ -412,7 +420,7 @@ contains
       type is (field_type)
         model_field => tmp_model_field
       end select
-      if (interp_flag) then
+      if (self%interp_flag) then
         next_field_index = self%current_field_index + 1
         if (next_field_index > self%window_size) next_field_index = 1
         call interp_field_1d( model_field,                                  &
