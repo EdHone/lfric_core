@@ -13,34 +13,26 @@ module sleep_mod
   implicit none
 
   private
-  public :: sleep, usleep
+  public :: c_sleep
 
   !> Interface to the C usleep function
   interface
-    function c_usleep(useconds) bind(c, name='usleep')
+    function bind_c_usleep(useconds) bind(c, name='usleep')
         import :: c_int, c_int32_t
         implicit none
         integer(kind=c_int32_t), value :: useconds
-        integer(kind=c_int)            :: c_usleep
-    end function c_usleep
+        integer(kind=c_int)            :: bind_c_usleep
+    end function bind_c_usleep
   end interface
 
 contains
 
   !> Sleep for a given number of seconds
   !> @param seconds Number of seconds to sleep
-  subroutine sleep(seconds)
+  subroutine c_sleep(seconds)
       integer(i_def), intent(in) :: seconds
       integer(kind=c_int) :: rc
-      rc = c_usleep(int(seconds, kind=c_int32_t) * 1000000_c_int32_t )
-  end subroutine sleep
-
-  !> Sleep for a given number of microseconds
-  !> @param microseconds Number of microseconds to sleep
-  subroutine usleep(microseconds)
-      integer(i_def), intent(in) :: microseconds
-      integer(kind=c_int) :: rc
-      rc = c_usleep(int(microseconds, kind=c_int32_t))
-  end subroutine usleep
+      rc = bind_c_usleep(int(seconds, kind=c_int32_t) * 1000000_c_int32_t )
+  end subroutine c_sleep
 
 end module sleep_mod
