@@ -20,7 +20,7 @@ module coupler_exchange_2d_mod
                                       oasis_recvd, oasis_recvout, oasis_out
 #endif
   use abstract_external_field_mod, only: abstract_external_field_type
-  use constants_mod,            only: i_def, r_def, l_def, str_def, imdi
+  use constants_mod,            only: i_def, i_timestep, r_def, l_def, str_def, imdi
   use field_mod,                only: field_type, field_proxy_type
   use field_collection_mod,     only: field_collection_type
   use field_parent_mod,         only: field_parent_type
@@ -279,13 +279,14 @@ end type  coupler_exchange_2d_type
   function is_coupling_timestep(self, timestep, model_clock) result(is_coupling_ts)
   implicit none
   class(coupler_exchange_2d_type), intent(inout) :: self
-  integer(i_def),                  intent(in)    :: timestep
+  integer(i_timestep),             intent(in)    :: timestep
   class(model_clock_type),         intent(in)    :: model_clock
 
   logical(l_def)                    :: is_coupling_ts
 #ifdef MCT
   ! Field from which the data will be sent
   class(field_parent_type), pointer :: field
+  integer(i_def)                    :: timestep_time
   ! Oasis id for variable or data level being sent
   integer(i_def)                    :: var_id
   ! Oasis error code
