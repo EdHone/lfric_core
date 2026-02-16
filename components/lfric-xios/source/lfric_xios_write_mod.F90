@@ -70,6 +70,7 @@ module lfric_xios_write_mod
             write_value_generic,      &
             write_state,              &
             write_checkpoint,         &
+            checkpoint_time,          &
             create_checkpoint_list
 
 contains
