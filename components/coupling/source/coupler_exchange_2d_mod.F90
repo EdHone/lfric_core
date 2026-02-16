@@ -311,12 +311,12 @@ end type  coupler_exchange_2d_type
   end if
 #else
   write(log_scratch_space, '(A)' ) &
-               "is_coupling_time: to use OASIS cpp directive MCT must be set"
+               "is_coupling_timestep: to use OASIS cpp directive MCT must be set"
   call log_event( log_scratch_space, LOG_LEVEL_ERROR )
 
 #endif
 
-  end function is_coupling_timetep
+  end function is_coupling_timestep
 
   !> @brief Deallocates the memory associated with the object.
   subroutine clear(self)
