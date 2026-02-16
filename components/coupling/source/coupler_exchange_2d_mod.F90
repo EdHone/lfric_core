@@ -58,7 +58,7 @@ contains
   !> Sets the time ready for coupling
   procedure, public :: set_time
   !> Checks if the currently set time is scheduled for a coupling operation
-  procedure, public :: is_coupling_time
+  procedure, public :: is_coupling_timestep
   !> Manually tidies up
   procedure, public :: clear
   !> Tidies up on destruction
@@ -272,15 +272,17 @@ end type  coupler_exchange_2d_type
 
   end subroutine set_time
 
-  !> @brief   Checks if the currently set time is scheduled for a coupling
+  !> @brief   Checks if a given timestep is scheduled for a coupling
   !>          operation
   !> @return  Whether the currently set time is scheduled for coupling
   !
-  function is_coupling_time(self) result(is_coupling)
+  function is_coupling_timestep(self, timestep, model_clock) result(is_coupling_ts)
   implicit none
   class(coupler_exchange_2d_type), intent(inout) :: self
+  integer(i_def),                  intent(in)    :: timestep
+  class(model_clock_type),         intent(in)    :: model_clock
 
-  logical(l_def)                    :: is_coupling
+  logical(l_def)                    :: is_coupling_ts
 #ifdef MCT
   ! Field from which the data will be sent
   class(field_parent_type), pointer :: field
@@ -297,10 +299,14 @@ end type  coupler_exchange_2d_type
     call log_event("Unexpected field type", log_level_error)
   end select
 
-  is_coupling = .false.
-  call oasis_put_inquire(var_id, self%coupling_time, kinfo)
+  timestep_time = int( model_clock%seconds_from_steps(timestep)          &
+                      - model_clock%seconds_from_steps(model_clock%get_first_step()), &
+                      i_def)
+
+  is_coupling_ts = .false.
+  call oasis_put_inquire(var_id, timestep_time, kinfo)
   if (kinfo == oasis_sent .or. kinfo == oasis_sentout) then
-    is_coupling = .true.
+    is_coupling_ts = .true.
   end if
 #else
   write(log_scratch_space, '(A)' ) &
@@ -309,10 +315,8 @@ end type  coupler_exchange_2d_type
 
 #endif
 
-  end function is_coupling_time
+  end function is_coupling_timetep
 
-  ! Finaliser/Clear
-  !
   !> @brief Deallocates the memory associated with the object.
   subroutine clear(self)
   implicit none
