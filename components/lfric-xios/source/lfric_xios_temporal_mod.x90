@@ -290,7 +290,7 @@ contains
                                           fieldgroup_id=trim(init_fields_id) )
         call self%init_fields(f,i)%set_model_field(init_field_ptr)
         call self%init_fields(f,i)%set_xios_name(trim(adjustl(self%field_dest(i)%get_xios_name())))
-        call self%init_fields(f,i)%register()
+        call self%init_fields(f,i)%register(field_read_access=.true.)
       end do
 
       call xios_set_attr(init_fieldgroup, operation="once", read_access=.true.)

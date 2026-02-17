@@ -76,9 +76,9 @@ class LFRicXiosTest(MpiTest):
             for i in range(len(config)):
                 if key in config[i]:
                     if type(new_config[key]) == str:
-                        config[i] = f"  {key}='{new_config[key]}'\n"
+                        config[i] = f"  {key}='{new_config[key]}'"
                     else:
-                        config[i] = f"  {key}={new_config[key]}\n"
+                        config[i] = f"  {key}={new_config[key]}"
 
         Path(self.test_working_dir, config_out).write_text('\n'.join(config) + '\n')
 
@@ -153,7 +153,7 @@ class LFRicXiosTest(MpiTest):
         ax.set_ylabel("Mean model data")
 
         plt.legend(frameon=False)
-        plt.savefig(f"{type(self).__name__}.png", bbox_inches="tight")
+        plt.savefig(f"{self.test_working_dir}/{type(self).__name__}.png", bbox_inches="tight")
         plt.close()
 
     def post_execution(self, return_code):
