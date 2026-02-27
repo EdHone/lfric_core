@@ -114,6 +114,10 @@ contains
     scaled_radius    = modeldb%config%planet%scaled_radius()
     multifile_io     = modeldb%config%io_demo%multifile_io()
     io_benchmark     = modeldb%config%io_demo%io_benchmark()
+    checkpoint_write = modeldb%config%io%checkpoint_write()
+    checkpoint_read  = modeldb%config%io%checkpoint_read()
+
+     ! Log the configuration
 
     !=======================================================================
     ! Mesh
@@ -195,6 +199,8 @@ contains
       files_init_ptr => setup_io_benchmark_files
     end if
 
+    if
+
     !=======================================================================
     ! Setup general I/O system.
     !=======================================================================
@@ -216,6 +222,13 @@ contains
     call chi_inventory%get_field_array(mesh, chi)
     call panel_id_inventory%get_field(mesh, panel_id)
     call init_io_demo(modeldb, mesh, chi, panel_id)
+
+    !=======================================================================
+    ! Set up checkpointing
+    !=======================================================================
+    if (checkpoint_write .or. checkpoint_read) then
+      call setup_checkpoint_io(modeldb)
+    end if`
 
     nullify(mesh, chi, panel_id)
     deallocate(base_mesh_names)
