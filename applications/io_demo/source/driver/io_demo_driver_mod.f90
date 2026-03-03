@@ -225,7 +225,7 @@ contains
     ! Set up checkpointing
     !=======================================================================
     if (checkpoint_write .or. checkpoint_read) then
-      call setup_checkpoint_io(modeldb)
+      call setup_checkpoint_io(modeldb, chi, panel_id)
     end if
 
     nullify(mesh, chi, panel_id)
