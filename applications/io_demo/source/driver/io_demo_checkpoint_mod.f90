@@ -1,10 +1,10 @@
 module io_demo_checkpoint_mod
 
-  use modeldb_mod, only: modeldb_type
-  use linked_list_mod, only: linked_list_type
+  use driver_modeldb_mod,     only : modeldb_type
+  use linked_list_mod,        only: linked_list_type
   use lfric_xios_context_mod, only: lfric_xios_context_type
-  use lfric_xios_file_mod, only: lfric_xios_file_type
-  use log_mod, only: log_event, LOG_LEVEL_DEBUG
+  use lfric_xios_file_mod,    only: lfric_xios_file_type
+  use log_mod,                only: log_event, LOG_LEVEL_DEBUG
 
   implicit none
 
@@ -17,13 +17,15 @@ contains
 
     type(modeldb_type), intent(inout) :: modeldb
 
-    call log_event( 'io_demo: Setting up checkpoint I/O', LOG_LEVEL_DEBUG )
-
     type(lfric_xios_context_type) :: tmp_io_context
     type(lfric_xios_context_type), pointer :: cp_context
     type(linked_list_type), pointer :: file_list
 
-    call tmp_io_context%initialise( "checkpoint_context",                             &
+    call log_event( 'io_demo: Setting up checkpoint I/O', LOG_LEVEL_DEBUG )
+
+    character(len=str_max_filename) :: checkpoint_write_filename, checkpoint_read_filename
+
+    call tmp_io_context%initialise( "checkpoint_context",                       &
                                     start=modeldb%config%time%timestep_start(), &
                                     stop=modeldb%config%time%timestep_end() )
     call modeldb%io_contexts%add_context(tmp_io_context)
@@ -33,6 +35,7 @@ contains
     file_list => cp_context%get_filelist()
 
     if (modeldb%config%io%checkpoint_write()) then
+      write(checkpoint_write_filename, '(A,I0)') "restart_io_demo_", modeldb%config%time%timestep_end()
       call log_event( 'io_demo: Setting up checkpoint write', LOG_LEVEL_DEBUG )
       call file_list%add_item( lfric_xios_file_type( "restart_io_demo",        &
                                     xios_id = "checkpoint_io_demo",            &
@@ -41,6 +44,7 @@ contains
                                     operation = OPERATION_ONCE ) )
     end if
     if (modeldb%config%io%checkpoint_read()) then
+      write_(checkpoint_read_filename, '(A,I0)') "restart_io_demo_", modeldb%config%time%timestep_start() - 1
       call log_event( 'io_demo: Setting up checkpoint read', LOG_LEVEL_DEBUG )
       call file_list%add_item( lfric_xios_file_type( "restart_io_demo",        &
                                     xios_id = "restart_io_demo",               &
