@@ -38,6 +38,7 @@ module io_demo_driver_mod
   use multifile_io_mod,           only : init_multifile_io, step_multifile_io
   use io_benchmark_setup_mod,     only : create_io_benchmark_fields, setup_io_benchmark_files
   use io_benchmark_step_mod,      only : step_io_benchmark
+  use io_demo_checkpoint_mod,     only : setup_checkpoint_io
   use io_demo_alg_mod,            only : io_demo_alg
   use sci_field_minmax_alg_mod,   only : log_field_minmax
 
@@ -92,6 +93,8 @@ contains
     logical        :: check_partitions
     logical        :: multifile_io
     logical        :: io_benchmark
+    logical        :: checkpoint_write
+    logical        :: checkpoint_read
 
     integer(i_def), parameter :: one_layer = 1_i_def
     integer(i_def) :: i
@@ -196,8 +199,6 @@ contains
       files_init_ptr => setup_io_benchmark_files
     end if
 
-    if
-
     !=======================================================================
     ! Setup general I/O system.
     !=======================================================================
@@ -225,7 +226,7 @@ contains
     !=======================================================================
     if (checkpoint_write .or. checkpoint_read) then
       call setup_checkpoint_io(modeldb)
-    end if`
+    end if
 
     nullify(mesh, chi, panel_id)
     deallocate(base_mesh_names)
