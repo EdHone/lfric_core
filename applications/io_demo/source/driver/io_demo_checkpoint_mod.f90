@@ -1,9 +1,17 @@
 module io_demo_checkpoint_mod
 
-  use driver_modeldb_mod,     only : modeldb_type
+  use constants_mod,          only: i_def, str_max_filename
+  use driver_modeldb_mod,     only: modeldb_type
+  use event_mod,              only: event_action
+  use event_actor_mod,        only: event_actor_type
+  use field_mod,              only: field_type
+  use field_collection_mod,   only: field_collection_type
+  use file_mod,               only: FILE_MODE_WRITE, FILE_MODE_READ
+  use io_context_mod,         only: io_context_type, callback_clock_arg
   use linked_list_mod,        only: linked_list_type
+  use lfric_xios_action_mod,  only: advance
   use lfric_xios_context_mod, only: lfric_xios_context_type
-  use lfric_xios_file_mod,    only: lfric_xios_file_type
+  use lfric_xios_file_mod,    only: lfric_xios_file_type, OPERATION_ONCE
   use log_mod,                only: log_event, LOG_LEVEL_DEBUG
 
   implicit none
@@ -13,21 +21,31 @@ module io_demo_checkpoint_mod
 
 contains
 
-  subroutine setup_checkpoint_io(modeldb)
+  subroutine setup_checkpoint_io(modeldb, chi, panel_id)
 
     type(modeldb_type), intent(inout) :: modeldb
+    type(field_type),   intent(in)    :: chi(:)
+    type(field_type),   intent(in)    :: panel_id
 
     type(lfric_xios_context_type) :: tmp_io_context
-    type(lfric_xios_context_type), pointer :: cp_context
-    type(linked_list_type), pointer :: file_list
+    type(lfric_xios_context_type), pointer :: cp_context, io_context
+    type(linked_list_type),        pointer :: file_list
+    type(field_collection_type),   pointer :: checkpoint_fields
+
+    class(event_actor_type), pointer :: event_actor_ptr
+    procedure(event_action), pointer :: context_advance
+    procedure(callback_clock_arg), pointer :: before_close
+
+    character(len=str_max_filename) :: checkpoint_write_filename, checkpoint_read_filename
+    integer(i_def) :: ts_start, ts_end
 
     call log_event( 'io_demo: Setting up checkpoint I/O', LOG_LEVEL_DEBUG )
 
-    character(len=str_max_filename) :: checkpoint_write_filename, checkpoint_read_filename
+    ts_start = modeldb%calendar%parse_instance(modeldb%config%time%timestep_start())
+    ts_end   = modeldb%calendar%parse_instance(modeldb%config%time%timestep_end())
+    checkpoint_fields => modeldb%fields%get_field_collection("depository")
 
-    call tmp_io_context%initialise( "checkpoint_context",                       &
-                                    start=modeldb%config%time%timestep_start(), &
-                                    stop=modeldb%config%time%timestep_end() )
+    call tmp_io_context%initialise( "checkpoint_context", start=ts_start, stop=ts_end )
     call modeldb%io_contexts%add_context(tmp_io_context)
 
     ! Get pointer to persistent context
@@ -35,23 +53,42 @@ contains
     file_list => cp_context%get_filelist()
 
     if (modeldb%config%io%checkpoint_write()) then
-      write(checkpoint_write_filename, '(A,I0)') "restart_io_demo_", modeldb%config%time%timestep_end()
-      call log_event( 'io_demo: Setting up checkpoint write', LOG_LEVEL_DEBUG )
-      call file_list%add_item( lfric_xios_file_type( "restart_io_demo",        &
-                                    xios_id = "checkpoint_io_demo",            &
-                                    io_mode = FILE_MODE_WRITE,                 &
-                                    freq = modeldb%config%time%timestep_end(), &
-                                    operation = OPERATION_ONCE ) )
+      write(checkpoint_write_filename, '(A,I0)') "restart_io_demo_", ts_end
+      call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
+                                        xios_id = "checkpoint_io_demo",            &
+                                        io_mode = FILE_MODE_WRITE,                 &
+                                        freq = ts_end - ts_start + 1,              &
+                                        operation = OPERATION_ONCE,                &
+                                        fields_in_file = checkpoint_fields ) )
     end if
     if (modeldb%config%io%checkpoint_read()) then
-      write_(checkpoint_read_filename, '(A,I0)') "restart_io_demo_", modeldb%config%time%timestep_start() - 1
-      call log_event( 'io_demo: Setting up checkpoint read', LOG_LEVEL_DEBUG )
-      call file_list%add_item( lfric_xios_file_type( "restart_io_demo",        &
-                                    xios_id = "restart_io_demo",               &
-                                    io_mode = FILE_MODE_READ,                  &
-                                    freq = modeldb%config%time%timestep_end(), &
-                                    operation = OPERATION_ONCE ) )
+      write(checkpoint_read_filename, '(A,I0)') "restart_io_demo_", ts_start - 1
+      call file_list%insert_item( lfric_xios_file_type( checkpoint_read_filename,  &
+                                        xios_id = "restart_io_demo",               &
+                                        io_mode = FILE_MODE_READ,                  &
+                                        freq = 1,                                  &
+                                        operation = OPERATION_ONCE,                &
+                                        fields_in_file = checkpoint_fields ) )
     end if
+
+    event_actor_ptr => cp_context
+    context_advance => advance
+
+    before_close => null()
+    call cp_context%initialise_xios_context( modeldb%mpi%get_comm(), chi, panel_id, &
+                                             modeldb%clock, modeldb%calendar, before_close )
+
+    call modeldb%clock%add_event(context_advance, event_actor_ptr)
+    call cp_context%set_active(.true.)
+
+    ! Set current context back to main
+    call modeldb%io_contexts%get_io_context("io_demo", io_context)
+    call io_context%set_current()
+
+    nullify(cp_context)
+    nullify(file_list)
+    nullify(checkpoint_fields)
+    nullify(io_context)
 
   end subroutine setup_checkpoint_io
 
