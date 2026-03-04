@@ -38,9 +38,6 @@ module io_demo_driver_mod
   use multifile_io_mod,           only : init_multifile_io, step_multifile_io
   use io_benchmark_setup_mod,     only : create_io_benchmark_fields, setup_io_benchmark_files
   use io_benchmark_step_mod,      only : step_io_benchmark
-
-  use io_demo_alg_mod,   only : io_demo_alg
-
   use io_demo_alg_mod,            only : io_demo_alg
   use sci_field_minmax_alg_mod,   only : log_field_minmax
 
@@ -82,7 +79,7 @@ contains
     class(extrusion_type),        allocatable :: extrusion
     type(uniform_extrusion_type), allocatable :: extrusion_2d
 
-    procedure(filelist_populator), pointer :: files_init_ptr => null()
+    procedure(filelist_populator), pointer :: files_init_ptr
     character(str_def) :: prime_mesh_name
 
     integer(i_def) :: stencil_depth(1)
