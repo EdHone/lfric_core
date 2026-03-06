@@ -45,8 +45,12 @@ coord_system='native'
   subroutine_counters   = .false.
   counter_output_suffix = 'counter.txt'
   checkpoint_read       = .false.
-  checkpoint_write      = .false.
+  checkpoint_write      = .true.
   file_convention       = 'UGRID'
+/
+
+&files
+  checkpoint_stem_name  = 'restart-io_demo'
 /
 
 &io_demo

@@ -53,7 +53,8 @@ contains
     file_list => cp_context%get_filelist()
 
     if (modeldb%config%io%checkpoint_write()) then
-      write(checkpoint_write_filename, '(A,I0)') "restart_io_demo_", ts_end
+      write(checkpoint_write_filename, '(A,I0)') &
+            trim(modeldb%config%files%checkpoint_stem_name()), ts_end
       call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
                                         xios_id = "checkpoint_io_demo",            &
                                         io_mode = FILE_MODE_WRITE,                 &
@@ -62,7 +63,8 @@ contains
                                         fields_in_file = checkpoint_fields ) )
     end if
     if (modeldb%config%io%checkpoint_read()) then
-      write(checkpoint_read_filename, '(A,I0)') "restart_io_demo_", ts_start - 1
+      write(checkpoint_read_filename, '(A,I0)') &
+            trim(modeldb%config%files%checkpoint_stem_name()), ts_start - 1
       call file_list%insert_item( lfric_xios_file_type( checkpoint_read_filename,  &
                                         xios_id = "restart_io_demo",               &
                                         io_mode = FILE_MODE_READ,                  &
