@@ -41,7 +41,7 @@ contains
       type(field_collection_iterator_type) :: field_iter
       class(field_parent_type),    pointer :: step_field
       type(field_type),            pointer :: kernel_field
-      type(field_type),            pointer :: diffusion_field
+      type(field_type),            pointer :: diffusion_field_Wth
 
       integer(i_def)     :: i, sleep_duration
       real(r_def)        :: loop_factor
@@ -51,7 +51,7 @@ contains
       ! Get field data ready
       depository => modeldb%fields%get_field_collection("depository")
       io_benchmark_fields => modeldb%fields%get_field_collection("io_benchmark_fields")
-      call depository%get_field("diffusion_field", diffusion_field)
+      call depository%get_field("diffusion_field_Wtheta", diffusion_field_Wth)
 
       call field_iter%initialise(io_benchmark_fields)
       do i = 1, io_benchmark_fields%get_length()
@@ -62,7 +62,7 @@ contains
           ! Copy diffusion field values to new fields and adjust values
           kernel_field => step_field
           loop_factor = real(i, r_def)
-          call invoke( setval_X(kernel_field, diffusion_field), &
+          call invoke( setval_X(kernel_field, diffusion_field_Wth), &
                        inc_X_divideby_a(kernel_field, loop_factor) )
         end select
 
@@ -74,7 +74,7 @@ contains
 
       nullify(step_field)
       nullify(kernel_field)
-      nullify(diffusion_field)
+      nullify(diffusion_field_Wth)
 
     end subroutine step_io_benchmark
 

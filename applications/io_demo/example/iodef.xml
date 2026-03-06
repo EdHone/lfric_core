@@ -14,6 +14,8 @@
      <file id="lfric_diag" name="diffusion_diag" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
       <field field_ref="diffusion_field_Wth" />
       <field field_ref="diffusion_field_W0" />
+      <field field_ref="diffusion_field_W2H" />
+      <field field_ref="diffusion_field_W2V" />
       <field field_ref="diffusion_field_W3" />
      </file>
 

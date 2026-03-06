@@ -90,9 +90,9 @@ contains
     fs_w2  => function_space_collection%get_fs(mesh, order_h, order_v, W2)
 
     call dfield_Wth%initialise(fs_wth)
+    call visc%initialise(fs_wth)
     call rmul_w2%initialise(fs_w2)
     call rmul_w0%initialise(fs_w0)
-    call visc%initialise(fs_wth)
 
     call invoke( name = "compute_diffusion", &
                  setval_c(visc, visc_val), &

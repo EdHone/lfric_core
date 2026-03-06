@@ -8,38 +8,43 @@
 !>
 module io_demo_driver_mod
 
-  use add_mesh_map_mod,           only : assign_mesh_maps
-  use sci_checksum_alg_mod,       only : checksum_alg
-  use constants_mod,              only : i_def, str_def, &
-                                         r_def, r_second
-  use convert_to_upper_mod,       only : convert_to_upper
-  use create_mesh_mod,            only : create_mesh, create_extrusion
-  use driver_mesh_mod,            only : init_mesh
-  use driver_modeldb_mod,         only : modeldb_type
-  use driver_fem_mod,             only : init_fem, final_fem
-  use driver_io_mod,              only : init_io, final_io, filelist_populator
-  use extrusion_mod,              only : extrusion_type,         &
-                                         uniform_extrusion_type, &
-                                         TWOD, PRIME_EXTRUSION
-  use field_collection_mod,       only : field_collection_type
-  use field_mod,                  only : field_type
-  use init_io_demo_mod,           only : init_io_demo
-  use inventory_by_mesh_mod,      only : inventory_by_mesh_type
-  use lfric_mpi_mod,              only : lfric_mpi_type
-  use log_mod,                    only : log_event,         &
-                                         log_scratch_space, &
-                                         LOG_LEVEL_INFO,    &
-                                         LOG_LEVEL_ERROR,   &
-                                         LOG_LEVEL_TRACE
-  use mesh_mod,                   only : mesh_type
-  use mesh_collection_mod,        only : mesh_collection
-  use model_clock_mod,            only : model_clock_type
-  use multifile_field_setup_mod,  only : create_multifile_io_fields
-  use multifile_io_mod,           only : init_multifile_io, step_multifile_io
-  use io_benchmark_setup_mod,     only : create_io_benchmark_fields, setup_io_benchmark_files
-  use io_benchmark_step_mod,      only : step_io_benchmark
-  use io_demo_alg_mod,            only : io_demo_alg
-  use sci_field_minmax_alg_mod,   only : log_field_minmax
+  use add_mesh_map_mod,              only : assign_mesh_maps
+  use sci_checksum_alg_mod,          only : checksum_alg
+  use constants_mod,                 only : i_def, str_def, &
+                                            r_def, r_second
+  use convert_to_upper_mod,          only : convert_to_upper
+  use create_mesh_mod,               only : create_mesh, create_extrusion
+  use driver_mesh_mod,               only : init_mesh
+  use driver_modeldb_mod,            only : modeldb_type
+  use driver_fem_mod,                only : init_fem, final_fem
+  use driver_io_mod,                 only : init_io, final_io, filelist_populator
+  use extrusion_mod,                 only : extrusion_type,         &
+                                            uniform_extrusion_type, &
+                                            TWOD, PRIME_EXTRUSION
+  use field_collection_mod,          only : field_collection_type
+  use field_mod,                     only : field_type
+  use function_space_mod,            only : function_space_type
+  use function_space_collection_mod, only : function_space_collection
+  use fs_continuity_mod,             only : W2H, W2V
+  use init_io_demo_mod,              only : init_io_demo
+  use inventory_by_mesh_mod,         only : inventory_by_mesh_type
+  use lfric_mpi_mod,                 only : lfric_mpi_type
+  use log_mod,                       only : log_event,         &
+                                            log_scratch_space, &
+                                            LOG_LEVEL_INFO,    &
+                                            LOG_LEVEL_ERROR,   &
+                                            LOG_LEVEL_TRACE
+  use mesh_mod,                      only : mesh_type
+  use mesh_collection_mod,           only : mesh_collection
+  use model_clock_mod,               only : model_clock_type
+  use multifile_field_setup_mod,     only : create_multifile_io_fields
+  use multifile_io_mod,              only : init_multifile_io, step_multifile_io
+  use io_benchmark_setup_mod,        only : create_io_benchmark_fields, &
+                                            setup_io_benchmark_files
+  use io_benchmark_step_mod,         only : step_io_benchmark
+  use io_demo_alg_mod,               only : io_demo_alg
+  use sci_field_minmax_alg_mod,      only : log_field_minmax
+  use sci_split_combine_w2_alg_mod,  only : split_w2_field_alg
 
   !------------------------------------
   ! Configuration modules
@@ -232,8 +237,10 @@ contains
 
     type( field_collection_type ), pointer :: depository
     type( field_collection_type ), pointer :: multifile_col
-    type( field_type ),            pointer :: W0_field, W3_field, Wth_field
+    type( field_type ),            pointer :: W0_field, W2_field, W3_field, Wth_field
     type( field_type ),            pointer :: multifile_field
+    type( field_type ),            pointer :: diag_W2H_field, diag_W2V_field
+    type( function_space_type ),   pointer :: w2h_fs, w2v_fs
 
     logical :: write_diag, multifile_io, io_benchmark
 
@@ -267,11 +274,31 @@ contains
         call log_event(program_name//": Writing diagnostic output", LOG_LEVEL_INFO)
         call depository%get_field("diffusion_field_Wtheta", Wth_field)
         call depository%get_field("diffusion_field_W0", W0_field)
+        call depository%get_field("diffusion_field_W2", W2_field)
         call depository%get_field("diffusion_field_W3", W3_field)
+
+        ! Split W2 field for diagnostics
+        w2h_fs => function_space_collection%get_fs(W2_field%get_mesh(),       &
+                                              W2_field%get_element_order_h(), &
+                                              W2_field%get_element_order_v(), W2h)
+        w2v_fs => function_space_collection%get_fs(W2_field%get_mesh(),       &
+                                              W2_field%get_element_order_h(), &
+                                              W2_field%get_element_order_v(), W2V)
+        call diag_W2H_field%initialise(w2h_fs)
+        call diag_W2V_field%initialise(w2v_fs)
+        call split_w2_field_alg(diag_W2H_field, diag_W2V_field, W3_field)
+
+        ! Send data to output
         call Wth_field%write_field('diffusion_field_Wth')
         call W0_field%write_field('diffusion_field_W0')
         call W3_field%write_field('diffusion_field_W3')
+        call diag_W2H_field%write_field('diffusion_field_W2H')
+        call diag_W2V_field%write_field('diffusion_field_W2V')
     end if
+
+    nullify(W0_field, W2_field, W3_field, Wth_field, multifile_field)
+    nullify(diag_W2H_field, diag_W2V_field)
+    nullify(w2h_fs, w2v_fs)
 
   end subroutine step
 
