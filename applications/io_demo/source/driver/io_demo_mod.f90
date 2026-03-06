@@ -11,11 +11,13 @@ module io_demo_mod
 
   private
 
-  character(*), public, parameter ::                                &
-      io_demo_required_namelists(5) =  [ 'base_mesh     ', &
-                                                  'extrusion     ', &
-                                                  'finite_element', &
-                                                  'partitioning  ', &
-                                                  'planet        ']
+  character(*), public, parameter ::                       &
+      io_demo_required_namelists(7) =  [ 'base_mesh     ', &
+                                         'extrusion     ', &
+                                         'finite_element', &
+                                         'partitioning  ', &
+                                         'planet        ', &
+                                         'io            ', &
+                                         'io_demo       ' ]
 
 end module io_demo_mod
