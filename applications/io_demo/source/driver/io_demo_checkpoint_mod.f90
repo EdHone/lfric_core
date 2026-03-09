@@ -1,3 +1,11 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> @brief Sets up checkpointing for the IO_demo app
+!> @details Creates an IO context for checkpointing and adds the appropriate
+!!          files and fields to it
 module io_demo_checkpoint_mod
 
   use constants_mod,          only: i_def, str_max_filename
@@ -21,6 +29,10 @@ module io_demo_checkpoint_mod
 
 contains
 
+  !> @details Sets up checkpointing for the IO_demo app
+  !> @param[in,out] modeldb   The model database
+  !> @param[in]     chi       The co-ordinate field
+  !> @param[in]     panel_id  The panel id field
   subroutine setup_checkpoint_io(modeldb, chi, panel_id)
 
     type(modeldb_type), intent(inout) :: modeldb
