@@ -45,7 +45,7 @@ coord_system='native'
   subroutine_counters   = .false.
   counter_output_suffix = 'counter.txt'
   checkpoint_read       = .false.
-  checkpoint_write      = .true.
+  checkpoint_write      = .false.
   file_convention       = 'UGRID'
 /
 
