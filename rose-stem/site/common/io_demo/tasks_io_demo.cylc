@@ -20,6 +20,7 @@
         "resolution": "C24",
         "tsteps": 90,
         "crun": 2,
+        "kgo_checks": [],
     }) %}
 
 

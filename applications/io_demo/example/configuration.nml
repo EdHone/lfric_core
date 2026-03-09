@@ -50,7 +50,7 @@ coord_system='native'
 /
 
 &files
-  checkpoint_stem_name  = 'restart-io_demo'
+  checkpoint_stem_name  = 'restart-io_demo-'
 /
 
 &io_demo
