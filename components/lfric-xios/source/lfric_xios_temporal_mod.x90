@@ -414,9 +414,10 @@ contains
 
     class(temporal_type), intent(inout) :: self
 
-    if (allocated(self%time_data))  deallocate(self%time_data)
-    if (allocated(self%fields))     deallocate(self%fields)
-    if (allocated(self%field_dest)) deallocate(self%field_dest)
+    if (allocated(self%time_data))   deallocate(self%time_data)
+    if (allocated(self%fields))      deallocate(self%fields)
+    if (allocated(self%init_fields)) deallocate(self%init_fields)
+    if (allocated(self%field_dest))  deallocate(self%field_dest)
 
     return
   end subroutine clear
