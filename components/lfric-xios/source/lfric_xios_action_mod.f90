@@ -30,7 +30,7 @@ contains
     use lfric_xios_file_mod,    only : lfric_xios_file_type
     use lfric_xios_context_mod, only : lfric_xios_context_type
     use log_mod,                only : log_event, log_level_error, &
-                                       log_level_info, log_level_debug
+                                       log_level_info
 
     !> TODO Remove icontext, see ticket #4313.
     !> Use icontext is needed here as the revision of xios used by lfric_coupled
