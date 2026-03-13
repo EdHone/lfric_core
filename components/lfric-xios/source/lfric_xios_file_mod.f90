@@ -312,10 +312,8 @@ subroutine file_close(self)
   if (self%is_closed) return
 
   if ( self%io_mode == FILE_MODE_WRITE ) then
-    call log_event( "Waiting for XIOS to close file ["//trim(self%path)//".nc]", &
+    call log_event( "Closing file ["//trim(self%path)//".nc]", &
                     log_level_debug )
-    call init_wait()
-    call process_output_file(trim(self%path)//".nc")
   end if
 
   self%is_closed = .true.
