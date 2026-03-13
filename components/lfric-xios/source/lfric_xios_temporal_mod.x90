@@ -155,7 +155,6 @@ contains
 
     ! Set up fields for reading and holding data
     n_fields = size(file_fields)
-    print*, n_fields, self%window_size
     allocate(self%fields(self%window_size,n_fields))
     self%current_field_index = 1
     do i = 1, n_fields
@@ -179,9 +178,6 @@ contains
 
   !> Aligns the internal time data axis with the current model time
   !!
-
-
-
   !> @param[in]    context_start  The date at which the current XIOS starts
   !> @param[inout] record_offset  The index corresponding to the start of the
   !!                              aligned time axis
@@ -314,14 +310,14 @@ contains
     logical :: carryon
 
     type(xios_date)   :: model_date
-    integer(i_def) :: next_field_index, i ,f
+    integer(i_def) :: next_field_index, i
 
     ! Get current date from XIOS calendar
     call xios_get_current_date(model_date)
 
     ! Perform initial field read
     if (self%read_initial_fields) then
-      do i = 1, size(self%init_fields(f,:))
+      do i = 1, size(self%init_fields(1,:))
         call self%init_fields(1,i)%recv()
       end do
       self%read_initial_fields = .false.
