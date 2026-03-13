@@ -80,7 +80,7 @@ contains
 
     character(str_def) :: prime_mesh_name
 
-    integer(i_def) :: stencil_depth
+    integer(i_def) :: stencil_depth(1)
     integer(i_def) :: geometry
     integer(i_def) :: method
     integer(i_def) :: number_of_layers
@@ -149,7 +149,7 @@ contains
     ! ---------------------------------------------------------
     stencil_depth = 1
     check_partitions = .false.
-    call init_mesh( modeldb%configuration,       &
+    call init_mesh( modeldb%config,              &
                     modeldb%mpi%get_comm_rank(), &
                     modeldb%mpi%get_comm_size(), &
                     base_mesh_names, extrusion,  &
