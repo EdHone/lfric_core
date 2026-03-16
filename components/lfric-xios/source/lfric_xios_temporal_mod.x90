@@ -442,10 +442,11 @@ contains
 
   !> @brief Populates a model field by interpolating between the data entries of
   !>        the current time window.
-  !> @param[in] model_field Pointer to field to be populated from data fields
-  !> @param[in] model_proxy Field proxy object for model field
-  !> @param[in] data_proxy  Field proxy object for input data field
-  !> @param[in] time_window The current time window
+  !> @param[in,out] model_field     Pointer to field to be populated from data fields
+  !> @param[in]     window_field_1  Field containing data for the first entry of the time window
+  !> @param[in]     window_field_2  Field containing data for the second entry of the time window
+  !> @param[in]     time_window     The current time window
+  !> @param[in]     model_date      The current model date
   subroutine interp_field_1d( model_field, window_field_1, window_field_2, time_window, model_date )
 
     implicit none
@@ -474,9 +475,9 @@ contains
 
     ! Perform linear interpolation and populate model field with interpolated data
     call invoke( X_minus_Y( dData, window_field_2, window_field_1 ),              &
-                a_times_X( interp_gradient, dt_recip, dData ),                   &
-                a_times_X( interp_increment, window_time_sec, interp_gradient ), &
-                X_plus_Y( model_field, window_field_1, interp_increment ) )
+                 a_times_X( interp_gradient, dt_recip, dData ),                   &
+                 a_times_X( interp_increment, window_time_sec, interp_gradient ), &
+                 X_plus_Y( model_field, window_field_1, interp_increment ) )
 
   end subroutine interp_field_1d
 

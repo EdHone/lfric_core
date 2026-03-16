@@ -32,7 +32,7 @@ class LfricXiosFullInterpTest(LFRicXiosTest):  # pylint: disable=too-few-public-
 
     def test(self, returncode: int, out: str, err: str):
         """
-        Test the output of the context test
+        Test the output of the interpolation test
         """
 
         if returncode != 0:
@@ -68,7 +68,7 @@ class LfricXiosNonSyncInterpTest(LFRicXiosTest):  # pylint: disable=too-few-publ
 
     def test(self, returncode: int, out: str, err: str):
         """
-        Test the output of the context test
+        Test the output of the interpolation test
         """
 
         if returncode != 0:

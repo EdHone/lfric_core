@@ -265,6 +265,9 @@ module lfric_xios_utils_mod
   end function read_time_data
 
 
+  !> @brief  Construct an XIOS duration object from an integer time enum
+  !!
+  !> @param[in] time_enum  The integer time enum to be converted to an XIOS duration object
   function  duration_from_enum(time_enum) result(duration)
 
     implicit none
