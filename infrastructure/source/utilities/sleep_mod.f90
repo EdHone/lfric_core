@@ -4,7 +4,7 @@
 ! received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> Module containing an interface to the sleep and usleep utilities from C.
+!> Module containing an interface to the usleep utility from C.
 module sleep_mod
 
   use, intrinsic :: iso_c_binding, only : c_int, c_int32_t
