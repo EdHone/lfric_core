@@ -39,6 +39,7 @@ module io_demo_driver_mod
   use io_benchmark_setup_mod,     only : create_io_benchmark_fields, setup_io_benchmark_files
   use io_benchmark_step_mod,      only : step_io_benchmark
   use io_demo_alg_mod,            only : io_demo_alg
+  use io_demo_temporal_mod,       only : init_temporal_fields, setup_temporal_io
   use sci_field_minmax_alg_mod,   only : log_field_minmax
 
   !------------------------------------
@@ -213,6 +214,10 @@ contains
     call chi_inventory%get_field_array(mesh, chi)
     call panel_id_inventory%get_field(mesh, panel_id)
     call init_io_demo(modeldb, mesh, chi, panel_id)
+
+    ! if (read_temporal) then
+    call init_temporal_fields(mesh, modeldb)
+    call setup_temporal_io(modeldb, chi, panel_id)
 
     nullify(mesh, chi, panel_id)
     deallocate(base_mesh_names)
