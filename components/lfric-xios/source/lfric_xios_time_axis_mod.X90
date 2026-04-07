@@ -32,7 +32,7 @@ module lfric_xios_time_axis_mod
   use log_mod,              only: log_event, log_scratch_space, &
                                   LOG_LEVEL_ERROR, LOG_LEVEL_INFO, LOG_LEVEL_TRACE
   use xios,                 only: xios_get_field_attr, xios_get_axis_attr,     &
-                                  xios_get_file_attr,                          &
+                                  xios_get_file_attr, xios_set_field_attr,     &
                                   xios_recv_field, xios_date, xios_duration,   &
                                   xios_get_current_date, xios_get_time_origin, &
                                   xios_get_year_length_in_seconds,             &
@@ -526,7 +526,12 @@ contains
     class(time_axis_type), intent(inout) :: self
     type(field_type), intent(in) :: field
 
+    character(len=:), allocatable :: xios_field_id
+
     call self%fields%add_field(field)
+
+    xios_field_id = trim(field%get_name()) // "_data"
+    call xios_set_field_attr(trim(adjustl(xios_field_id)), read_access=.true.)
 
   end subroutine add_field
 
