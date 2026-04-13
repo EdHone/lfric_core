@@ -3,9 +3,7 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!> @brief Sets up temporaling for the IO_demo app
-!> @details Creates an IO context for temporaling and adds the appropriate
-!!          files and fields to it
+!> @brief Sets up temporal reading for the IO_demo app
 module io_demo_temporal_mod
 
   use constants_mod,          only: i_def, str_max_filename
@@ -36,6 +34,10 @@ module io_demo_temporal_mod
 
 contains
 
+  !> @details Initialises fields for temporal I/O in the io_demo app
+  !!
+  !> @param[in]     mesh      The model mesh
+  !> @param[in,out] modeldb   The model database
   subroutine init_temporal_fields(mesh, modeldb)
 
     type(mesh_type),    intent(in), pointer :: mesh
@@ -67,7 +69,7 @@ contains
 
   end subroutine init_temporal_fields
 
-  !> @details Sets up temporal reading for the IO_demo app
+  !> @details Sets up a temporal reading context for the IO_demo app
   !> @param[in,out] modeldb   The model database
   !> @param[in]     chi       The co-ordinate field
   !> @param[in]     panel_id  The panel id field
@@ -107,6 +109,13 @@ contains
                                                       io_mode = FILE_MODE_READ,         &
                                                       operation = OPERATION_TIMESERIES, &
                                                       cyclic = .true.,                  &
+                                                      fields_in_file = temporal_fields ) )
+
+    call file_list%insert_item( lfric_xios_file_type( "io_demo_temporal_diag",          &
+                                                      xios_id = "temporal_diag",        &
+                                                      io_mode = FILE_MODE_WRITE,        &
+                                                      operation = OPERATION_TIMESERIES, &
+                                                      freq = 1,                         &
                                                       fields_in_file = temporal_fields ) )
 
     ! Initialise the XIOS context attached to the temporal context object
