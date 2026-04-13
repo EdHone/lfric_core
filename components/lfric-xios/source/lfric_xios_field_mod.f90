@@ -107,6 +107,9 @@ function lfric_xios_field_constructor(model_field, xios_id, fieldgroup_id) resul
     self%fieldgroup_id = "field_definition"
   end if
 
+  ! Set XIOS field name to be the same as the model field name by default
+  self%xios_name = trim(adjustl(model_field%get_name()))
+
   return
 
 end function lfric_xios_field_constructor
@@ -136,13 +139,18 @@ subroutine register(self, field_read_access)
                   "] with field group ["//trim(self%fieldgroup_id)//"]", &
                   log_level_trace )
 
+  ! If this field is already registered with XIOS, get the existing handle,
+  ! otherwise create a new one.
+  if (xios_is_valid_field(self%xios_id)) then
+    call xios_get_handle(trim(adjustl(self%xios_id)), self%handle)
+    call xios_get_attr(self%handle, name=self%xios_name)
+  end if
+
   ! Get field group handle and add field
   call xios_get_handle(trim(adjustl(self%fieldgroup_id)), fieldgroup_hdl)
   call xios_add_child(fieldgroup_hdl, self%handle, trim(self%xios_id))
-  if (.not. xios_is_valid_field(self%xios_id)) then
-    call xios_set_attr(self%handle, name=trim(adjustl(self%model_field%get_name())))
-  end if
-  call xios_set_attr( self%handle, read_access=field_read_access )
+  call xios_set_attr( self%handle, name=trim(adjustl(self%xios_name)), &
+                                   read_access=field_read_access )
 
   ! Set up dimensions of output field
   vspace => self%model_field%get_function_space()
@@ -157,12 +165,12 @@ subroutine register(self, field_read_access)
     domain_id="face"
     axis_id  ="vert_axis_full_levels"
   case (Wtheta)
-    print*, "Wtheta grid for field"
+    !print*, "Wtheta grid for field"
     domain_id="face"
     axis_id  ="vert_axis_full_levels"
     call xios_get_domain_attr(domain_id, ni_glo=n_x)
     call xios_get_axis_attr(axis_id, n_glo=n_v)
-    print*, "n_x = ", n_x, " n_v = ", n_v
+    !print*, "n_x = ", n_x, " n_v = ", n_v
   case (W3)
     domain_id="face"
     axis_id  ="vert_axis_half_levels"

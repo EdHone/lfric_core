@@ -90,15 +90,18 @@ contains
 
     temporal_fields => modeldb%fields%get_field_collection("temporal_fields")
 
+    ! Set up new I/O context for temporal reading
     call tmp_io_context%initialise( "temporal_context", &
                                     start=modeldb%calendar%parse_instance(modeldb%config%time%timestep_start()), &
                                     stop=modeldb%calendar%parse_instance(modeldb%config%time%timestep_end()) )
+    ! Add context to modeldb
     call modeldb%io_contexts%add_context(tmp_io_context)
 
-    ! Get pointer to persistent context
+    ! Get pointer to context from modeldb - this context is persistent beyond the scope of routine
     call modeldb%io_contexts%get_io_context("temporal_context", temporal_context)
     file_list => temporal_context%get_filelist()
 
+    ! Set up definition of temporal read file - we use an ozone ancil as an example
     call file_list%insert_item( lfric_xios_file_type( "ozone_ancil_small",              &
                                                       xios_id = "monthly_ancil",        &
                                                       io_mode = FILE_MODE_READ,         &
@@ -106,13 +109,16 @@ contains
                                                       cyclic = .true.,                  &
                                                       fields_in_file = temporal_fields ) )
 
-    event_actor_ptr => temporal_context
-    context_advance => advance
-
+    ! Initialise the XIOS context attached to the temporal context object
     before_close => null()
     call temporal_context%initialise_xios_context( modeldb%mpi%get_comm(), chi, panel_id, &
                                              modeldb%clock, modeldb%calendar, before_close )
 
+    ! Add context object to the model clock's event loop, this means that the
+    ! temporal context will be advanced at each model time step, and the
+    ! appropriate files read/written to
+    event_actor_ptr => temporal_context
+    context_advance => advance
     call modeldb%clock%add_event(context_advance, event_actor_ptr)
     call temporal_context%set_active(.true.)
 
