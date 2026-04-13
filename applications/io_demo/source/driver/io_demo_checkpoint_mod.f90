@@ -8,7 +8,7 @@
 !!          files and fields to it
 module io_demo_checkpoint_mod
 
-  use constants_mod,          only: i_def, str_max_filename
+  use constants_mod,          only: i_def, str_max_filename, r_second
   use driver_modeldb_mod,     only: modeldb_type
   use event_mod,              only: event_action
   use event_actor_mod,        only: event_actor_type
@@ -20,7 +20,8 @@ module io_demo_checkpoint_mod
   use lfric_xios_action_mod,  only: advance
   use lfric_xios_context_mod, only: lfric_xios_context_type
   use lfric_xios_file_mod,    only: lfric_xios_file_type, OPERATION_ONCE
-  use log_mod,                only: log_event, LOG_LEVEL_DEBUG
+  use log_mod,                only: log_event, log_scratch_space, &
+                                    LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR
 
   implicit none
 
@@ -43,13 +44,14 @@ contains
     type(lfric_xios_context_type), pointer :: cp_context, io_context
     type(linked_list_type),        pointer :: file_list
     type(field_collection_type),   pointer :: checkpoint_fields
+    real(r_second), allocatable            :: checkpoint_times(:)
 
     class(event_actor_type), pointer :: event_actor_ptr
     procedure(event_action), pointer :: context_advance
     procedure(callback_clock_arg), pointer :: before_close
 
     character(len=str_max_filename) :: checkpoint_write_filename, checkpoint_read_filename
-    integer(i_def) :: ts_start, ts_end
+    integer(i_def) :: ts_start, ts_end, t_cp, freq_ts
 
     call log_event( 'io_demo: Setting up checkpoint I/O', LOG_LEVEL_DEBUG )
 
@@ -65,15 +67,42 @@ contains
     file_list => cp_context%get_filelist()
 
     if (modeldb%config%io%checkpoint_write()) then
-      write(checkpoint_write_filename, '(A,I0)') &
-            trim(modeldb%config%files%checkpoint_stem_name()), ts_end
-      call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
-                                        xios_id = "checkpoint_io_demo",            &
-                                        io_mode = FILE_MODE_WRITE,                 &
-                                        freq = ts_end - ts_start + 1,              &
-                                        operation = OPERATION_ONCE,                &
-                                        fields_in_file = checkpoint_fields ) )
+      if (modeldb%config%io%end_of_run_checkpoint()) then
+        write(checkpoint_write_filename, '(A,I0)') &
+              trim(modeldb%config%files%checkpoint_stem_name()), ts_end
+        call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
+                                          xios_id = "checkpoint_io_demo",            &
+                                          io_mode = FILE_MODE_WRITE,                 &
+                                          freq = ts_end - ts_start + 1,              &
+                                          operation = OPERATION_ONCE,                &
+                                          fields_in_file = checkpoint_fields ) )
+      end if
+
+      checkpoint_times = modeldb%config%io%checkpoint_times()
+      if (size(checkpoint_times) > 0) then
+        do t_cp = 1, size(checkpoint_times)
+
+          if (mod(checkpoint_times(t_cp), modeldb%clock%get_seconds_per_step()) /= 0) then
+            write(log_scratch_space, '(A,F6.1, A)') "io_demo: Checkpoint time ", &
+                                      checkpoint_times(t_cp),                    &
+                                      " is not an integer multiple of the model timestep."
+            call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+          else
+              freq_ts = int(checkpoint_times(t_cp) / modeldb%clock%get_seconds_per_step())
+              write(checkpoint_write_filename, '(A,I0)') &
+                    trim(modeldb%config%files%checkpoint_stem_name()), &
+                    checkpoint_times(t_cp)
+              call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
+                                                xios_id = "checkpoint_io_demo",            &
+                                                io_mode = FILE_MODE_WRITE,                 &
+                                                freq = freq_ts,                            &
+                                                operation = OPERATION_ONCE,                &
+                                                fields_in_file = checkpoint_fields ) )
+          end if
+        end do
+      end if
     end if
+
     if (modeldb%config%io%checkpoint_read()) then
       write(checkpoint_read_filename, '(A,I0)') &
             trim(modeldb%config%files%checkpoint_stem_name()), ts_start - 1
