@@ -90,10 +90,9 @@ contains
           else
               freq_ts = int(checkpoint_times(t_cp) / modeldb%clock%get_seconds_per_step())
               write(checkpoint_write_filename, '(A,I0)') &
-                    trim(modeldb%config%files%checkpoint_stem_name()), &
-                    checkpoint_times(t_cp)
-              call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
-                                                xios_id = "checkpoint_io_demo",            &
+                    trim(modeldb%config%files%checkpoint_stem_name()), freq_ts
+              call file_list%insert_item( lfric_xios_file_type( trim(checkpoint_write_filename), &
+                                                xios_id = trim(checkpoint_write_filename), &
                                                 io_mode = FILE_MODE_WRITE,                 &
                                                 freq = freq_ts,                            &
                                                 operation = OPERATION_ONCE,                &

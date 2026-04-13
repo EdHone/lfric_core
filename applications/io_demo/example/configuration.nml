@@ -46,6 +46,8 @@ coord_system='native'
   counter_output_suffix = 'counter.txt'
   checkpoint_read       = .false.
   checkpoint_write      = .false.
+  end_of_run_checkpoint = .false.
+  checkpoint_times      = 10, 20
   file_convention       = 'UGRID'
 /
 
@@ -61,7 +63,7 @@ coord_system='native'
 /
 
 &logging
-  run_log_level='info'
+  run_log_level='trace'
 /
 
 &time
