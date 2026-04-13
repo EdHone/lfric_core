@@ -390,17 +390,12 @@ subroutine register_with_context(self)
 
   ! Set XIOS duration object second value equal to file output frequency
   call xios_get_timestep(timestep_duration)
-  print*, self%freq_ts
-  print*, undef_freq
-  print*, (self%freq_ts == undef_freq)
   if (.not. self%freq_ts == undef_freq) then
     self%frequency = self%freq_ts * timestep_duration
     call xios_set_attr(self%handle, output_freq=self%frequency)
   else
     ! If frequency is uninitialised, get it from XIOS
-    print*, self%xios_id
     call xios_get_file_attr(self%xios_id, output_freq=self%frequency)
-    print*, self%frequency
   end if
 
   ! Set the date of the first operation

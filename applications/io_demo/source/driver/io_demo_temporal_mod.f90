@@ -99,10 +99,11 @@ contains
     call modeldb%io_contexts%get_io_context("temporal_context", temporal_context)
     file_list => temporal_context%get_filelist()
 
-    call file_list%insert_item( lfric_xios_file_type( "ozone_ancil",                    &
+    call file_list%insert_item( lfric_xios_file_type( "ozone_ancil_small",              &
                                                       xios_id = "monthly_ancil",        &
                                                       io_mode = FILE_MODE_READ,         &
                                                       operation = OPERATION_TIMESERIES, &
+                                                      cyclic = .true.,                  &
                                                       fields_in_file = temporal_fields ) )
 
     event_actor_ptr => temporal_context

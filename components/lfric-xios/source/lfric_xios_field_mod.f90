@@ -24,7 +24,8 @@ module lfric_xios_field_mod
   use xios,                 only: xios_domain, xios_axis, xios_grid,          &
                                   xios_gridgroup, xios_is_valid_grid,         &
                                   xios_field,xios_fieldgroup, xios_add_child, &
-                                  xios_get_handle, xios_set_attr, xios_get_attr
+                                  xios_get_handle, xios_set_attr, xios_get_attr, &
+                                  xios_is_valid_field, xios_get_domain_attr, xios_get_axis_attr
 
   implicit none
 
@@ -129,6 +130,8 @@ subroutine register(self, field_read_access)
   type(mesh_type),           pointer :: mesh => null()
   type(function_space_type), pointer :: vspace => null()
 
+  integer :: n_v, n_x
+
   call log_event( "Registering XIOS field ["//trim(self%xios_id)//      &
                   "] with field group ["//trim(self%fieldgroup_id)//"]", &
                   log_level_trace )
@@ -136,9 +139,10 @@ subroutine register(self, field_read_access)
   ! Get field group handle and add field
   call xios_get_handle(trim(adjustl(self%fieldgroup_id)), fieldgroup_hdl)
   call xios_add_child(fieldgroup_hdl, self%handle, trim(self%xios_id))
-  call xios_set_attr( self%handle,                                     &
-                      name=trim(adjustl(self%model_field%get_name())), &
-                      read_access=field_read_access )
+  if (.not. xios_is_valid_field(self%xios_id)) then
+    call xios_set_attr(self%handle, name=trim(adjustl(self%model_field%get_name())))
+  end if
+  call xios_set_attr( self%handle, read_access=field_read_access )
 
   ! Set up dimensions of output field
   vspace => self%model_field%get_function_space()
@@ -153,8 +157,12 @@ subroutine register(self, field_read_access)
     domain_id="face"
     axis_id  ="vert_axis_full_levels"
   case (Wtheta)
+    print*, "Wtheta grid for field"
     domain_id="face"
     axis_id  ="vert_axis_full_levels"
+    call xios_get_domain_attr(domain_id, ni_glo=n_x)
+    call xios_get_axis_attr(axis_id, n_glo=n_v)
+    print*, "n_x = ", n_x, " n_v = ", n_v
   case (W3)
     domain_id="face"
     axis_id  ="vert_axis_half_levels"
