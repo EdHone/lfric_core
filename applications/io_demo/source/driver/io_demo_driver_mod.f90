@@ -215,9 +215,10 @@ contains
     call panel_id_inventory%get_field(mesh, panel_id)
     call init_io_demo(modeldb, mesh, chi, panel_id)
 
-    ! if (read_temporal) then
-    call init_temporal_fields(mesh, modeldb)
-    call setup_temporal_io(modeldb, chi, panel_id)
+    if (modeldb%config%io_demo%temporal_reading()) then
+      call init_temporal_fields(mesh, modeldb)
+      call setup_temporal_io(modeldb, chi, panel_id)
+    end if
 
     nullify(mesh, chi, panel_id)
     deallocate(base_mesh_names)
@@ -291,6 +292,8 @@ contains
     type( field_type ),            pointer :: diffusion_field
     type( field_collection_type ), pointer :: multifile_col
     type( field_type ),            pointer :: multifile_field
+    type( field_collection_type ), pointer :: temporal_col
+    type( field_type ),            pointer :: checksum_field
 
     logical :: multifile_io
 
@@ -311,6 +314,12 @@ contains
     else
       call checksum_alg(program_name, &
                         diffusion_field, 'diffusion_field')
+    end if
+
+    if (modeldb%config%io_demo%temporal_reading()) then
+      temporal_col => modeldb%fields%get_field_collection("temporal_fields")
+      call temporal_col%get_field("monthly_field", checksum_field)
+      call checksum_alg(program_name, checksum_field, 'monthly_field')
     end if
 
     call log_event( program_name//': model completed', LOG_LEVEL_TRACE )

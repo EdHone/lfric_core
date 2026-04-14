@@ -348,8 +348,6 @@ subroutine register_with_context(self)
     end if
   end if
 
-  print*, xios_is_valid_file(trim(self%xios_id))
-
   ! Register or get handle of file from XIOS
   if (xios_is_valid_file(trim(self%xios_id))) then
     call xios_get_handle( trim(self%xios_id), self%handle )
@@ -357,7 +355,6 @@ subroutine register_with_context(self)
     call xios_get_handle("file_definition", file_definition)
     call xios_add_child(file_definition, self%handle, trim(self%xios_id))
   end if
-
 
   ! Set file path
   call xios_set_attr( self%handle, name=trim(adjustl(self%path)) )

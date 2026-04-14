@@ -13,6 +13,8 @@
         "io_demo_default-C24_azspice_gnu_full-debug-64bit",
         "io_demo_multifile-C24_azspice_gnu_fast-debug-64bit",
         "io_demo_multifile-C24_azspice_gnu_fast-debug-32bit",
+        "io_demo_temporal_reading-C12_azspice_gnu_fast-debug-64bit",
+        "io_demo_temporal_reading-C12_azspice_gnu_fast-debug-32bit",
         "io_demo_benchmark-C24_azspice_gnu_fast-debug-64bit",
         "io_demo_benchmark-C24_azspice_gnu_fast-debug-32bit",
         "io_demo_azspice_unit_tests",

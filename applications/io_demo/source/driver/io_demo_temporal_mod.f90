@@ -47,7 +47,7 @@ contains
     type(field_collection_type), pointer :: temporal_fields
     type(function_space_type),   pointer :: fs
 
-    procedure(read_interface), pointer  :: read_method
+    procedure(read_interface),  pointer :: read_method
     procedure(write_interface), pointer :: write_method
 
     ! Create field collection for temporal fields
@@ -57,7 +57,7 @@ contains
     fs => function_space_collection%get_fs(mesh, 0, 0, Wtheta)
     call monthly_field%initialise(fs, name="monthly_field")
 
-    ! Set up field with an IO behaviour (XIOS only at present)
+    ! Set up field to be read from monthly ancil file
     if (modeldb%config%io%use_xios_io()) then
        write_method => write_field_generic
        call monthly_field%set_write_behaviour(write_method)
@@ -65,6 +65,7 @@ contains
        call monthly_field%set_read_behaviour(read_method)
     end if
 
+    ! Add field to temporal field collection
     call temporal_fields%add_field(monthly_field)
 
   end subroutine init_temporal_fields
@@ -104,19 +105,24 @@ contains
     file_list => temporal_context%get_filelist()
 
     ! Set up definition of temporal read file - we use an ozone ancil as an example
-    call file_list%insert_item( lfric_xios_file_type( "ozone_ancil_small",              &
-                                                      xios_id = "monthly_ancil",        &
-                                                      io_mode = FILE_MODE_READ,         &
-                                                      operation = OPERATION_TIMESERIES, &
-                                                      cyclic = .true.,                  &
-                                                      fields_in_file = temporal_fields ) )
+    call file_list%insert_item( &
+              lfric_xios_file_type( modeldb%config%files%temporal_file_path(), &
+                                    xios_id = "monthly_ancil",                 &
+                                    io_mode = FILE_MODE_READ,                  &
+                                    operation = OPERATION_TIMESERIES,          &
+                                    cyclic = .true.,                           &
+                                    fields_in_file = temporal_fields ) )
 
-    call file_list%insert_item( lfric_xios_file_type( "io_demo_temporal_diag",          &
-                                                      xios_id = "temporal_diag",        &
-                                                      io_mode = FILE_MODE_WRITE,        &
-                                                      operation = OPERATION_TIMESERIES, &
-                                                      freq = 1,                         &
-                                                      fields_in_file = temporal_fields ) )
+    if (modeldb%config%io%write_diag()) then
+       ! Set up definition of temporal write file - this will contain the time series output of the model
+       call file_list%insert_item( &
+                      lfric_xios_file_type( "io_demo_temporal_diag",          &
+                                            xios_id = "temporal_diag",        &
+                                            io_mode = FILE_MODE_WRITE,        &
+                                            operation = OPERATION_TIMESERIES, &
+                                            freq = 1,                         &
+                                            fields_in_file = temporal_fields ) )
+    end if
 
     ! Initialise the XIOS context attached to the temporal context object
     before_close => null()

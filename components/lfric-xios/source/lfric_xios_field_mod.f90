@@ -25,7 +25,7 @@ module lfric_xios_field_mod
                                   xios_gridgroup, xios_is_valid_grid,         &
                                   xios_field,xios_fieldgroup, xios_add_child, &
                                   xios_get_handle, xios_set_attr, xios_get_attr, &
-                                  xios_is_valid_field, xios_get_domain_attr, xios_get_axis_attr
+                                  xios_is_valid_field
 
   implicit none
 
@@ -133,8 +133,6 @@ subroutine register(self, field_read_access)
   type(mesh_type),           pointer :: mesh => null()
   type(function_space_type), pointer :: vspace => null()
 
-  integer :: n_v, n_x
-
   call log_event( "Registering XIOS field ["//trim(self%xios_id)//      &
                   "] with field group ["//trim(self%fieldgroup_id)//"]", &
                   log_level_trace )
@@ -165,12 +163,8 @@ subroutine register(self, field_read_access)
     domain_id="face"
     axis_id  ="vert_axis_full_levels"
   case (Wtheta)
-    !print*, "Wtheta grid for field"
     domain_id="face"
     axis_id  ="vert_axis_full_levels"
-    call xios_get_domain_attr(domain_id, ni_glo=n_x)
-    call xios_get_axis_attr(axis_id, n_glo=n_v)
-    !print*, "n_x = ", n_x, " n_v = ", n_v
   case (W3)
     domain_id="face"
     axis_id  ="vert_axis_half_levels"

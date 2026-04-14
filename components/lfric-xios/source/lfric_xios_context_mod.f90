@@ -135,7 +135,6 @@ contains
     ! Run XIOS setup routines
     call init_xios_calendar(model_clock, calendar, zero_start, this%context_clock_step)
     call init_xios_dimensions(chi, panel_id, alt_coords, alt_panel_ids)
-    print*, "Setting up files"
     if (this%filelist%get_length() > 0) call setup_xios_files(this%filelist)
 
     if (associated(before_close)) call before_close(model_clock)
