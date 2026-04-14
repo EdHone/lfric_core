@@ -293,11 +293,8 @@ contains
     type( field_collection_type ), pointer :: multifile_col
     type( field_type ),            pointer :: multifile_field
     type( field_collection_type ), pointer :: temporal_col
-    type( field_type ),            pointer :: checksum_field
+    type( field_type ),            pointer :: temporal_field
 
-    logical :: multifile_io
-
-    multifile_io = modeldb%config%io_demo%multifile_io()
 
     !-------------------------------------------------------------------------
     ! Checksum output
@@ -305,21 +302,20 @@ contains
     depository => modeldb%fields%get_field_collection("depository")
     call depository%get_field("diffusion_field", diffusion_field)
 
-    if (multifile_io) then
+    if (modeldb%config%io_demo%multifile_io()) then
       multifile_col => modeldb%fields%get_field_collection("multifile_io_fields")
       call multifile_col%get_field("multifile_field", multifile_field)
-      call checksum_alg(program_name, &
-                  diffusion_field, 'diffusion_field', &
-                  multifile_field, 'multifile_field')
-    else
-      call checksum_alg(program_name, &
-                        diffusion_field, 'diffusion_field')
-    end if
-
-    if (modeldb%config%io_demo%temporal_reading()) then
+      call checksum_alg( program_name,                       &
+                         diffusion_field, 'diffusion_field', &
+                         multifile_field, 'multifile_field' )
+    else if (modeldb%config%io_demo%temporal_reading()) then
       temporal_col => modeldb%fields%get_field_collection("temporal_fields")
-      call temporal_col%get_field("monthly_field", checksum_field)
-      call checksum_alg(program_name, checksum_field, 'monthly_field')
+      call temporal_col%get_field("monthly_field", temporal_field)
+      call checksum_alg( program_name,                       &
+                         diffusion_field, 'diffusion_field', &
+                         temporal_field, 'monthly_field' )
+    else
+      call checksum_alg(program_name, diffusion_field, 'diffusion_field')
     end if
 
     call log_event( program_name//': model completed', LOG_LEVEL_TRACE )
