@@ -104,7 +104,7 @@ contains
     call modeldb%io_contexts%get_io_context("temporal_context", temporal_context)
     file_list => temporal_context%get_filelist()
 
-    ! Set up definition of temporal read file - we use an ozone ancil as an example
+    ! Set up definition of temporal read file - we use a monthly ancil as an example
     call file_list%insert_item( &
               lfric_xios_file_type( modeldb%config%files%temporal_file_path(), &
                                     xios_id = "monthly_ancil",                 &
