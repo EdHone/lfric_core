@@ -23,12 +23,14 @@ module io_demo_driver_mod
                                             TWOD, PRIME_EXTRUSION
   use field_collection_mod,          only : field_collection_type
   use field_mod,                     only : field_type
+  use field_parent_mod,              only : write_interface
   use function_space_mod,            only : function_space_type
   use function_space_collection_mod, only : function_space_collection
   use fs_continuity_mod,             only : W2H, W2V
   use init_io_demo_mod,              only : init_io_demo
   use inventory_by_mesh_mod,         only : inventory_by_mesh_type
   use lfric_mpi_mod,                 only : lfric_mpi_type
+  use lfric_xios_write_mod,          only : write_field_generic
   use log_mod,                       only : log_event,         &
                                             log_scratch_space, &
                                             LOG_LEVEL_INFO,    &
@@ -239,10 +241,12 @@ contains
     type( field_collection_type ), pointer :: multifile_col
     type( field_type ),            pointer :: W0_field, W2_field, W3_field, Wth_field
     type( field_type ),            pointer :: multifile_field
-    type( field_type ),            pointer :: diag_W2H_field, diag_W2V_field
     type( function_space_type ),   pointer :: w2h_fs, w2v_fs
+    type( field_type )                     :: diag_W2H_field, diag_W2V_field
 
     logical :: write_diag, multifile_io, io_benchmark
+
+    procedure(write_interface), pointer :: write_method
 
     write_diag   = modeldb%config%io%write_diag()
     multifile_io = modeldb%config%io_demo%multifile_io()
@@ -280,13 +284,17 @@ contains
         ! Split W2 field for diagnostics
         w2h_fs => function_space_collection%get_fs(W2_field%get_mesh(),       &
                                               W2_field%get_element_order_h(), &
-                                              W2_field%get_element_order_v(), W2h)
+                                              W2_field%get_element_order_v(), W2H)
         w2v_fs => function_space_collection%get_fs(W2_field%get_mesh(),       &
                                               W2_field%get_element_order_h(), &
                                               W2_field%get_element_order_v(), W2V)
         call diag_W2H_field%initialise(w2h_fs)
         call diag_W2V_field%initialise(w2v_fs)
-        call split_w2_field_alg(diag_W2H_field, diag_W2V_field, W3_field)
+        write_method => write_field_generic
+        call diag_W2H_field%set_write_behaviour(write_method)
+        call diag_W2V_field%set_write_behaviour(write_method)
+
+        call split_w2_field_alg(diag_W2H_field, diag_W2V_field, W2_field)
 
         ! Send data to output
         call Wth_field%write_field('diffusion_field_Wth')
@@ -297,7 +305,6 @@ contains
     end if
 
     nullify(W0_field, W2_field, W3_field, Wth_field, multifile_field)
-    nullify(diag_W2H_field, diag_W2V_field)
     nullify(w2h_fs, w2v_fs)
 
   end subroutine step

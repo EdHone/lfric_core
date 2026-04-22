@@ -57,7 +57,7 @@ coord_system='native'
 /
 
 &logging
-  run_log_level='info'
+  run_log_level='trace'
 /
 
 &time

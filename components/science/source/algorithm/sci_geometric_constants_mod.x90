@@ -146,7 +146,6 @@ contains
 
     use base_mesh_config_mod,               only: f_lat, geometry, &
                                                   geometry_spherical
-    use idealised_config_mod,               only: f_lon
     use sci_compute_latlon_kernel_mod,      only: compute_latlon_kernel_type
 
     implicit none
@@ -190,7 +189,7 @@ contains
       call invoke( compute_latlon_kernel_type(lat, long, chi, panel_id) )
     else
       call invoke( setval_c(lat, f_lat),                                       &
-                   setval_c(long, f_lon) )
+                   setval_c(long, f_lat) )
     end if
 
     if ( LPROF ) call stop_timing( id, 'runtime_constants.geometric' )
