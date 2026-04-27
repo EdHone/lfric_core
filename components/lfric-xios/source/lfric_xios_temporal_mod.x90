@@ -272,7 +272,6 @@ contains
                                               type="one_file",               &
                                               record_offset=record_offset,  &
                                               time_counter_name="time",      &
-                                              time_counter="exclusive",      &
                                               enabled=.true. )
 
       ! Move on record offset for next read

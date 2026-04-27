@@ -215,6 +215,8 @@ contains
     call panel_id_inventory%get_field(mesh, panel_id)
     call init_io_demo(modeldb, mesh, chi, panel_id)
 
+    ! If temporal reading configuration is enabled, initialise infrastructure
+    ! for it
     if (modeldb%config%io_demo%temporal_reading()) then
       call init_temporal_fields(mesh, modeldb)
       call setup_temporal_io(modeldb, chi, panel_id)
