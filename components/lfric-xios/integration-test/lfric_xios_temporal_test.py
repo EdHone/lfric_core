@@ -108,9 +108,8 @@ class LfricXiosNonCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-p
                          Path(self.test_working_dir, 'lfric_xios_temporal_output.nc'),
                          'temporal_field')
 
-        if not self.nc_data_match(Path(self.test_working_dir, 'non_sync_kgo.nc'),
-                                  Path(self.test_working_dir, 'lfric_xios_temporal_output.nc'),
-                                  'temporal_field'):
+        if not self.nc_kgo_check(Path(self.test_working_dir, 'non_sync_kgo.nc'),
+                                 Path(self.test_working_dir, 'lfric_xios_temporal_output.nc')):
             raise TestFailed("Output data does not match input data for same time values")
 
         return "Reading non-synchronised non-cyclic data at higher model frequency okay..."

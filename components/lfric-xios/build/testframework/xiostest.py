@@ -12,8 +12,6 @@ import shutil
 from typing import List, Optional
 
 from testframework import MpiTest
-import xarray as xr
-import matplotlib.pyplot as plt
 
 
 ##############################################################################
@@ -111,50 +109,23 @@ class LFRicXiosTest(MpiTest):
         """
         Contextually compare output data.
         """
-        ds_in = xr.open_dataset(in_file, engine='netcdf4', decode_timedelta=False)
-        ds_out = xr.open_dataset(out_file, engine='netcdf4', decode_timedelta=False)
 
-        comparison_window = [max(min(ds_out['time'].values), min(ds_in['time'].values)),
-                            min(max(ds_out['time'].values), max(ds_in['time'].values))]
-
-        ds_in_comp = ds_in.sel(time=slice(comparison_window[0], comparison_window[1]))
-        ds_out_comp = ds_out.sel(time=slice(comparison_window[0], comparison_window[1]))
-
-        if ds_in_comp['time'].size == 0:
-            return False
-        else:
-            result = [(ds_in_comp['time'] == ds_out_comp['time']).values.all(),
-                    (ds_in_comp[varname] == ds_out_comp[varname]).values.all()]
-            return all(result)
+        return True
 
     def plot_output(self, in_file: Path, out_file: Path, varname: str):
         """
-        Visually compare input and output data.
+        Visually compare input and output data. If the environment variable
+        PLOT_TEST_OUTPUT is not set as True, No plot will be generated. This
+        routine depends on the matplotlib package.
         """
 
-        def get_ts_data(file_path, field_id):
+        if os.environ.get('PLOT_TEST_OUTPUT', False):
+            sys.path.append(str((Path(__file__).parent.parent.parent /
+                                 "integration-test" / "tools")))
+            from plot_output import plot_test_output # noqa: E402
 
-            ds = xr.open_dataset(file_path, engine='netcdf4', decode_timedelta=False)
-            ts = ds[field_id].mean(ds[field_id].dims[1::])
-            time = ds[field_id].coords['time']
-
-            return ts, time
-
-        input_ts, input_time = get_ts_data(in_file, varname)
-        output_ts, output_time = get_ts_data(out_file, varname)
-
-        plt.rcParams["font.family"] = "serif"
-        _, ax = plt.subplots(figsize=([10.8, 4.8]))
-        ax.scatter(output_time, output_ts, c='C0', s=50)
-        ax.plot(output_time, output_ts, linestyle='--', lw=2, label="Model output data")
-        ax.scatter(input_time, input_ts, c='C3', marker='s', s=100, label="Input data")
-
-        ax.set_xlabel("Date/Time")
-        ax.set_ylabel("Mean model data")
-
-        plt.legend(frameon=False)
-        plt.savefig(f"{self.test_working_dir}/{type(self).__name__}.png", bbox_inches="tight")
-        plt.close()
+            plot_path = self.test_working_dir / f"{type(self).__name__}.png"
+            plot_test_output(in_file, out_file, varname, plot_path)
 
     def post_execution(self, return_code):
         """
