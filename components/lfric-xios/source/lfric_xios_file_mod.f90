@@ -251,6 +251,8 @@ function lfric_xios_file_constructor( file_name, xios_id, io_mode, freq,      &
 
   if (present(field_group_id)) self%field_group = field_group_id
 
+  self%field_group_id = trim(self%xios_id)//"_fields"
+
   ! Set up XIOS fields representing attached field collection
   if (present(fields_in_file)) then
     if (.not. present(operation)) then
@@ -258,7 +260,6 @@ function lfric_xios_file_constructor( file_name, xios_id, io_mode, freq,      &
                       log_level_error )
     end if
     allocate(self%fields(fields_in_file%get_length()))
-    self%field_group_id = trim(self%xios_id)//"_fields"
     call iter%initialise(fields_in_file)
     do field_index = 1, fields_in_file%get_length()
       fld => iter%next()
@@ -399,9 +400,20 @@ subroutine register_with_context(self)
   call xios_get_start_date(start_date)
   self%next_operation = start_date + self%frequency
 
+  ! ?
+  if (xios_is_valid_fieldgroup(self%field_group_id)) then
+    call xios_get_handle(trim(self%field_group_id), file_fields)
+  else
+    call xios_add_child(self%handle, file_fields, self%field_group_id)
+  end if
+
+  ! Set up read_access attribute for fields in file
+   if (self%mode_is_read()) then
+     call xios_set_attr(file_fields, read_access=.true.)
+   end if
+
   ! Set up fields in file
   if (allocated(self%fields)) then
-    call xios_add_child(self%handle, file_fields, self%field_group_id)
 
     ! Set the temporal operation for fields in the file
     select case(self%operation)
@@ -413,7 +425,7 @@ subroutine register_with_context(self)
 
     ! Iterate over field collection and register fields
     do i = 1, size(self%fields)
-      call self%fields(i)%register(field_read_access=self%mode_is_read())
+      call self%fields(i)%register()
     end do
 
     ! Set up time axis if needed
@@ -429,10 +441,10 @@ subroutine register_with_context(self)
       call xios_set_attr(self%handle, record_offset=record_offset)
     end if
 
-    ! Enable field collection
-    call xios_set_attr(file_fields, enabled=.true.)
-
   end if
+
+  ! Enable field collection
+  call xios_set_attr(file_fields, enabled=.true.)
 
   ! LEGACY
   ! If there is an associated field group, enable it
