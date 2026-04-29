@@ -329,7 +329,7 @@ subroutine register_with_context(self)
   class(lfric_xios_file_type),  intent(inout) :: self
 
   type(xios_filegroup)   :: file_definition
-  type(xios_fieldgroup)  :: field_group_hdl, file_fields
+  type(xios_fieldgroup)  :: file_fields
   type(xios_duration)    :: timestep_duration
   type(xios_date)        :: start_date
 
