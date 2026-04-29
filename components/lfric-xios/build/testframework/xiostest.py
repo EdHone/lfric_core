@@ -98,20 +98,17 @@ class LFRicXiosTest(MpiTest):
         Compare output files with nccmp.
         """
         proc = subprocess.run(
-            ['nccmp', '-Fdm', '--exclude=Mesh2d', '--tolerance=0.000001', f'{output}', f'{kgo}'],
+            ['nccmp', '-Fdm', '--exclude=Mesh2d,Mesh2d_face_edges,Mesh2d_face_links', '--tolerance=0.000001', f'{output}', f'{kgo}'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             )
 
-        return proc.returncode, proc.stderr
+        kgo_check_okay = (proc.returncode == 0)
+        if not kgo_check_okay:
+            print(f"{proc.stderr}\n")
+
+        return kgo_check_okay
     
-    def nc_data_match(self, in_file: Path, out_file: Path, varname: str):
-        """
-        Contextually compare output data.
-        """
-
-        return True
-
     def plot_output(self, in_file: Path, out_file: Path, varname: str):
         """
         Visually compare input and output data. If the environment variable

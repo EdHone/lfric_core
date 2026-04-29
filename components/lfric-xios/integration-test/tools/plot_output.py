@@ -1,10 +1,9 @@
 from pathlib import Path
 import matplotlib
+import xarray as xr
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt # noqa: E402
 
-# REMOVE XARRAY
-import xarray as xr # noqa: E402
 
 def _get_ts_data(file_path, field_id):
     """

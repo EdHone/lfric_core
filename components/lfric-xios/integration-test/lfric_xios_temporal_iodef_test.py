@@ -26,6 +26,7 @@ class LfricXiosFullNonCyclicIodefTest(LFRicXiosTest):  # pylint: disable=too-few
     def __init__(self):
         super().__init__(command=[sys.argv[1], "non_cyclic_full.nml"], processes=1, iodef_file="iodef_temporal.xml")
         self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
+        self.gen_data('non_cyclic_full_kgo.cdl', 'non_cyclic_full_kgo.nc')
         self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {} )
 
     def test(self, returncode: int, out: str, err: str):
@@ -38,9 +39,8 @@ class LfricXiosFullNonCyclicIodefTest(LFRicXiosTest):  # pylint: disable=too-few
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
-        if not self.nc_data_match(Path(self.test_working_dir, 'lfric_xios_temporal_input.nc'),
-                                  Path(self.test_working_dir, 'lfric_xios_temporal_output.nc'),
-                                  'temporal_field'):
+        if not self.nc_kgo_check(Path(self.test_working_dir, 'lfric_xios_temporal_output.nc'),
+                                 Path(self.test_working_dir, 'non_cyclic_full_kgo.nc')):
             raise TestFailed("Output data does not match input data for same time values")
 
         return "Reading full set of non-cylic data okay..."
@@ -55,6 +55,7 @@ class LfricXiosFullNonCyclicIodefHighFreqTest(LFRicXiosTest):  # pylint: disable
     def __init__(self):
         super().__init__(command=[sys.argv[1], "non_cyclic_full.nml"], processes=1, iodef_file="iodef_temporal.xml")
         self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
+        self.gen_data('non_cyclic_high_freq_iodef_kgo.cdl', 'non_cyclic_high_freq_kgo.nc')
         self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {"dt": 10.0,
                           "timestep_end": '60'} )
 
@@ -68,9 +69,8 @@ class LfricXiosFullNonCyclicIodefHighFreqTest(LFRicXiosTest):  # pylint: disable
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
                              f"stderr:\n" +
                              f"{err}")
-        if not self.nc_data_match(Path(self.test_working_dir, 'lfric_xios_temporal_input.nc'),
-                                  Path(self.test_working_dir, 'lfric_xios_temporal_output.nc'),
-                                  'temporal_field'):
+        if not self.nc_kgo_check(Path(self.test_working_dir, 'lfric_xios_temporal_output.nc'),
+                                 Path(self.test_working_dir, 'non_cyclic_high_freq_kgo.nc')):
             raise TestFailed("Output data does not match input data for same time values")
 
         return "Reading full set of non-cylic data okay..."
