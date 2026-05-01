@@ -135,7 +135,8 @@
 
     [[EX1A_TECH]]
         inherit=EX1A_TECH_BASE
-        {{ generate_script("pre-script", [ex1a_tech]) }}
+        {{ generate_script("pre-script", [ex1a_scitools,
+                                          ex1a_tech]) }}
 
     [[EX1A_SCRIPTS]]
         inherit=EX1A_TECH

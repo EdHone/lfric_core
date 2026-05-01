@@ -96,7 +96,7 @@
 
     [[AZSPICE_TECH]]
         inherit=AZSPICE_TECH_BASE
-        {{ generate_script("pre-script", [azspice_base, azspice_tech]) }}
+        {{ generate_script("pre-script", [azspice_base, azspice_scitools, azspice_tech]) }}
 
     [[AZSPICE_PLOT]]
         inherit=AZSPICE_TECH_BASE
