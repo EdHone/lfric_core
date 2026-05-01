@@ -1,9 +1,20 @@
+#!/usr/bin/env python3
+##############################################################################
+# (C) Crown copyright Met Office. All rights reserved.
+# The file LICENCE, distributed with this code, contains details of the terms
+# under which the code may be used.
+##############################################################################
+"""
+Plotting function for LFRic-XIOS integration tests. Depends on xarray and
+matplotlib packages which can be loaded as part of scitools for users in
+the Met Office.
+"""
+
 from pathlib import Path
 import matplotlib
 import xarray as xr
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt # noqa: E402
-
+import matplotlib.pyplot as plt # pylint: disable=wrong-import-position, ungrouped-imports
 
 def _get_ts_data(file_path, field_id):
     """

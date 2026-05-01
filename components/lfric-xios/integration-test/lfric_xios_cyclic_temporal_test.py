@@ -8,10 +8,11 @@
 A set of tests which exercise the temporal reading functionality provided by
 the LFRic-XIOS component.
 """
-from testframework import TestEngine, TestFailed
-from xiostest import LFRicXiosTest
 from pathlib import Path
 import sys
+from testframework import TestEngine, TestFailed # pylint: disable=import-error
+from xiostest import LFRicXiosTest # pylint: disable=import-error
+
 
 ###############################################################################
 class LfricXiosFullCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
@@ -33,8 +34,7 @@ class LfricXiosFullCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-
         if returncode != 0:
             print(out)
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
-                             f"stderr:\n" +
-                             f"{err}")
+                             f"stderr:\n {err}")
 
         self.plot_output(Path(self.test_working_dir, 'lfric_xios_cyclic_input.nc'),
                          Path(self.test_working_dir, 'lfric_xios_cyclic_output.nc'),
@@ -58,7 +58,7 @@ class LfricXiosFutureCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-publi
         self.gen_config( 'cyclic_base.nml', 'cyclic_future.nml',
                          {"calendar_start":'2024-01-01 14:55:00'} )
 
-    def test(self, returncode: int, out: str, err: str):
+    def test(self, returncode: int, out: str, err: str): # pylint: disable=unused-argument
         """
         Test the output of the future cyclic test
         """
@@ -96,8 +96,7 @@ class LfricXiosPastCyclicTest(LFRicXiosTest):  # pylint: disable=too-few-public-
         if returncode != 0:
             print(out)
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
-                             f"stderr:\n" +
-                             f"{err}")
+                             f"stderr:\n {err}")
         if not self.nc_kgo_check(
                 Path(self.test_working_dir, 'lfric_xios_cyclic_output.nc'),
                 Path(self.test_working_dir, 'cyclic_past_kgo.nc')):
@@ -128,8 +127,7 @@ class LfricXiosCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-pub
         if returncode != 0:
             print(out)
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
-                             f"stderr:\n" +
-                             f"{err}")
+                             f"stderr:\n {err}")
 
         self.plot_output(Path(self.test_working_dir, 'lfric_xios_cyclic_input.nc'),
                          Path(self.test_working_dir, 'lfric_xios_cyclic_output.nc'),
@@ -144,7 +142,8 @@ class LfricXiosCyclicHighFreqTest(LFRicXiosTest):  # pylint: disable=too-few-pub
 
 class LfricXiosCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-public-methods
     """
-    Tests the LFRic-XIOS temporal reading functionality when model timesteps do not match data timesteps
+    Tests the LFRic-XIOS temporal reading functionality when model timesteps
+    do not match data timesteps
     """
 
     def __init__(self):
@@ -164,8 +163,7 @@ class LfricXiosCyclicNonSyncTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         if returncode != 0:
             print(out)
             raise TestFailed(f"Unexpected failure of test executable: {returncode}\n" +
-                             f"stderr:\n" +
-                             f"{err}")
+                             f"stderr:\n {err}")
 
         self.plot_output(Path(self.test_working_dir, 'lfric_xios_cyclic_input.nc'),
                          Path(self.test_working_dir, 'lfric_xios_cyclic_output.nc'),
