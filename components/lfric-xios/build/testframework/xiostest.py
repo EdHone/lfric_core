@@ -138,7 +138,7 @@ class LFRicXiosTest(MpiTest):
             plot_path = self.test_working_dir / f"{type(self).__name__}.png"
             plot_test_output(in_file, out_file, varname, plot_path)
 
-    def post_execution(self):
+    def post_execution(self, return_code: int): # pylint: disable=unused-argument
         """
         Cache XIOS logging output for analysis.
         """
