@@ -138,7 +138,7 @@ subroutine register(self, field_read_access)
                   log_level_trace )
 
   ! If this field is already registered with XIOS, get the existing handle,
-  ! otherwise create a new one.
+  ! otherwise a new one will be created below as part of `xios_add_child`.
   if (xios_is_valid_field(self%xios_id)) then
     call xios_get_handle(trim(adjustl(self%xios_id)), self%handle)
     call xios_get_attr(self%handle, name=self%xios_name)
