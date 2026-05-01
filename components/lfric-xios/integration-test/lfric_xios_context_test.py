@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 ##############################################################################
-# (C) Crown copyright 2024 Met Office. All rights reserved.
+# (C) Crown copyright Met Office. All rights reserved.
 # The file LICENCE, distributed with this code, contains details of the terms
 # under which the code may be used.
 ##############################################################################
