@@ -127,16 +127,15 @@
 
     [[EX1A_TECH_TESTS_GNU]]
         inherit=EX1A_TECH_TESTS,EX1A_GNU
-        {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_gnu, ex1a_scitools]) }}
+        {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_gnu]) }}
 
     [[EX1A_TECH_TESTS_CCE]]
         inherit=EX1A_TECH_TESTS,EX1A_CCE
-        {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_cce, ex1a_scitools]) }}
+        {{ generate_script("pre-script", [ex1a_base, ex1a_compiler_cce]) }}
 
     [[EX1A_TECH]]
         inherit=EX1A_TECH_BASE
-        {{ generate_script("pre-script", [ex1a_scitools,
-                                          ex1a_tech]) }}
+        {{ generate_script("pre-script", [ex1a_tech]) }}
 
     [[EX1A_SCRIPTS]]
         inherit=EX1A_TECH

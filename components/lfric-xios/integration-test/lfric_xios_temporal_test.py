@@ -159,7 +159,7 @@ class LfricXiosNonCyclicFutureTest(LFRicXiosTest):  # pylint: disable=too-few-pu
         Test the output of the context test
         """
 
-        expected_error_code = "ERROR: Context must start within data time window for" \
+        expected_error_code = "ERROR: Context must start within data time window for " \
                               "non-cyclic temporal data"
 
         if returncode == 1:
@@ -190,7 +190,7 @@ class LfricXiosNonCyclicPastTest(LFRicXiosTest):  # pylint: disable=too-few-publ
         Test the output of the context test
         """
 
-        expected_error_code = "ERROR: Context must start within data time window for" \
+        expected_error_code = "ERROR: Context must start within data time window for " \
                               "non-cyclic temporal data"
 
         if returncode == 1:
