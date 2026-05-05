@@ -142,11 +142,11 @@ contains
   !!                                 longitude and latitude fields for
   !> @param[in]     use_fe           Flag to indicate whether to use finite
   !!                                 element or finite volume cells
-  subroutine compute_latlon(long_inventory, lat_inventory, mesh, fs_id, use_fe)
+  subroutine compute_latlon( long_inventory, lat_inventory, mesh, &
+                                       fs_id, use_fe )
 
-    use base_mesh_config_mod,               only: f_lat, geometry, &
+    use base_mesh_config_mod,               only: geometry, &
                                                   geometry_spherical
-    use idealised_config_mod,               only: f_lon
     use sci_compute_latlon_kernel_mod,      only: compute_latlon_kernel_type
 
     implicit none
@@ -168,6 +168,11 @@ contains
     integer(kind=i_def)                :: k_h, k_v
     integer(tik)                       :: id
 
+    if (geometry /= geometry_spherical) then
+      call log_event( "Non-spherical geometries", &
+                      LOG_LEVEL_ERROR )
+    end if
+
     if ( LPROF ) call start_timing( id, 'runtime_constants.geometric' )
 
     if (use_fe) then
@@ -184,14 +189,9 @@ contains
     call lat_inventory%add_field(lat, twod_fs, local_mesh)
     call long_inventory%add_field(long, twod_fs, local_mesh)
 
-    if ( geometry == geometry_spherical ) then
-      chi => get_coordinates(mesh%get_id())
-      panel_id => get_panel_id(mesh%get_id())
-      call invoke( compute_latlon_kernel_type(lat, long, chi, panel_id) )
-    else
-      call invoke( setval_c(lat, f_lat),                                       &
-                   setval_c(long, f_lon) )
-    end if
+    chi => get_coordinates(mesh%get_id())
+    panel_id => get_panel_id(mesh%get_id())
+    call invoke( compute_latlon_kernel_type(lat, long, chi, panel_id) )
 
     if ( LPROF ) call stop_timing( id, 'runtime_constants.geometric' )
 
