@@ -239,10 +239,8 @@ contains
 
     type( field_collection_type ), pointer :: depository
     type( field_collection_type ), pointer :: multifile_col
-    type( field_type ),            pointer :: W0_field, W2_field, W3_field, Wth_field
+    type( field_type ),            pointer :: W0_field, W2H_field, W2V_field, W3_field, Wth_field
     type( field_type ),            pointer :: multifile_field
-    type( function_space_type ),   pointer :: w2h_fs, w2v_fs
-    type( field_type )                     :: diag_W2H_field, diag_W2V_field
 
     logical :: write_diag, multifile_io, io_benchmark
 
@@ -278,34 +276,19 @@ contains
         call log_event(program_name//": Writing diagnostic output", LOG_LEVEL_INFO)
         call depository%get_field("diffusion_field_Wtheta", Wth_field)
         call depository%get_field("diffusion_field_W0", W0_field)
-        call depository%get_field("diffusion_field_W2", W2_field)
+        call depository%get_field("diffusion_field_W2H", W2H_field)
+        call depository%get_field("diffusion_field_W2V", W2V_field)
         call depository%get_field("diffusion_field_W3", W3_field)
-
-        ! Split W2 field for diagnostics
-        w2h_fs => function_space_collection%get_fs(W2_field%get_mesh(),       &
-                                              W2_field%get_element_order_h(), &
-                                              W2_field%get_element_order_v(), W2H)
-        w2v_fs => function_space_collection%get_fs(W2_field%get_mesh(),       &
-                                              W2_field%get_element_order_h(), &
-                                              W2_field%get_element_order_v(), W2V)
-        call diag_W2H_field%initialise(w2h_fs)
-        call diag_W2V_field%initialise(w2v_fs)
-        write_method => write_field_generic
-        call diag_W2H_field%set_write_behaviour(write_method)
-        call diag_W2V_field%set_write_behaviour(write_method)
-
-        call split_w2_field_alg(diag_W2H_field, diag_W2V_field, W2_field)
 
         ! Send data to output
         call Wth_field%write_field('diffusion_field_Wth')
         call W0_field%write_field('diffusion_field_W0')
         call W3_field%write_field('diffusion_field_W3')
-        call diag_W2H_field%write_field('diffusion_field_W2H')
-        call diag_W2V_field%write_field('diffusion_field_W2V')
+        call W2H_field%write_field('diffusion_field_W2H')
+        call W2V_field%write_field('diffusion_field_W2V')
     end if
 
-    nullify(W0_field, W2_field, W3_field, Wth_field, multifile_field)
-    nullify(w2h_fs, w2v_fs)
+    nullify(W0_field, W2H_field, W2V_field, W3_field, Wth_field, multifile_field)
 
   end subroutine step
 
@@ -321,7 +304,7 @@ contains
     type(modeldb_type), intent(inout) :: modeldb
 
     type( field_collection_type ), pointer :: depository
-    type( field_type ),            pointer :: W0_field, W3_field, Wth_field
+    type( field_type ),            pointer :: W0_field, W2H_field, W2V_field, W3_field, Wth_field
     type( field_collection_type ), pointer :: multifile_col
     type( field_type ),            pointer :: multifile_field
 
@@ -335,6 +318,8 @@ contains
     depository => modeldb%fields%get_field_collection("depository")
     call depository%get_field("diffusion_field_Wtheta", Wth_field)
     call depository%get_field("diffusion_field_W0", W0_field)
+    call depository%get_field("diffusion_field_W2H", W2H_field)
+    call depository%get_field("diffusion_field_W2V", W2V_field)
     call depository%get_field("diffusion_field_W3", W3_field)
 
     if (multifile_io) then
@@ -343,12 +328,13 @@ contains
       call checksum_alg(program_name, &
                   Wth_field, 'diffusion_field_Wtheta', &
                   W0_field, 'diffusion_field_W0', &
-                  W3_field, 'diffusion_field_W3', &
+                  W2H_field, 'diffusion_field_W2H', &
                   multifile_field, 'multifile_field')
     else
       call checksum_alg(program_name, &
                         Wth_field, 'diffusion_field_Wtheta', &
                         W0_field, 'diffusion_field_W0', &
+                        W2H_field, 'diffusion_field_W2H', &
                         W3_field, 'diffusion_field_W3')
     end if
 
