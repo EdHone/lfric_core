@@ -16,7 +16,7 @@ module init_io_demo_mod
   use driver_modeldb_mod,                     only : modeldb_type
   use field_collection_mod,                   only : field_collection_type
   use field_mod,                              only : field_type
-  use field_parent_mod,                       only : write_interface
+  use field_parent_mod,                       only : write_interface, read_interface
   use function_space_collection_mod,          only : function_space_collection
   use function_space_mod,                     only : function_space_type
   use fs_continuity_mod,                      only : W0, W2H, W2V, W3, Wtheta, &
@@ -26,6 +26,7 @@ module init_io_demo_mod
                                                      LOG_LEVEL_TRACE, &
                                                      LOG_LEVEL_ERROR
   use mesh_mod,                               only : mesh_type
+  use lfric_xios_read_mod,                    only : read_field_generic
   use lfric_xios_write_mod,                   only : write_field_generic
   use io_demo_constants_mod,                  only : create_io_demo_constants
   use random_number_generator_mod,            only : random_number_generator_type
@@ -54,7 +55,8 @@ module init_io_demo_mod
     type(random_number_generator_type), pointer :: rng
     type(field_type), allocatable               :: io_demo_fields(:)
     type(field_collection_type), pointer        :: depository
-    procedure(write_interface), pointer         :: tmp_ptr
+    procedure(read_interface), pointer          :: tmp_read_ptr
+    procedure(write_interface), pointer         :: tmp_write_ptr
     real(kind=r_def), parameter                 :: min_val = 280.0_r_def
     real(kind=r_def), parameter                 :: max_val = 330.0_r_def
 
@@ -97,8 +99,10 @@ module init_io_demo_mod
       domain_fs_name = name_from_functionspace(fs_list(i))
       call io_demo_fields(i)%initialise(fs, name="diffusion_field_"//trim(domain_fs_name))
 
-      tmp_ptr => write_field_generic
-      call io_demo_fields(i)%set_write_behaviour(tmp_ptr)
+      tmp_read_ptr => read_field_generic
+      tmp_write_ptr => write_field_generic
+      call io_demo_fields(i)%set_read_behaviour(tmp_read_ptr)
+      call io_demo_fields(i)%set_write_behaviour(tmp_write_ptr)
 
       ! Initialising field
       call assign_field_random_range( io_demo_fields(i), min_val, max_val )
