@@ -38,14 +38,14 @@ coord_system='native'
 
 &io
   use_xios_io           = .true.
-  write_diag            = .true.
+  write_diag            = .false.
   diagnostic_frequency  = 1
   subroutine_timers     = .false.
   timer_output_path     = 'timer.txt'
   subroutine_counters   = .false.
   counter_output_suffix = 'counter.txt'
   checkpoint_read       = .false.
-  checkpoint_write      = .false.
+  checkpoint_write      = .true.
   end_of_run_checkpoint = .false.
   checkpoint_times      = 10, 20
   file_convention       = 'UGRID'
