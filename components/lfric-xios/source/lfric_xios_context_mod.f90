@@ -14,7 +14,7 @@ module lfric_xios_context_mod
                                    l_def
   use field_mod,            only : field_type
   use file_mod,             only : file_type
-  use io_context_mod,       only : io_context_type, callback_clock_arg
+  use io_context_mod,       only : io_context_type
   use lfric_xios_file_mod,  only : lfric_xios_file_type
   use lfric_mpi_mod,        only : lfric_comm_type
   use log_mod,              only : log_event, log_scratch_space, &
@@ -55,6 +55,7 @@ module lfric_xios_context_mod
     private
     procedure, public :: initialise => initialise_lfric_xios_context
     procedure, public :: initialise_xios_context
+    procedure, public :: close_context_definition
     procedure, public :: get_filelist
     procedure, public :: set_current
     procedure, public :: tick_context_clock
@@ -86,13 +87,11 @@ contains
   !> @param [in]     panel_id          Panel ID field
   !> @param [in]     model_clock       The model clock.
   !> @param [in]     calendar          The model calendar.
-  !> @param [in]     before_close      Routine to be called before context closes
   !> @param [in]     alt_coords        Array of coordinate fields for alternative meshes
   !> @param [in]     alt_panel_ids     Panel ID fields for alternative meshes
   subroutine initialise_xios_context( this, communicator,    &
                                       chi, panel_id,         &
                                       model_clock, calendar, &
-                                      before_close,          &
                                       alt_coords,            &
                                       alt_panel_ids,         &
                                       start_at_zero )
@@ -105,21 +104,17 @@ contains
     type(field_type),               intent(in)    :: panel_id
     type(model_clock_type),         intent(inout) :: model_clock
     class(calendar_type),           intent(in)    :: calendar
-    procedure(callback_clock_arg), pointer, &
-                                    intent(in)    :: before_close
     type(field_type),     optional, intent(in)    :: alt_coords(:,:)
     type(field_type),     optional, intent(in)    :: alt_panel_ids(:)
     logical,              optional, intent(in)    :: start_at_zero
 
-    type(linked_list_item_type), pointer :: loop => null()
-    type(lfric_xios_file_type),  pointer :: file => null()
     logical :: zero_start
-    integer(tik) :: timing_idlx, timing_idxc
+    integer(tik) :: timing_id
 
     write(log_scratch_space, "(A)") &
         "Initialising XIOS context: " // this%get_context_name()
     call log_event(log_scratch_space, log_level_debug)
-    if ( LPROF ) call start_timing(timing_idlx, 'lfric_xios.init_context')
+    if ( LPROF ) call start_timing(timing_id, 'lfric_xios.init_context')
 
     if (present(start_at_zero)) then
       zero_start = start_at_zero
@@ -135,16 +130,34 @@ contains
     ! Run XIOS setup routines
     call init_xios_calendar(model_clock, calendar, zero_start, this%context_clock_step)
     call init_xios_dimensions(chi, panel_id, alt_coords, alt_panel_ids)
-    if (this%filelist%get_length() > 0) call setup_xios_files(this%filelist)
 
-    if (associated(before_close)) call before_close(model_clock)
+    if ( LPROF ) call stop_timing(timing_id, 'lfric_xios.init_context')
+
+  end subroutine initialise_xios_context
+
+  !> @brief Close the XIOS context definition and read any files that need to
+  !>        be read from.
+  !!
+  !> @param [in] model_clock  The model clock
+  subroutine close_context_definition(this, model_clock)
+
+    implicit none
+
+    class(lfric_xios_context_type), intent(inout) :: this
+    type(model_clock_type), intent(inout) :: model_clock
+
+    type(linked_list_item_type), pointer :: loop => null()
+    type(lfric_xios_file_type),  pointer :: file => null()
+    integer(tik) :: timing_id
+
+    if (this%filelist%get_length() > 0) call setup_xios_files(this%filelist)
 
     ! Close the context definition - no more I/O configuration operations
     ! can be defined after this point
-    if ( LPROF ) call start_timing(timing_idxc, 'xios.close_context_definition')
+    if ( LPROF ) call start_timing(timing_id, 'xios.close_context_definition')
     call log_event('XIOS context definition closing', log_level_debug)
     call xios_close_context_definition()
-    if ( LPROF ) call stop_timing(timing_idxc, 'xios.close_context_definition')
+    if ( LPROF ) call stop_timing(timing_id, 'xios.close_context_definition')
     call log_event('XIOS context definition closed', log_level_debug)
 
     this%xios_context_initialised = .true.
@@ -161,9 +174,8 @@ contains
         loop => loop%next
       end do
     end if
-    if ( LPROF ) call stop_timing(timing_idlx, 'lfric_xios.init_context')
 
-  end subroutine initialise_xios_context
+  end subroutine close_context_definition
 
   subroutine finalise( this )
     implicit none
