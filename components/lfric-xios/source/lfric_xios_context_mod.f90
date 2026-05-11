@@ -55,6 +55,7 @@ module lfric_xios_context_mod
     private
     procedure, public :: initialise => initialise_lfric_xios_context
     procedure, public :: initialise_xios_context
+    procedure, public :: is_initialised
     procedure, public :: close_context_definition
     procedure, public :: get_filelist
     procedure, public :: set_current
@@ -138,17 +139,17 @@ contains
   !> @brief Close the XIOS context definition and read any files that need to
   !>        be read from.
   !!
-  !> @param [in] model_clock  The model clock
-  subroutine close_context_definition(this, model_clock)
+  subroutine close_context_definition(this)
 
     implicit none
 
     class(lfric_xios_context_type), intent(inout) :: this
-    type(model_clock_type), intent(inout) :: model_clock
 
     type(linked_list_item_type), pointer :: loop => null()
     type(lfric_xios_file_type),  pointer :: file => null()
     integer(tik) :: timing_id
+
+    call this%set_current()
 
     if (this%filelist%get_length() > 0) call setup_xios_files(this%filelist)
 
@@ -176,6 +177,16 @@ contains
     end if
 
   end subroutine close_context_definition
+
+  function is_initialised(this) result(initialised)
+    implicit none
+
+    class(lfric_xios_context_type), intent(in) :: this
+    logical :: initialised
+
+    initialised = this%xios_context_initialised
+
+  end function is_initialised
 
   subroutine finalise( this )
     implicit none

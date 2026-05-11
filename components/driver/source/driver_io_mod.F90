@@ -118,7 +118,7 @@ contains
       end if
 
       call modeldb%io_contexts%get_io_context(context_name, context)
-      call context%close_context_definition(modeldb%clock)
+      call context%close_context_definition()
 
 #else
       call log_event( "Cannot use XIOS I/O: model has not been built with " // &

@@ -161,6 +161,8 @@ contains
                                                  modeldb%clock, tmp_calendar, &
                                                  start_at_zero=.true. )
 
+        call io_context%close_context_definition()
+
         ! Attach context advancement to the model's clock
         context_advance => advance_read_only
         event_actor_ptr => io_context

@@ -135,6 +135,8 @@ contains
     call modeldb%clock%add_event(context_advance, event_actor_ptr)
     call temporal_context%set_active(.true.)
 
+    call temporal_context%close_context_definition()
+
     ! Set current context back to main
     call modeldb%io_contexts%get_io_context("io_demo", io_context)
     call io_context%set_current()
