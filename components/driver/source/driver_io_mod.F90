@@ -113,11 +113,12 @@ contains
                                  populate_filelist,  &
                                  alt_mesh_names )
 
+      call modeldb%io_contexts%get_io_context(context_name, context)
+      call context%set_current()
       if (present(before_close)) then
         call before_close(modeldb%clock)
       end if
 
-      call modeldb%io_contexts%get_io_context(context_name, context)
       call context%close_context_definition()
 
 #else
