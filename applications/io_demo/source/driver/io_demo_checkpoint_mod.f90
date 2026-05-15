@@ -66,7 +66,9 @@ contains
     call modeldb%io_contexts%get_io_context("checkpoint_context", cp_context)
     file_list => cp_context%get_filelist()
 
+    ! Set up file definitions for checkpoint writing
     if (modeldb%config%io%checkpoint_write()) then
+      ! End of run checkpoint definition
       if (modeldb%config%io%end_of_run_checkpoint()) then
         write(checkpoint_write_filename, '(A,I0)') &
               trim(modeldb%config%files%checkpoint_stem_name()), ts_end
@@ -78,6 +80,7 @@ contains
                                           fields_in_file = checkpoint_fields ) )
       end if
 
+      ! Flexible checkpoint definition
       checkpoint_times = modeldb%config%io%checkpoint_times()
       if (size(checkpoint_times) > 0) then
         do t_cp = 1, size(checkpoint_times)
@@ -102,6 +105,7 @@ contains
       end if
     end if
 
+    ! Set up file definitions for checkpoint reading
     if (modeldb%config%io%checkpoint_read()) then
       write(checkpoint_read_filename, '(A,I0)') &
             trim(modeldb%config%files%checkpoint_stem_name()), ts_start - 1
@@ -113,9 +117,9 @@ contains
                                         fields_in_file = checkpoint_fields ) )
     end if
 
+    ! Add checkpoint context to clock events so that it is advanced at each timestep
     event_actor_ptr => cp_context
     context_advance => advance
-
     before_close => null()
     call cp_context%initialise_xios_context( modeldb%mpi%get_comm(), chi, panel_id, &
                                              modeldb%clock, modeldb%calendar, before_close )
