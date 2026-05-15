@@ -111,3 +111,15 @@ class vn31_t238(MacroUpgrade):
             coord_order,
         )
         return config, self.reports
+
+
+class vn31_t287(MacroUpgrade):
+    """Upgrade macro for ticket #287 by Ed Hone."""
+
+    BEFORE_TAG = "vn3.1_t238"
+    AFTER_TAG = "vn3.1_t287"
+
+    def upgrade(self, config, meta_config=None):
+        self.add_setting(config, ["namelist:files", "checkpoint_stem_name"], "")
+
+        return config, self.reports
