@@ -92,6 +92,7 @@
     {% endif %}
     {% set run_resolution = resolution %}
 
+    {% set script_str.name = script_str.name~" --opt-conf-key=suite_controlled" %}
     {% for opt_conf in task_values["opt_confs"] %}
         {% set script_str.name = script_str.name~" --opt-conf-key="~opt_conf %}
     {% endfor %}
@@ -99,7 +100,6 @@
     {% if task_values["use_xios"] %}
         {% set script_str.name = script_str.name~" --opt-conf-key=xios_server" %}
     {% endif %}
-    {% set script_str.name = script_str.name~" --opt-conf-key=suite_controlled" %}
 {% endif %}
 
 
