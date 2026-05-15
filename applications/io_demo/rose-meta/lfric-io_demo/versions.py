@@ -119,3 +119,18 @@ class vn31_t238(MacroUpgrade):
         )
 
         return config, self.reports
+
+class vn31_t287(MacroUpgrade):
+    """Upgrade macro for issue #287 by Ed Hone."""
+
+    BEFORE_TAG = "vn3.1_t238"
+    AFTER_TAG = "vn3.1_t287"
+
+    def upgrade(self, config, meta_config=None):
+        # Commands From: rose-meta/lfric-driver
+        self.add_setting(
+            config,
+            ["namelist:files", "checkpoint_stem_name"],
+            "$CYLC_SUITE_SHARE_DIR/data/restart-io_demo-$ROSE_TASK_NAME")
+
+        return config, self.reports
