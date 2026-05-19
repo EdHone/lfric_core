@@ -8,7 +8,7 @@
 !!          files and fields to it
 module io_demo_checkpoint_mod
 
-  use constants_mod,          only: i_def, str_max_filename, r_second
+  use constants_mod,          only: i_def, str_max_filename, str_def, r_second
   use driver_modeldb_mod,     only: modeldb_type
   use event_mod,              only: event_action
   use event_actor_mod,        only: event_actor_type
@@ -50,7 +50,9 @@ contains
     procedure(event_action), pointer :: context_advance
     procedure(callback_clock_arg), pointer :: before_close
 
-    character(len=str_max_filename) :: checkpoint_write_filename, checkpoint_read_filename
+    character(len=str_max_filename) :: checkpoint_write_filename
+    character(len=str_max_filename) :: checkpoint_read_filename
+    character(len=str_def)          :: checkpoint_id
     integer(i_def) :: ts_start, ts_end, t_cp, freq_ts
 
     call log_event( 'io_demo: Setting up checkpoint I/O', LOG_LEVEL_DEBUG )
@@ -73,7 +75,7 @@ contains
         write(checkpoint_write_filename, '(A,I0)') &
               trim(modeldb%config%files%checkpoint_stem_name()), ts_end
         call file_list%insert_item( lfric_xios_file_type( checkpoint_write_filename, &
-                                          xios_id = "checkpoint_io_demo",            &
+                                          xios_id = "io_demo_checkpoint",            &
                                           io_mode = FILE_MODE_WRITE,                 &
                                           freq = ts_end - ts_start + 1,              &
                                           operation = OPERATION_ONCE,                &
@@ -94,12 +96,14 @@ contains
               freq_ts = int(checkpoint_times(t_cp) / modeldb%clock%get_seconds_per_step())
               write(checkpoint_write_filename, '(A,I0)') &
                     trim(modeldb%config%files%checkpoint_stem_name()), freq_ts
-              call file_list%insert_item( lfric_xios_file_type( trim(checkpoint_write_filename), &
-                                                xios_id = trim(checkpoint_write_filename), &
-                                                io_mode = FILE_MODE_WRITE,                 &
-                                                freq = freq_ts,                            &
-                                                operation = OPERATION_ONCE,                &
-                                                fields_in_file = checkpoint_fields ) )
+              write(checkpoint_id, '(A,I0)') "io_demo_checkpoint_", freq_ts
+              call file_list%insert_item( &
+                    lfric_xios_file_type( trim(checkpoint_write_filename), &
+                                          xios_id = trim(checkpoint_id),   &
+                                          io_mode = FILE_MODE_WRITE,       &
+                                          freq = freq_ts,                  &
+                                          operation = OPERATION_ONCE,      &
+                                          fields_in_file = checkpoint_fields ) )
           end if
         end do
       end if
@@ -109,12 +113,14 @@ contains
     if (modeldb%config%io%checkpoint_read()) then
       write(checkpoint_read_filename, '(A,I0)') &
             trim(modeldb%config%files%checkpoint_stem_name()), ts_start - 1
-      call file_list%insert_item( lfric_xios_file_type( checkpoint_read_filename,  &
-                                        xios_id = "restart_io_demo",               &
-                                        io_mode = FILE_MODE_READ,                  &
-                                        freq = 1,                                  &
-                                        operation = OPERATION_ONCE,                &
-                                        fields_in_file = checkpoint_fields ) )
+      write(checkpoint_id, '(A,I0)') "io_demo_restart_", ts_start - 1
+      call file_list%insert_item( &
+            lfric_xios_file_type( checkpoint_read_filename,      &
+                                  xios_id = trim(checkpoint_id), &
+                                  io_mode = FILE_MODE_READ,      &
+                                  freq = 1,                      &
+                                  operation = OPERATION_ONCE,    &
+                                  fields_in_file = checkpoint_fields ) )
     end if
 
     ! Add checkpoint context to clock events so that it is advanced at each timestep
