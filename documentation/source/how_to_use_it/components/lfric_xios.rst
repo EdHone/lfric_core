@@ -20,6 +20,7 @@ To run the unit tests run the command ``make unit-tests`` from this directory.
 The integration tests can be run with ``make integration-tests``
 
     To run the integration tests with plotting enabled, run the command
-    ::
-        make integration-tests PLOT_TEST_OUTPUT=true
+
+    ``make integration-tests PLOT_TEST_OUTPUT=true``
+
     This requires a Python environment with the matplotlib and xarray packages installed.
