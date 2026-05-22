@@ -96,8 +96,6 @@ class LfricXiosFullNonCyclicIodefNoFreqTest(LFRicXiosTest):  # pylint: disable=t
 
         if returncode == 1:
             errorcode = err.split("\n")[0].split("0:")[1]
-            print(errorcode)
-            print(expected_error_code)
             if not errorcode == expected_error_code:
                 raise TestFailed("Incorrect error handling of unset file frequency.")
         else:
