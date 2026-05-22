@@ -396,14 +396,18 @@ subroutine register_with_context(self)
     call xios_set_attr( self%handle, time_counter="none")
   end if
 
-  ! Set XIOS duration object second value equal to file output frequency
+  ! Check if file frequency has been defined in iodef.xml config
   call xios_is_defined_file_attr(self%xios_id, output_freq=output_freq_defined)
+
+  ! Set file frequency, giving priority to the value defined in the iodef.xml if
+  ! there the frequency has also been set in the model code.
   if (.not. self%freq_ts == undef_freq) then
     if (output_freq_defined) then
       call log_event( "Frequency for file ["//trim(self%xios_id)//"] "      // &
                       "defined in both LFRic and XIOS, defaulting to XIOS " // &
                       "iodef.xml value", log_level_warning )
     else
+      ! Convert frequency into seconds by multiplying by timestep duration
       call xios_get_timestep(timestep_duration)
       self%frequency = self%freq_ts * timestep_duration
       call xios_set_attr(self%handle, output_freq=self%frequency)
