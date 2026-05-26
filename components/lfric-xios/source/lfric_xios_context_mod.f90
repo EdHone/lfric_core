@@ -131,6 +131,7 @@ contains
     ! Run XIOS setup routines
     call init_xios_calendar(model_clock, calendar, zero_start, this%context_clock_step)
     call init_xios_dimensions(chi, panel_id, alt_coords, alt_panel_ids)
+    if (this%filelist%get_length() > 0) call setup_xios_files(this%filelist)
 
     if ( LPROF ) call stop_timing(timing_id, 'lfric_xios.init_context')
 
@@ -150,8 +151,6 @@ contains
     integer(tik) :: timing_id
 
     call this%set_current()
-
-    if (this%filelist%get_length() > 0) call setup_xios_files(this%filelist)
 
     ! Close the context definition - no more I/O configuration operations
     ! can be defined after this point
