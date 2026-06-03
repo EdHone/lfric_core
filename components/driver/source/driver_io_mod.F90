@@ -50,14 +50,12 @@ module driver_io_mod
   abstract interface
     !> @brief Callback interface for bespoke IO configuration
     !> @param[in] clock     Clock to be passed in at call site
-    subroutine callback_clock_arg(clock)
+    subroutine io_configuration_callback(clock)
       use clock_mod, only : clock_type
       implicit none
       class(clock_type), intent(in) :: clock
-    end subroutine callback_clock_arg
+    end subroutine io_configuration_callback
   end interface
-
-  public :: callback_clock_arg
 
 contains
 
@@ -94,7 +92,8 @@ contains
     procedure(filelist_populator), &
                    pointer, optional, intent(in)    :: populate_filelist
     character(len=str_def), optional, intent(in)    :: alt_mesh_names(:)
-    procedure(callback_clock_arg), optional         :: before_close
+    procedure(io_configuration_callback),
+                            optional                :: before_close
 
     type(lfric_xios_context_type), pointer :: context
 
