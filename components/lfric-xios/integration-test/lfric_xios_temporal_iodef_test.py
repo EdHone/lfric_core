@@ -98,29 +98,21 @@ class LfricXiosFullNonCyclicIodefNoFreqTest(LFRicXiosTest): # pylint: disable=to
         self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
         self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {} )
 
-    def test(self, returncode: int, out: str, err: str): # pylint: disable=unused-argument
+    def test(self, returncode: int, out: str, err: str): # pylint: disable=unused-argument, disable=no-self-use
         """
         Test the output of the context test
         """
 
-        expected_xios_errs = ['In file "type_impl.hpp", function "void xios::CType<T>::_checkEmpty() const [with T = xios::CDuration]",  line 210 -> Data is not initialized',  # pylint: disable=C0301
-                              'In file "type_impl.hpp", function "void xios::CType<xios::CDuration>::_checkEmpty() const [T = xios::CDuration]",  line 210 -> Data is not initialized']  # pylint: disable=C0301
+        expected_error_code = "ERROR: Frequency for file [lfric_xios_temporal_input] not defined in XIOS or LFRic" # pylint: disable=C0301
 
-        if returncode == 134:
-            if self.xios_err[0].contents.strip() in expected_xios_errs:
-                return "Expected failure of test executable due to missing " \
-                       "frequency setting."
-
-        if returncode == 0:
-            test_output_msg = "Test executable succeeded unexpectedly " \
-                              "despite missing frequency setting."
+        if returncode == 1:
+            errorcode = err.split("\n")[0].split("0:")[1]
+            if not errorcode == expected_error_code:
+                raise TestFailed("Incorrect error handling of unset file frequency.")
         else:
-            test_output_msg = "Test executable failed with unexpected return " \
-                              "code."
+            raise TestFailed("Unexpected non-failure of test executable")
 
-        raise TestFailed(test_output_msg)
-
-
+        return "Correctly handled missing frequency for non-cyclic data..."
 
 ##############################################################################
 if __name__ == "__main__":
