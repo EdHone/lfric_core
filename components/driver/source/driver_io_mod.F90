@@ -92,7 +92,7 @@ contains
     procedure(filelist_populator), &
                    pointer, optional, intent(in)    :: populate_filelist
     character(len=str_def), optional, intent(in)    :: alt_mesh_names(:)
-    procedure(io_configuration_callback),
+    procedure(io_configuration_callback), &
                             optional                :: before_close
 
     type(lfric_xios_context_type), pointer :: context
