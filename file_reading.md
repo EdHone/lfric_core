@@ -1,7 +1,5 @@
 # Reading time-varying data in LFRic
 
-[TOC]
-
 ## Reading data from files
 
 Model I/O configuration is primarily handled via the `lfric_xios_file_type`.
