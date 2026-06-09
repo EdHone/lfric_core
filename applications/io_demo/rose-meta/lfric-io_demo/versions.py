@@ -120,6 +120,9 @@ class vn31_t287(MacroUpgrade):
     AFTER_TAG = "vn3.1_t287"
 
     def upgrade(self, config, meta_config=None):
-        self.add_setting(config, ["namelist:files", "checkpoint_stem_name"], "''")
+        # Commands From: rose-meta/lfric-io_demo
+        self.add_setting(
+            config, ["namelist:files", "checkpoint_stem_name"], "''"
+        )
 
         return config, self.reports
