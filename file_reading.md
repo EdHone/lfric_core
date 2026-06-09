@@ -36,7 +36,7 @@ This file configuration will set up the `lfric_xios_context_type` to read data f
 into the fields in the `input_field_collection`, at a frequency specified by the user (in the case above,
 every 10 timesteps).
 The configuration is then passed to XIOS and 'locked-in' for the models duration with the call to
-`xios_close_context_definition` (called from `io_context%close_context_definition()).
+`xios_close_context_definition` (called from `io_context%close_context_definition()`).
 
 ## Implementation within LFRic_apps
 
