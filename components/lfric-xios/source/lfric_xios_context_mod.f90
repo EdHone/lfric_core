@@ -13,6 +13,7 @@ module lfric_xios_context_mod
                                    r_second, i_timestep, &
                                    l_def
   use field_mod,            only : field_type
+  use field_parent_mod,     only : field_parent_type
   use file_mod,             only : file_type
   use io_context_mod,       only : io_context_type
   use io_config_mod,        only : file_convention,       &
@@ -21,6 +22,8 @@ module lfric_xios_context_mod
   use lfric_mpi_mod,        only : lfric_comm_type
   use log_mod,              only : log_event, log_scratch_space, &
                                    log_level_error, log_level_debug
+  use lfric_xios_diagnostic_mod, &
+                            only : lfric_xios_diagnostic_type
   use lfric_xios_setup_mod, only : init_xios_calendar,   &
                                    init_xios_dimensions, &
                                    setup_xios_files
@@ -296,6 +299,24 @@ contains
     filelist => this%filelist
 
   end function get_filelist
+
+  !> Adds a diagnostic to the context's diagnostic list.
+  subroutine add_diagnostic( this, field, diagnostic_id )
+
+    implicit none
+
+    class(lfric_xios_context_type), intent(inout) :: this
+    class(field_parent_type),       intent(in)    :: field
+    character(*), optional,         intent(in)    :: diagnostic_id
+
+
+    type(lfric_xios_diagnostic_type) :: diagnostic
+
+
+    diagnostic = lfric_xios_diagnostic_type(field, diagnostic_id)
+
+
+  end subroutine add_diagnostic
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets this context as the model's current I/O context

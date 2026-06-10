@@ -54,6 +54,7 @@ contains
   procedure, public :: send
   procedure, public :: get_model_field
   procedure, public :: set_model_field
+  procedure, public :: get_xios_id
   procedure, public :: get_xios_name
   procedure, public :: set_xios_name
   final             :: lfric_xios_field_final
@@ -307,6 +308,18 @@ subroutine set_model_field(self, new_model_field)
   self%model_field => new_model_field
 
 end subroutine set_model_field
+
+!> Returns the associated XIOS field ID
+function get_xios_id(self) result(xios_id_out)
+
+  implicit none
+
+  class(lfric_xios_field_type), intent(in) :: self
+  character(len=str_def), allocatable :: xios_id_out
+
+  xios_id_out = trim(adjustl(self%xios_id))
+
+end function get_xios_id
 
 !> Returns the associated XIOS field name
 function get_xios_name(self) result(xios_name_out)
