@@ -50,6 +50,7 @@ module lfric_xios_context_mod
 
     type(xios_context)     :: handle
     type(linked_list_type) :: filelist
+    type(linked_list_type) :: diagnostic_list
     integer(i_def)         :: context_clock_step = 1_i_def
 
     logical :: uses_timer = .false.
@@ -65,6 +66,7 @@ module lfric_xios_context_mod
     procedure, public :: is_initialised
     procedure, public :: close_context_definition
     procedure, public :: get_filelist
+    procedure, public :: add_diagnostic
     procedure, public :: set_current
     procedure, public :: tick_context_clock
     procedure, public :: get_context_clock_step
