@@ -70,6 +70,8 @@ module lfric_xios_context_mod
     procedure, public :: close_context_definition
     procedure, public :: get_filelist
     procedure, public :: add_diagnostic
+    procedure, public :: get_diagnostic
+    procedure, public :: send_and_reset_diagnostics
     procedure, public :: set_current
     procedure, public :: tick_context_clock
     procedure, public :: get_context_clock_step
@@ -309,14 +311,72 @@ contains
     class(field_parent_type),       intent(in)    :: field
     character(*), optional,         intent(in)    :: diagnostic_id
 
-
     type(lfric_xios_diagnostic_type) :: diagnostic
 
-
     diagnostic = lfric_xios_diagnostic_type(field, diagnostic_id)
-
+    call this%diagnostic_list%insert_item(diagnostic)
 
   end subroutine add_diagnostic
+
+  function get_diagnostic(this, diagnostic_id) result(diagnostic)
+
+    implicit none
+
+    class(lfric_xios_context_type), intent(in) :: this
+    character(*), intent(in) :: diagnostic_id
+
+    type(lfric_xios_diagnostic_type), pointer :: diagnostic
+
+    type(linked_list_item_type), pointer :: loop
+
+    diagnostic => null()
+    if (this%diagnostic_list%get_length() > 0) then
+      loop => this%diagnostic_list%get_head()
+      do while (associated(loop))
+        select type(list_item => loop%payload)
+          type is (lfric_xios_diagnostic_type)
+            if (trim(list_item%get_xios_id()) == trim(diagnostic_id)) then
+              diagnostic => list_item
+              exit
+            end if
+        end select
+        loop => loop%next
+      end do
+    end if
+
+    ! If we haven't associated a diagnostic at this point, then we haven't
+    ! found one with the requested ID, so log an error.
+    if (.not. associated(diagnostic)) then
+      call log_event( "Diagnostic with ID '" // trim(diagnostic_id) // &
+                      "' not found in context '" // trim(this%get_context_name()) // "'", &
+                      log_level_error )
+    end if
+
+  end function get_diagnostic
+
+  subroutine send_and_reset_diagnostics(this)
+
+    implicit none
+
+    class(lfric_xios_context_type), intent(inout) :: this
+
+    type(linked_list_item_type), pointer :: loop => null()
+    type(lfric_xios_diagnostic_type), pointer :: diagnostic => null()
+
+    if (this%diagnostic_list%get_length() > 0) then
+      loop => this%diagnostic_list%get_head()
+      do while (associated(loop))
+        select type(list_item => loop%payload)
+          type is (lfric_xios_diagnostic_type)
+            diagnostic => list_item
+            call diagnostic%send()
+            call diagnostic%reset()
+        end select
+        loop => loop%next
+      end do
+    end if
+
+  end subroutine send_and_reset_diagnostics
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets this context as the model's current I/O context
