@@ -33,7 +33,6 @@ program lfric_xios_temporal_interp_test
   procedure(event_action),       pointer :: context_advance
   type(field_type),              pointer :: rfield
   type(field_proxy_type)                 :: rproxy
-  type(xios_date) :: date
   integer(i_timestep) :: file_freq
 
   call test_db%initialise()
@@ -73,7 +72,7 @@ program lfric_xios_temporal_interp_test
   call io_context%set_active(.true.)
 
   do while (test_db%clock%tick())
-    call test_db%temporal_fields%get_field("temporal_field", rfield)
+    call test_db%fields%get_field("temporal_field", rfield)
     rproxy = rfield%get_proxy()
     call log_event("Valid data for this TS:", log_level_info)
     print*,rproxy%data(1)

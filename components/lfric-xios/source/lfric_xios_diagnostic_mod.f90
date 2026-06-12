@@ -13,9 +13,10 @@ module lfric_xios_diagnostic_mod
   use lfric_xios_field_mod, only: lfric_xios_field_type
   use linked_list_data_mod, only: linked_list_data_type
   use log_mod,              only: log_event, log_level_debug, log_level_error
-  use xios,                 only: xios_date, xios_duration,                 &
-                                  xios_is_valid_field, xios_get_start_date, &
-                                  xios_get_field_attr, operator(+)
+  use xios,                 only: xios_date, xios_duration,                   &
+                                  xios_is_valid_field, xios_get_start_date,   &
+                                  xios_get_field_attr, xios_get_current_date, &
+                                  operator(+), operator(<=)
 
   implicit none
 
@@ -43,6 +44,9 @@ contains
 !> Constructor for the lfric_xios_diagnostic_type, which takes a field and an
 !> optional XIOS ID to create an instance of an lfric_xios_field_type for the
 !> diagnostic.
+!!
+!> @param[in] field The field to be sent as a diagnostic to XIOS
+!> @param[in] input_xios_id An optional XIOS ID to associate with the diagnostic field
 function lfric_xios_diagnostic_constructor(field, input_xios_id) result(self)
 
   class(field_parent_type), target, intent(in) :: field
@@ -79,12 +83,17 @@ function lfric_xios_diagnostic_constructor(field, input_xios_id) result(self)
 end function lfric_xios_diagnostic_constructor
 
 !> Send field data to for the diagnostic to XIOS.
+!>
+!> @param[in] field_pointer An optional field pointer which is used as dynamic
+!>                          source of field data in provided
 subroutine send(self, field_pointer)
 
   implicit none
 
   class(lfric_xios_diagnostic_type),           intent(inout) :: self
   class(field_parent_type), pointer, optional, intent(in)    :: field_pointer
+
+  type(xios_date) :: model_date
 
   if (self%was_sent_this_timestep) then
     call log_event( "Diagnostic field '" // trim(self%field%get_xios_id()) // &
@@ -93,19 +102,31 @@ subroutine send(self, field_pointer)
     return
   end if
 
-  ! If an optional field has been passed to this subroutine, as for cases where
-  ! diagnostics might be dynamically generated, then update the associated field
-  ! pointer
-  if (present(field_pointer)) then
-    call self%field%set_model_field(field_pointer)
+  call xios_get_current_date(model_date)
+  if (self%next_operation <= model_date) then
+
+    call log_event( "Sending diagnostic field '" //                &
+                    trim(self%field%get_xios_id()) // "' to XIOS", &
+                    log_level_debug )
+
+    ! If an optional field has been passed to this subroutine, as for cases where
+    ! diagnostics might be dynamically generated, then update the associated field
+    ! pointer
+    if (present(field_pointer)) then
+      call self%field%set_model_field(field_pointer)
+    end if
+
+    ! Send data to XIOS
+    call self%field%send()
+
+    ! Set object attributes to reflect successful send operation
+    self%was_sent_this_timestep = .true.
+    self%next_operation = self%next_operation + self%frequency
+  else
+    call log_event( "Diagnostic field '" // trim(self%field%get_xios_id()) // &
+                    "' is not due to be sent on this timestep - skipping.",   &
+                    log_level_debug )
   end if
-
-  ! Send data to XIOS
-  call self%field%send()
-
-  ! Set object attributes to reflect successful send operation
-  self%was_sent_this_timestep = .true.
-  self%next_operation = self%next_operation + self%frequency
 
 end subroutine send
 
@@ -121,6 +142,7 @@ subroutine reset(self)
 
 end subroutine reset
 
+!> Returns the XIOS ID associated with the diagnostic field
 function get_xios_id(self) result(xios_id_out)
 
   implicit none

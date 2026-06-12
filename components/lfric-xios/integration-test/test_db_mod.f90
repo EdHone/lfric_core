@@ -55,8 +55,8 @@ module test_db_mod
     type(field_type),      public :: panel_id
     type(model_clock_type), public, allocatable :: clock
     class(calendar_type),   public, allocatable :: calendar
+    type(field_collection_type), public :: fields
     type(field_collection_type), public :: temporal_fields
-
   contains
     procedure initialise
     procedure finalise
@@ -80,6 +80,7 @@ contains
     type(function_space_type), pointer :: tmp_fs
     type(field_proxy_type) :: chi_p(3), pid_p, rproxy
     type(field_type) :: temporal_field
+    type(field_type) :: diagnostic_field
 
     procedure(read_interface),  pointer :: read_ptr
     procedure(write_interface), pointer :: write_ptr
@@ -208,6 +209,8 @@ contains
       call log_event( "Unable to allocate model clock", LOG_LEVEL_ERROR )
     end if
 
+    call self%fields%initialise(name="fields", table_len=1)
+
     ! Create field for reading
     call self%temporal_fields%initialise(name="temporal_fields", table_len=1)
     tmp_fs => function_space_collection%get_fs(mesh_ptr, 0, 0, W3)
@@ -218,8 +221,17 @@ contains
     call temporal_field%set_read_behaviour(read_ptr)
     write_ptr => write_field_generic
     call temporal_field%set_write_behaviour(write_ptr)
+    call self%fields%add_field(temporal_field)
     call self%temporal_fields%add_field(temporal_field)
 
+    ! Create diagnostic field
+    tmp_fs => function_space_collection%get_fs(mesh_ptr, 0, 0, W3)
+    call diagnostic_field%initialise(vector_space = tmp_fs, name="diagnostic_field" )
+    rproxy = diagnostic_field%get_proxy()
+    rproxy%data(:) = 10.0_r_def
+    write_ptr => write_field_generic
+    call diagnostic_field%set_write_behaviour(write_ptr)
+    call self%fields%add_field(diagnostic_field)
 
     nullify(local_mesh_ptr)
     nullify(mesh_ptr)

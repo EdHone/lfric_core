@@ -65,7 +65,7 @@ program lfric_xios_temporal_iodef_test
   call io_context%set_active(.true.)
 
   do while (test_db%clock%tick())
-    call test_db%temporal_fields%get_field("temporal_field", rfield)
+    call test_db%fields%get_field("temporal_field", rfield)
     rproxy = rfield%get_proxy()
     call log_event("Valid data for this TS:", log_level_info)
     print*,rproxy%data(1)

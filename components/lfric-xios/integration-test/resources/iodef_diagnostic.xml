@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simulation>
+
+  <context id = "test_io_context">
+
+      <field_definition>
+        <field id="diagnostic_field"
+               name="diagnostic_field"
+               freq_op="10s"
+               long_name="lfric_xios_integration_test_diagnostic"
+               unit="1"
+               grid_ref="half_level_face_grid" />
+      </field_definition>
+
+    <file_definition
+        type="one_file">
+
+      <file id="lfric_xios_diagnostic_file" name="lfric_xios_diagnostic_file" output_freq="60s" convention="UGRID" enabled=".TRUE.">
+        <field field_ref="diagnostic_field"/>
+      </file>
+
+      </file_definition>
+  </context>
+
+  <context id = "xios">
+    <variable_definition>
+      <variable_group id = "buffer">
+        <variable id = "optimal_buffer_size" type = "string" >performance</variable>
+      </variable_group>
+
+      <variable_group id = "parameters" >
+        <variable id = "using_server" type = "bool" >true</variable>
+        <variable id = "info_level" type = "int" >50</variable>
+        <variable id = "print_file" type="bool">true</variable>
+      </variable_group>
+    </variable_definition>
+  </context>
+
+</simulation>
