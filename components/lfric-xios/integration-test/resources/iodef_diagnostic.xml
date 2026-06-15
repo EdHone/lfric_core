@@ -3,10 +3,17 @@
 
   <context id = "test_io_context">
 
+      <grid_definition>
+        <grid id="half_level_face_grid">
+          <domain domain_ref="face"/>
+          <axis axis_ref="vert_axis_half_levels"/>
+        </grid>
+      </grid_definition>
+
       <field_definition>
         <field id="diagnostic_field"
                name="diagnostic_field"
-               freq_op="10s"
+               freq_op="2ts"
                long_name="lfric_xios_integration_test_diagnostic"
                unit="1"
                grid_ref="half_level_face_grid" />
@@ -15,8 +22,8 @@
     <file_definition
         type="one_file">
 
-      <file id="lfric_xios_diagnostic_file" name="lfric_xios_diagnostic_file" output_freq="60s" convention="UGRID" enabled=".TRUE.">
-        <field field_ref="diagnostic_field"/>
+      <file id="lfric_xios_diagnostic_file" name="lfric_xios_diagnostic_file" mode="write" output_freq="2ts" convention="UGRID" enabled=".TRUE.">
+        <field field_ref="diagnostic_field" operation="instant"/>
       </file>
 
       </file_definition>

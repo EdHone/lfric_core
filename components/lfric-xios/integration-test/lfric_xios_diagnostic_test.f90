@@ -11,9 +11,9 @@ program lfric_xios_diagnostic_test
   use event_mod,              only: event_action
   use event_actor_mod,        only: event_actor_type
   use field_mod,              only: field_type
-  use io_context_mod,         only: callback_clock_arg
   use lfric_xios_action_mod,  only: advance
   use lfric_xios_context_mod, only: lfric_xios_context_type
+  use lfric_xios_diagnostic_mod, only: lfric_xios_diagnostic_type
   use lfric_xios_driver_mod,  only: lfric_xios_initialise, lfric_xios_finalise
   use log_mod,                only: log_event, log_level_info
   use test_db_mod,            only: test_db_type
@@ -26,10 +26,10 @@ program lfric_xios_diagnostic_test
   type(test_db_type)                                 :: test_db
   type(lfric_xios_context_type), target, allocatable :: io_context
 
-  procedure(callback_clock_arg), pointer :: before_close
   class(event_actor_type),       pointer :: context_actor
   procedure(event_action),       pointer :: context_advance
   type(field_type),              pointer :: diagnostic_field
+  type(lfric_xios_diagnostic_type), pointer :: diagnostic
 
   call test_db%initialise()
   call lfric_xios_initialise( "test", test_db%comm, .false. )
@@ -41,21 +41,25 @@ program lfric_xios_diagnostic_test
 
   diagnostic_field => null()
   call test_db%fields%get_field("diagnostic_field", diagnostic_field)
-  call io_context%add_diagnostic(diagnostic_field)
 
-  before_close => null()
   call io_context%initialise_xios_context( test_db%comm,                    &
                                            test_db%chi,  test_db%panel_id,  &
-                                           test_db%clock, test_db%calendar, &
-                                           before_close )
+                                           test_db%clock, test_db%calendar )
+  call io_context%add_diagnostic(diagnostic_field)
+  call io_context%close_context_definition()
 
   context_advance => advance
   context_actor => io_context
   call test_db%clock%add_event( context_advance, context_actor )
   call io_context%set_active(.true.)
 
+  diagnostic => null()
   do while (test_db%clock%tick())
-    print*, "Running"
+    if (mod(test_db%clock%get_step(), 4) == 0) then
+      diagnostic => io_context%get_diagnostic("diagnostic_field")
+      call diagnostic%send()
+      diagnostic => null()
+    end if
   end do
 
   deallocate(io_context)

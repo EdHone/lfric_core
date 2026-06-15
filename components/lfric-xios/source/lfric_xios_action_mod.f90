@@ -80,6 +80,7 @@ contains
             loop => loop%next
           end do
         end if
+        call context%send_and_reset_diagnostics()
       end if
 
       ! Update XIOS calendar

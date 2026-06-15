@@ -13,10 +13,11 @@ module lfric_xios_diagnostic_mod
   use lfric_xios_field_mod, only: lfric_xios_field_type
   use linked_list_data_mod, only: linked_list_data_type
   use log_mod,              only: log_event, log_level_debug, log_level_error
-  use xios,                 only: xios_date, xios_duration,                   &
+  use xios,                 only: xios_date, xios_duration, xios_timestep,    &
                                   xios_is_valid_field, xios_get_start_date,   &
                                   xios_get_field_attr, xios_get_current_date, &
-                                  operator(+), operator(<=)
+                                  xios_is_defined_field_attr, operator(+),    &
+                                  operator(<=)
 
   implicit none
 
@@ -58,6 +59,7 @@ function lfric_xios_diagnostic_constructor(field, input_xios_id) result(self)
   type(xios_date) :: start_date
   type(xios_duration) :: freq_offset
   character(len=str_def) :: xios_id
+  logical :: l_freq_op, l_freq_offset
 
   field_ptr => field
   if (present(input_xios_id)) then
@@ -75,7 +77,14 @@ function lfric_xios_diagnostic_constructor(field, input_xios_id) result(self)
   end if
 
   call xios_get_start_date(start_date)
-  call xios_get_field_attr(trim(xios_id), freq_op=self%frequency, freq_offset=freq_offset)
+
+  self%frequency = xios_timestep
+  freq_offset = xios_timestep
+  call xios_is_defined_field_attr( trim(xios_id), freq_op=l_freq_op, &
+                                                 freq_offset=l_freq_offset )
+  if (l_freq_op) call xios_get_field_attr(trim(xios_id), freq_op=self%frequency)
+  if (l_freq_offset) call xios_get_field_attr(trim(xios_id), freq_offset=freq_offset)
+
   self%next_operation = start_date + freq_offset
 
   nullify(field_ptr)
