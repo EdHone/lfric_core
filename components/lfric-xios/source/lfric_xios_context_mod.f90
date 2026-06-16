@@ -117,8 +117,6 @@ contains
     logical,              optional, intent(in)    :: start_at_zero
 
     type(mesh_type), pointer             :: mesh => null()
-    type(linked_list_item_type), pointer :: loop => null()
-    type(lfric_xios_file_type),  pointer :: file => null()
     logical :: zero_start
     integer(tik) :: timing_id
 
