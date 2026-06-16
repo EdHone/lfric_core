@@ -25,6 +25,7 @@ module init_io_demo_mod
                                                      LOG_LEVEL_TRACE, &
                                                      LOG_LEVEL_ERROR
   use mesh_mod,                               only : mesh_type
+  use lfric_xios_context_mod,                 only : lfric_xios_context_type
   use lfric_xios_read_mod,                    only : read_field_generic
   use lfric_xios_write_mod,                   only : write_field_generic
   use io_demo_constants_mod,                  only : create_io_demo_constants
@@ -112,5 +113,26 @@ module init_io_demo_mod
     call log_event( 'io_demo: Miniapp initialised', LOG_LEVEL_TRACE )
 
   end subroutine init_io_demo
+
+  subroutine init_io_demo_diagnostics(modeldb)
+
+    implicit none
+
+    type(modeldb_type), intent(inout)       :: modeldb
+
+    type(lfric_xios_context_type), pointer :: io_context
+    type(field_collection_type),   pointer :: depository
+    type(field_type),              pointer :: diffusion_field
+
+    ! If diagnostics are turned on then add the diffusion field diagnostic to
+    ! the io_demo context
+    if (modeldb%config%io%write_diag()) then
+      call modeldb%io_contexts%get_io_context("io_demo", io_context)
+      depository => modeldb%fields%get_field_collection("depository")
+      call depository%get_field("diffusion_field", diffusion_field)
+      call io_context%add_diagnostic(diffusion_field)
+    end if
+
+  end subroutine init_io_demo_diagnostics
 
 end module init_io_demo_mod

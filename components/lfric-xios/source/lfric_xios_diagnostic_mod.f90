@@ -29,11 +29,13 @@ type, public, extends(linked_list_data_type) :: lfric_xios_diagnostic_type
   type(lfric_xios_field_type) :: field
   type(xios_date) :: next_operation
   type(xios_duration) :: frequency
+  logical :: enabled = .true.
   logical :: was_sent_this_timestep = .false.
 contains
   procedure :: send
   procedure :: reset
   procedure :: get_xios_id
+  procedure :: is_enabled
 end type lfric_xios_diagnostic_type
 
 interface lfric_xios_diagnostic_type
@@ -59,7 +61,7 @@ function lfric_xios_diagnostic_constructor(field, input_xios_id) result(self)
   type(xios_date) :: start_date
   type(xios_duration) :: freq_offset
   character(len=str_def) :: xios_id
-  logical :: l_freq_op, l_freq_offset
+  logical :: l_freq_op, l_freq_offset, l_enabled
 
   field_ptr => field
   if (present(input_xios_id)) then
@@ -76,15 +78,17 @@ function lfric_xios_diagnostic_constructor(field, input_xios_id) result(self)
                     log_level_error )
   end if
 
-  call xios_get_start_date(start_date)
-
   self%frequency = xios_timestep
   freq_offset = xios_timestep
   call xios_is_defined_field_attr( trim(xios_id), freq_op=l_freq_op, &
-                                                 freq_offset=l_freq_offset )
+                                                  freq_offset=l_freq_offset,&
+                                                  enabled=l_enabled )
+
+  if (l_enabled) call xios_get_field_attr(trim(xios_id), enabled=self%enabled)
   if (l_freq_op) call xios_get_field_attr(trim(xios_id), freq_op=self%frequency)
   if (l_freq_offset) call xios_get_field_attr(trim(xios_id), freq_offset=freq_offset)
 
+  call xios_get_start_date(start_date)
   self%next_operation = start_date + freq_offset
 
   nullify(field_ptr)
@@ -162,5 +166,17 @@ function get_xios_id(self) result(xios_id_out)
   xios_id_out = trim(adjustl(self%field%get_xios_id()))
 
 end function get_xios_id
+
+!> Returns true if field is enabled
+function is_enabled(self) result(enabled_out)
+
+  implicit none
+
+  class(lfric_xios_diagnostic_type), intent(in) :: self
+  logical :: enabled_out
+
+  enabled_out = self%enabled
+
+end function is_enabled
 
 end module lfric_xios_diagnostic_mod

@@ -23,7 +23,7 @@ module io_demo_driver_mod
                                          TWOD, PRIME_EXTRUSION
   use field_collection_mod,       only : field_collection_type
   use field_mod,                  only : field_type
-  use init_io_demo_mod,           only : init_io_demo
+  use init_io_demo_mod,           only : init_io_demo, init_io_demo_diagnostics
   use inventory_by_mesh_mod,      only : inventory_by_mesh_type
   use lfric_mpi_mod,              only : lfric_mpi_type
   use log_mod,                    only : log_event,         &
@@ -222,6 +222,7 @@ contains
     call panel_id_inventory%get_field(mesh, panel_id)
     call init_io_demo(modeldb, mesh, chi, panel_id)
 
+    call init_io_demo_diagnostics(modeldb)
 
     ! Set up checkpoint context if needed
     if (checkpoint_write .or. checkpoint_read) then
@@ -282,12 +283,6 @@ contains
       call step_io_benchmark(modeldb)
     else
       call io_demo_alg(modeldb, diffusion_field)
-    end if
-
-    if (write_diag) then
-        ! Write out output file
-        call log_event(program_name//": Writing diagnostic output", LOG_LEVEL_INFO)
-        call diffusion_field%write_field('diffusion_field')
     end if
 
   end subroutine step

@@ -118,7 +118,7 @@ contains
         call before_close(modeldb%clock)
       end if
 
-      call context%close_context_definition()
+      !call context%close_context_definition()
 
 #else
       call log_event( "Cannot use XIOS I/O: model has not been built with " // &
@@ -217,6 +217,7 @@ contains
 
     !==============================================================
 
+    print*, context_name
     call tmp_io_context%initialise(context_name)
     call modeldb%io_contexts%add_context(tmp_io_context)
     call modeldb%io_contexts%get_io_context(context_name, io_context)

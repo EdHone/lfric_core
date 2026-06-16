@@ -314,7 +314,9 @@ contains
     type(lfric_xios_diagnostic_type) :: diagnostic
 
     diagnostic = lfric_xios_diagnostic_type(field, diagnostic_id)
-    call this%diagnostic_list%insert_item(diagnostic)
+    if (diagnostic%is_enabled()) then
+      call this%diagnostic_list%insert_item(diagnostic)
+    end if
 
   end subroutine add_diagnostic
 
