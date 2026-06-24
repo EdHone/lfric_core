@@ -60,7 +60,7 @@
     }) %}
 
 
-{% elif task_ns.conf_name == "temporal_reading-C48-servers" %}
+{% elif task_ns.conf_name == "temporal_reading-C48-server" %}
 
     {% do task_dict.update({
         "opt_confs": ["temporal_reading"],

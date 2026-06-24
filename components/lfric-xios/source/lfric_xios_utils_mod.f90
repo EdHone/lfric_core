@@ -230,7 +230,7 @@ module lfric_xios_utils_mod
     call global_mpi%broadcast(input_data, n_t_buf(1), 0)
     call global_mpi%broadcast(time_meta_buf, size(time_meta_buf, 1)*str_def, 0)
 
-    allocate(time_data(n_t))
+    allocate(time_data(n_t_buf(1)))
     ref_date_str = time_meta_buf(1)
     time_units = time_meta_buf(2)
     ref_date = parse_date_as_xios(trim(adjustl(ref_date_str)))
