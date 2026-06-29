@@ -73,6 +73,10 @@
         "io_demo_temporal_reading-C48-server_ex1a_cce_fast-debug-32bit",
         "io_demo_temporal_reading-C48-server_ex1a_gnu_fast-debug-64bit",
     ],
+    "io_demo_read_benchmarks": [
+        "io_demo_temporal_reading-C224-6servers_ex1a_cce_fast-debug-32bit",
+        "io_demo_temporal_reading-C224-12servers_ex1a_cce_fast-debug-32bit",
+    ],
     "io_demo_ex1a": [
         "io_demo_ex1a_developer"
     ],

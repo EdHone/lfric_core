@@ -59,7 +59,6 @@
         "mpi_parts": 24,
     }) %}
 
-
 {% elif task_ns.conf_name == "temporal_reading-C48-server" %}
 
     {% do task_dict.update({
@@ -74,6 +73,33 @@
         "xios_server_ranks": 1,
     }) %}
 
+{% elif task_ns.conf_name == "temporal_reading-C224-6servers" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["temporal_reading"],
+        "resolution": "C224",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts": 384,
+        "mpi_parts_xios": 6,
+        "xios_nodes": 1,
+        "xios_server_mode": true,
+        "xios_server_ranks": 6,
+    }) %}
+
+{% elif task_ns.conf_name == "temporal_reading-C224-12servers" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["temporal_reading"],
+        "resolution": "C224",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts": 384,
+        "mpi_parts_xios": 12,
+        "xios_nodes": 1,
+        "xios_server_mode": true,
+        "xios_server_ranks": 12,
+    }) %}
 {% elif task_ns.conf_name == "benchmark-C24" %}
 
     {% do task_dict.update({
