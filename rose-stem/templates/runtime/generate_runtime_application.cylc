@@ -150,6 +150,9 @@
             ROSE_LAUNCHER         = mpiexec
             RUN_METHOD            = mpiexec
       {% endif %}
+      {% if task_ns.application == "io_demo" %}
+            CHUNK_DIM_SIZE        = {{task_values["chunk_dim_size"]}}
+      {% endif %}
             PROCESSES             = {{task_values["mpi_parts"]}}
       {% if task_ns.application == "coupled" %}
         {% if task_values["app_name"] == "canned_test" %}
