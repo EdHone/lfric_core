@@ -73,125 +73,276 @@
         "xios_server_ranks": 1,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-chdefault" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-chdefault" %}
 
     {% do task_dict.update({
         "opt_confs": ["temporal_reading"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 1,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch512" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch128" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 128,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch256" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 256,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch512" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 512,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch1024" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch1024" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 1024,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch2048" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch2048" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 2048,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch4096" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch4096" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 4096,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch8192" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch8192" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 8192,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch16384" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch16384" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 16384,
     }) %}
 
-{% elif task_ns.conf_name == "read_benchmark-C224-ch32768" %}
+{% elif task_ns.conf_name == "read_benchmark-C896-ch32768" %}
 
     {% do task_dict.update({
         "opt_confs": ["read_benchmark"],
-        "resolution": "C224",
+        "resolution": "C896",
         "tsteps": 360,
         "kgo_checks": [],
-        "mpi_parts": 384,
-        "mpi_parts_xios": 6,
-        "xios_nodes": 1,
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
         "xios_server_mode": true,
-        "xios_server_ranks": 6,
+        "xios_server_ranks": 96,
         "chunk_dim_size": 32768,
     }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch50176" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 50176,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch25088" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 25088,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch12544" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 12544,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch6272" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 6272,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch3136" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 3136,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch1568" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 1568,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch784" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 784,
+    }) %}
+
+{% elif task_ns.conf_name == "read_benchmark-C896-ch392" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["read_benchmark"],
+        "resolution": "C896",
+        "tsteps": 360,
+        "kgo_checks": [],
+        "mpi_parts":4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+        "xios_server_mode": true,
+        "xios_server_ranks": 96,
+        "chunk_dim_size": 392,
+    }) %}
+
 
 {% elif task_ns.conf_name == "benchmark-C24" %}
 
