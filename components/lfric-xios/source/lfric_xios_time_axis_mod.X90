@@ -201,6 +201,7 @@ contains
 
     type(xios_date)             :: start_date, time_origin
     character(str_max_filename) :: file_name
+    integer(i_def)              :: i
 
     call log_event( "Performing post-XIOS context set-up for time_axis_type ["// &
                     trim(self%name)//"]", LOG_LEVEL_TRACE )
@@ -223,6 +224,7 @@ contains
 
     ! Read time data
     self%time_data = read_time_data(trim(file_name))
+    self%index_data = (/ (i, i=1, size(self%time_data)) /)
 
   end subroutine setup
 
