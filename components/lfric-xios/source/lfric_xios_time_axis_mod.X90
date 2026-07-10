@@ -222,7 +222,7 @@ contains
     end do
 
     ! Read time data
-    self%time_data = read_time_data(trim(file_path))
+    self%time_data = read_time_data(trim(file_name))
 
   end subroutine setup
 
