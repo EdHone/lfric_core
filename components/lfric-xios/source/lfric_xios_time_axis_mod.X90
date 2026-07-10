@@ -120,7 +120,7 @@ module lfric_xios_time_axis_mod
     end subroutine regridder
   end interface
 
-  public :: regridder, get_time_dim
+  public :: regridder, read_time_dim
 
 contains
 
