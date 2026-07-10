@@ -120,7 +120,7 @@ module lfric_xios_time_axis_mod
     end subroutine regridder
   end interface
 
-  public :: regridder
+  public :: regridder, get_time_dim
 
 contains
 
@@ -619,5 +619,18 @@ contains
                  X_plus_Y( model_field, field_time_entries(1), interp_gradient ) )
 
   end subroutine interp_field_1d
+
+  function read_time_dim(path) result(time_dim)
+
+    implicit none
+
+    character(*), intent(in) :: path
+    type(xios_date), allocatable :: time_data(:)
+    integer(i_def) :: time_dim
+
+    time_data = read_time_data(path)
+    time_dim = size(time_data)
+
+  end function read_time_dim
 
 end module lfric_xios_time_axis_mod
