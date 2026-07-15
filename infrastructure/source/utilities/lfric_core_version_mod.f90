@@ -18,7 +18,7 @@ module lfric_core_version_mod
   integer(i_def), public, parameter  :: lfric_core_major_version  = 3
   integer(i_def), public, parameter  :: lfric_core_minor_version  = 2
   integer(i_def), public, parameter  :: lfric_core_patch_version  = 0
-  logical(l_def), public, parameter  :: lfric_core_release_version  = .false.
+  logical(l_def), public, parameter  :: lfric_core_release_version  = .true.
   character(2), parameter            :: prefix = 'vn'
   character(4), parameter            :: dev_suffix = '_dev'
 
