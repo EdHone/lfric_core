@@ -36,6 +36,8 @@ program lfric_xios_time_read_test
                                              test_db%config%finite_element%coord_system(), &
                                              test_db%config%planet%scaled_radius() )
 
+    call io_context%close_context_definition()
+
     allocate(check(10))
     check = [ xios_date(2024, 1, 1, 15, 1, 0), &
               xios_date(2024, 1, 1, 15, 2, 0), &
