@@ -98,12 +98,13 @@ class LfricXiosFullNonCyclicIodefNoFreqTest(LFRicXiosTest): # pylint: disable=to
         self.gen_data('temporal_data.cdl', 'lfric_xios_temporal_input.nc')
         self.gen_config( "non_cyclic_base.nml", "non_cyclic_full.nml", {} )
 
-    def test(self, returncode: int, out: str, err: str): # pylint: disable=unused-argument, disable=no-self-use
+    def test(self, returncode: int, out: str, err: str): # pylint: disable=unused-argument
         """
         Test the output of the context test
         """
 
-        expected_error_code = "ERROR: Frequency for file [lfric_xios_temporal_input] not defined in XIOS or LFRic" # pylint: disable=C0301
+        expected_error_code = "ERROR: Frequency for file [lfric_xios_temporal_input] " \
+                              "not defined in XIOS or LFRic"
 
         if returncode == 1:
             errorcode = err.split("\n")[0].split("0:")[1]
