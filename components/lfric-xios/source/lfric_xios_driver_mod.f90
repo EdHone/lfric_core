@@ -11,7 +11,7 @@ module lfric_xios_driver_mod
   use constants_mod, only: i_def
   use lfric_mpi_mod, only: lfric_comm_type
   use mod_wait,      only: init_wait
-  use xios,          only: xios_initialize, xios_finalize
+  use xios,          only: xios_initialize, xios_finalize, xios_context_finalize
 
   implicit none
 
@@ -52,5 +52,19 @@ contains
     call xios_finalize()
 
   end subroutine lfric_xios_finalise
+  
+
+  !> @brief In some configurations that do not use ModelDB it is
+  !> necessary to finalise the XIOS context explicitly. Required
+  !> for XIOS3 but backwards compatible with XIOS2
+  !>
+  
+  subroutine lfric_xios_context_finalise()
+
+    implicit none
+
+    call xios_context_finalize()
+
+  end subroutine lfric_xios_context_finalise
 
 end module lfric_xios_driver_mod
