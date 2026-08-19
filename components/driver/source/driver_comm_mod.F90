@@ -17,6 +17,8 @@
 !>
 module driver_comm_mod
 
+  use iso_fortran_env, only: output_unit
+
   use constants_mod,         only: i_def, l_def, str_longlong
   use driver_modeldb_mod,    only: modeldb_type
   use halo_comms_mod,        only: initialise_halo_comms, &
