@@ -139,25 +139,36 @@ contains
 #endif
 
 #ifdef USE_XIOS
+    write(output_unit, '(A)') 'XIOS final'
+    flush(output_unit)
     ! Finalise XIOS
     call lfric_xios_finalise()
 #endif
 
 #ifdef MCT
+    write(output_unit, '(A)') 'Oasis final'
+    flush(output_unit)
     ! Extract the coupling object from the modeldb key-value pair collection
     coupling_ptr => get_coupling_from_collection(modeldb%values, "coupling" )
     ! FInalise OASIS coupling
     call coupling_ptr%finalise()
 #endif
 
+    write(output_unit, '(A)') 'Halo final'
+    flush(output_unit)
     ! Finalise halo exchange functionality
     call finalise_halo_comms()
 
+    write(output_unit, '(A)') 'MPI final'
+    flush(output_unit)
     ! Finalise the mpi object
     call modeldb%mpi%finalise()
     ! Release the communicator if it is ours to release. If a communicator has
     ! been provided to LFRic, then that is someone else's responsibility
     if(comm_created)call destroy_comm()
+
+    write(output_unit, '(A)') 'complete final'
+    flush(output_unit)
 
   end subroutine final_comm
 
