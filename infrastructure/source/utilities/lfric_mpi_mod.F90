@@ -218,6 +218,7 @@ contains
     ierr=0 ! Set local variable to avoid unused variable errors
 #else
     call mpi_finalize(ierr)
+    print*, ierr, mpi_success
     if (ierr /= mpi_success) &
           call log_event('Unable to finalise MPI', LOG_LEVEL_ERROR )
 #endif
