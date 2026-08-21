@@ -163,10 +163,10 @@ contains
     if(comm_created)call destroy_comm()
 
 #ifdef USE_XIOS
-    write(output_unit, '(A)') 'XIOS final'
+    write(output_unit, '(A)') 'No XIOS final'
     flush(output_unit)
     ! Finalise XIOS
-    call lfric_xios_finalise()
+    !call lfric_xios_finalise()
 #endif
 
     write(output_unit, '(A)') 'complete final'
