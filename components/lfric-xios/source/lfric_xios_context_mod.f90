@@ -261,6 +261,8 @@ contains
         end do
       end if
 
+      call xios_context_finalize()
+
       ! Only take action if this is a regional model with UGRID Projected
       ! coordinates, as these are awaiting XIOS feature development
       if ( this%ugrid_scaled_projected_coordinates ) then
