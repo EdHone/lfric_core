@@ -261,19 +261,15 @@ contains
         end do
       end if
 
-      call xios_context_finalize()
-
-      ! Only take action if this is a regional model with UGRID Projected
-      ! coordinates, as these are awaiting XIOS feature development
-      if ( this%ugrid_scaled_projected_coordinates ) then
-
-      ! Finalise the XIOS context - all data will be written to disk and files
-      ! will be closed.
       write(log_scratch_space, "(A)") "Finalising XIOS context: " // this%get_context_name()
       call log_event(log_scratch_space, log_level_debug)
       if ( LPROF ) call start_timing(timing_idxc, 'xios.context_finalize')
       call xios_context_finalize()
       if ( LPROF ) call stop_timing(timing_idxc, 'xios.context_finalize')
+
+      ! Only take action if this is a regional model with UGRID Projected
+      ! coordinates, as these are awaiting XIOS feature development
+      if ( this%ugrid_scaled_projected_coordinates ) then
 
         call log_event("Closing file for post processing.", LOG_LEVEL_DEBUG)
         ! We have closed the context on our end, but we need to make sure that XIOS
