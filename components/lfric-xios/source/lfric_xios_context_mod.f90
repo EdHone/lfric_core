@@ -266,6 +266,8 @@ contains
         end do
       end if
 
+      ! Finalise the XIOS context - all data will be written to disk and files
+      ! will be closed.
       write(log_scratch_space, "(A)") "Finalising XIOS context: " // this%get_context_name()
       call log_event(log_scratch_space, log_level_debug)
       if ( LPROF ) call start_timing(timing_idxc, 'xios.context_finalize')
