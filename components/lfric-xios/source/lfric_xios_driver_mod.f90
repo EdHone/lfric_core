@@ -32,7 +32,10 @@ contains
     integer(i_def) :: comm
 
     if (comm_has_been_split) then
-      call xios_initialize( model_name, &
+      ! The model hame has been hardwired as lfric in this case, to match
+      ! the conventions used throughout the Met Office coupled model
+      ! configurations
+      call xios_initialize( "lfric", &
                             local_comm=model_communicator%get_comm_mpi_val() )
     else
       call init_wait()
@@ -49,13 +52,13 @@ contains
     call xios_finalize()
 
   end subroutine lfric_xios_finalise
-  
+
 
   !> @brief In some configurations that do not use ModelDB it is
   !> necessary to finalise the XIOS context explicitly. Required
   !> for XIOS3 but backwards compatible with XIOS2
   !>
-  
+
   subroutine lfric_xios_context_finalise()
 
     implicit none
