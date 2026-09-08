@@ -366,24 +366,27 @@ subroutine register_with_context(self)
 
   ! Set I/O mode (no need for case defalt as we will fall back to XIOS's
   ! default behaviour)
-  call xios_set_attr( self%handle, type="one_file" )
+  call xios_set_attr(self%handle, type="one_file")
   select case(self%io_mode)
   case (FILE_MODE_READ)
-    call xios_set_attr( self%handle, mode="read" )
+    call xios_set_attr(self%handle, mode="read")
   case (FILE_MODE_WRITE)
-    call xios_set_attr( self%handle, mode="write" )
+    call xios_set_attr(self%handle, mode="write")
   end select
 
   ! Set XIOS file convention
+  print*, self%file_convention
   select case(self%file_convention)
     case (CONVENTION_CF)
-      call xios_set_attr( self%handle, convention="CF" )
+      call xios_set_attr(self%handle, convention="CF")
       call xios_set_attr(file_definition, convention_str="CF-1.12")
     case (CONVENTION_UGRID)
-      call xios_set_attr( self%handle, convention="UGRID" )
+      call xios_set_attr(self%handle, convention="UGRID")
       call xios_set_attr(file_definition, convention_str="CF-1.12 UGRID-1.0")
     case default
-      call log_event("Invalid choice for file convention", log_level_error)
+      self%file_convention = CONVENTION_CF
+      call log_event("File convention unset for file ["//trim(self%xios_id)// &
+                     "] - defaulting to CF", log_level_debug)
   end select
 
   ! Create CF-compliant time description
@@ -449,7 +452,7 @@ subroutine register_with_context(self)
 
     ! Iterate over field collection and register fields
     do i = 1, size(self%fields)
-      call self%fields(i)%register()
+      call self%fields(i)%register(ugrid=(self%file_convention == CONVENTION_UGRID))
     end do
 
     ! Set up time axis if needed
