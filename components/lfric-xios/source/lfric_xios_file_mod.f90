@@ -339,7 +339,8 @@ subroutine register_with_context(self)
   type(xios_date)        :: start_date
 
   integer(i_def) :: i, record_offset
-  logical :: output_freq_defined
+  logical :: convention_defined, output_freq_defined
+  character(str_def) :: iodef_file_convention
 
   call log_event( "Registering XIOS file ["//trim(self%xios_id)//"]", &
                   log_level_trace )
@@ -375,6 +376,20 @@ subroutine register_with_context(self)
   end select
 
   ! Set XIOS file convention
+
+  ! Check if file convention has been defined in iodef.xml config
+  call xios_is_defined_file_attr(self%xios_id, convention=convention_defined)
+  if (convention_defined) then
+    call xios_get_file_attr(self%xios_id, convention=iodef_file_convention)
+    if (trim(iodef_file_convention) == "CF") then
+      self%file_convention = CONVENTION_CF
+    else if (trim(iodef_file_convention) == "UGRID") then
+      self%file_convention = CONVENTION_UGRID
+    end if
+  else if (self%file_convention == undef_file_convention) then
+    self%file_convention = CONVENTION_CF
+  end if
+
   print*, self%file_convention
   select case(self%file_convention)
     case (CONVENTION_CF)

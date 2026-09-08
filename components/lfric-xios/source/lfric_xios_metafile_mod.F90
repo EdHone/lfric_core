@@ -171,14 +171,6 @@ contains
     use_ugrid_ckp = .true.
     if (present(ugrid_ckp)) use_ugrid_ckp = ugrid_ckp
 
-    if ( (mode == CHECKPOINTING .or. mode == RESTARTING) .and. &
-         (.not. use_ugrid_ckp) .and. (.not. cf_domains_initialised) ) then
-      call init_xios_dimensions( chi, panel_id, geometry, topology, &
-                                 coord_system, scaled_radius,       &
-                                 alt_coords, alt_panel_ids )
-      cf_domains_initialised = .true.
-    end if
-
     do i = 1, size(metafile)
       file_id = metafile(i)%get_id()
       if (mode == CHECKPOINTING ) then
@@ -221,7 +213,7 @@ contains
           if (use_ugrid_ckp) then
             call xios_set_attr(field, grid_ref=trim(grid_ref))
           else
-            call xios_set_attr(field, domain_ref=trim(grid_ref)//"_cf")
+            call xios_set_attr(field, grid_ref=trim(grid_ref)//"_cf")
           end if
         else
           domain_ref = get_field_domain_ref(dict_field_id)
