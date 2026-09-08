@@ -378,8 +378,12 @@ subroutine register_with_context(self)
   select case(self%file_convention)
     case (CONVENTION_CF)
       call xios_set_attr( self%handle, convention="CF" )
+      call xios_set_attr(file_definition, convention_str="CF-1.12")
     case (CONVENTION_UGRID)
       call xios_set_attr( self%handle, convention="UGRID" )
+      call xios_set_attr(file_definition, convention_str="CF-1.12 UGRID-1.0")
+    case default
+      call log_event("Invalid choice for file convention", log_level_error)
   end select
 
   ! Create CF-compliant time description

@@ -49,59 +49,11 @@ module lfric_xios_metafile_mod
 
 private
 
+logical(l_def) :: cf_domains_initialised = .false.
+
 public :: metafile_type, add_field
 
 contains
-
-  !> @brief Support for legacy checkpoints
-  !> @details This affects lbc and gungho prognostics, which have traditionally been
-  !> using the legacy checkpoint domains checkpoint_W3, checkpoint_W2 etc.
-  !> @param[in] field    XIOS field object
-  !> @param[in] field_id XIOS fielld id
-  subroutine handle_legacy_fields(field, field_id)
-    implicit none
-
-    type(xios_field), intent(in) :: field
-    character(*), intent(in) :: field_id
-
-    character(20), parameter :: Wtheta = 'checkpoint_Wtheta'
-    character(20), parameter :: W3 = 'checkpoint_W3'
-    character(20), parameter :: W2 = 'checkpoint_W2'
-
-    character(20), parameter :: wtheta_fields(7) = [character(20) :: &
-      'theta', 'm_v', 'm_cl', 'm_r', 'm_ci', 'm_s', 'm_g']
-    character(20), parameter :: w3_fields(3) =  [character(20) ::  &
-     'rho', 'exner', 'ageofair']
-    character(20), parameter :: w2_fields(1) = [character(20) :: &
-      'u']
-    character(20), parameter :: lbc_wtheta_fields(7) = [character(20) ::  &
-      'lbc_theta', 'lbc_m_v', 'lbc_m_cl', 'lbc_m_r', 'lbc_m_ci', 'lbc_m_s', 'lbc_m_g']
-    character(20), parameter :: lbc_w3_fields(2) = [character(20) :: &
-      'lbc_rho', 'lbc_exner']
-    character(20), parameter :: lbc_w2_fields(3) = [character(20) :: &
-      'lbc_u', 'boundary_u_diff', 'boundary_u_driving']
-
-    character(20) :: domain_id
-
-    if (any(wtheta_fields == field_id)) then
-      domain_id = Wtheta
-    else if (any(w3_fields == field_id)) then
-      domain_id = W3
-    else if (any(w2_fields == field_id)) then
-      domain_id = W2
-    else if (any(lbc_wtheta_fields == field_id)) then
-      domain_id = Wtheta
-    else if (any(lbc_w3_fields == field_id)) then
-      domain_id = W3
-    else if (any(lbc_w2_fields == field_id)) then
-      domain_id = W2
-    else
-      domain_id = ''
-      call log_event('unexpected legacy field: ' // trim(field_id), log_level_error)
-    end if
-
-    call xios_set_attr(field, domain_ref=domain_id)
-  end subroutine handle_legacy_fields
 
   !> @brief Get file handle from XIOS
   !> @param[inout] self  Metafile object
@@ -187,15 +139,15 @@ contains
   !> @param[in] mode           ID prefix to be used, .e.g, "checkpoint_"
   !> @param[in] operation      XIOS field operation, e.g., "once"
   !> @param[in] id_as_name     Use dictionary field ID as field name?
-  !> @param[in] legacy         Use legacy checkpointing domain?
-  subroutine add_field(metafile, dict_field_id, mode, operation, id_as_name, legacy)
+  !> @param[in] ugrid_ckp      Writes checkpoint in UGRID format
+  subroutine add_field(metafile, dict_field_id, mode, operation, id_as_name, ugrid_ckp)
     implicit none
     type(metafile_type), intent(in) :: metafile(:)
     character(*), intent(in) :: dict_field_id
     integer(i_def), intent(in) :: mode
     character(*), intent(in) :: operation
     logical(l_def), optional, intent(in) :: id_as_name
-    logical(l_def), optional, intent(in) :: legacy
+    logical(l_def), optional, intent(in) :: ugrid_ckp
 
     character(20), parameter :: lfric_dict = 'lfric_dictionary'
     character(str_def) :: file_id
@@ -210,14 +162,22 @@ contains
     character(str_def) :: axis_ref
     integer(i_def)     :: prec
     logical(l_def)     :: use_id_as_name
-    logical(l_def)     :: use_legacy
+    logical(l_def)     :: use_ugrid_ckp
     integer(i_def)     :: i
 
     use_id_as_name = .false.
     if (present(id_as_name)) use_id_as_name = id_as_name
 
-    use_legacy = .false.
-    if (present(legacy)) use_legacy = legacy
+    use_ugrid_ckp = .true.
+    if (present(ugrid_ckp)) use_ugrid_ckp = ugrid_ckp
+
+    if ( (mode == CHECKPOINTING .or. mode == RESTARTING) .and. &
+         (.not. use_ugrid_ckp) .and. (.not. cf_domains_initialised) ) then
+      call init_xios_dimensions( chi, panel_id, geometry, topology, &
+                                 coord_system, scaled_radius,       &
+                                 alt_coords, alt_panel_ids )
+      cf_domains_initialised = .true.
+    end if
 
     do i = 1, size(metafile)
       file_id = metafile(i)%get_id()
@@ -255,18 +215,23 @@ contains
 
         call xios_set_attr(field, name=field_name, prec=prec, operation=operation)
 
-        if (use_legacy) then
-          call handle_legacy_fields(field, dict_field_id)
-        else
-          grid_ref = get_field_grid_ref(dict_field_id)
-          if (grid_ref /= '') then
-            call xios_set_attr(field, grid_ref=grid_ref)
+        ! Set correct domain/grid IDs for fields
+        grid_ref = get_field_grid_ref(dict_field_id)
+        if (grid_ref /= '') then
+          if (use_ugrid_ckp) then
+            call xios_set_attr(field, grid_ref=trim(grid_ref))
           else
-            domain_ref = get_field_domain_ref(dict_field_id)
-            axis_ref = get_field_axis_ref(dict_field_id)
-            if (domain_ref /= '') call xios_set_attr(field, domain_ref=domain_ref)
-            if (axis_ref /= '') call xios_set_attr(field, axis_ref=axis_ref)
+            call xios_set_attr(field, domain_ref=trim(grid_ref)//"_cf")
           end if
+        else
+          domain_ref = get_field_domain_ref(dict_field_id)
+          axis_ref = get_field_axis_ref(dict_field_id)
+          if (use_ugrid_ckp) then
+            if (domain_ref /= '') call xios_set_attr(field, domain_ref=trim(domain_ref))
+          else
+            if (domain_ref /= '') call xios_set_attr(field, domain_ref=trim(domain_ref)//"_cf")
+          end if
+          if (axis_ref /= '') call xios_set_attr(field, axis_ref=trim(axis_ref))
         end if
       end if
 
