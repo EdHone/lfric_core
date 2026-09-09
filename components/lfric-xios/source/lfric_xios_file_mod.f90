@@ -394,10 +394,10 @@ subroutine register_with_context(self)
   select case(self%file_convention)
     case (CONVENTION_CF)
       call xios_set_attr(self%handle, convention="CF")
-      call xios_set_attr(file_definition, convention_str="CF-1.12")
+      call xios_set_attr(self%handle, convention_str="CF-1.12")
     case (CONVENTION_UGRID)
       call xios_set_attr(self%handle, convention="UGRID")
-      call xios_set_attr(file_definition, convention_str="CF-1.12 UGRID-1.0")
+      call xios_set_attr(self%handle, convention_str="CF-1.12 UGRID-1.0")
     case default
       self%file_convention = CONVENTION_CF
       call log_event("File convention unset for file ["//trim(self%xios_id)// &

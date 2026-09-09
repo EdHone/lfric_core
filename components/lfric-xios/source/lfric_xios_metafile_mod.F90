@@ -49,8 +49,6 @@ module lfric_xios_metafile_mod
 
 private
 
-logical(l_def) :: cf_domains_initialised = .false.
-
 public :: metafile_type, add_field
 
 contains
