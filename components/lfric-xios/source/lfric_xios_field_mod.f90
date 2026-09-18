@@ -180,7 +180,6 @@ subroutine register(self, ugrid)
   grid_tag = "_grid"
   if (.not. ugrid_format) then
     domain_id = trim(domain_id)//"_cf"
-    print*, domain_id
     grid_tag  = "_cf_grid"
   end if
 

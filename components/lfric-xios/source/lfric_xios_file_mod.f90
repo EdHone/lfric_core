@@ -390,7 +390,6 @@ subroutine register_with_context(self)
     self%file_convention = CONVENTION_CF
   end if
 
-  print*, self%file_convention
   select case(self%file_convention)
     case (CONVENTION_CF)
       call xios_set_attr(self%handle, convention="CF")
@@ -400,6 +399,8 @@ subroutine register_with_context(self)
       call xios_set_attr(self%handle, convention_str="CF-1.12 UGRID-1.0")
     case default
       self%file_convention = CONVENTION_CF
+      call xios_set_attr(self%handle, convention="CF")
+      call xios_set_attr(self%handle, convention_str="CF-1.12")
       call log_event("File convention unset for file ["//trim(self%xios_id)// &
                      "] - defaulting to CF", log_level_debug)
   end select
