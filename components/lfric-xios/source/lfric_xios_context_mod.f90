@@ -277,7 +277,6 @@ contains
       ! Only take action if this is a regional model with UGRID Projected
       ! coordinates, as these are awaiting XIOS feature development
       if ( this%ugrid_scaled_projected_coordinates ) then
-
         call log_event("Closing file for post processing.", LOG_LEVEL_DEBUG)
         ! We have closed the context on our end, but we need to make sure that XIOS
         ! has closed the files for all servers before we process them.
