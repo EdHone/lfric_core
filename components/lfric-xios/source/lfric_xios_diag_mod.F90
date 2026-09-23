@@ -23,8 +23,8 @@ module lfric_xios_diag_mod
                                         xios_get_axis_attr,                   &
                                         xios_set_axis_attr,                   &
                                         xios_is_valid_axis,                   &
-                                        xios_extract_axis,                       &
-                                        xios_is_valid_extract_axis,              &
+                                        xios_extract_axis,                    &
+                                        xios_is_valid_extract_axis,           &
                                         xios_get_handle,                      &
                                         xios_set_attr,                        &
                                         xios_setvar,                          &
@@ -44,8 +44,8 @@ module lfric_xios_diag_mod
                                         xios_get_axis_attr,                   &
                                         xios_set_axis_attr,                   &
                                         xios_is_valid_axis,                   &
-                                        xios_extract_axis,                       &
-                                        xios_is_valid_extract_axis,              &
+                                        xios_extract_axis,                    &
+                                        xios_is_valid_extract_axis,           &
                                         xios_get_handle,                      &
                                         xios_set_attr,                        &
                                         xios_setvar,                          &
@@ -77,7 +77,7 @@ module lfric_xios_diag_mod
     get_axis_dimension,                                                        &
     get_axis_values,                                                           &
     set_axis_dimension,                                                        &
-    set_extract_axis_attr,                                                        &
+    set_extract_axis_attr,                                                     &
     set_variable,                                                              &
     get_variable
 
