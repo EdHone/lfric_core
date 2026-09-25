@@ -398,11 +398,11 @@ subroutine register_with_context(self)
       call xios_set_attr(self%handle, convention="UGRID")
       call xios_set_attr(self%handle, convention_str="CF-1.12 UGRID-1.0")
     case default
-      self%file_convention = CONVENTION_CF
-      call xios_set_attr(self%handle, convention="CF")
-      call xios_set_attr(self%handle, convention_str="CF-1.12")
+      self%file_convention = CONVENTION_UGRID
+      call xios_set_attr(self%handle, convention="UGRID")
+      call xios_set_attr(self%handle, convention_str="CF-1.12 UGRID-1.0")
       call log_event("File convention unset for file ["//trim(self%xios_id)// &
-                     "] - defaulting to CF", log_level_debug)
+                     "] - defaulting to UGRID", log_level_debug)
   end select
 
   ! Create CF-compliant time description
