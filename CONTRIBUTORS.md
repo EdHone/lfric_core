@@ -37,3 +37,4 @@
 | cjohnson-pi      | Christine Johnson      | Met Office            | 2026-06-29 |
 | svadams          | Samantha Adams         | Met Office            | 2026-07-27 |
 | DrTVockerodtMO   | Terence Vockerodt      | Met Office            | 2026-08-17 |
+| mo-claudiosanchez | Claudio Sanchez       | Met Office            | 2026-07-23 |
