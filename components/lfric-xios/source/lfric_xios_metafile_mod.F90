@@ -7,7 +7,7 @@
 !>  @brief Support for configuring input/output files
 module lfric_xios_metafile_mod
 
-  use constants_mod,                 only: str_def, i_def, l_def, imdi
+  use constants_mod,                 only: str_def, i_def, l_def
   use log_mod,                       only: log_event,                         &
                                            log_level_error,                   &
                                            log_level_info,                    &
