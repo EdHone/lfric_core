@@ -19,7 +19,6 @@ module lfric_xios_diag_mod
                                         xios_is_defined_field_attr,           &
                                         xios_get_field_attr,                  &
                                         xios_set_field_attr,                  &
-                                        xios_field_is_active,                 &
                                         xios_get_axis_attr,                   &
                                         xios_set_axis_attr,                   &
                                         xios_is_valid_axis,                   &
@@ -40,7 +39,6 @@ module lfric_xios_diag_mod
                                         xios_is_defined_field_attr,           &
                                         xios_get_field_attr,                  &
                                         xios_set_field_attr,                  &
-                                        xios_field_is_active,                 &
                                         xios_get_axis_attr,                   &
                                         xios_set_axis_attr,                   &
                                         xios_is_valid_axis,                   &
@@ -199,7 +197,7 @@ contains
       'Invalid XIOS field:', unique_id
       call log_event(log_scratch_space, LOG_LEVEL_ERROR)
     else
-      active = xios_field_is_active(unique_id, at_current_timestep)
+      active = .true.
     end if
   end function field_is_active
 
