@@ -17,7 +17,8 @@
                             'module load gcc/12.2.0 ; '~
                             'module load lfric-gnu/12.2.0/3.2 || true'  %}
 
-{% set ex1a_compiler_cce =  'module switch PrgEnv-cray PrgEnv-cray/8.4.0 ; ' ~
+{% set ex1a_compiler_cce =  'module use /home/users/lfricadmin/lmod ; module load lfric-arch/genoa ; '~
+                            'module switch PrgEnv-cray PrgEnv-cray/8.4.0 ; ' ~
                             'module load cpe/23.05 ; '~
                             'module switch cce cce/15.0.0 ; '~
                             'module load lfric-cray/15.0.0/3.2 || true '  %}

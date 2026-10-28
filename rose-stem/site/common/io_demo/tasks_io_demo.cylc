@@ -118,6 +118,54 @@
 
 {% endif %}
 
+{% if task_ns.conf_name.startswith("benchmark-C896") %}
+
+    {% do task_dict.update({
+        "opt_confs": ["benchmark"],
+        "resolution": "C896",
+        "wallclock": 20,
+        "kgo_checks": [],
+        "log_level": "info",
+        "tsteps": 12,
+    }) %}
+
+{% endif %}
+
+{% if task_ns.conf_name == "benchmark-C896-4704" %}
+
+    {% do task_dict.update({
+        "mpi_parts": 4704,
+        "mpi_parts_xios": 96,
+        "xios_nodes": 3,
+    }) %}
+
+{% elif task_ns.conf_name == "benchmark-C896-6144" %}
+
+    {% do task_dict.update({
+        "mpi_parts": 6144,
+        "mpi_parts_xios": 128,
+        "xios_nodes": 4,
+    }) %}
+
+{% elif task_ns.conf_name == "benchmark-C896-10752" %}
+
+    {% do task_dict.update({
+        "mpi_parts": 10752,
+        "mpi_parts_xios": 192,
+        "xios_nodes": 6,
+    }) %}
+
+{% elif task_ns.conf_name == "benchmark-C896-12544" %}
+
+    {% do task_dict.update({
+        "mpi_parts": 12544,
+        "mpi_parts_xios": 256,
+        "xios_nodes": 8,
+    }) %}
+
+
+{% endif %}
+
 {# Set default values for io_demo tasks #}
 {% if task_dict %}
     {% do task_dict.update({"application_dir": "lfric_core/applications/io_demo"}) %}
