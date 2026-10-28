@@ -69,6 +69,11 @@
         "io_demo_benchmark-nwp-C224_ex1a_cce_fast-debug-32bit",
         "io_demo_benchmark-nwp-C224_ex1a_gnu_fast-debug-32bit",
     ],
+    "io_demo_ex1a_scaling": [
+        "io_demo_benchmark-C896-4704_ex1a_cce_production-32bit",
+        "io_demo_benchmark-C896-6144_ex1a_cce_production-32bit",
+        "io_demo_benchmark-C896-10752_ex1a_cce_production-32bit",
+    ],
     "io_demo_ex1a_servers": [
         "io_demo_temporal_reading-C48-server_ex1a_cce_fast-debug-32bit",
         "io_demo_temporal_reading-C48-server_ex1a_gnu_fast-debug-64bit",

@@ -44,9 +44,11 @@
     'mkdir -p $TASK_OUTPUT_DIR/results/',
     'RELATIVE_LOG_ROOT=$(echo $CYLC_TASK_LOG_ROOT | sed "s|$HOME/||")',
     'echo $RELATIVE_LOG_ROOT > $TASK_OUTPUT_DIR/run.log.path',
+    'du -h $CYLC_TASK_WORK_DIR/*.nc > $CYLC_TASK_LOG_DIR/results_file_sizes.log',
     'find . -regex ".*PET0+\..+\.Log" -exec cp {} $ROSE_TASK_LOG_DIR \;',
     'find . -regex ".*PET0+\..+\.Log" -exec cp {} $TASK_OUTPUT_DIR \;',
     'find . -regex ".*PET0+\..+\.Log" -exec cat {} \;',
+    'tail -n 10 xios_server_$TOTAL_RANKS.out > $CYLC_TASK_LOG_DIR/xios_server.out',
     'test -f '~task_values["app_name"]~
         '-checksums.txt && cp $CYLC_TASK_WORK_DIR/'~
         task_values["app_name"]~'-checksums.txt $TASK_OUTPUT_DIR/checksum.txt',
