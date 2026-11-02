@@ -96,8 +96,15 @@ contains
     io_benchmark_fields => modeldb%fields%get_field_collection("io_benchmark_fields")
 
     file_list = linked_list_type()
-    call file_list%insert_item( lfric_xios_file_type( "io_write_benchmark",                 &
+    call file_list%insert_item( lfric_xios_file_type( "results/io_write_benchmark",                 &
                                                       xios_id="io_write_benchmark",         &
+                                                      io_mode=FILE_MODE_WRITE,              &
+                                                      operation=OPERATION_TIMESERIES,       &
+                                                      freq=diagnostic_frequency,            &
+                                                      fields_in_file=io_benchmark_fields ) )
+
+    call file_list%insert_item( lfric_xios_file_type( "results/io_write_benchmark_2",               &
+                                                      xios_id="io_write_benchmark_2",       &
                                                       io_mode=FILE_MODE_WRITE,              &
                                                       operation=OPERATION_TIMESERIES,       &
                                                       freq=diagnostic_frequency,            &

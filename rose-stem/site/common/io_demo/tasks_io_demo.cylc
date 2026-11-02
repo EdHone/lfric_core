@@ -123,7 +123,7 @@
     {% do task_dict.update({
         "opt_confs": ["benchmark"],
         "resolution": "C896",
-        "wallclock": 20,
+        "wallclock": 40,
         "kgo_checks": [],
         "log_level": "info",
         "tsteps": 12,
@@ -163,6 +163,21 @@
         "xios_nodes": 8,
     }) %}
 
+{% endif %}
+
+{% if task_ns.conf_name == "benchmark-C1152" %}
+
+    {% do task_dict.update({
+        "opt_confs": ["benchmark"],
+        "resolution": "C1152",
+        "wallclock": 60,
+        "kgo_checks": [],
+        "log_level": "info",
+        "tsteps": 12,
+        "mpi_parts": 13824,
+        "mpi_parts_xios": 256,
+        "xios_nodes": 8,
+    }) %}
 
 {% endif %}
 
