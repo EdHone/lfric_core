@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simulation>
+
+  <context id = "io_demo">
+
+   <axis_definition src="./metadata/axis_dictionary.xml"/>
+
+   <grid_definition src="./metadata/grid_dictionary.xml"/>
+
+   <field_definition src="./metadata/field_dictionary.xml"/>
+
+   <file_definition
+      type="one_file"
+      time_counter="none">
+
+     <file id="lfric_diag" name="io_demo_diag" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+       <field field_ref="diffusion_field"/>
+     </file>
+
+     <file id="benchmark_2" name="results/benchmark_2" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+       <field field_ref="io_benchmark_field_001__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_002__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_003__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_004__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_005__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_006__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_007__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_008__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_009__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_010__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_011__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_012__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_013__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_014__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_015__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_016__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_017__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_018__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_019__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_020__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_021__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_022__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_023__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_024__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_025__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_026__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_027__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_028__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_029__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_030__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_031__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_032__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_033__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_034__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_035__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_036__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_037__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_038__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_039__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_040__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_041__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_042__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_043__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_044__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_045__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_046__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_047__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_048__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_049__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_050__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_051__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_052__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_053__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_054__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_055__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_056__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_057__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_058__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_059__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_060__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_061__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_062__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_063__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_064__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_065__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_066__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_067__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_068__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_069__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_070__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_071__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_072__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_073__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_074__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_075__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_076__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_077__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_078__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_079__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_080__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_081__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_082__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_083__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_084__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_085__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_086__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_087__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_088__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_089__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_090__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_091__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_092__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_093__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_094__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_095__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_096__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_097__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_098__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_099__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_100__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_101__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_102__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_103__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_104__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_105__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_106__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_107__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_108__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_109__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_110__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_111__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_112__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_113__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_114__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_115__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_116__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_117__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_118__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_119__io_write_benchmark_field_group"/>
+     </file>
+
+
+     <file id="benchmark_3" name="results/benchmark_3" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+       <field field_ref="io_benchmark_field_001__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_002__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_003__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_004__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_005__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_006__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_007__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_008__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_009__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_010__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_011__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_012__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_013__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_014__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_015__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_016__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_017__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_018__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_019__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_020__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_021__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_022__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_023__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_024__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_025__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_026__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_027__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_028__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_029__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_030__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_031__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_032__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_033__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_034__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_035__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_036__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_037__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_038__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_039__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_040__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_041__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_042__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_043__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_044__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_045__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_046__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_047__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_048__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_049__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_050__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_051__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_052__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_053__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_054__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_055__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_056__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_057__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_058__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_059__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_060__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_061__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_062__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_063__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_064__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_065__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_066__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_067__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_068__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_069__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_070__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_071__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_072__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_073__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_074__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_075__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_076__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_077__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_078__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_079__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_080__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_081__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_082__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_083__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_084__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_085__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_086__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_087__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_088__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_089__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_090__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_091__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_092__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_093__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_094__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_095__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_096__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_097__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_098__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_099__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_100__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_101__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_102__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_103__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_104__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_105__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_106__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_107__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_108__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_109__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_110__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_111__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_112__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_113__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_114__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_115__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_116__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_117__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_118__io_write_benchmark_field_group"/>
+       <field field_ref="io_benchmark_field_119__io_write_benchmark_field_group"/>
+     </file>
+
+    </file_definition>
+
+  </context>
+
+  <context id="xios" src="./etc/xios.xml"/>
+
+</simulation>
